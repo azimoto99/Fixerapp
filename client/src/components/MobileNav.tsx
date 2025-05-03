@@ -8,31 +8,31 @@ const MobileNav: React.FC = () => {
       <div className="max-w-md mx-auto px-4">
         <div className="flex justify-between">
           <Link href="/">
-            <a className={`group flex flex-col items-center py-3 px-2 ${location === '/' ? 'text-primary-600 border-t-2 border-primary-600' : 'text-gray-500'}`}>
+            <div className={`group flex flex-col items-center py-3 px-2 cursor-pointer ${location === '/' ? 'text-primary-600 border-t-2 border-primary-600' : 'text-gray-500'}`}>
               <i className="ri-compass-line text-xl"></i>
               <span className={`text-xs mt-1 ${location === '/' ? 'font-medium' : ''}`}>Explore</span>
-            </a>
+            </div>
           </Link>
           <Link href="/saved-jobs">
-            <a className={`group flex flex-col items-center py-3 px-2 ${location === '/saved-jobs' ? 'text-primary-600 border-t-2 border-primary-600' : 'text-gray-500'}`}>
+            <div className={`group flex flex-col items-center py-3 px-2 cursor-pointer ${location === '/saved-jobs' ? 'text-primary-600 border-t-2 border-primary-600' : 'text-gray-500'}`}>
               <i className="ri-bookmark-line text-xl"></i>
               <span className={`text-xs mt-1 ${location === '/saved-jobs' ? 'font-medium' : ''}`}>Saved</span>
-            </a>
+            </div>
           </Link>
           <Link href="/messages">
-            <a className={`group flex flex-col items-center py-3 px-2 ${location === '/messages' ? 'text-primary-600 border-t-2 border-primary-600' : 'text-gray-500'}`}>
+            <div className={`group flex flex-col items-center py-3 px-2 cursor-pointer ${location === '/messages' ? 'text-primary-600 border-t-2 border-primary-600' : 'text-gray-500'}`}>
               <div className="relative">
                 <i className="ri-message-2-line text-xl"></i>
                 <span className="absolute -top-1 -right-1 bg-red-500 text-white rounded-full w-4 h-4 text-xs flex items-center justify-center">3</span>
               </div>
               <span className={`text-xs mt-1 ${location === '/messages' ? 'font-medium' : ''}`}>Messages</span>
-            </a>
+            </div>
           </Link>
           <Link href="/profile">
-            <a className={`group flex flex-col items-center py-3 px-2 ${location === '/profile' ? 'text-primary-600 border-t-2 border-primary-600' : 'text-gray-500'}`}>
+            <div className={`group flex flex-col items-center py-3 px-2 cursor-pointer ${location === '/profile' ? 'text-primary-600 border-t-2 border-primary-600' : 'text-gray-500'}`}>
               <i className="ri-user-line text-xl"></i>
               <span className={`text-xs mt-1 ${location === '/profile' ? 'font-medium' : ''}`}>Profile</span>
-            </a>
+            </div>
           </Link>
         </div>
       </div>

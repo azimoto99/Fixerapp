@@ -77,14 +77,30 @@ export default function PostJob() {
       return;
     }
 
+    if (values.paymentAmount < 10) {
+      toast({
+        title: "Invalid Payment Amount",
+        description: "Minimum payment amount is $10",
+        variant: "destructive"
+      });
+      return;
+    }
+
     try {
       setIsSubmitting(true);
       
       // Set the poster id from the current user
       values.posterId = user.id;
       
+      // Calculate service fee and total amount
+      const jobData = {
+        ...values,
+        serviceFee: 2.50,
+        totalAmount: values.paymentAmount + 2.50
+      };
+      
       // Create the job
-      const response = await apiRequest('POST', '/api/jobs', values);
+      const response = await apiRequest('POST', '/api/jobs', jobData);
       const data = await response.json();
       
       toast({
@@ -223,17 +239,51 @@ export default function PostJob() {
                       <FormItem>
                         <FormLabel>Amount ($)</FormLabel>
                         <FormControl>
-                          <Input type="number" min="1" step="1" {...field} />
+                          <Input type="number" min="10" step="1" {...field} />
                         </FormControl>
                         <FormDescription>
                           {form.watch('paymentType') === 'hourly' 
-                            ? 'Enter hourly rate in dollars' 
-                            : 'Enter total payment in dollars'}
+                            ? 'Enter hourly rate in dollars (min $10)' 
+                            : 'Enter total payment in dollars (min $10)'}
                         </FormDescription>
                         <FormMessage />
                       </FormItem>
                     )}
                   />
+                </div>
+
+                {/* Service Fee Display */}
+                <div className="bg-gray-50 p-4 rounded-md border border-gray-200">
+                  <div className="flex justify-between text-sm mb-2">
+                    <span>
+                      {form.watch('paymentType') === 'hourly' 
+                        ? 'Hourly Rate:' 
+                        : 'Job Amount:'}
+                    </span>
+                    <span>${parseFloat(form.watch('paymentAmount') || 0).toFixed(2)}</span>
+                  </div>
+                  <div className="flex justify-between text-sm mb-2">
+                    <span>Service Fee:</span>
+                    <span>$2.50</span>
+                  </div>
+                  {form.watch('paymentType') === 'fixed' && (
+                    <div className="flex justify-between font-medium border-t border-gray-200 pt-2 mt-2">
+                      <span>Total Amount:</span>
+                      <span>${(parseFloat(form.watch('paymentAmount') || 0) + 2.50).toFixed(2)}</span>
+                    </div>
+                  )}
+                  {form.watch('paymentType') === 'fixed' && (
+                    <div className="flex justify-between text-sm mt-2">
+                      <span>Worker Receives:</span>
+                      <span>${parseFloat(form.watch('paymentAmount') || 0).toFixed(2)}</span>
+                    </div>
+                  )}
+                  {form.watch('paymentType') === 'hourly' && (
+                    <div className="flex justify-between text-sm mt-2">
+                      <span>Note:</span>
+                      <span className="text-right">For hourly jobs, the $2.50 service fee<br/>is added to the total upon completion</span>
+                    </div>
+                  )}
                 </div>
                 
                 {/* Location */}
