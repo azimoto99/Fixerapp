@@ -1,7 +1,6 @@
 import { useState, useEffect } from 'react';
 import Header from '@/components/Header';
 import MobileNav from '@/components/MobileNav';
-import AccountTypeSwitch from '@/components/AccountTypeSwitch';
 import JobSearch from '@/components/JobSearch';
 import ViewToggle from '@/components/ViewToggle';
 import JobListSection from '@/components/JobListSection';
@@ -10,6 +9,7 @@ import NewJobButton from '@/components/NewJobButton';
 import { useJobs } from '@/hooks/useJobs';
 import { Job } from '@shared/schema';
 import { useGeolocation } from '@/lib/geolocation';
+import { useAuth } from '@/hooks/use-auth';
 
 export default function Home() {
   const [view, setView] = useState<'list' | 'map'>('map');
@@ -44,8 +44,6 @@ export default function Home() {
       
       <main className="flex-1">
         <div className="max-w-7xl mx-auto py-6 sm:px-6 lg:px-8">
-          <AccountTypeSwitch />
-          
           <JobSearch onSearch={handleSearch} />
           
           <ViewToggle 

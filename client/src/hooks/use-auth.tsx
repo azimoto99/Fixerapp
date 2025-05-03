@@ -15,7 +15,6 @@ type AuthContextType = {
   loginMutation: UseMutationResult<SelectUser, Error, LoginData>;
   logoutMutation: UseMutationResult<void, Error, void>;
   registerMutation: UseMutationResult<SelectUser, Error, InsertUser>;
-  updateAccountType: (accountType: 'worker' | 'poster') => void;
 };
 
 type LoginData = Pick<InsertUser, "username" | "password">;
@@ -95,28 +94,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     },
   });
 
-  const updateAccountType = (accountType: 'worker' | 'poster') => {
-    if (!user) return;
-    
-    // Update account type via API
-    apiRequest("PATCH", `/api/users/${user.id}`, { accountType })
-      .then(res => res.json())
-      .then(updatedUser => {
-        queryClient.setQueryData(["/api/user"], updatedUser);
-        toast({
-          title: "Account type updated",
-          description: `You are now a ${accountType}`,
-        });
-      })
-      .catch(error => {
-        toast({
-          title: "Update failed",
-          description: error.message,
-          variant: "destructive",
-        });
-      });
-  };
-
   return (
     <AuthContext.Provider
       value={{
@@ -126,7 +103,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         loginMutation,
         logoutMutation,
         registerMutation,
-        updateAccountType,
       }}
     >
       {children}
