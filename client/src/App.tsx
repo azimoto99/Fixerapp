@@ -12,12 +12,13 @@ import Register from "@/pages/Register";
 import NotFound from "@/pages/not-found";
 import { AuthProvider } from "@/hooks/use-auth";
 import { ProtectedRoute } from "@/lib/protected-route";
+import { AccountTypeRoute } from "@/lib/account-type-route";
 
 function Router() {
   return (
     <Switch>
       <Route path="/" component={Home} />
-      <ProtectedRoute path="/post-job" component={PostJob} />
+      <AccountTypeRoute path="/post-job" component={PostJob} allowedType="poster" />
       <Route path="/job/:id" component={JobDetails} />
       <ProtectedRoute path="/profile" component={Profile} />
       <Route path="/login" component={Login} />

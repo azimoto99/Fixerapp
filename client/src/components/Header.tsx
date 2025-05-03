@@ -30,26 +30,46 @@ const Header = () => {
             </div>
           </Link>
           <nav className="hidden md:ml-8 md:flex md:space-x-8">
+            {/* Links for all users */}
             <Link href="/">
               <div className={`text-gray-500 hover:text-gray-900 font-medium px-1 py-5 cursor-pointer ${location === '/' ? 'text-primary-600 border-b-2 border-primary-600' : ''}`}>
-                Find Jobs
+                {user?.accountType === 'worker' ? 'Find Jobs' : 'Browse Workers'}
               </div>
             </Link>
-            <Link href="/post-job">
-              <div className={`text-gray-500 hover:text-gray-900 font-medium px-1 py-5 cursor-pointer ${location === '/post-job' ? 'text-primary-600 border-b-2 border-primary-600' : ''}`}>
-                Post a Job
-              </div>
-            </Link>
-            <Link href="/my-jobs">
-              <div className={`text-gray-500 hover:text-gray-900 font-medium px-1 py-5 cursor-pointer ${location === '/my-jobs' ? 'text-primary-600 border-b-2 border-primary-600' : ''}`}>
-                My Jobs
-              </div>
-            </Link>
-            <Link href="/messages">
-              <div className={`text-gray-500 hover:text-gray-900 font-medium px-1 py-5 cursor-pointer ${location === '/messages' ? 'text-primary-600 border-b-2 border-primary-600' : ''}`}>
-                Messages
-              </div>
-            </Link>
+            
+            {/* Links for posters only */}
+            {(!user || user.accountType === 'poster') && (
+              <Link href="/post-job">
+                <div className={`text-gray-500 hover:text-gray-900 font-medium px-1 py-5 cursor-pointer ${location === '/post-job' ? 'text-primary-600 border-b-2 border-primary-600' : ''}`}>
+                  Post a Job
+                </div>
+              </Link>
+            )}
+            
+            {/* Links for workers only */}
+            {user?.accountType === 'worker' && (
+              <Link href="/applications">
+                <div className={`text-gray-500 hover:text-gray-900 font-medium px-1 py-5 cursor-pointer ${location === '/applications' ? 'text-primary-600 border-b-2 border-primary-600' : ''}`}>
+                  My Applications
+                </div>
+              </Link>
+            )}
+            
+            {/* Links for authenticated users */}
+            {user && (
+              <>
+                <Link href={user.accountType === 'poster' ? '/my-jobs' : '/saved-jobs'}>
+                  <div className={`text-gray-500 hover:text-gray-900 font-medium px-1 py-5 cursor-pointer ${location === (user.accountType === 'poster' ? '/my-jobs' : '/saved-jobs') ? 'text-primary-600 border-b-2 border-primary-600' : ''}`}>
+                    {user.accountType === 'poster' ? 'My Jobs' : 'Saved Jobs'}
+                  </div>
+                </Link>
+                <Link href="/messages">
+                  <div className={`text-gray-500 hover:text-gray-900 font-medium px-1 py-5 cursor-pointer ${location === '/messages' ? 'text-primary-600 border-b-2 border-primary-600' : ''}`}>
+                    Messages
+                  </div>
+                </Link>
+              </>
+            )}
           </nav>
         </div>
         <div className="flex items-center space-x-4">

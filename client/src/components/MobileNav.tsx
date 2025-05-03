@@ -1,7 +1,10 @@
 import { Link, useLocation } from 'wouter';
+import { useAuth } from '@/hooks/use-auth';
 
 const MobileNav: React.FC = () => {
   const [location] = useLocation();
+  const { user } = useAuth();
+  const accountType = user?.accountType || 'worker';
 
   return (
     <nav className="md:hidden bg-white border-t border-gray-200 fixed bottom-0 left-0 right-0 z-30">
@@ -10,24 +13,37 @@ const MobileNav: React.FC = () => {
           <Link href="/">
             <div className={`group flex flex-col items-center py-3 px-2 cursor-pointer ${location === '/' ? 'text-primary-600 border-t-2 border-primary-600' : 'text-gray-500'}`}>
               <i className="ri-compass-line text-xl"></i>
-              <span className={`text-xs mt-1 ${location === '/' ? 'font-medium' : ''}`}>Explore</span>
+              <span className={`text-xs mt-1 ${location === '/' ? 'font-medium' : ''}`}>
+                {accountType === 'worker' ? 'Find Jobs' : 'Browse'}
+              </span>
             </div>
           </Link>
-          <Link href="/saved-jobs">
-            <div className={`group flex flex-col items-center py-3 px-2 cursor-pointer ${location === '/saved-jobs' ? 'text-primary-600 border-t-2 border-primary-600' : 'text-gray-500'}`}>
-              <i className="ri-bookmark-line text-xl"></i>
-              <span className={`text-xs mt-1 ${location === '/saved-jobs' ? 'font-medium' : ''}`}>Saved</span>
-            </div>
-          </Link>
-          <Link href="/messages">
-            <div className={`group flex flex-col items-center py-3 px-2 cursor-pointer ${location === '/messages' ? 'text-primary-600 border-t-2 border-primary-600' : 'text-gray-500'}`}>
-              <div className="relative">
-                <i className="ri-message-2-line text-xl"></i>
-                <span className="absolute -top-1 -right-1 bg-red-500 text-white rounded-full w-4 h-4 text-xs flex items-center justify-center">3</span>
+          
+          {accountType === 'worker' ? (
+            <Link href="/applications">
+              <div className={`group flex flex-col items-center py-3 px-2 cursor-pointer ${location === '/applications' ? 'text-primary-600 border-t-2 border-primary-600' : 'text-gray-500'}`}>
+                <i className="ri-file-list-line text-xl"></i>
+                <span className={`text-xs mt-1 ${location === '/applications' ? 'font-medium' : ''}`}>Apply</span>
               </div>
-              <span className={`text-xs mt-1 ${location === '/messages' ? 'font-medium' : ''}`}>Messages</span>
+            </Link>
+          ) : (
+            <Link href="/post-job">
+              <div className={`group flex flex-col items-center py-3 px-2 cursor-pointer ${location === '/post-job' ? 'text-primary-600 border-t-2 border-primary-600' : 'text-gray-500'}`}>
+                <i className="ri-add-circle-line text-xl"></i>
+                <span className={`text-xs mt-1 ${location === '/post-job' ? 'font-medium' : ''}`}>Post Job</span>
+              </div>
+            </Link>
+          )}
+          
+          <Link href={accountType === 'worker' ? '/saved-jobs' : '/my-jobs'}>
+            <div className={`group flex flex-col items-center py-3 px-2 cursor-pointer ${location === (accountType === 'worker' ? '/saved-jobs' : '/my-jobs') ? 'text-primary-600 border-t-2 border-primary-600' : 'text-gray-500'}`}>
+              <i className={accountType === 'worker' ? "ri-bookmark-line text-xl" : "ri-briefcase-line text-xl"}></i>
+              <span className={`text-xs mt-1 ${location === (accountType === 'worker' ? '/saved-jobs' : '/my-jobs') ? 'font-medium' : ''}`}>
+                {accountType === 'worker' ? 'Saved' : 'My Jobs'}
+              </span>
             </div>
           </Link>
+          
           <Link href="/profile">
             <div className={`group flex flex-col items-center py-3 px-2 cursor-pointer ${location === '/profile' ? 'text-primary-600 border-t-2 border-primary-600' : 'text-gray-500'}`}>
               <i className="ri-user-line text-xl"></i>
