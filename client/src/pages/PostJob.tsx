@@ -95,7 +95,7 @@ export default function PostJob() {
       // Service fee and total amount are calculated on the server
       
       // Create the job
-      const response = await apiRequest('POST', '/api/jobs', jobData);
+      const response = await apiRequest('POST', '/api/jobs', values);
       const data = await response.json();
       
       toast({
