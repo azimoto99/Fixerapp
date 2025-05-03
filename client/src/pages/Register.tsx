@@ -104,7 +104,7 @@ export default function Register() {
               <svg className="h-8 w-8 text-primary-600" viewBox="0 0 24 24" fill="currentColor">
                 <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"></path>
               </svg>
-              <span className="ml-2 text-2xl font-bold text-primary-600">GigConnect</span>
+              <span className="ml-2 text-2xl font-bold text-primary-600">The Job</span>
             </div>
           </Link>
         </div>
@@ -112,7 +112,7 @@ export default function Register() {
         <Card>
           <CardHeader>
             <CardTitle>Create an Account</CardTitle>
-            <CardDescription>Sign up for GigConnect to start finding or posting gigs</CardDescription>
+            <CardDescription>Sign up for The Job to start finding or posting gigs</CardDescription>
           </CardHeader>
           <CardContent>
             <Form {...form}>
@@ -335,13 +335,13 @@ export default function Register() {
                 </div>
               </div>
               
-              <div className="grid grid-cols-2 gap-3 mt-4">
+              <div className="mt-4">
                 <Button 
                   type="button" 
                   variant="outline" 
                   onClick={() => window.location.href = '/auth/google?accountType=' + form.watch('accountType')}
                   disabled={registerMutation.isPending}
-                  className="flex items-center justify-center"
+                  className="flex items-center justify-center w-full"
                 >
                   <svg className="h-5 w-5 mr-2" viewBox="0 0 24 24">
                     <g transform="matrix(1, 0, 0, 1, 27.009001, -39.238998)">
@@ -351,19 +351,7 @@ export default function Register() {
                       <path fill="#EA4335" d="M -14.754 43.989 C -12.984 43.989 -11.404 44.599 -10.154 45.789 L -6.734 42.369 C -8.804 40.429 -11.514 39.239 -14.754 39.239 C -19.444 39.239 -23.494 41.939 -25.464 45.859 L -21.484 48.949 C -20.534 46.099 -17.884 43.989 -14.754 43.989 Z"/>
                     </g>
                   </svg>
-                  Google
-                </Button>
-                <Button 
-                  type="button" 
-                  variant="outline" 
-                  onClick={() => window.location.href = '/auth/facebook?accountType=' + form.watch('accountType')}
-                  disabled={registerMutation.isPending}
-                  className="flex items-center justify-center"
-                >
-                  <svg className="h-5 w-5 mr-2" fill="#1877F2" viewBox="0 0 24 24">
-                    <path d="M12 2.04C6.5 2.04 2 6.53 2 12.06C2 17.06 5.66 21.21 10.44 21.96V14.96H7.9V12.06H10.44V9.85C10.44 7.34 11.93 5.96 14.22 5.96C15.31 5.96 16.45 6.15 16.45 6.15V8.62H15.19C13.95 8.62 13.56 9.39 13.56 10.18V12.06H16.34L15.89 14.96H13.56V21.96C15.9 21.59 18.03 20.42 19.57 18.66C21.1 16.89 21.93 14.63 21.93 12.31C21.93 6.58 17.44 2.04 12 2.04Z"/>
-                  </svg>
-                  Facebook
+                  Sign up with Google
                 </Button>
               </div>
             </div>
