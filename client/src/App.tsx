@@ -17,12 +17,13 @@ import { AccountTypeRoute } from "@/lib/account-type-route";
 function Router() {
   return (
     <Switch>
-      <Route path="/" component={Home} />
+      <ProtectedRoute path="/" component={Home} />
       <AccountTypeRoute path="/post-job" component={PostJob} allowedType="poster" />
-      <Route path="/job/:id" component={JobDetails} />
+      <ProtectedRoute path="/job/:id" component={JobDetails} />
       <ProtectedRoute path="/profile" component={Profile} />
       <Route path="/login" component={Login} />
       <Route path="/register" component={Register} />
+      <Route path="/auth/callback" component={() => <div>Processing authentication...</div>} />
       <Route component={NotFound} />
     </Switch>
   );
