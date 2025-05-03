@@ -4,7 +4,7 @@ import { z } from 'zod';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useForm } from 'react-hook-form';
 import { insertJobSchema } from '@shared/schema';
-import { useAuth } from '@/hooks/useAuth';
+import { useAuth } from '@/hooks/use-auth';
 import { useToast } from '@/hooks/use-toast';
 import { apiRequest } from '@/lib/queryClient';
 import { useGeolocation } from '@/lib/geolocation';
@@ -35,7 +35,10 @@ import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { JOB_CATEGORIES, SKILLS } from '@shared/schema';
 
 const formSchema = insertJobSchema.extend({
-  paymentAmount: z.coerce.number().positive('Payment amount must be positive')
+  paymentAmount: z.coerce
+    .number()
+    .min(10, 'Minimum payment amount is $10')
+    .positive('Payment amount must be positive')
 });
 
 export default function PostJob() {

@@ -1,5 +1,5 @@
 import { Link, useLocation } from 'wouter';
-import { useAuth } from '@/hooks/useAuth';
+import { useAuth } from '@/hooks/use-auth';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { 
   DropdownMenu, 
@@ -10,11 +10,11 @@ import {
 } from '@/components/ui/dropdown-menu';
 
 const Header = () => {
-  const { user, logout } = useAuth();
+  const { user, logoutMutation } = useAuth();
   const [location] = useLocation();
 
   const handleLogout = () => {
-    logout();
+    logoutMutation.mutate();
   };
 
   return (
@@ -22,33 +22,33 @@ const Header = () => {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex justify-between items-center h-16">
         <div className="flex items-center">
           <Link href="/">
-            <a className="flex-shrink-0 flex items-center">
+            <div className="flex-shrink-0 flex items-center cursor-pointer">
               <svg className="h-8 w-8 text-primary-600" viewBox="0 0 24 24" fill="currentColor">
                 <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"></path>
               </svg>
               <span className="ml-2 text-xl font-bold text-primary-600">GigConnect</span>
-            </a>
+            </div>
           </Link>
           <nav className="hidden md:ml-8 md:flex md:space-x-8">
             <Link href="/">
-              <a className={`text-gray-500 hover:text-gray-900 font-medium px-1 py-5 ${location === '/' ? 'text-primary-600 border-b-2 border-primary-600' : ''}`}>
+              <div className={`text-gray-500 hover:text-gray-900 font-medium px-1 py-5 cursor-pointer ${location === '/' ? 'text-primary-600 border-b-2 border-primary-600' : ''}`}>
                 Find Jobs
-              </a>
+              </div>
             </Link>
             <Link href="/post-job">
-              <a className={`text-gray-500 hover:text-gray-900 font-medium px-1 py-5 ${location === '/post-job' ? 'text-primary-600 border-b-2 border-primary-600' : ''}`}>
+              <div className={`text-gray-500 hover:text-gray-900 font-medium px-1 py-5 cursor-pointer ${location === '/post-job' ? 'text-primary-600 border-b-2 border-primary-600' : ''}`}>
                 Post a Job
-              </a>
+              </div>
             </Link>
             <Link href="/my-jobs">
-              <a className={`text-gray-500 hover:text-gray-900 font-medium px-1 py-5 ${location === '/my-jobs' ? 'text-primary-600 border-b-2 border-primary-600' : ''}`}>
+              <div className={`text-gray-500 hover:text-gray-900 font-medium px-1 py-5 cursor-pointer ${location === '/my-jobs' ? 'text-primary-600 border-b-2 border-primary-600' : ''}`}>
                 My Jobs
-              </a>
+              </div>
             </Link>
             <Link href="/messages">
-              <a className={`text-gray-500 hover:text-gray-900 font-medium px-1 py-5 ${location === '/messages' ? 'text-primary-600 border-b-2 border-primary-600' : ''}`}>
+              <div className={`text-gray-500 hover:text-gray-900 font-medium px-1 py-5 cursor-pointer ${location === '/messages' ? 'text-primary-600 border-b-2 border-primary-600' : ''}`}>
                 Messages
-              </a>
+              </div>
             </Link>
           </nav>
         </div>
@@ -61,21 +61,21 @@ const Header = () => {
               <DropdownMenuTrigger asChild>
                 <button className="flex items-center text-sm rounded-full focus:outline-none">
                   <Avatar className="h-8 w-8">
-                    <AvatarImage src={user.avatarUrl} alt={user.fullName} />
-                    <AvatarFallback>{user.fullName.charAt(0)}</AvatarFallback>
+                    <AvatarImage src={user.avatarUrl || undefined} alt={user.fullName} />
+                    <AvatarFallback>{user.fullName?.charAt(0) || 'U'}</AvatarFallback>
                   </Avatar>
                   <span className="hidden md:block ml-2 text-sm font-medium text-gray-700">{user.fullName}</span>
                 </button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end">
-                <DropdownMenuItem asChild>
+                <DropdownMenuItem>
                   <Link href="/profile">
-                    <a className="cursor-pointer">Profile</a>
+                    <span className="cursor-pointer w-full">Profile</span>
                   </Link>
                 </DropdownMenuItem>
-                <DropdownMenuItem asChild>
+                <DropdownMenuItem>
                   <Link href="/settings">
-                    <a className="cursor-pointer">Settings</a>
+                    <span className="cursor-pointer w-full">Settings</span>
                   </Link>
                 </DropdownMenuItem>
                 <DropdownMenuSeparator />
@@ -86,7 +86,7 @@ const Header = () => {
             </DropdownMenu>
           ) : (
             <Link href="/login">
-              <a className="text-primary-600 hover:text-primary-700 font-medium">Login</a>
+              <div className="text-primary-600 hover:text-primary-700 font-medium cursor-pointer">Login</div>
             </Link>
           )}
         </div>
