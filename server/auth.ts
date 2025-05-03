@@ -1,12 +1,21 @@
 import passport from "passport";
 import { Strategy as LocalStrategy } from "passport-local";
-import { Express } from "express";
+import { Strategy as GoogleStrategy } from "passport-google-oauth20";
+import { Strategy as FacebookStrategy } from "passport-facebook";
+import { Express, Request } from "express";
 import session from "express-session";
 import { scrypt, randomBytes, timingSafeEqual } from "crypto";
 import { promisify } from "util";
 import { storage } from "./storage";
-import { User as SelectUser } from "@shared/schema";
+import { User as SelectUser, InsertUser } from "@shared/schema";
 import MemoryStore from "memorystore";
+
+// Extend the session data type with our custom properties
+declare module 'express-session' {
+  interface SessionData {
+    accountType?: 'worker' | 'poster';
+  }
+}
 
 declare global {
   namespace Express {
@@ -29,6 +38,65 @@ async function comparePasswords(supplied: string, stored: string) {
   return timingSafeEqual(hashedBuf, suppliedBuf);
 }
 
+// Helper function to generate random string for password
+function generateRandomPassword() {
+  return randomBytes(16).toString('hex');
+}
+
+// Function to find or create a user from social login
+async function findOrCreateUserFromSocial(
+  profile: any, 
+  accountType: 'worker' | 'poster'
+): Promise<SelectUser> {
+  // Check if a user with this social profile ID already exists
+  // If so, return that user (assuming their account type matches)
+  const allUsers = Array.from((storage as any).users.values());
+  const existingUser = allUsers.find(
+    u => (u.googleId === profile.id || u.facebookId === profile.id) && u.accountType === accountType
+  );
+  
+  if (existingUser) {
+    return existingUser;
+  }
+  
+  // No existing user, create a new one
+  const email = profile.emails && profile.emails[0] ? profile.emails[0].value : '';
+  const name = profile.displayName || (profile.name ? `${profile.name.givenName} ${profile.name.familyName}` : '');
+  const photoUrl = 
+    profile.photos && profile.photos[0] ? profile.photos[0].value : 
+    profile._json && profile._json.picture ? profile._json.picture : 
+    null;
+  
+  const username = `${accountType}_${profile.provider}_${profile.id}`;
+  
+  // Generate a random password
+  const password = await hashPassword(generateRandomPassword());
+  
+  // Create user data object
+  const userData: InsertUser = {
+    username,
+    password,
+    fullName: name,
+    email,
+    phone: null,
+    bio: null,
+    accountType,
+    avatarUrl: photoUrl,
+    skills: [],
+    isActive: true,
+  };
+  
+  // Add the specific provider ID
+  if (profile.provider === 'google') {
+    (userData as any).googleId = profile.id;
+  } else if (profile.provider === 'facebook') {
+    (userData as any).facebookId = profile.id;
+  }
+  
+  // Create the user
+  return await storage.createUser(userData);
+}
+
 export function setupAuth(app: Express) {
   const MemoryStoreSession = MemoryStore(session);
   
@@ -49,6 +117,7 @@ export function setupAuth(app: Express) {
   app.use(passport.initialize());
   app.use(passport.session());
 
+  // Local Strategy
   passport.use(
     new LocalStrategy({
       usernameField: 'username',
@@ -79,6 +148,61 @@ export function setupAuth(app: Express) {
       }
     }),
   );
+  
+  // Google Strategy
+  if (process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET) {
+    passport.use(new GoogleStrategy({
+      clientID: process.env.GOOGLE_CLIENT_ID,
+      clientSecret: process.env.GOOGLE_CLIENT_SECRET,
+      callbackURL: "/auth/google/callback",
+      passReqToCallback: true
+    }, async (req, accessToken, refreshToken, profile, done) => {
+      try {
+        // Get the account type from the session or query parameter
+        const accountType = req.query.accountType || req.session.accountType || 'worker';
+        
+        // Store the account type in the session
+        if (req.session) {
+          req.session.accountType = accountType;
+        }
+        
+        // Find or create the user
+        const user = await findOrCreateUserFromSocial(profile, accountType as 'worker' | 'poster');
+        
+        return done(null, user);
+      } catch (err) {
+        return done(err as Error);
+      }
+    }));
+  }
+  
+  // Facebook Strategy
+  if (process.env.FACEBOOK_APP_ID && process.env.FACEBOOK_APP_SECRET) {
+    passport.use(new FacebookStrategy({
+      clientID: process.env.FACEBOOK_APP_ID,
+      clientSecret: process.env.FACEBOOK_APP_SECRET,
+      callbackURL: "/auth/facebook/callback",
+      profileFields: ['id', 'displayName', 'photos', 'email', 'name'],
+      passReqToCallback: true
+    }, async (req, accessToken, refreshToken, profile, done) => {
+      try {
+        // Get the account type from the session or query parameter
+        const accountType = req.query.accountType || req.session.accountType || 'worker';
+        
+        // Store the account type in the session
+        if (req.session) {
+          req.session.accountType = accountType;
+        }
+        
+        // Find or create the user
+        const user = await findOrCreateUserFromSocial(profile, accountType as 'worker' | 'poster');
+        
+        return done(null, user);
+      } catch (err) {
+        return done(err as Error);
+      }
+    }));
+  }
 
   passport.serializeUser((user, done) => done(null, user.id));
   
@@ -163,4 +287,52 @@ export function setupAuth(app: Express) {
     const { password, ...user } = req.user;
     res.json(user);
   });
+
+  // Google Authentication Routes
+  app.get('/auth/google', (req, res, next) => {
+    // Store the account type in the session
+    if (req.query.accountType) {
+      req.session.accountType = req.query.accountType;
+    }
+    
+    passport.authenticate('google', { 
+      scope: ['profile', 'email'],
+      session: true
+    })(req, res, next);
+  });
+
+  app.get('/auth/google/callback', 
+    passport.authenticate('google', { 
+      failureRedirect: '/login',
+      session: true
+    }),
+    (req, res) => {
+      // Successful authentication, redirect home
+      res.redirect('/');
+    }
+  );
+
+  // Facebook Authentication Routes
+  app.get('/auth/facebook', (req, res, next) => {
+    // Store the account type in the session
+    if (req.query.accountType) {
+      req.session.accountType = req.query.accountType;
+    }
+    
+    passport.authenticate('facebook', { 
+      scope: ['email', 'public_profile'],
+      session: true
+    })(req, res, next);
+  });
+
+  app.get('/auth/facebook/callback',
+    passport.authenticate('facebook', { 
+      failureRedirect: '/login',
+      session: true
+    }),
+    (req, res) => {
+      // Successful authentication, redirect home
+      res.redirect('/');
+    }
+  );
 }

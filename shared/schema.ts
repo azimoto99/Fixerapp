@@ -17,6 +17,9 @@ export const users = pgTable("users", {
   rating: doublePrecision("rating"), // Average rating from completed jobs
   isActive: boolean("is_active").notNull().default(true),
   lastActive: timestamp("last_active").defaultNow(),
+  // Social login fields
+  googleId: text("google_id"), // Google OAuth ID
+  facebookId: text("facebook_id"), // Facebook OAuth ID
 }, (table) => {
   // Create a unique constraint on the combination of email and accountType
   // This allows the same email to have multiple accounts with different types
