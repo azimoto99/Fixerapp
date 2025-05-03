@@ -101,10 +101,14 @@ const JobDetail: React.FC<JobDetailProps> = ({ job, distance = 0.5, onClose }) =
             <span className="text-sm text-gray-500">{paymentType === 'hourly' ? '/hr' : ' flat'}</span>
           </div>
           <div className="text-xs text-gray-500 mt-1">
-            + {formatCurrency(serviceFee)} service fee
+            {paymentType === 'hourly' 
+              ? `+ ${formatCurrency(serviceFee)} service fee (added upon completion)` 
+              : `+ ${formatCurrency(serviceFee)} service fee`}
           </div>
           <div className="text-sm font-semibold text-gray-700 mt-1">
-            Total: {formatCurrency(totalAmount)}
+            {paymentType === 'hourly'
+              ? `Worker receives: ${formatCurrency(paymentAmount)}/hr`
+              : `Total: ${formatCurrency(totalAmount)} (Worker receives: ${formatCurrency(paymentAmount)})`}
           </div>
         </div>
       </div>

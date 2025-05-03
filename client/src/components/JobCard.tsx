@@ -56,7 +56,9 @@ const JobCard: React.FC<JobCardProps> = ({ job, isSelected, onSelect }) => {
                 {paymentType === 'hourly' ? `${formatCurrency(paymentAmount)}/hr` : formatCurrency(paymentAmount)}
               </Badge>
               <div className="text-xs text-gray-500 mt-1">
-                +{formatCurrency(serviceFee)} fee
+                {paymentType === 'fixed' 
+                  ? `Total: ${formatCurrency(totalAmount)}` 
+                  : `+${formatCurrency(serviceFee)} fee`}
               </div>
             </div>
           </div>
