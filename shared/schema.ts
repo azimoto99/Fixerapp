@@ -1,4 +1,4 @@
-import { pgTable, text, serial, integer, boolean, doublePrecision, timestamp, varchar, jsonb } from "drizzle-orm/pg-core";
+import { pgTable, text, serial, integer, boolean, doublePrecision, timestamp, varchar, jsonb, uniqueIndex } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
@@ -8,7 +8,7 @@ export const users = pgTable("users", {
   username: text("username").notNull().unique(),
   password: text("password").notNull(),
   fullName: text("full_name").notNull(),
-  email: text("email").notNull().unique(),
+  email: text("email").notNull(),
   phone: text("phone"),
   bio: text("bio"),
   avatarUrl: text("avatar_url"),
@@ -17,6 +17,12 @@ export const users = pgTable("users", {
   rating: doublePrecision("rating"), // Average rating from completed jobs
   isActive: boolean("is_active").notNull().default(true),
   lastActive: timestamp("last_active").defaultNow(),
+}, (table) => {
+  // Create a unique constraint on the combination of email and accountType
+  // This allows the same email to have multiple accounts with different types
+  return {
+    emailAccountTypeUnique: uniqueIndex("email_accounttype_unique").on(table.email, table.accountType)
+  }
 });
 
 // Job postings table

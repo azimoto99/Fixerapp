@@ -16,6 +16,7 @@ import {
 import {
   Form,
   FormControl,
+  FormDescription,
   FormField,
   FormItem,
   FormLabel,
@@ -27,6 +28,7 @@ import { Button } from '@/components/ui/button';
 const formSchema = z.object({
   username: z.string().min(1, 'Username is required'),
   password: z.string().min(1, 'Password is required'),
+  accountType: z.enum(['worker', 'poster']),
 });
 
 type FormData = z.infer<typeof formSchema>;
@@ -47,6 +49,7 @@ export default function Login() {
     defaultValues: {
       username: '',
       password: '',
+      accountType: 'worker',
     },
   });
 
@@ -65,6 +68,7 @@ export default function Login() {
     
     form.setValue('username', username);
     form.setValue('password', 'password123');
+    form.setValue('accountType', accountType);
     
     // Submit the form
     form.handleSubmit(onSubmit)();
@@ -115,6 +119,48 @@ export default function Login() {
                       <FormControl>
                         <Input type="password" placeholder="••••••••" {...field} />
                       </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                
+                <FormField
+                  control={form.control}
+                  name="accountType"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Account Type</FormLabel>
+                      <div className="flex space-x-4">
+                        <div className="flex items-center">
+                          <input
+                            type="radio"
+                            id="worker"
+                            value="worker"
+                            checked={field.value === 'worker'}
+                            onChange={() => field.onChange('worker')}
+                            className="h-4 w-4 text-primary-600 border-gray-300 focus:ring-primary-500"
+                          />
+                          <label htmlFor="worker" className="ml-2 block text-sm text-gray-700">
+                            Worker
+                          </label>
+                        </div>
+                        <div className="flex items-center">
+                          <input
+                            type="radio"
+                            id="poster"
+                            value="poster"
+                            checked={field.value === 'poster'}
+                            onChange={() => field.onChange('poster')}
+                            className="h-4 w-4 text-primary-600 border-gray-300 focus:ring-primary-500"
+                          />
+                          <label htmlFor="poster" className="ml-2 block text-sm text-gray-700">
+                            Job Poster
+                          </label>
+                        </div>
+                      </div>
+                      <FormDescription>
+                        Select the account type you want to use for this login
+                      </FormDescription>
                       <FormMessage />
                     </FormItem>
                   )}
