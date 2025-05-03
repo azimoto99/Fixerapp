@@ -50,11 +50,22 @@ export function setupAuth(app: Express) {
   app.use(passport.session());
 
   passport.use(
-    new LocalStrategy(async (username, password, done) => {
+    new LocalStrategy({
+      usernameField: 'username',
+      passwordField: 'password',
+      passReqToCallback: true
+    }, async (req, username, password, done) => {
       try {
-        const user = await storage.getUserByUsername(username);
+        const accountType = req.body.accountType as 'worker' | 'poster';
+        
+        if (!accountType) {
+          return done(null, false, { message: "Account type is required" });
+        }
+        
+        const user = await storage.getUserByUsernameAndType(username, accountType);
+        
         if (!user) {
-          return done(null, false, { message: "Incorrect username" });
+          return done(null, false, { message: `No ${accountType} account found with this username` });
         }
         
         const passwordValid = await comparePasswords(password, user.password);
@@ -82,9 +93,24 @@ export function setupAuth(app: Express) {
 
   app.post("/api/register", async (req, res, next) => {
     try {
-      const existingUser = await storage.getUserByUsername(req.body.username);
+      const { username, email, accountType } = req.body;
+
+      // Check if the username is already taken
+      const existingUser = await storage.getUserByUsername(username);
       if (existingUser) {
         return res.status(400).json({ message: "Username already exists" });
+      }
+
+      // Check if a user with the same email and account type already exists
+      const allUsers = Array.from((storage as any).users.values());
+      const userWithSameEmailAndType = allUsers.find(
+        u => u.email === email && u.accountType === accountType
+      );
+      
+      if (userWithSameEmailAndType) {
+        return res.status(400).json({ 
+          message: `You already have a ${accountType} account with this email address` 
+        });
       }
 
       const hashedPassword = await hashPassword(req.body.password);
