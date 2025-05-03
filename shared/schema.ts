@@ -71,6 +71,17 @@ export const reviews = pgTable("reviews", {
   dateReviewed: timestamp("date_reviewed").defaultNow(),
 });
 
+// Tasks for jobs
+export const tasks = pgTable("tasks", {
+  id: serial("id").primaryKey(),
+  jobId: integer("job_id").notNull(), // References jobs.id
+  description: text("description").notNull(),
+  isCompleted: boolean("is_completed").notNull().default(false),
+  completedAt: timestamp("completed_at"),
+  completedBy: integer("completed_by"), // References users.id (worker who completed the task)
+  position: integer("position").notNull(), // Order position in the task list
+});
+
 // Insert schemas
 export const insertUserSchema = createInsertSchema(users).omit({
   id: true,
@@ -99,6 +110,13 @@ export const insertReviewSchema = createInsertSchema(reviews).omit({
   dateReviewed: true,
 });
 
+export const insertTaskSchema = createInsertSchema(tasks).omit({
+  id: true,
+  isCompleted: true,
+  completedAt: true,
+  completedBy: true,
+});
+
 // Types
 export type User = typeof users.$inferSelect;
 export type InsertUser = z.infer<typeof insertUserSchema>;
@@ -111,6 +129,9 @@ export type InsertApplication = z.infer<typeof insertApplicationSchema>;
 
 export type Review = typeof reviews.$inferSelect;
 export type InsertReview = z.infer<typeof insertReviewSchema>;
+
+export type Task = typeof tasks.$inferSelect;
+export type InsertTask = z.infer<typeof insertTaskSchema>;
 
 // Categories enum for job types
 export const JOB_CATEGORIES = [

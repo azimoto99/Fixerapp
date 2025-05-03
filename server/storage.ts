@@ -2,7 +2,8 @@ import {
   users, 
   jobs, 
   applications, 
-  reviews, 
+  reviews,
+  tasks, 
   type User, 
   type InsertUser, 
   type Job,
@@ -10,7 +11,9 @@ import {
   type Application,
   type InsertApplication,
   type Review,
-  type InsertReview 
+  type InsertReview,
+  type Task,
+  type InsertTask
 } from "@shared/schema";
 
 // Storage interface for all CRUD operations
@@ -54,6 +57,14 @@ export interface IStorage {
   getReviewsForUser(userId: number): Promise<Review[]>;
   getReviewsForJob(jobId: number): Promise<Review[]>;
   createReview(review: InsertReview): Promise<Review>;
+  
+  // Task operations
+  getTask(id: number): Promise<Task | undefined>;
+  getTasksForJob(jobId: number): Promise<Task[]>;
+  createTask(task: InsertTask): Promise<Task>;
+  updateTask(id: number, data: Partial<Task>): Promise<Task | undefined>;
+  completeTask(id: number, completedBy: number): Promise<Task | undefined>;
+  reorderTasks(jobId: number, taskIds: number[]): Promise<Task[]>;
 }
 
 export class MemStorage implements IStorage {
@@ -61,22 +72,26 @@ export class MemStorage implements IStorage {
   private jobs: Map<number, Job>;
   private applications: Map<number, Application>;
   private reviews: Map<number, Review>;
+  private tasks: Map<number, Task>;
   
   private userIdCounter: number;
   private jobIdCounter: number;
   private applicationIdCounter: number;
   private reviewIdCounter: number;
+  private taskIdCounter: number;
 
   constructor() {
     this.users = new Map();
     this.jobs = new Map();
     this.applications = new Map();
     this.reviews = new Map();
+    this.tasks = new Map();
     
     this.userIdCounter = 1;
     this.jobIdCounter = 1;
     this.applicationIdCounter = 1;
     this.reviewIdCounter = 1;
+    this.taskIdCounter = 1;
     
     // Initialize with sample data
     this.initializeSampleData();
