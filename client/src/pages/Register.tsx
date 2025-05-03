@@ -100,12 +100,12 @@ export default function Register() {
       <div className="w-full max-w-md px-4">
         <div className="text-center mb-8">
           <Link href="/">
-            <a className="inline-flex items-center">
+            <div className="inline-flex items-center cursor-pointer">
               <svg className="h-8 w-8 text-primary-600" viewBox="0 0 24 24" fill="currentColor">
                 <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"></path>
               </svg>
               <span className="ml-2 text-2xl font-bold text-primary-600">GigConnect</span>
-            </a>
+            </div>
           </Link>
         </div>
         
@@ -372,9 +372,9 @@ export default function Register() {
             <p className="text-sm text-gray-600">
               Already have an account?{' '}
               <Link href="/login">
-                <a className="font-medium text-primary-600 hover:text-primary-500">
+                <span className="font-medium text-primary-600 hover:text-primary-500 cursor-pointer">
                   Log in
-                </a>
+                </span>
               </Link>
             </p>
           </CardFooter>
