@@ -92,12 +92,7 @@ export default function PostJob() {
       // Set the poster id from the current user
       values.posterId = user.id;
       
-      // Calculate service fee and total amount
-      const jobData = {
-        ...values,
-        serviceFee: 2.50,
-        totalAmount: values.paymentAmount + 2.50
-      };
+      // Service fee and total amount are calculated on the server
       
       // Create the job
       const response = await apiRequest('POST', '/api/jobs', jobData);

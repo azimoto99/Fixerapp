@@ -291,8 +291,18 @@ export class MemStorage implements IStorage {
     const id = this.jobIdCounter++;
     const datePosted = new Date();
     const workerId = null;
+    const serviceFee = 2.5; // Service fee is fixed at $2.50
+    const totalAmount = insertJob.paymentType === 'fixed' ? insertJob.paymentAmount + serviceFee : insertJob.paymentAmount;
     
-    const job: Job = { ...insertJob, id, datePosted, workerId };
+    const job: Job = { 
+      ...insertJob, 
+      id, 
+      datePosted, 
+      workerId, 
+      serviceFee, 
+      totalAmount 
+    };
+    
     this.jobs.set(id, job);
     return job;
   }
@@ -301,7 +311,21 @@ export class MemStorage implements IStorage {
     const job = this.jobs.get(id);
     if (!job) return undefined;
     
-    const updatedJob = { ...job, ...data };
+    let updatedJob = { ...job, ...data };
+    
+    // Recalculate total amount and service fee if payment information has been updated
+    if (data.paymentAmount !== undefined || data.paymentType !== undefined) {
+      const paymentType = data.paymentType || job.paymentType;
+      const paymentAmount = data.paymentAmount !== undefined ? data.paymentAmount : job.paymentAmount;
+      const serviceFee = 2.5; // Fixed service fee
+      
+      updatedJob = {
+        ...updatedJob,
+        serviceFee,
+        totalAmount: paymentType === 'fixed' ? paymentAmount + serviceFee : paymentAmount
+      };
+    }
+    
     this.jobs.set(id, updatedJob);
     return updatedJob;
   }

@@ -98,16 +98,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         });
       }
       
-      // Calculate service fee (fixed at $2.50) and total amount
-      const serviceFee = 2.50;
-      const totalAmount = jobData.paymentAmount + serviceFee;
-      
-      // Create the job with calculated fields
-      const newJob = await storage.createJob({
-        ...jobData,
-        serviceFee,
-        totalAmount
-      });
+      // Service fee and total amount are calculated in storage.createJob
+      const newJob = await storage.createJob(jobData);
       
       res.status(201).json(newJob);
     } catch (error) {
@@ -174,16 +166,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       const jobData = insertJobSchema.partial().parse(req.body);
       
-      // If payment amount is being updated, recalculate the total
-      let totalAmount = job.totalAmount;
-      if (jobData.paymentAmount !== undefined) {
-        totalAmount = jobData.paymentAmount + job.serviceFee;
-      }
-      
-      const updatedJob = await storage.updateJob(id, {
-        ...jobData,
-        totalAmount
-      });
+      // Service fee and total amount are recalculated in storage.updateJob
+      const updatedJob = await storage.updateJob(id, jobData);
       
       res.json(updatedJob);
     } catch (error) {
