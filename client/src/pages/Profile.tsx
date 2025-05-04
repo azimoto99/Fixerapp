@@ -161,14 +161,12 @@ export default function Profile() {
                     Payments
                   </span>
                 </TabsTrigger>
-                {user.accountType === 'worker' && (
-                  <TabsTrigger value="earnings">
-                    <span className="flex items-center gap-1">
-                      <DollarSign className="h-3.5 w-3.5" />
-                      Earnings
-                    </span>
-                  </TabsTrigger>
-                )}
+                <TabsTrigger value="earnings">
+                  <span className="flex items-center gap-1">
+                    <DollarSign className="h-3.5 w-3.5" />
+                    {user.accountType === 'worker' ? 'Earnings' : 'Income'}
+                  </span>
+                </TabsTrigger>
                 <TabsTrigger value="reviews">Reviews</TabsTrigger>
                 <TabsTrigger value="badges">Badges</TabsTrigger>
               </TabsList>
@@ -285,20 +283,18 @@ export default function Profile() {
               {/* Payments Tab */}
               <TabsContent value="payments">
                 <div className="space-y-6">
-                  {/* Payment Account Setup Card (for workers) */}
-                  {user.accountType === 'worker' && (
-                    <Card>
-                      <CardHeader>
-                        <CardTitle>Payment Account Setup</CardTitle>
-                        <CardDescription>
-                          Set up your Stripe Connect account to receive payments directly
-                        </CardDescription>
-                      </CardHeader>
-                      <CardContent>
-                        <StripeConnectSetup />
-                      </CardContent>
-                    </Card>
-                  )}
+                  {/* Payment Account Setup Card (for all users) */}
+                  <Card>
+                    <CardHeader>
+                      <CardTitle>Payment Account Setup</CardTitle>
+                      <CardDescription>
+                        Set up your Stripe Connect account to receive payments directly
+                      </CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                      <StripeConnectSetup />
+                    </CardContent>
+                  </Card>
                   
                   {/* Payment History Card */}
                   <Card>
@@ -366,12 +362,10 @@ export default function Profile() {
                           <p>The minimum payment amount for any job is $10.00.</p>
                         </div>
                         
-                        {user.accountType === 'worker' && (
-                          <div className="p-4 bg-gray-50 rounded-md">
-                            <p className="font-medium mb-2">Direct Deposits:</p>
-                            <p>Payments are transferred directly to your connected Stripe account once the job poster marks the payment as "Paid".</p>
-                          </div>
-                        )}
+                        <div className="p-4 bg-gray-50 rounded-md">
+                          <p className="font-medium mb-2">Direct Deposits:</p>
+                          <p>Payments are transferred directly to your connected Stripe account once the payment process is completed.</p>
+                        </div>
                       </div>
                     </CardContent>
                   </Card>
@@ -379,68 +373,68 @@ export default function Profile() {
               </TabsContent>
               
               {/* Earnings Tab */}
-              {user.accountType === 'worker' && (
-                <TabsContent value="earnings">
-                  <div className="space-y-6">
-                    {/* Stripe Connect Setup Card */}
-                    <Card>
-                      <CardHeader>
-                        <CardTitle>Stripe Connect Setup</CardTitle>
-                        <CardDescription>
-                          Connect your Stripe account to receive earnings directly
-                        </CardDescription>
-                      </CardHeader>
-                      <CardContent>
-                        <StripeConnectSetup />
-                      </CardContent>
-                    </Card>
-                    
-                    {/* Earnings Stats Card */}
-                    <Card>
-                      <CardHeader>
-                        <CardTitle>Earnings Overview</CardTitle>
-                        <CardDescription>
-                          Summary of your earnings and completed jobs
-                        </CardDescription>
-                      </CardHeader>
-                      <CardContent>
-                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                          <div className="bg-gray-50 p-4 rounded-md">
-                            <p className="text-sm text-gray-500">Total Earnings</p>
-                            <p className="text-2xl font-semibold">$0.00</p>
-                          </div>
-                          <div className="bg-gray-50 p-4 rounded-md">
-                            <p className="text-sm text-gray-500">Pending</p>
-                            <p className="text-2xl font-semibold">$0.00</p>
-                          </div>
-                          <div className="bg-gray-50 p-4 rounded-md">
-                            <p className="text-sm text-gray-500">Jobs Completed</p>
-                            <p className="text-2xl font-semibold">{user.completedJobs || 0}</p>
-                          </div>
+              <TabsContent value="earnings">
+                <div className="space-y-6">
+                  {/* Stripe Connect Setup Card */}
+                  <Card>
+                    <CardHeader>
+                      <CardTitle>Stripe Connect Setup</CardTitle>
+                      <CardDescription>
+                        Connect your Stripe account to receive payments directly
+                      </CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                      <StripeConnectSetup />
+                    </CardContent>
+                  </Card>
+                  
+                  {/* Earnings Stats Card */}
+                  <Card>
+                    <CardHeader>
+                      <CardTitle>{user.accountType === 'worker' ? 'Earnings Overview' : 'Income Overview'}</CardTitle>
+                      <CardDescription>
+                        Summary of your {user.accountType === 'worker' ? 'earnings' : 'income'} and {user.accountType === 'worker' ? 'completed jobs' : 'job postings'}
+                      </CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        <div className="bg-gray-50 p-4 rounded-md">
+                          <p className="text-sm text-gray-500">Total {user.accountType === 'worker' ? 'Earnings' : 'Income'}</p>
+                          <p className="text-2xl font-semibold">$0.00</p>
                         </div>
-                        
-                        <div className="mt-6">
-                          <h3 className="text-sm font-medium text-gray-500 mb-3">Recent Earnings</h3>
-                          <div className="text-center py-8 bg-gray-50 rounded-md">
-                            <p className="text-gray-500">No earnings history yet.</p>
-                            <p className="text-sm text-gray-400 mt-1">
-                              Complete jobs to start earning money.
-                            </p>
-                          </div>
+                        <div className="bg-gray-50 p-4 rounded-md">
+                          <p className="text-sm text-gray-500">Pending</p>
+                          <p className="text-2xl font-semibold">$0.00</p>
                         </div>
-                        
-                        <div className="mt-4 text-center">
-                          <Link href="/earnings">
-                            <Button variant="outline" size="sm">
-                              View Full Earnings Dashboard
-                            </Button>
-                          </Link>
+                        <div className="bg-gray-50 p-4 rounded-md">
+                          <p className="text-sm text-gray-500">{user.accountType === 'worker' ? 'Jobs Completed' : 'Jobs Posted'}</p>
+                          <p className="text-2xl font-semibold">{user.accountType === 'worker' ? (user.completedJobs || 0) : 0}</p>
                         </div>
-                      </CardContent>
-                    </Card>
-                  </div>
-                </TabsContent>
-              )}
+                      </div>
+                      
+                      <div className="mt-6">
+                        <h3 className="text-sm font-medium text-gray-500 mb-3">Recent {user.accountType === 'worker' ? 'Earnings' : 'Income'}</h3>
+                        <div className="text-center py-8 bg-gray-50 rounded-md">
+                          <p className="text-gray-500">No {user.accountType === 'worker' ? 'earnings' : 'income'} history yet.</p>
+                          <p className="text-sm text-gray-400 mt-1">
+                            {user.accountType === 'worker' 
+                              ? 'Complete jobs to start earning money.' 
+                              : 'Post jobs and connect to start receiving income.'}
+                          </p>
+                        </div>
+                      </div>
+                      
+                      <div className="mt-4 text-center">
+                        <Link href="/earnings">
+                          <Button variant="outline" size="sm">
+                            View Full {user.accountType === 'worker' ? 'Earnings' : 'Income'} Dashboard
+                          </Button>
+                        </Link>
+                      </div>
+                    </CardContent>
+                  </Card>
+                </div>
+              </TabsContent>
               
               {/* Badges Tab */}
               <TabsContent value="badges">
