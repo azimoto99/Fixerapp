@@ -23,6 +23,7 @@ interface MapSectionProps {
   jobs: Job[];
   selectedJob?: Job;
   onSelectJob?: (job: Job) => void;
+  searchCoordinates?: { latitude: number; longitude: number };
 }
 
 // Component to recenter map when user location changes
@@ -87,20 +88,27 @@ function RecenterControl({ position }: { position: LatLngExpression | null }) {
 }
 
 // DoorDash-style interactive map component for showing nearby gigs
-const MapSection: React.FC<MapSectionProps> = ({ jobs, selectedJob, onSelectJob }) => {
+const MapSection: React.FC<MapSectionProps> = ({ jobs, selectedJob, onSelectJob, searchCoordinates }) => {
   const { userLocation, locationError, isUsingFallback } = useGeolocation();
   const [showJobDetail, setShowJobDetail] = useState<boolean>(false);
   const [mapReady, setMapReady] = useState(false);
   const [isApplying, setIsApplying] = useState(false);
   const [isUserDrawerOpen, setIsUserDrawerOpen] = useState(false);
   const [forceCloseDrawer, setForceCloseDrawer] = useState(false);
+  const [lastSearchLocation, setLastSearchLocation] = useState<LatLngExpression | null>(null);
   const { user } = useAuth();
   const { toast } = useToast();
   
-  // Convert user location to leaflet format
-  const position: LatLngExpression | null = userLocation 
-    ? [userLocation.latitude, userLocation.longitude] 
-    : null;
+  // Use search coordinates if provided, otherwise fall back to user location
+  const position: LatLngExpression | null = useMemo(() => {
+    // Prioritize search coordinates over geolocation
+    if (searchCoordinates) {
+      return [searchCoordinates.latitude, searchCoordinates.longitude] as LatLngExpression;
+    }
+    return userLocation 
+      ? [userLocation.latitude, userLocation.longitude] 
+      : null;
+  }, [searchCoordinates, userLocation]);
   
   // Handle selecting a job when a map marker is clicked
   const handleMarkerClick = (job: Job) => {
