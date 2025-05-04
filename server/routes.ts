@@ -167,10 +167,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Add extended schema for job with payment method
+  const jobWithPaymentSchema = insertJobSchema.extend({
+    paymentMethodId: z.string().optional()
+  });
+
   // Job endpoints
   apiRouter.post("/jobs", isAuthenticated, async (req: Request, res: Response) => {
     try {
-      const jobData = insertJobSchema.parse(req.body);
+      // Parse the request with the extended schema that includes paymentMethodId
+      const { paymentMethodId, ...jobData } = jobWithPaymentSchema.parse(req.body);
       
       // Ensure the job poster ID matches the authenticated user
       if (jobData.posterId !== req.user.id) {
@@ -182,6 +188,59 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Allow any user to post jobs regardless of their account type (both workers and posters)
       // Service fee and total amount are calculated in storage.createJob
       const newJob = await storage.createJob(jobData);
+      
+      // For fixed price jobs with payment method ID, process payment upfront
+      if (jobData.paymentType === 'fixed' && paymentMethodId) {
+        try {
+          // Calculate the total amount including the service fee
+          const amountInCents = Math.round((jobData.paymentAmount + 2.50) * 100);
+          
+          // Create a payment intent with the payment method
+          const paymentIntent = await stripe.paymentIntents.create({
+            amount: amountInCents,
+            currency: "usd",
+            payment_method: paymentMethodId,
+            confirm: true, // Confirm the payment immediately
+            confirmation_method: 'manual',
+            metadata: {
+              jobId: newJob.id.toString(),
+              posterId: newJob.posterId.toString(),
+              jobTitle: newJob.title,
+              paymentAmount: newJob.paymentAmount.toString(),
+              serviceFee: newJob.serviceFee.toString(),
+              platform: "The Job"
+            },
+            receipt_email: req.user.email,
+            description: `Upfront payment for job: ${newJob.title}`
+          });
+          
+          // Create a payment record
+          await storage.createPayment({
+            type: "job_payment_upfront",
+            status: paymentIntent.status === "succeeded" ? "completed" : "pending",
+            description: `Upfront payment for job: ${newJob.title}`,
+            jobId: newJob.id,
+            amount: newJob.totalAmount,
+            userId: req.user.id,
+            paymentMethod: "stripe",
+            transactionId: paymentIntent.id,
+            metadata: {
+              clientSecret: paymentIntent.client_secret
+            }
+          });
+          
+          // Update the job with payment status if payment succeeded
+          if (paymentIntent.status === "succeeded") {
+            await storage.updateJob(newJob.id, { 
+              paymentStatus: "paid"
+            });
+          }
+        } catch (paymentError) {
+          console.error("Error processing job payment:", paymentError);
+          // We still return the created job even if payment processing fails
+          // The payment can be handled separately later
+        }
+      }
       
       res.status(201).json(newJob);
     } catch (error) {

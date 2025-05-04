@@ -11,6 +11,7 @@ import { useGeolocation } from '@/lib/geolocation';
 
 import Header from '@/components/Header';
 import MobileNav from '@/components/MobileNav';
+import PaymentDetailsForm from '@/components/PaymentDetailsForm';
 import { Button } from '@/components/ui/button';
 import {
   Form,
@@ -33,6 +34,7 @@ import {
 import { Checkbox } from '@/components/ui/checkbox';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { JOB_CATEGORIES, SKILLS } from '@shared/schema';
+import { Dialog, DialogContent } from '@/components/ui/dialog';
 
 const formSchema = insertJobSchema.extend({
   paymentAmount: z.coerce
@@ -47,6 +49,9 @@ export default function PostJob() {
   const [_, navigate] = useLocation();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const { userLocation } = useGeolocation();
+  const [showPaymentForm, setShowPaymentForm] = useState(false);
+  const [formData, setFormData] = useState<z.infer<typeof formSchema> | null>(null);
+  const [paymentMethodId, setPaymentMethodId] = useState<string | null>(null);
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -66,7 +71,13 @@ export default function PostJob() {
     }
   });
 
-  async function onSubmit(values: z.infer<typeof formSchema>) {
+  // Function to calculate the total amount including service fee
+  const calculateTotalAmount = (amount: number) => {
+    return amount + 2.50;
+  };
+
+  // Handle form submission to move to payment step
+  function handleFormSubmit(values: z.infer<typeof formSchema>) {
     if (!user) {
       toast({
         title: "Login Required",
@@ -86,17 +97,34 @@ export default function PostJob() {
       return;
     }
 
+    // Store form data and show payment form
+    setFormData(values);
+    setShowPaymentForm(true);
+  }
+
+  // Handle payment success
+  const handlePaymentSuccess = async (pmId: string) => {
+    if (!formData || !user) return;
+
     try {
       setIsSubmitting(true);
+      setPaymentMethodId(pmId);
       
       // Set the poster id from the current user
-      values.posterId = user.id;
+      const values = { ...formData, posterId: user.id };
       
-      // Service fee and total amount are calculated on the server
+      // Add the payment method ID to the job data
+      const jobData = {
+        ...values,
+        paymentMethodId: pmId
+      };
       
       // Create the job
-      const response = await apiRequest('POST', '/api/jobs', values);
+      const response = await apiRequest('POST', '/api/jobs', jobData);
       const data = await response.json();
+      
+      // Close the payment form dialog
+      setShowPaymentForm(false);
       
       toast({
         title: "Job Posted",
@@ -114,6 +142,49 @@ export default function PostJob() {
     } finally {
       setIsSubmitting(false);
     }
+  };
+
+  // Handle payment cancellation
+  const handlePaymentCancel = () => {
+    setShowPaymentForm(false);
+  };
+
+  // Submit the form directly if it's an hourly job (which doesn't require upfront payment)
+  async function onSubmit(values: z.infer<typeof formSchema>) {
+    if (values.paymentType === 'hourly') {
+      // For hourly jobs, we don't collect payment upfront
+      try {
+        setIsSubmitting(true);
+        
+        // Set the poster id from the current user
+        if (user) {
+          values.posterId = user.id;
+        }
+        
+        // Create the job
+        const response = await apiRequest('POST', '/api/jobs', values);
+        const data = await response.json();
+        
+        toast({
+          title: "Job Posted",
+          description: "Your job has been posted successfully!"
+        });
+        
+        // Navigate to the job details page
+        navigate(`/job/${data.id}`);
+      } catch (error) {
+        toast({
+          title: "Error",
+          description: "Failed to post job. Please try again.",
+          variant: "destructive"
+        });
+      } finally {
+        setIsSubmitting(false);
+      }
+    } else {
+      // For fixed price jobs, collect payment details
+      handleFormSubmit(values);
+    }
   }
 
   return (
@@ -124,6 +195,20 @@ export default function PostJob() {
         <div className="max-w-3xl mx-auto py-6 sm:px-6 lg:px-8">
           <div className="bg-card shadow rounded-lg p-6">
             <h1 className="text-2xl font-bold text-foreground mb-6">Post a New Job</h1>
+            
+            {/* Payment Details Dialog */}
+            <Dialog open={showPaymentForm} onOpenChange={setShowPaymentForm}>
+              <DialogContent className="sm:max-w-lg">
+                {formData && (
+                  <PaymentDetailsForm
+                    amount={calculateTotalAmount(formData.paymentAmount)}
+                    jobTitle={formData.title}
+                    onPaymentSuccess={handlePaymentSuccess}
+                    onPaymentCancel={handlePaymentCancel}
+                  />
+                )}
+              </DialogContent>
+            </Dialog>
             
             <Form {...form}>
               <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
