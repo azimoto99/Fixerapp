@@ -15,6 +15,7 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { Loader2, CheckCircle2, MessageCircle, Star, X } from 'lucide-react';
 import { useMutation, useQuery } from '@tanstack/react-query';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { StripeConnectRequired } from '@/components/stripe';
 
 interface JobDetailProps {
   job: Job;
@@ -28,6 +29,7 @@ const JobDetail: React.FC<JobDetailProps> = ({ job, distance = 0.5, onClose }) =
   const [isApplying, setIsApplying] = useState(false);
   const [showReviewForm, setShowReviewForm] = useState(false);
   const [activeTab, setActiveTab] = useState<string>('details');
+  const [showStripeConnectRequired, setShowStripeConnectRequired] = useState(false);
   
   const {
     id: jobId,

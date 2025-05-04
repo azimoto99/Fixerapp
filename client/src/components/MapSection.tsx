@@ -17,7 +17,8 @@ import { LatLngExpression } from 'leaflet';
 import { Loader2 } from 'lucide-react';
 import { useAuth } from '@/hooks/use-auth';
 import { useToast } from '@/hooks/use-toast';
-import { apiRequest } from '@/lib/queryClient';
+import { apiRequest, queryClient } from '@/lib/queryClient';
+import { StripeConnectRequired } from '@/components/stripe';
 
 interface MapSectionProps {
   jobs: Job[];
@@ -96,6 +97,7 @@ const MapSection: React.FC<MapSectionProps> = ({ jobs, selectedJob, onSelectJob,
   const [isUserDrawerOpen, setIsUserDrawerOpen] = useState(false);
   const [forceCloseDrawer, setForceCloseDrawer] = useState(false);
   const [lastSearchLocation, setLastSearchLocation] = useState<LatLngExpression | null>(null);
+  const [showStripeConnectRequired, setShowStripeConnectRequired] = useState(false);
   const { user } = useAuth();
   const { toast } = useToast();
   
@@ -179,7 +181,18 @@ const MapSection: React.FC<MapSectionProps> = ({ jobs, selectedJob, onSelectJob,
       return;
     }
     
+    // Check if user has a Stripe Connect account
     try {
+      const res = await apiRequest('GET', '/api/stripe/connect/account-status');
+      const accountStatus = await res.json();
+      
+      // If user doesn't have an active Connect account, show the setup modal
+      if (!accountStatus || accountStatus.accountStatus !== 'active') {
+        setShowStripeConnectRequired(true);
+        return;
+      }
+      
+      // If they have an active Connect account, proceed with application
       setIsApplying(true);
       await apiRequest('POST', '/api/applications', {
         jobId: selectedJob.id,
@@ -194,7 +207,13 @@ const MapSection: React.FC<MapSectionProps> = ({ jobs, selectedJob, onSelectJob,
       
       // Close the job detail panel after successful application
       handleCloseDetail();
-    } catch (error) {
+    } catch (error: any) {
+      // If the error is a 404 (no account), show the Stripe Connect setup
+      if (error.status === 404) {
+        setShowStripeConnectRequired(true);
+        return;
+      }
+      
       toast({
         title: "Application Failed",
         description: "There was an error submitting your application. Please try again.",
@@ -273,6 +292,19 @@ const MapSection: React.FC<MapSectionProps> = ({ jobs, selectedJob, onSelectJob,
 
   return (
     <div className="w-full h-full">
+      {/* Stripe Connect Required Modal */}
+      {showStripeConnectRequired && (
+        <StripeConnectRequired
+          onComplete={() => {
+            setShowStripeConnectRequired(false);
+            // After setup, try to apply again after a small delay
+            setTimeout(() => {
+              handleApply();
+            }, 500);
+          }}
+          onSkip={() => setShowStripeConnectRequired(false)}
+        />
+      )}
       <div className="relative h-screen">
         <style>{`
           .leaflet-container {
