@@ -2,6 +2,7 @@ import express, { type Express, Request, Response } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { z } from "zod";
+import Stripe from "stripe";
 import { 
   insertUserSchema, 
   insertJobSchema, 
@@ -14,6 +15,14 @@ import {
   SKILLS
 } from "@shared/schema";
 import { setupAuth } from "./auth";
+
+// Initialize Stripe with the secret key
+if (!process.env.STRIPE_SECRET_KEY) {
+  throw new Error("Missing required environment variable: STRIPE_SECRET_KEY");
+}
+const stripe = new Stripe(process.env.STRIPE_SECRET_KEY, {
+  apiVersion: "2025-04-30.basil", // Using the latest API version
+});
 
 // Helper function to validate location parameters
 const locationParamsSchema = z.object({
@@ -682,6 +691,180 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.json(updatedPayment);
     } catch (error) {
       res.status(400).json({ message: (error as Error).message });
+    }
+  });
+
+  // Stripe payment processing endpoints
+  apiRouter.post("/stripe/create-payment-intent", isAuthenticated, async (req: Request, res: Response) => {
+    try {
+      const { jobId } = req.body;
+      
+      if (!jobId) {
+        return res.status(400).json({ message: "Job ID is required" });
+      }
+      
+      // Get the job to calculate payment amount
+      const job = await storage.getJob(parseInt(jobId));
+      if (!job) {
+        return res.status(404).json({ message: "Job not found" });
+      }
+      
+      // Only job posters can create payment intents
+      if (job.posterId !== req.user.id) {
+        return res.status(403).json({ 
+          message: "Forbidden: Only job posters can create payment intents" 
+        });
+      }
+      
+      // Calculate the total amount including the service fee
+      // Amount must be in cents for Stripe
+      const amountInCents = Math.round(job.totalAmount * 100);
+      
+      // Create a payment intent with Stripe
+      const paymentIntent = await stripe.paymentIntents.create({
+        amount: amountInCents,
+        currency: "usd",
+        metadata: {
+          jobId: job.id.toString(),
+          posterId: job.posterId.toString(),
+          workerId: job.workerId ? job.workerId.toString() : null,
+          jobTitle: job.title
+        }
+      });
+      
+      // Create a pending payment record in our database
+      const payment = await storage.createPayment({
+        type: "job_payment",
+        status: "pending",
+        description: `Payment for job: ${job.title}`,
+        jobId: job.id,
+        amount: job.totalAmount,
+        userId: req.user.id,
+        paymentMethod: "stripe",
+        transactionId: paymentIntent.id,
+        metadata: {
+          clientSecret: paymentIntent.client_secret
+        }
+      });
+      
+      // Return the client secret to the frontend
+      res.json({ 
+        clientSecret: paymentIntent.client_secret,
+        paymentId: payment.id
+      });
+    } catch (error) {
+      res.status(400).json({ message: (error as Error).message });
+    }
+  });
+
+  apiRouter.post("/stripe/confirm-payment", isAuthenticated, async (req: Request, res: Response) => {
+    try {
+      const { paymentId, paymentIntentId } = req.body;
+      
+      if (!paymentId || !paymentIntentId) {
+        return res.status(400).json({ 
+          message: "Payment ID and payment intent ID are required" 
+        });
+      }
+      
+      // Retrieve the payment from our database
+      const payment = await storage.getPayment(parseInt(paymentId));
+      if (!payment) {
+        return res.status(404).json({ message: "Payment not found" });
+      }
+      
+      // Check if the user is authorized to confirm this payment
+      if (payment.userId !== req.user.id) {
+        return res.status(403).json({ 
+          message: "Forbidden: You can only confirm your own payments" 
+        });
+      }
+      
+      // Verify the payment intent with Stripe
+      const paymentIntent = await stripe.paymentIntents.retrieve(paymentIntentId);
+      
+      if (paymentIntent.status === "succeeded") {
+        // Update our payment record to completed
+        const updatedPayment = await storage.updatePaymentStatus(
+          payment.id, 
+          "completed", 
+          paymentIntent.id
+        );
+        
+        // If this is a job payment, also create an earning record for the worker
+        if (payment.jobId) {
+          const job = await storage.getJob(payment.jobId);
+          if (job && job.workerId) {
+            // Create an earning record for the worker
+            // Calculate the net amount (payment amount minus service fee)
+            const netAmount = job.paymentAmount - job.serviceFee;
+            
+            await storage.createEarning({
+              jobId: job.id,
+              workerId: job.workerId,
+              amount: job.paymentAmount, // Base amount without service fee
+              serviceFee: job.serviceFee, // Service fee amount
+              netAmount: netAmount, // Net amount after service fee
+              description: `Payment for job: ${job.title}`
+            });
+          }
+        }
+        
+        res.json({ success: true, payment: updatedPayment });
+      } else {
+        // Payment intent is not succeeded
+        res.status(400).json({ 
+          message: `Payment not successful. Status: ${paymentIntent.status}` 
+        });
+      }
+    } catch (error) {
+      res.status(400).json({ message: (error as Error).message });
+    }
+  });
+
+  // Webhook endpoint to handle Stripe events
+  app.post("/webhook/stripe", express.raw({type: 'application/json'}), async (req: Request, res: Response) => {
+    const sig = req.headers['stripe-signature'];
+    
+    // Webhook signing is recommended, but optional
+    // This would require setting up a webhook endpoint in the Stripe dashboard
+    // and getting the webhook signing secret
+    // For now, we'll just log the event type
+    try {
+      // Parse the event
+      const event = stripe.webhooks.constructEvent(
+        req.body, 
+        sig as string, 
+        process.env.STRIPE_WEBHOOK_SECRET || 'whsec_test'
+      );
+      
+      // Handle the event
+      switch (event.type) {
+        case 'payment_intent.succeeded':
+          const paymentIntent = event.data.object;
+          const jobId = paymentIntent.metadata?.jobId;
+          
+          if (jobId) {
+            // Find the related payment in our database
+            // This would require an additional storage method to find by transactionId
+            // For now, we'll just log the success
+            console.log(`PaymentIntent ${paymentIntent.id} succeeded for job ${jobId}`);
+          }
+          break;
+          
+        case 'payment_intent.payment_failed':
+          const failedPaymentIntent = event.data.object;
+          console.log(`PaymentIntent ${failedPaymentIntent.id} failed`);
+          break;
+          
+        default:
+          console.log(`Unhandled event type: ${event.type}`);
+      }
+      
+      res.json({received: true});
+    } catch (error) {
+      console.error('Webhook error:', error);
+      res.status(400).send(`Webhook Error: ${(error as Error).message}`);
     }
   });
 
