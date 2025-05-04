@@ -25,6 +25,7 @@ import {
 } from 'lucide-react';
 import { Payment, Job } from '@shared/schema';
 import DownloadReceipt from '@/components/DownloadReceipt';
+import StripeConnectSetup from '@/components/stripe/StripeConnectSetup';
 import { 
   Table, 
   TableBody, 
@@ -177,6 +178,21 @@ const PaymentDashboard: React.FC = () => {
   return (
     <div className="container mx-auto p-6">
       <h1 className="text-2xl font-bold mb-6">Payment Dashboard</h1>
+      
+      {/* Stripe Connect Setup for Workers */}
+      {user && user.accountType === 'worker' && (
+        <Card className="mb-6">
+          <CardHeader>
+            <CardTitle>Payment Account Setup</CardTitle>
+            <CardDescription>
+              Set up your Stripe Connect account to receive payments directly
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <StripeConnectSetup />
+          </CardContent>
+        </Card>
+      )}
       
       {/* Stats Overview */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
