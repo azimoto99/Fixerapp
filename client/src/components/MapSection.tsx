@@ -2,6 +2,7 @@ import { useState, useEffect, useMemo } from 'react';
 import { useGeolocation } from '@/lib/geolocation';
 import JobDetail from './JobDetail';
 import { JobMarker } from './JobMarker';
+import UserDrawer from './UserDrawer';
 import { Job } from '@shared/schema';
 import { 
   MapContainer, 

@@ -10,15 +10,44 @@ import {
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useAuth } from '@/hooks/use-auth';
-import { User, Home, CreditCard, Settings, BarChart2, StarIcon, LogOut } from 'lucide-react';
+import { User, Home, CreditCard, Settings, BarChart2, Star as StarIcon, LogOut } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
 import { useLocation } from 'wouter';
-import ProfileContent from './drawer-contents/ProfileContent';
-import EarningsContent from './drawer-contents/EarningsContent';
-import SettingsContent from './drawer-contents/SettingsContent';
-import ReviewsContent from './drawer-contents/ReviewsContent';
+// Simple internal content components instead of importing from separate files
+const ProfileContent = ({ user }: { user: any }) => (
+  <div className="space-y-4">
+    <h3 className="text-lg font-semibold">Profile</h3>
+    <p>Welcome, {user.fullName}!</p>
+    <div className="text-sm text-muted-foreground">
+      Email: {user.email}<br />
+      Account Type: {user.accountType}
+    </div>
+  </div>
+);
+
+const EarningsContent = ({ userId }: { userId: number }) => (
+  <div className="space-y-4">
+    <h3 className="text-lg font-semibold">Earnings</h3>
+    <p>Your earnings will be displayed here.</p>
+    <a href="/earnings" className="text-primary hover:underline">View detailed earnings</a>
+  </div>
+);
+
+const ReviewsContent = ({ userId }: { userId: number }) => (
+  <div className="space-y-4">
+    <h3 className="text-lg font-semibold">Reviews</h3>
+    <p>Your reviews will be displayed here.</p>
+  </div>
+);
+
+const SettingsContent = ({ user }: { user: any }) => (
+  <div className="space-y-4">
+    <h3 className="text-lg font-semibold">Settings</h3>
+    <p>Account settings and preferences will be displayed here.</p>
+  </div>
+);
 
 interface UserDrawerProps {
   children?: React.ReactNode;
@@ -82,7 +111,7 @@ const UserDrawer: React.FC<UserDrawerProps> = ({ children }) => {
                 <span className="inline-flex items-center rounded-full bg-blue-50 px-2 py-1 text-xs font-medium text-blue-700 mr-2">
                   {user.accountType}
                 </span>
-                {user.rating > 0 && (
+                {user.rating && user.rating > 0 && (
                   <span className="inline-flex items-center text-amber-500 font-medium text-sm">
                     <StarIcon className="w-4 h-4 mr-1 fill-amber-500" />
                     {user.rating.toFixed(1)}
