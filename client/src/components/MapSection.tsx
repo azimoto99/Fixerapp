@@ -260,10 +260,7 @@ const MapSection: React.FC<MapSectionProps> = ({ jobs, selectedJob, onSelectJob 
         <div className="absolute top-4 right-4 z-[1000] flex gap-2">
           {user && (
             <button 
-              onClick={() => toast({
-                title: 'Profile',
-                description: `Logged in as ${user.username} (${user.accountType})`,
-              })}
+              onClick={() => window.location.href = '/profile'}
               className="bg-white shadow-lg rounded-full p-2 flex items-center"
             >
               <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-5 w-5 text-gray-700">
