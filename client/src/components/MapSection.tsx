@@ -223,8 +223,8 @@ const MapSection: React.FC<MapSectionProps> = ({ jobs, selectedJob, onSelectJob 
             {/* Recenter map component */}
             <RecenterMap position={position} />
             
-            {/* Custom zoom control position - placed in bottom left to avoid overlapping other controls */}
-            <ZoomControl position="bottomleft" />
+            {/* Custom zoom control position - placed in bottom right to avoid overlapping other controls */}
+            <ZoomControl position="bottomright" />
           </MapContainer>
         )}
         
