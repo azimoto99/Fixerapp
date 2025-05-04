@@ -5,37 +5,70 @@ export interface Coordinates {
   longitude: number;
 }
 
+// Default location (San Francisco) for development/testing
+const DEFAULT_LOCATION: Coordinates = {
+  latitude: 37.7749,
+  longitude: -122.4194
+};
+
 interface GeolocationHook {
   userLocation: Coordinates | null;
   locationError: string | null;
+  isUsingFallback: boolean;
   getCurrentLocation: () => Promise<Coordinates | null>;
 }
 
 export function useGeolocation(): GeolocationHook {
   const [userLocation, setUserLocation] = useState<Coordinates | null>(null);
   const [locationError, setLocationError] = useState<string | null>(null);
+  const [isUsingFallback, setIsUsingFallback] = useState(false);
 
   // Function to get the current location
   const getCurrentLocation = (): Promise<Coordinates | null> => {
     return new Promise((resolve) => {
       if (!navigator.geolocation) {
         setLocationError('Geolocation is not supported by your browser');
+        
+        // Use fallback location in development
+        if (import.meta.env.DEV) {
+          setUserLocation(DEFAULT_LOCATION);
+          setIsUsingFallback(true);
+          resolve(DEFAULT_LOCATION);
+          return;
+        }
+        
         resolve(null);
         return;
       }
 
       setLocationError(null);
 
+      // Set a timeout for development environments
+      const timeoutId = import.meta.env.DEV ? 
+        setTimeout(() => {
+          if (!userLocation) {
+            console.log('Using fallback location for development (timeout)');
+            setUserLocation(DEFAULT_LOCATION);
+            setIsUsingFallback(true);
+            resolve(DEFAULT_LOCATION);
+          }
+        }, 3000) : undefined;
+
       navigator.geolocation.getCurrentPosition(
         (position) => {
+          if (timeoutId) clearTimeout(timeoutId);
+          
           const location = {
             latitude: position.coords.latitude,
             longitude: position.coords.longitude
           };
           setUserLocation(location);
+          setIsUsingFallback(false);
           resolve(location);
         },
         (error) => {
+          if (timeoutId) clearTimeout(timeoutId);
+          
           let errorMessage;
           switch (error.code) {
             case error.PERMISSION_DENIED:
@@ -52,6 +85,16 @@ export function useGeolocation(): GeolocationHook {
               break;
           }
           setLocationError(errorMessage);
+          
+          // Use fallback location in development
+          if (import.meta.env.DEV) {
+            console.log('Using fallback location for development (error)');
+            setUserLocation(DEFAULT_LOCATION);
+            setIsUsingFallback(true);
+            resolve(DEFAULT_LOCATION);
+            return;
+          }
+          
           resolve(null);
         },
         {
@@ -67,7 +110,7 @@ export function useGeolocation(): GeolocationHook {
     getCurrentLocation();
   }, []);
 
-  return { userLocation, locationError, getCurrentLocation };
+  return { userLocation, locationError, isUsingFallback, getCurrentLocation };
 }
 
 // Calculate distance between two points using the Haversine formula

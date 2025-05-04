@@ -37,7 +37,7 @@ function RecenterMap({ position }: { position: LatLngExpression | null }) {
 
 // DoorDash-style interactive map component for showing nearby gigs
 const MapSection: React.FC<MapSectionProps> = ({ jobs, selectedJob, onSelectJob }) => {
-  const { userLocation, locationError } = useGeolocation();
+  const { userLocation, locationError, isUsingFallback } = useGeolocation();
   const [showJobDetail, setShowJobDetail] = useState<boolean>(false);
   const [mapReady, setMapReady] = useState(false);
   
@@ -92,7 +92,7 @@ const MapSection: React.FC<MapSectionProps> = ({ jobs, selectedJob, onSelectJob 
           <Loader2 className="h-10 w-10 animate-spin text-primary mx-auto mb-4" />
           <p>Finding your location...</p>
           {locationError && (
-            <p className="text-sm text-red-600 mt-2">Error: {locationError}</p>
+            <p className="text-sm text-red-600 mt-2">{locationError}</p>
           )}
         </div>
       </div>
@@ -189,6 +189,18 @@ const MapSection: React.FC<MapSectionProps> = ({ jobs, selectedJob, onSelectJob 
               </button>
             </div>
           </div>
+          
+          {/* Fallback location notice */}
+          {isUsingFallback && (
+            <div className="mt-2 px-4 py-2 bg-amber-50 border border-amber-200 rounded-md text-amber-800 text-sm">
+              <p className="flex items-center">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" className="w-4 h-4 mr-2">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                </svg>
+                Using approximate location. Enable location services for accurate results.
+              </p>
+            </div>
+          )}
         </div>
         
         {/* Bottom card for job details */}

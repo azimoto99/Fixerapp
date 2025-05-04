@@ -16,14 +16,17 @@ import { Loader2 } from 'lucide-react';
 
 // Worker Dashboard Component
 const WorkerDashboard = () => {
+  // Keep all useState calls together and in the same order every render
   const [view, setView] = useState<'list' | 'map'>('map');
   const [selectedJob, setSelectedJob] = useState<Job | undefined>(undefined);
   const [searchParams, setSearchParams] = useState({ query: '', category: '' });
+  
+  // Keep all custom hook calls after useState hooks
+  const { userLocation } = useGeolocation();
   const { jobs, isLoading } = useJobs({
     nearbyOnly: true,
     radiusMiles: 2
   }, searchParams);
-  const { userLocation } = useGeolocation();
 
   const handleSearch = (params: { query: string; category: string }) => {
     setSearchParams(params);
