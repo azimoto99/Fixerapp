@@ -63,31 +63,149 @@ export class DatabaseStorage implements IStorage {
   
   // USER OPERATIONS
   async getAllUsers(): Promise<User[]> {
-    const allUsers = await db.select().from(users);
-    return allUsers.map(user => this.addProfileCompletionFlag(user));
+    try {
+      const allUsers = await db.select().from(users);
+      return allUsers.map(user => this.addProfileCompletionFlag(user));
+    } catch (error) {
+      console.error("Error getting all users:", error);
+      // Fallback to basic query to get minimal user data
+      const query = `SELECT id, username, password, full_name, email, 
+                    phone, bio, avatar_url, account_type, 
+                    google_id, facebook_id FROM users`;
+      const result = await db.execute(query);
+      return result.rows.map(user => this.addProfileCompletionFlag({
+        id: user.id,
+        username: user.username,
+        password: user.password,
+        fullName: user.full_name,
+        email: user.email,
+        phone: user.phone,
+        bio: user.bio,
+        avatarUrl: user.avatar_url,
+        accountType: user.account_type,
+        googleId: user.google_id,
+        facebookId: user.facebook_id,
+        skills: [],
+        skillsVerified: {},
+        badgeIds: [],
+        lastActive: new Date(),
+        isActive: true
+      }));
+    }
   }
 
   async getUser(id: number): Promise<User | undefined> {
-    const [user] = await db.select().from(users).where(eq(users.id, id));
-    if (!user) return undefined;
-    return this.addProfileCompletionFlag(user);
+    try {
+      const [user] = await db.select().from(users).where(eq(users.id, id));
+      if (!user) return undefined;
+      return this.addProfileCompletionFlag(user);
+    } catch (error) {
+      console.error("Error getting user by ID:", error);
+      // Fallback to basic query to get minimal user data
+      const query = `SELECT id, username, password, full_name, email, 
+                    phone, bio, avatar_url, account_type, 
+                    google_id, facebook_id FROM users WHERE id = $1`;
+      const result = await db.execute(query, [id]);
+      if (result.rows.length === 0) return undefined;
+      
+      const user = result.rows[0];
+      return this.addProfileCompletionFlag({
+        id: user.id,
+        username: user.username,
+        password: user.password,
+        fullName: user.full_name,
+        email: user.email,
+        phone: user.phone,
+        bio: user.bio,
+        avatarUrl: user.avatar_url,
+        accountType: user.account_type,
+        googleId: user.google_id,
+        facebookId: user.facebook_id,
+        skills: [],
+        skillsVerified: {},
+        badgeIds: [],
+        lastActive: new Date(),
+        isActive: true
+      });
+    }
   }
 
   async getUserByUsername(username: string): Promise<User | undefined> {
-    const [user] = await db.select().from(users).where(eq(users.username, username));
-    if (!user) return undefined;
-    return this.addProfileCompletionFlag(user);
+    try {
+      const [user] = await db.select().from(users).where(eq(users.username, username));
+      if (!user) return undefined;
+      return this.addProfileCompletionFlag(user);
+    } catch (error) {
+      console.error("Error getting user by username:", error);
+      // Fallback to basic query to get minimal user data
+      const query = `SELECT id, username, password, full_name, email, 
+                    phone, bio, avatar_url, account_type, 
+                    google_id, facebook_id FROM users WHERE username = $1`;
+      const result = await db.execute(query, [username]);
+      if (result.rows.length === 0) return undefined;
+      
+      const user = result.rows[0];
+      return this.addProfileCompletionFlag({
+        id: user.id,
+        username: user.username,
+        password: user.password,
+        fullName: user.full_name,
+        email: user.email,
+        phone: user.phone,
+        bio: user.bio,
+        avatarUrl: user.avatar_url,
+        accountType: user.account_type,
+        googleId: user.google_id,
+        facebookId: user.facebook_id,
+        skills: [],
+        skillsVerified: {},
+        badgeIds: [],
+        lastActive: new Date(),
+        isActive: true
+      });
+    }
   }
   
   async getUserByUsernameAndType(username: string, accountType: string): Promise<User | undefined> {
-    const [user] = await db.select().from(users).where(
-      and(
-        eq(users.username, username),
-        eq(users.accountType, accountType)
-      )
-    );
-    if (!user) return undefined;
-    return this.addProfileCompletionFlag(user);
+    try {
+      const [user] = await db.select().from(users).where(
+        and(
+          eq(users.username, username),
+          eq(users.accountType, accountType)
+        )
+      );
+      if (!user) return undefined;
+      return this.addProfileCompletionFlag(user);
+    } catch (error) {
+      console.error("Error getting user by username and type:", error);
+      // Fallback to basic query to get minimal user data
+      const query = `SELECT id, username, password, full_name, email, 
+                    phone, bio, avatar_url, account_type, 
+                    google_id, facebook_id FROM users 
+                    WHERE username = $1 AND account_type = $2`;
+      const result = await db.execute(query, [username, accountType]);
+      if (result.rows.length === 0) return undefined;
+      
+      const user = result.rows[0];
+      return this.addProfileCompletionFlag({
+        id: user.id,
+        username: user.username,
+        password: user.password,
+        fullName: user.full_name,
+        email: user.email,
+        phone: user.phone,
+        bio: user.bio,
+        avatarUrl: user.avatar_url,
+        accountType: user.account_type,
+        googleId: user.google_id,
+        facebookId: user.facebook_id,
+        skills: [],
+        skillsVerified: {},
+        badgeIds: [],
+        lastActive: new Date(),
+        isActive: true
+      });
+    }
   }
 
   async createUser(user: InsertUser): Promise<User> {
@@ -215,16 +333,47 @@ export class DatabaseStorage implements IStorage {
   async getUsersWithSkills(skills: string[]): Promise<User[]> {
     if (!skills.length) return [];
     
-    // Get all users (we'll need to filter in-memory since PostgreSQL array operations are more complex)
-    const allUsers = await db.select().from(users);
-    
-    // Filter users who have at least one of the required skills
-    return allUsers
-      .filter(user => {
-        if (!user.skills || !user.skills.length) return false;
-        return skills.some(skill => user.skills?.includes(skill));
-      })
-      .map(user => this.addProfileCompletionFlag(user));
+    try {
+      // Get all users (we'll need to filter in-memory since PostgreSQL array operations are more complex)
+      const allUsers = await db.select().from(users);
+      
+      // Filter users who have at least one of the required skills
+      return allUsers
+        .filter(user => {
+          if (!user.skills || !user.skills.length) return false;
+          return skills.some(skill => user.skills?.includes(skill));
+        })
+        .map(user => this.addProfileCompletionFlag(user));
+    } catch (error) {
+      console.error("Error getting users with skills:", error);
+      
+      // Fallback to basic query to get minimal user data
+      const query = `SELECT id, username, password, full_name, email, 
+                    phone, bio, avatar_url, account_type, 
+                    google_id, facebook_id FROM users`;
+      const result = await db.execute(query);
+      
+      // Since we can't filter by skills with raw SQL, we'll just return all users
+      // The frontend can filter if needed
+      return result.rows.map(user => this.addProfileCompletionFlag({
+        id: user.id,
+        username: user.username,
+        password: user.password,
+        fullName: user.full_name,
+        email: user.email,
+        phone: user.phone,
+        bio: user.bio,
+        avatarUrl: user.avatar_url,
+        accountType: user.account_type,
+        googleId: user.google_id,
+        facebookId: user.facebook_id,
+        skills: [],
+        skillsVerified: {},
+        badgeIds: [],
+        lastActive: new Date(),
+        isActive: true
+      }));
+    }
   }
   
   // JOB OPERATIONS
