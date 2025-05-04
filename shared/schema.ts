@@ -14,7 +14,8 @@ export const users = pgTable("users", {
   avatarUrl: text("avatar_url"),
   accountType: text("account_type").notNull().default("worker"), // "worker", "poster", or "pending"
   skills: text("skills").array(), // Array of skill names for workers
-  skillsVerified: jsonb("skills_verified"), // JSON object mapping skill name to verification status
+  // skillsVerified field is added to the type but not required in the database
+  // This allows for backward compatibility with existing database schemas
   rating: doublePrecision("rating"), // Average rating from completed jobs
   completedJobs: integer("completed_jobs").default(0), // Count of completed jobs
   successRate: doublePrecision("success_rate"), // Percentage of successfully completed jobs
@@ -212,10 +213,12 @@ export const insertUserBadgeSchema = createInsertSchema(userBadges).omit({
 export type User = typeof users.$inferSelect & {
   requiresProfileCompletion?: boolean | null; // Adding this field to the type even though it's not in the DB yet
   needsAccountType?: boolean | null; // Flag to indicate account type selection is needed
+  skillsVerified?: Record<string, boolean>; // Adding this field to the type even though it's not in the DB yet
 };
 export type InsertUser = z.infer<typeof insertUserSchema> & {
   requiresProfileCompletion?: boolean | null; // Adding this field to the type even though it's not in the DB
   needsAccountType?: boolean | null; // Flag to indicate account type selection is needed
+  skillsVerified?: Record<string, boolean>; // Adding this field to match the User type
 };
 
 export type Job = typeof jobs.$inferSelect;

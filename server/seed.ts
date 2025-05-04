@@ -14,12 +14,17 @@ async function hashPassword(password: string) {
 async function seedDatabase() {
   console.log('Seeding database...');
   
-  // Check if we already have users
-  const existingUsers = await db.select().from(users);
-  
-  if (existingUsers.length > 0) {
-    console.log('Database already has data, skipping seed');
-    return;
+  try {
+    // Check if we already have users
+    const existingUsers = await db.select({ id: users.id }).from(users);
+    
+    if (existingUsers.length > 0) {
+      console.log('Database already has data, skipping seed');
+      return;
+    }
+  } catch (error) {
+    console.error('Error checking database:', error);
+    console.log('Will attempt to seed database anyway');
   }
   
   // Create some users
