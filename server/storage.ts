@@ -6,6 +6,8 @@ import {
   tasks,
   earnings,
   payments,
+  badges,
+  userBadges,
   type User, 
   type InsertUser, 
   type Job,
@@ -19,7 +21,11 @@ import {
   type Earning,
   type InsertEarning,
   type Payment,
-  type InsertPayment
+  type InsertPayment,
+  type Badge,
+  type InsertBadge,
+  type UserBadge,
+  type InsertUserBadge
 } from "@shared/schema";
 
 // Storage interface for all CRUD operations
@@ -31,6 +37,15 @@ export interface IStorage {
   getUserByUsernameAndType(username: string, accountType: string): Promise<User | undefined>;
   createUser(user: InsertUser): Promise<User>;
   updateUser(id: number, data: Partial<InsertUser>): Promise<User | undefined>;
+  uploadProfileImage(userId: number, imageData: string): Promise<User | undefined>;
+  updateUserSkills(userId: number, skills: string[]): Promise<User | undefined>;
+  verifyUserSkill(userId: number, skill: string, isVerified: boolean): Promise<User | undefined>;
+  updateUserMetrics(userId: number, metrics: {
+    completedJobs?: number;
+    successRate?: number;
+    responseTime?: number;
+  }): Promise<User | undefined>;
+  getUsersWithSkills(skills: string[]): Promise<User[]>;
   
   // Job operations
   getJob(id: number): Promise<Job | undefined>;
@@ -86,6 +101,17 @@ export interface IStorage {
   getPaymentsForUser(userId: number): Promise<Payment[]>;
   createPayment(payment: InsertPayment): Promise<Payment>;
   updatePaymentStatus(id: number, status: string, transactionId?: string): Promise<Payment | undefined>;
+  
+  // Badge operations
+  getBadge(id: number): Promise<Badge | undefined>;
+  getAllBadges(): Promise<Badge[]>;
+  getBadgesByCategory(category: string): Promise<Badge[]>;
+  createBadge(badge: InsertBadge): Promise<Badge>;
+  
+  // User badge operations
+  getUserBadges(userId: number): Promise<UserBadge[]>;
+  awardBadge(userBadge: InsertUserBadge): Promise<UserBadge>;
+  revokeBadge(userId: number, badgeId: number): Promise<boolean>;
 }
 
 export class MemStorage implements IStorage {
@@ -96,6 +122,8 @@ export class MemStorage implements IStorage {
   private tasks: Map<number, Task>;
   private earnings: Map<number, Earning>;
   private payments: Map<number, Payment>;
+  private badges: Map<number, Badge>;
+  private userBadges: Map<number, UserBadge>;
   
   private userIdCounter: number;
   private jobIdCounter: number;
@@ -104,6 +132,8 @@ export class MemStorage implements IStorage {
   private taskIdCounter: number;
   private earningIdCounter: number;
   private paymentIdCounter: number;
+  private badgeIdCounter: number;
+  private userBadgeIdCounter: number;
 
   constructor() {
     this.users = new Map();
@@ -113,6 +143,8 @@ export class MemStorage implements IStorage {
     this.tasks = new Map();
     this.earnings = new Map();
     this.payments = new Map();
+    this.badges = new Map();
+    this.userBadges = new Map();
     
     this.userIdCounter = 1;
     this.jobIdCounter = 1;
@@ -121,6 +153,8 @@ export class MemStorage implements IStorage {
     this.taskIdCounter = 1;
     this.earningIdCounter = 1;
     this.paymentIdCounter = 1;
+    this.badgeIdCounter = 1;
+    this.userBadgeIdCounter = 1;
     
     // No sample data - never initialize any sample data
   }
@@ -165,8 +199,28 @@ export class MemStorage implements IStorage {
     const id = this.userIdCounter++;
     const lastActive = new Date();
     const rating = 0;
+    const completedJobs = 0;
+    const successRate = 0;
+    const responseTime = 0;
+    const skills = insertUser.skills || [];
+    const skillsVerified = {};
+    const badgeIds = [];
     
-    const user: User = { ...insertUser, id, lastActive, rating };
+    const user: User = { 
+      ...insertUser, 
+      id, 
+      lastActive, 
+      rating,
+      completedJobs,
+      successRate,
+      responseTime,
+      skills,
+      skillsVerified,
+      badgeIds,
+      stripeCustomerId: null,
+      stripeConnectAccountId: null
+    };
+    
     this.users.set(id, user);
     return user;
   }
@@ -178,6 +232,72 @@ export class MemStorage implements IStorage {
     const updatedUser = { ...user, ...data };
     this.users.set(id, updatedUser);
     return updatedUser;
+  }
+  
+  async uploadProfileImage(userId: number, imageData: string): Promise<User | undefined> {
+    const user = this.users.get(userId);
+    if (!user) return undefined;
+    
+    // Store image data directly as URL (could be a base64 string)
+    const updatedUser = { ...user, avatarUrl: imageData };
+    this.users.set(userId, updatedUser);
+    return updatedUser;
+  }
+  
+  async updateUserSkills(userId: number, skills: string[]): Promise<User | undefined> {
+    const user = this.users.get(userId);
+    if (!user) return undefined;
+    
+    // Update skills array
+    const updatedUser = { ...user, skills };
+    this.users.set(userId, updatedUser);
+    return updatedUser;
+  }
+  
+  async verifyUserSkill(userId: number, skill: string, isVerified: boolean): Promise<User | undefined> {
+    const user = this.users.get(userId);
+    if (!user) return undefined;
+    
+    // Create a copy of the existing skills verification map or initialize if not exists
+    const skillsVerified = { ...(user.skillsVerified || {}) };
+    
+    // Update the verification status for the specified skill
+    skillsVerified[skill] = isVerified;
+    
+    const updatedUser = { ...user, skillsVerified };
+    this.users.set(userId, updatedUser);
+    return updatedUser;
+  }
+  
+  async updateUserMetrics(userId: number, metrics: {
+    completedJobs?: number;
+    successRate?: number;
+    responseTime?: number;
+  }): Promise<User | undefined> {
+    const user = this.users.get(userId);
+    if (!user) return undefined;
+    
+    const updatedUser = { 
+      ...user,
+      completedJobs: metrics.completedJobs !== undefined ? metrics.completedJobs : user.completedJobs,
+      successRate: metrics.successRate !== undefined ? metrics.successRate : user.successRate,
+      responseTime: metrics.responseTime !== undefined ? metrics.responseTime : user.responseTime,
+    };
+    
+    this.users.set(userId, updatedUser);
+    return updatedUser;
+  }
+  
+  async getUsersWithSkills(skills: string[]): Promise<User[]> {
+    if (!skills.length) return [];
+    
+    return Array.from(this.users.values()).filter(user => {
+      // Skip users with no skills
+      if (!user.skills || !user.skills.length) return false;
+      
+      // Check if user has at least one of the required skills
+      return skills.some(skill => user.skills?.includes(skill));
+    });
   }
 
   // Job operations
@@ -555,6 +675,93 @@ export class MemStorage implements IStorage {
     };
     this.payments.set(id, updatedPayment);
     return updatedPayment;
+  }
+  
+  // Badge operations
+  async getBadge(id: number): Promise<Badge | undefined> {
+    return this.badges.get(id);
+  }
+  
+  async getAllBadges(): Promise<Badge[]> {
+    return Array.from(this.badges.values());
+  }
+  
+  async getBadgesByCategory(category: string): Promise<Badge[]> {
+    return Array.from(this.badges.values())
+      .filter(badge => badge.category === category);
+  }
+  
+  async createBadge(badge: InsertBadge): Promise<Badge> {
+    const id = this.badgeIdCounter++;
+    const createdAt = new Date();
+    
+    const newBadge: Badge = {
+      ...badge,
+      id,
+      createdAt
+    };
+    
+    this.badges.set(id, newBadge);
+    return newBadge;
+  }
+  
+  // User badge operations
+  async getUserBadges(userId: number): Promise<UserBadge[]> {
+    return Array.from(this.userBadges.values())
+      .filter(userBadge => userBadge.userId === userId);
+  }
+  
+  async awardBadge(userBadge: InsertUserBadge): Promise<UserBadge> {
+    const id = this.userBadgeIdCounter++;
+    const earnedAt = new Date();
+    
+    const newUserBadge: UserBadge = {
+      ...userBadge,
+      id,
+      earnedAt
+    };
+    
+    this.userBadges.set(id, newUserBadge);
+    
+    // Also update user's badgeIds array
+    const user = this.users.get(userBadge.userId);
+    if (user) {
+      const badgeIds = [...(user.badgeIds || [])];
+      
+      // Check if badge ID already exists in user's badges
+      if (!badgeIds.includes(userBadge.badgeId.toString())) {
+        badgeIds.push(userBadge.badgeId.toString());
+        const updatedUser = { ...user, badgeIds };
+        this.users.set(user.id, updatedUser);
+      }
+    }
+    
+    return newUserBadge;
+  }
+  
+  async revokeBadge(userId: number, badgeId: number): Promise<boolean> {
+    // Find and remove the user badge entry
+    const userBadgeEntries = Array.from(this.userBadges.entries());
+    let removed = false;
+    
+    for (const [key, userBadge] of userBadgeEntries) {
+      if (userBadge.userId === userId && userBadge.badgeId === badgeId) {
+        this.userBadges.delete(key);
+        removed = true;
+      }
+    }
+    
+    // Also update user's badgeIds array if found
+    if (removed) {
+      const user = this.users.get(userId);
+      if (user && user.badgeIds && user.badgeIds.length) {
+        const badgeIds = user.badgeIds.filter(id => id !== badgeId.toString());
+        const updatedUser = { ...user, badgeIds };
+        this.users.set(userId, updatedUser);
+      }
+    }
+    
+    return removed;
   }
 }
 

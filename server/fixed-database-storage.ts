@@ -2,14 +2,16 @@ import { eq, and, like, desc, or, asc } from 'drizzle-orm';
 import { db } from './db';
 import { IStorage } from './storage';
 import {
-  users, jobs, applications, reviews, tasks, earnings, payments,
+  users, jobs, applications, reviews, tasks, earnings, payments, badges, userBadges,
   User, InsertUser,
   Job, InsertJob,
   Application, InsertApplication,
   Review, InsertReview,
   Task, InsertTask,
   Earning, InsertEarning,
-  Payment, InsertPayment
+  Payment, InsertPayment,
+  Badge, InsertBadge,
+  UserBadge, InsertUserBadge
 } from '@shared/schema';
 import connectPg from "connect-pg-simple";
 import session from "express-session";
@@ -109,6 +111,96 @@ export class DatabaseStorage implements IStorage {
     
     // Add the requiresProfileCompletion property back to the user object for the client
     return this.addProfileCompletionFlag(updatedUser);
+  }
+  
+  async uploadProfileImage(userId: number, imageData: string): Promise<User | undefined> {
+    const [updatedUser] = await db.update(users)
+      .set({ avatarUrl: imageData })
+      .where(eq(users.id, userId))
+      .returning();
+      
+    if (!updatedUser) return undefined;
+    return this.addProfileCompletionFlag(updatedUser);
+  }
+  
+  async updateUserSkills(userId: number, skills: string[]): Promise<User | undefined> {
+    const [updatedUser] = await db.update(users)
+      .set({ skills })
+      .where(eq(users.id, userId))
+      .returning();
+      
+    if (!updatedUser) return undefined;
+    return this.addProfileCompletionFlag(updatedUser);
+  }
+  
+  async verifyUserSkill(userId: number, skill: string, isVerified: boolean): Promise<User | undefined> {
+    // First get the current user to access the existing skillsVerified object
+    const [user] = await db.select().from(users).where(eq(users.id, userId));
+    if (!user) return undefined;
+    
+    // Create a copy of the existing skills verification map or initialize if not exists
+    const skillsVerified = { ...(user.skillsVerified || {}) };
+    
+    // Update the verification status for the specified skill
+    skillsVerified[skill] = isVerified;
+    
+    // Save the updated skillsVerified object
+    const [updatedUser] = await db.update(users)
+      .set({ skillsVerified })
+      .where(eq(users.id, userId))
+      .returning();
+      
+    if (!updatedUser) return undefined;
+    return this.addProfileCompletionFlag(updatedUser);
+  }
+  
+  async updateUserMetrics(userId: number, metrics: {
+    completedJobs?: number;
+    successRate?: number;
+    responseTime?: number;
+  }): Promise<User | undefined> {
+    // First get the current user metrics
+    const [user] = await db.select().from(users).where(eq(users.id, userId));
+    if (!user) return undefined;
+    
+    // Create the update data with only the fields that were provided
+    const updateData: Partial<User> = {};
+    
+    if (metrics.completedJobs !== undefined) {
+      updateData.completedJobs = metrics.completedJobs;
+    }
+    
+    if (metrics.successRate !== undefined) {
+      updateData.successRate = metrics.successRate;
+    }
+    
+    if (metrics.responseTime !== undefined) {
+      updateData.responseTime = metrics.responseTime;
+    }
+    
+    // Update the user with the new metrics
+    const [updatedUser] = await db.update(users)
+      .set(updateData)
+      .where(eq(users.id, userId))
+      .returning();
+      
+    if (!updatedUser) return undefined;
+    return this.addProfileCompletionFlag(updatedUser);
+  }
+  
+  async getUsersWithSkills(skills: string[]): Promise<User[]> {
+    if (!skills.length) return [];
+    
+    // Get all users (we'll need to filter in-memory since PostgreSQL array operations are more complex)
+    const allUsers = await db.select().from(users);
+    
+    // Filter users who have at least one of the required skills
+    return allUsers
+      .filter(user => {
+        if (!user.skills || !user.skills.length) return false;
+        return skills.some(skill => user.skills?.includes(skill));
+      })
+      .map(user => this.addProfileCompletionFlag(user));
   }
   
   // JOB OPERATIONS
@@ -384,5 +476,90 @@ export class DatabaseStorage implements IStorage {
       .returning();
       
     return updatedPayment;
+  }
+  
+  // BADGE OPERATIONS
+  async getBadge(id: number): Promise<Badge | undefined> {
+    const [badge] = await db.select().from(badges).where(eq(badges.id, id));
+    return badge;
+  }
+  
+  async getAllBadges(): Promise<Badge[]> {
+    return await db.select().from(badges);
+  }
+  
+  async getBadgesByCategory(category: string): Promise<Badge[]> {
+    return await db.select().from(badges).where(eq(badges.category, category));
+  }
+  
+  async createBadge(badge: InsertBadge): Promise<Badge> {
+    const [newBadge] = await db.insert(badges).values(badge).returning();
+    return newBadge;
+  }
+  
+  // USER BADGE OPERATIONS
+  async getUserBadges(userId: number): Promise<UserBadge[]> {
+    return await db.select().from(userBadges).where(eq(userBadges.userId, userId));
+  }
+  
+  async awardBadge(userBadge: InsertUserBadge): Promise<UserBadge> {
+    // First, check if the user already has this badge
+    const existingBadges = await db.select()
+      .from(userBadges)
+      .where(
+        and(
+          eq(userBadges.userId, userBadge.userId),
+          eq(userBadges.badgeId, userBadge.badgeId)
+        )
+      );
+    
+    if (existingBadges.length > 0) {
+      // User already has this badge, just return the existing one
+      return existingBadges[0];
+    }
+    
+    // Add the badge to the user's collection
+    const [newUserBadge] = await db.insert(userBadges).values(userBadge).returning();
+    
+    // Now update the user's badgeIds array
+    const [user] = await db.select().from(users).where(eq(users.id, userBadge.userId));
+    
+    if (user) {
+      // Create a copy of badgeIds or initialize as empty array if null
+      const badgeIds = [...(user.badgeIds || [])];
+      
+      // Check if badge ID already exists in user's badges
+      if (!badgeIds.includes(userBadge.badgeId.toString())) {
+        badgeIds.push(userBadge.badgeId.toString());
+        await db.update(users)
+          .set({ badgeIds })
+          .where(eq(users.id, userBadge.userId));
+      }
+    }
+    
+    return newUserBadge;
+  }
+  
+  async revokeBadge(userId: number, badgeId: number): Promise<boolean> {
+    // Delete the user badge entry
+    const result = await db.delete(userBadges)
+      .where(
+        and(
+          eq(userBadges.userId, userId),
+          eq(userBadges.badgeId, badgeId)
+        )
+      );
+    
+    // Also update user's badgeIds array if found
+    const [user] = await db.select().from(users).where(eq(users.id, userId));
+    
+    if (user && user.badgeIds && user.badgeIds.length) {
+      const badgeIds = user.badgeIds.filter(id => id !== badgeId.toString());
+      await db.update(users)
+        .set({ badgeIds })
+        .where(eq(users.id, userId));
+    }
+    
+    return result.count > 0;
   }
 }
