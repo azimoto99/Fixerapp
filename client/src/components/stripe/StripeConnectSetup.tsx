@@ -31,15 +31,16 @@ const StripeConnectSetup: React.FC = () => {
         return await res.json();
       } catch (error) {
         // If error is 404, it means the user doesn't have a Connect account yet
-        if ((error as any).status === 404) {
+        // If error is 401, the user is not authenticated
+        if ((error as any).status === 404 || (error as any).status === 401) {
           return null;
         }
         throw error;
       }
     },
-    // Don't show error toasts for 404 errors (no account yet)
+    // Don't show error toasts for 404 or 401 errors
     retry: (failureCount, error: any) => {
-      return failureCount < 3 && error.status !== 404;
+      return failureCount < 3 && error.status !== 404 && error.status !== 401;
     }
   });
 
@@ -141,8 +142,8 @@ const StripeConnectSetup: React.FC = () => {
     );
   }
 
-  // Error state (excluding 404 which is handled as "no account")
-  if (isError && (error as any).status !== 404) {
+  // Error state (excluding 404 and 401 which are handled specially)
+  if (isError && (error as any).status !== 404 && (error as any).status !== 401) {
     return (
       <Card className="w-full max-w-md mx-auto">
         <CardHeader>
