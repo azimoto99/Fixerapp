@@ -30,6 +30,11 @@ export function AccountTypeRoute({
           return <Redirect to="/auth" />;
         }
         
+        // If the user needs to complete their profile (for social logins)
+        if (user.requiresProfileCompletion) {
+          return <Redirect to={`/complete-profile?id=${user.id}`} />;
+        }
+        
         // If user has pending account type, redirect to account type selection
         if (user.accountType === "pending") {
           return <Redirect to={`/account-type-selection?id=${user.id}&provider=local`} />;
