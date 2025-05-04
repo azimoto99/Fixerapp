@@ -2,7 +2,7 @@ import { useState, useEffect, useMemo } from 'react';
 import { useGeolocation } from '@/lib/geolocation';
 import JobDetail from './JobDetail';
 import { JobMarker } from './JobMarker';
-import UserDrawer from './UserDrawer';
+import SimpleUserDrawer from './SimpleUserDrawer';
 import { Job } from '@shared/schema';
 import { 
   MapContainer, 
@@ -242,7 +242,7 @@ const MapSection: React.FC<MapSectionProps> = ({ jobs, selectedJob, onSelectJob 
         {/* Actions menu in top right */}
         <div className="absolute top-4 right-4 z-[1000] flex gap-2">
           {user && (
-            <UserDrawer>
+            <SimpleUserDrawer>
               <div className="bg-white shadow-lg rounded-full p-2 cursor-pointer flex items-center transform transition-all duration-300 hover:scale-110 hover:bg-primary hover:text-white group relative">
                 <div className="absolute -top-1 -right-1 w-3 h-3 bg-green-500 rounded-full animate-pulse-marker"></div>
                 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-5 w-5 text-gray-700 group-hover:text-white transition-colors">
@@ -251,7 +251,7 @@ const MapSection: React.FC<MapSectionProps> = ({ jobs, selectedJob, onSelectJob 
                   <line x1="10" y1="4" x2="10" y2="20"></line>
                 </svg>
               </div>
-            </UserDrawer>
+            </SimpleUserDrawer>
           )}
         </div>
         
