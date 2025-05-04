@@ -62,17 +62,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           title: "Profile completion required",
           description: "Please complete your profile to continue",
         });
-      } 
-      // Then check if user needs to select an account type
-      else if (userData.needsAccountType) {
-        // Redirect to account type selection page
-        setLocation(`/account-type-selection?id=${userData.id}&provider=local`);
-        toast({
-          title: "Account type required",
-          description: "Please select your account type to continue",
-        });
       } else {
-        // Normal login flow
+        // Normal login flow - no need to check account type as all users are workers
         queryClient.setQueryData(["/api/user"], userData);
         toast({
           title: "Login successful",
@@ -103,17 +94,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           title: "Profile completion required",
           description: "Please complete your profile to continue",
         });
-      } 
-      // Then check if user needs to select an account type
-      else if (userData.needsAccountType) {
-        // Redirect to account type selection page
-        setLocation(`/account-type-selection?id=${userData.id}&provider=local`);
-        toast({
-          title: "Registration successful",
-          description: "Please select your account type to continue",
-        });
       } else {
-        // Normal registration flow
+        // Normal registration flow - no need to check account type as all users are workers
         queryClient.setQueryData(["/api/user"], userData);
         toast({
           title: "Registration successful", 
