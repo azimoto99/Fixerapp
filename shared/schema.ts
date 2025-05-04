@@ -1,4 +1,4 @@
-import { pgTable, text, serial, integer, boolean, doublePrecision, timestamp, varchar, jsonb, uniqueIndex } from "drizzle-orm/pg-core";
+import { pgTable, text, serial, integer, boolean, doublePrecision, timestamp, varchar, jsonb, uniqueIndex, date } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
@@ -82,6 +82,34 @@ export const tasks = pgTable("tasks", {
   position: integer("position").notNull(), // Order position in the task list
 });
 
+// Earnings table to track worker earnings
+export const earnings = pgTable("earnings", {
+  id: serial("id").primaryKey(),
+  workerId: integer("worker_id").notNull(), // References users.id
+  jobId: integer("job_id").notNull(), // References jobs.id
+  amount: doublePrecision("amount").notNull(), // Amount earned for this job
+  serviceFee: doublePrecision("service_fee").notNull().default(2.5), // Service fee amount
+  netAmount: doublePrecision("net_amount").notNull(), // Net amount after service fee
+  status: text("status").notNull().default("pending"), // "pending", "paid", "cancelled"
+  dateEarned: timestamp("date_earned").defaultNow(), // When the job was completed
+  datePaid: timestamp("date_paid"), // When the worker was paid
+});
+
+// Payments table to track payment transactions
+export const payments = pgTable("payments", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id").notNull(), // References users.id (can be worker or poster)
+  amount: doublePrecision("amount").notNull(), // Amount of the payment
+  type: text("type").notNull(), // "payout" (to worker) or "charge" (from poster)
+  status: text("status").notNull(), // "pending", "completed", "failed"
+  paymentMethod: text("payment_method"), // e.g., "bank_transfer", "credit_card"
+  transactionId: text("transaction_id"), // External payment processor ID
+  jobId: integer("job_id"), // Optional reference to the related job
+  description: text("description"), // Description of the payment
+  createdAt: timestamp("created_at").defaultNow(),
+  metadata: jsonb("metadata"), // Additional payment data
+});
+
 // Insert schemas
 export const insertUserSchema = createInsertSchema(users).omit({
   id: true,
@@ -117,6 +145,18 @@ export const insertTaskSchema = createInsertSchema(tasks).omit({
   completedBy: true,
 });
 
+export const insertEarningSchema = createInsertSchema(earnings).omit({
+  id: true,
+  dateEarned: true,
+  datePaid: true,
+  status: true,
+});
+
+export const insertPaymentSchema = createInsertSchema(payments).omit({
+  id: true,
+  createdAt: true,
+});
+
 // Types
 export type User = typeof users.$inferSelect;
 export type InsertUser = z.infer<typeof insertUserSchema>;
@@ -132,6 +172,12 @@ export type InsertReview = z.infer<typeof insertReviewSchema>;
 
 export type Task = typeof tasks.$inferSelect;
 export type InsertTask = z.infer<typeof insertTaskSchema>;
+
+export type Earning = typeof earnings.$inferSelect;
+export type InsertEarning = z.infer<typeof insertEarningSchema>;
+
+export type Payment = typeof payments.$inferSelect;
+export type InsertPayment = z.infer<typeof insertPaymentSchema>;
 
 // Categories enum for job types
 export const JOB_CATEGORIES = [
