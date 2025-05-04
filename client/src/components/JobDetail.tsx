@@ -12,7 +12,7 @@ import ReviewsList from './ReviewsList';
 import PaymentNotification from './PaymentNotification';
 import JobPayment from './JobPayment';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
-import { Loader2, CheckCircle2, MessageCircle, Star } from 'lucide-react';
+import { Loader2, CheckCircle2, MessageCircle, Star, X } from 'lucide-react';
 import { useMutation, useQuery } from '@tanstack/react-query';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 
@@ -60,6 +60,9 @@ const JobDetail: React.FC<JobDetailProps> = ({ job, distance = 0.5, onClose }) =
   
   // Determine if job is completed
   const isJobCompleted = status === 'completed';
+  
+  // Determine if job is canceled
+  const isJobCanceled = status === 'canceled';
   
   // Determine if job can be canceled (no worker assigned yet or still in open status)
   const isJobCancelable = status === 'open' || (status === 'assigned' && !job.workerId);
@@ -249,18 +252,22 @@ const JobDetail: React.FC<JobDetailProps> = ({ job, distance = 0.5, onClose }) =
                 {/* Status badge */}
                 <Badge 
                   className={`${
-                    isJobCompleted 
-                      ? 'bg-gradient-to-r from-green-900 to-green-800 text-white' 
-                      : isJobInProgress 
-                        ? 'bg-gradient-to-r from-primary/80 to-primary text-white' 
-                        : 'bg-gradient-to-r from-yellow-800 to-amber-700 text-white'
+                    isJobCanceled
+                      ? 'bg-gradient-to-r from-red-900 to-red-800 text-white'
+                      : isJobCompleted 
+                        ? 'bg-gradient-to-r from-green-900 to-green-800 text-white' 
+                        : isJobInProgress 
+                          ? 'bg-gradient-to-r from-primary/80 to-primary text-white' 
+                          : 'bg-gradient-to-r from-yellow-800 to-amber-700 text-white'
                   }`}
                 >
-                  {isJobCompleted 
-                    ? 'Completed' 
-                    : isJobInProgress 
-                      ? 'In Progress' 
-                      : 'Open'}
+                  {isJobCanceled
+                    ? 'Canceled'
+                    : isJobCompleted 
+                      ? 'Completed' 
+                      : isJobInProgress 
+                        ? 'In Progress' 
+                        : 'Open'}
                 </Badge>
               </div>
               
