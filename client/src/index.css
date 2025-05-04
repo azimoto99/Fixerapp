@@ -265,4 +265,23 @@
     background-color: hsl(var(--primary)) !important;
     color: hsl(var(--primary-foreground)) !important;
   }
+  
+  /* Custom styles for leaflet map popups against dark background */
+  .leaflet-popup-content-wrapper {
+    background-color: rgba(255, 255, 255, 0.95);
+    border-radius: 12px;
+    box-shadow: 0 3px 14px rgba(0, 0, 0, 0.5);
+    border: 2px solid hsl(var(--primary) / 0.5);
+  }
+  
+  .leaflet-popup-tip {
+    background-color: white;
+    box-shadow: 0 3px 14px rgba(0, 0, 0, 0.5);
+    border: 1px solid hsl(var(--primary) / 0.5);
+  }
+  
+  .leaflet-popup-content {
+    margin: 10px 12px;
+    font-weight: 500;
+  }
 }

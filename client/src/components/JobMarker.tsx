@@ -14,28 +14,28 @@ interface JobMarkerProps {
 
 // Helper function to get color based on job category using our theme colors
 function getColorForCategory(category: string): string {
-  // Create variations of our primary color (hsl(160, 84%, 39%))
+  // Create brighter variations of our primary color for better contrast on dark map
   switch(category) {
     case 'Home Maintenance':
-      return 'hsl(160, 84%, 39%)'; // primary
+      return 'hsl(160, 94%, 45%)'; // brighter primary
     case 'Cleaning':
-      return 'hsl(160, 84%, 45%)'; // lighter primary
+      return 'hsl(160, 94%, 50%)'; // even brighter primary
     case 'Delivery':
-      return 'hsl(180, 84%, 39%)'; // blue-green variant
+      return 'hsl(180, 94%, 45%)'; // bright blue-green variant
     case 'Event Help':
-      return 'hsl(140, 84%, 39%)'; // green variant
+      return 'hsl(140, 94%, 45%)'; // bright green variant
     case 'Moving':
-      return 'hsl(160, 84%, 30%)'; // darker primary
+      return 'hsl(160, 94%, 40%)'; // slightly darker but still bright primary
     case 'Tech Support':
-      return 'hsl(170, 84%, 39%)'; // teal variant
+      return 'hsl(170, 94%, 45%)'; // bright teal variant
     case 'Shopping':
-      return 'hsl(150, 84%, 39%)'; // lighter green variant
+      return 'hsl(150, 94%, 45%)'; // bright lighter green variant
     case 'Pet Care':
-      return 'hsl(130, 84%, 39%)'; // green variant
+      return 'hsl(130, 94%, 45%)'; // bright green variant
     case 'Tutoring':
-      return 'hsl(190, 84%, 39%)'; // blue variant
+      return 'hsl(190, 94%, 45%)'; // bright blue variant
     default:
-      return 'hsl(160, 30%, 39%)'; // desaturated primary
+      return 'hsl(160, 80%, 45%)'; // bright but slightly desaturated primary
   }
 }
 
@@ -122,12 +122,13 @@ export function JobMarker({ job, position, isSelected, onClick }: JobMarkerProps
       <div className="marker-container">
         {/* Main marker circle */}
         <div 
-          className={`flex items-center justify-center rounded-full shadow-lg border-2 border-white
+          className={`flex items-center justify-center rounded-full shadow-lg border-3 border-white
                     ${isSelected ? 'w-16 h-16 font-bold animate-pulse-slow' : 'w-14 h-14 animate-bounce-in'}`}
           style={{ 
             backgroundColor: color,
             zIndex: isSelected ? '1000' : '1',
-            position: 'relative'
+            position: 'relative',
+            boxShadow: '0 2px 8px rgba(0,0,0,0.5), 0 0 0 3px rgba(255,255,255,0.8)'
           }}
         >
           {/* Amount badge for better readability */}
