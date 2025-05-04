@@ -118,10 +118,10 @@ const TransactionHistory: React.FC = () => {
   return (
     <div className="container mx-auto p-6 max-w-4xl">
       <div className="flex items-center mb-6">
-        <Link to="/profile" className="mr-3">
+        <Link to="/" className="mr-3">
           <Button variant="ghost" size="sm" className="text-gray-500 hover:text-gray-700">
             <ChevronLeft className="h-4 w-4 mr-1" />
-            Back to Profile
+            Back to Map
           </Button>
         </Link>
         <h1 className="text-2xl font-bold">Transaction History</h1>
