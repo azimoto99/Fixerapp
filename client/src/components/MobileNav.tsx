@@ -20,10 +20,10 @@ const MobileNav: React.FC = () => {
           </Link>
           
           {accountType === 'worker' ? (
-            <Link href="/applications">
-              <div className={`group flex flex-col items-center py-3 px-2 cursor-pointer ${location === '/applications' ? 'text-primary-600 border-t-2 border-primary-600' : 'text-gray-500'}`}>
-                <i className="ri-file-list-line text-xl"></i>
-                <span className={`text-xs mt-1 ${location === '/applications' ? 'font-medium' : ''}`}>Apply</span>
+            <Link href="/earnings">
+              <div className={`group flex flex-col items-center py-3 px-2 cursor-pointer ${location === '/earnings' ? 'text-primary-600 border-t-2 border-primary-600' : 'text-gray-500'}`}>
+                <i className="ri-money-dollar-circle-line text-xl"></i>
+                <span className={`text-xs mt-1 ${location === '/earnings' ? 'font-medium' : ''}`}>Earnings</span>
               </div>
             </Link>
           ) : (

@@ -13,6 +13,7 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { Loader2, CheckCircle2, MessageCircle, Star } from 'lucide-react';
 import { useMutation, useQuery } from '@tanstack/react-query';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Review } from '@shared/schema';
 
 interface JobDetailProps {
   job: Job;
