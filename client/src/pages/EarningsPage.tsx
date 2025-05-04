@@ -38,6 +38,7 @@ import { Loader2, DollarSign, TrendingUp, Calendar } from 'lucide-react';
 import { formatCurrency } from '@/lib/utils';
 import { useToast } from '@/hooks/use-toast';
 import { Redirect } from 'wouter';
+import StripeConnectSetup from '@/components/stripe/StripeConnectSetup';
 
 // For earnings filtering
 type FilterPeriod = 'all' | 'week' | 'month' | 'year';
