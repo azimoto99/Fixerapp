@@ -1,9 +1,11 @@
 import React, { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { Earning, Job } from '@shared/schema';
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Earning, Job, Application, Review } from '@shared/schema';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Progress } from '@/components/ui/progress';
+import { Button } from '@/components/ui/button';
 import {
   BarChart,
   Bar,
@@ -15,9 +17,28 @@ import {
   PieChart,
   Pie,
   Cell,
-  Legend
+  Legend,
+  LineChart,
+  Line,
+  RadarChart,
+  PolarGrid,
+  PolarAngleAxis,
+  PolarRadiusAxis,
+  Radar
 } from 'recharts';
-import { Loader2, ArrowUpRight, DollarSign, TrendingUp, Wallet, Clock } from 'lucide-react';
+import { 
+  Loader2, 
+  ArrowUpRight, 
+  DollarSign, 
+  TrendingUp, 
+  Wallet, 
+  Clock, 
+  Calendar, 
+  Award, 
+  Star, 
+  Download,
+  CheckCircle2
+} from 'lucide-react';
 
 interface EarningsContentProps {
   userId: number;
@@ -36,6 +57,16 @@ const EarningsContent: React.FC<EarningsContentProps> = ({ userId }) => {
       const res = await fetch(`/api/jobs?workerId=${userId}`);
       return res.json();
     },
+  });
+  
+  // Get reviews for the worker
+  const { data: reviews } = useQuery<Review[]>({
+    queryKey: [`/api/reviews/user/${userId}`],
+  });
+  
+  // Get applications for the worker
+  const { data: applications } = useQuery<Application[]>({
+    queryKey: [`/api/applications/worker/${userId}`],
   });
 
   if (isLoading) {
@@ -70,7 +101,7 @@ const EarningsContent: React.FC<EarningsContentProps> = ({ userId }) => {
   // Format dates for the charts
   const formatDate = (dateString: Date | string | null) => {
     if (!dateString) return '';
-    const date = new Date(dateString);
+    const date = new Date(dateString.toString());
     return `${date.getMonth() + 1}/${date.getDate()}`;
   };
 
@@ -89,7 +120,7 @@ const EarningsContent: React.FC<EarningsContentProps> = ({ userId }) => {
       startDate.setFullYear(now.getFullYear() - 1);
     }
     
-    return earnings.filter(e => new Date(e.dateEarned) >= startDate);
+    return earnings.filter(e => e.dateEarned ? new Date(e.dateEarned) >= startDate : false);
   };
 
   const filteredEarnings = getFilteredEarnings();
