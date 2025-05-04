@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { useRoute, Link } from 'wouter';
 import { useQuery } from '@tanstack/react-query';
 import Header from '@/components/Header';
-import MobileNav from '@/components/MobileNav';
+// Mobile Nav removed as requested
 import JobDetail from '@/components/JobDetail';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';

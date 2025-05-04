@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import Header from '@/components/Header';
-import MobileNav from '@/components/MobileNav';
+// Mobile Nav removed as requested
 import JobSearch from '@/components/JobSearch';
 import ViewToggle from '@/components/ViewToggle';
 import JobListSection from '@/components/JobListSection';
@@ -331,8 +331,7 @@ export default function Home() {
         )}
       </main>
       
-      {/* Always show mobile nav for both account types */}
-      {user && <MobileNav />}
+      {/* Mobile nav removed as requested */}
       
       {/* Show new job button for all logged-in users */}
       {user && <NewJobButton />}
