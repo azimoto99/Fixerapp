@@ -81,11 +81,8 @@ const JobSearch: React.FC<JobSearchProps> = ({ onSearch }) => {
     const newSearchMode = searchMode === 'location' ? 'description' : 'location';
     setSearchMode(newSearchMode);
     
-    // Also trigger search with the new search mode if there's a query
-    if (query) {
-      const searchCategory = category === 'all' ? '' : category;
-      onSearch({ query, category: searchCategory, searchMode: newSearchMode });
-    }
+    // Don't automatically trigger a search when changing search mode
+    // Let the user decide when to search by clicking the search button
   };
 
   return (
@@ -115,7 +112,7 @@ const JobSearch: React.FC<JobSearchProps> = ({ onSearch }) => {
             <Input
               type="text"
               placeholder={searchMode === 'location' ? "Search by location..." : "Search by keywords..."}
-              className="flex-1 border-0 shadow-none bg-transparent focus:ring-0 h-8 px-1"
+              className="flex-1 border-0 shadow-none bg-transparent focus:ring-0 h-8 px-1 text-gray-800 placeholder:text-gray-500"
               value={query}
               onChange={(e) => setQuery(e.target.value)}
               onKeyPress={(e) => {
@@ -166,7 +163,7 @@ const JobSearch: React.FC<JobSearchProps> = ({ onSearch }) => {
                 // Toggle current category filter
                 if (category) {
                   setCategory('');
-                  onSearch({ query, category: '', searchMode });
+                  // Don't auto-search, let the user click the search button
                 } else {
                   // Show category horizontal scrollbar
                   const categoryScroll = document.getElementById('category-scroll');
@@ -192,7 +189,7 @@ const JobSearch: React.FC<JobSearchProps> = ({ onSearch }) => {
               }`}
               onClick={() => {
                 setCategory('');
-                onSearch({ query, category: '', searchMode });
+                // Don't auto-search when changing categories
               }}
             >
               All
@@ -207,7 +204,7 @@ const JobSearch: React.FC<JobSearchProps> = ({ onSearch }) => {
                 }`}
                 onClick={() => {
                   setCategory(cat);
-                  onSearch({ query, category: cat, searchMode });
+                  // Don't auto-search when changing categories
                 }}
               >
                 {cat}

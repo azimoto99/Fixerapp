@@ -127,7 +127,7 @@ const AddressAutocomplete: React.FC<AddressAutocompleteProps> = ({
           type="text"
           value={value}
           onChange={handleInputChange}
-          className={cn("pr-10", className)}
+          className={cn("pr-10 text-gray-800 placeholder:text-gray-500", className)}
           onFocus={() => value.length >= 3 && suggestions.length > 0 && setShowSuggestions(true)}
           {...props}
         />
