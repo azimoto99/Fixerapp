@@ -20,30 +20,71 @@ export function JobMarker({ job, position, isSelected, onClick }: JobMarkerProps
   const icon = useMemo(() => {
     // Create HTML content for the marker
     const html = renderToStaticMarkup(
-      <div 
-        className={`flex items-center justify-center rounded-full shadow-lg border-2 border-white
+      <div className="marker-container">
+        {/* Main marker circle */}
+        <div 
+          className={`flex items-center justify-center rounded-full shadow-lg border-2 border-white
                     ${isSelected ? 'w-14 h-14 font-bold' : 'w-12 h-12'}`}
-        style={{ 
-          backgroundColor: color,
-          transform: isSelected ? 'scale(1.1)' : 'scale(1)',
-          transition: 'all 0.2s ease',
-          zIndex: isSelected ? '1000' : '1'
-        }}
-      >
-        <span className="text-white text-sm">
-          ${job.paymentAmount}
-        </span>
+          style={{ 
+            backgroundColor: color,
+            transform: isSelected ? 'scale(1.1)' : 'scale(1)',
+            transition: 'all 0.2s ease',
+            zIndex: isSelected ? '1000' : '1',
+            position: 'relative'
+          }}
+        >
+          <span className="text-white text-sm font-semibold">
+            ${job.paymentAmount}
+          </span>
+          
+          {/* Animated pulse effect when selected */}
+          {isSelected && (
+            <div
+              className="absolute w-full h-full rounded-full"
+              style={{
+                border: `2px solid ${color}`,
+                animation: 'pulse 1.5s infinite',
+                opacity: 0.7,
+                transform: 'scale(1.2)'
+              }}
+            ></div>
+          )}
+        </div>
+        
+        {/* Mini label below (optional) */}
+        {isSelected && (
+          <div 
+            className="text-xs mt-1 px-2 py-1 bg-white rounded-full shadow-md text-center whitespace-nowrap"
+            style={{ color: color, fontWeight: 'bold' }}
+          >
+            {job.category}
+          </div>
+        )}
       </div>
     );
 
+    // Add animation keyframes via style tag
+    const style = `
+      @keyframes pulse {
+        0% { transform: scale(1.1); opacity: 0.9; }
+        70% { transform: scale(1.3); opacity: 0.3; }
+        100% { transform: scale(1.5); opacity: 0; }
+      }
+      .marker-container {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+      }
+    `;
+
     // Create the icon
     return divIcon({
-      html,
+      html: `<style>${style}</style>${html}`,
       className: 'custom-job-marker',
-      iconSize: [isSelected ? 56 : 48, isSelected ? 56 : 48],
-      iconAnchor: [isSelected ? 28 : 24, isSelected ? 28 : 24]
+      iconSize: [isSelected ? 80 : 48, isSelected ? 80 : 48],
+      iconAnchor: [isSelected ? 40 : 24, isSelected ? 40 : 24]
     });
-  }, [job.paymentAmount, color, isSelected]);
+  }, [job.paymentAmount, job.category, color, isSelected]);
 
   return (
     <Marker
@@ -52,6 +93,7 @@ export function JobMarker({ job, position, isSelected, onClick }: JobMarkerProps
       eventHandlers={{
         click: () => onClick(job)
       }}
+      zIndexOffset={isSelected ? 1000 : 0}
     >
       <Popup>
         <div className="font-semibold">{job.title}</div>

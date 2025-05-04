@@ -100,8 +100,8 @@ const MapSection: React.FC<MapSectionProps> = ({ jobs, selectedJob, onSelectJob 
   }
 
   return (
-    <div className="md:col-span-2 bg-white shadow rounded-lg overflow-hidden">
-      <div className="relative h-[70vh] md:h-[calc(100vh-160px)]">
+    <div className="w-full h-full">
+      <div className="relative h-screen">
         <style>{`
           .leaflet-container {
             height: 100%;
@@ -174,33 +174,42 @@ const MapSection: React.FC<MapSectionProps> = ({ jobs, selectedJob, onSelectJob 
           </MapContainer>
         )}
         
-        {/* DoorDash-like top bar */}
-        <div className="absolute top-0 left-0 right-0 bg-white shadow-md z-[1000] p-4">
-          <div className="flex items-center justify-between">
-            <div>
-              <h2 className="font-bold text-gray-900">Nearby Jobs</h2>
-              <p className="text-sm text-gray-500">
+        {/* Minimalist Job counter - DoorDash style */}
+        <div className="absolute top-4 left-4 z-[1000]">
+          <div className="flex items-center gap-2">
+            <div className="bg-white shadow-lg rounded-full px-4 py-2 flex items-center">
+              <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-5 w-5 text-primary mr-2">
+                <circle cx="12" cy="12" r="10" />
+                <line x1="12" y1="8" x2="12" y2="12" />
+                <line x1="12" y1="16" x2="12.01" y2="16" />
+              </svg>
+              <span className="text-sm font-medium">
                 {jobs.length} jobs within 2 miles
-              </p>
-            </div>
-            <div className="flex space-x-2">
-              <button className="bg-primary text-white px-4 py-2 rounded-lg text-sm font-medium">
-                Filter
-              </button>
+              </span>
             </div>
           </div>
           
           {/* Fallback location notice */}
           {isUsingFallback && (
-            <div className="mt-2 px-4 py-2 bg-amber-50 border border-amber-200 rounded-md text-amber-800 text-sm">
+            <div className="mt-2 bg-amber-50 border border-amber-200 rounded-full shadow px-3 py-1 text-amber-800 text-xs">
               <p className="flex items-center">
-                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" className="w-4 h-4 mr-2">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" className="w-3 h-3 mr-1">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
                 </svg>
-                Using approximate location. Enable location services for accurate results.
+                Using approximate location
               </p>
             </div>
           )}
+        </div>
+        
+        {/* My account button in top right */}
+        <div className="absolute top-4 right-4 z-[1000]">
+          <button className="bg-white shadow-lg rounded-full p-2">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-5 w-5 text-gray-700">
+              <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
+              <circle cx="12" cy="7" r="4" />
+            </svg>
+          </button>
         </div>
         
         {/* Bottom card for job details - DoorDash-style slide-up panel */}

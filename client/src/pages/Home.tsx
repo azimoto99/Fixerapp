@@ -67,10 +67,12 @@ const WorkerDashboard = () => {
           onSelectJob={handleSelectJob}
         />
         
-        {/* Floating search bar at the top */}
-        <div className="absolute top-16 left-0 right-0 px-4 z-[1001]">
-          <div className="bg-white rounded-lg shadow-lg p-2">
-            <JobSearch onSearch={handleSearch} />
+        {/* DoorDash-style floating search button */}
+        <div className="absolute bottom-6 left-1/2 transform -translate-x-1/2 z-[1001]">
+          <div className="bg-white rounded-full shadow-lg" style={{ width: '90vw', maxWidth: '400px' }}>
+            <div className="p-1.5">
+              <JobSearch onSearch={handleSearch} />
+            </div>
           </div>
         </div>
       </div>
@@ -188,11 +190,12 @@ export default function Home() {
 
   return (
     <div className="min-h-screen flex flex-col bg-gray-50">
-      <Header />
+      {/* Only show header for Job Posters - workers get fullscreen map */}
+      {(user && user.accountType === 'poster') && <Header />}
       
-      <main className="flex-1">
+      <main className={`flex-1 ${(!user || user.accountType === 'worker') ? 'h-screen' : ''}`}>
         {(!user || user.accountType === 'worker') ? (
-          // Worker dashboard - Full width for map view
+          // Worker dashboard - Full screen for map view
           <div className="h-full">
             <WorkerDashboard />
           </div>
@@ -204,8 +207,11 @@ export default function Home() {
         )}
       </main>
       
-      <MobileNav />
-      {(!user || user.accountType === 'poster') && <NewJobButton />}
+      {/* Only show mobile nav for Job Posters */}
+      {(user && user.accountType === 'poster') && <MobileNav />}
+      
+      {/* Only show new job button for posters */}
+      {(user && user.accountType === 'poster') && <NewJobButton />}
     </div>
   );
 }
