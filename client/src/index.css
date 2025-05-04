@@ -55,17 +55,17 @@
 @keyframes pulse-marker {
   0% {
     transform: scale(0.95);
-    box-shadow: 0 0 0 0 rgba(180, 20, 20, 0.7);
+    box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.7);
   }
   
   70% {
     transform: scale(1);
-    box-shadow: 0 0 0 10px rgba(180, 20, 20, 0);
+    box-shadow: 0 0 0 10px rgba(16, 185, 129, 0);
   }
   
   100% {
     transform: scale(0.95);
-    box-shadow: 0 0 0 0 rgba(180, 20, 20, 0);
+    box-shadow: 0 0 0 0 rgba(16, 185, 129, 0);
   }
 }
 
@@ -95,7 +95,7 @@
 }
 
 :root {
-  /* Black and dark red theme */
+  /* Black and emerald green theme */
   --background: 0 0% 10%;
   --foreground: 0 0% 95%;
   --muted: 0 0% 20%;
@@ -106,27 +106,27 @@
   --card-foreground: 0 0% 95%;
   --border: 0 0% 25%;
   --input: 0 0% 25%;
-  --primary: 0 70% 35%;
+  --primary: 160 84% 39%;
   --primary-foreground: 0 0% 95%;
   --secondary: 0 0% 15%;
   --secondary-foreground: 0 0% 95%;
-  --accent: 0 70% 35%;
+  --accent: 160 84% 39%;
   --accent-foreground: 0 0% 95%;
   --destructive: 0 84.2% 60.2%;
   --destructive-foreground: 0 0% 95%;
-  --ring: 0 70% 35%;
+  --ring: 160 84% 39%;
   --radius: 0.5rem;
   
   /* Chart colors */
-  --chart-1: 0 70% 35%;
-  --chart-2: 0 60% 45%;
-  --chart-3: 0 50% 55%;
-  --chart-4: 0 40% 65%;
-  --chart-5: 0 30% 75%;
+  --chart-1: 160 84% 39%;
+  --chart-2: 160 74% 45%;
+  --chart-3: 160 64% 55%;
+  --chart-4: 160 54% 65%;
+  --chart-5: 160 44% 75%;
 }
 
 .dark {
-  /* Even darker theme for dark mode */
+  /* Even darker theme for dark mode with emerald */
   --background: 0 0% 7%;
   --foreground: 0 0% 95%;
   --muted: 0 0% 15%;
@@ -137,23 +137,23 @@
   --card-foreground: 0 0% 95%;
   --border: 0 0% 20%;
   --input: 0 0% 20%;
-  --primary: 0 70% 30%;
+  --primary: 161 84% 34%;
   --primary-foreground: 0 0% 95%;
   --secondary: 0 0% 12%;
   --secondary-foreground: 0 0% 95%;
-  --accent: 0 70% 30%;
+  --accent: 161 84% 34%;
   --accent-foreground: 0 0% 95%;
   --destructive: 0 62.8% 30.6%;
   --destructive-foreground: 0 0% 95%;
-  --ring: 0 70% 30%;
+  --ring: 161 84% 34%;
   --radius: 0.5rem;
 
   /* Chart colors */
-  --chart-1: 0 70% 30%;
-  --chart-2: 0 60% 40%;
-  --chart-3: 0 50% 50%;
-  --chart-4: 0 40% 60%;
-  --chart-5: 0 30% 70%;
+  --chart-1: 161 84% 34%;
+  --chart-2: 161 74% 40%;
+  --chart-3: 161 64% 46%;
+  --chart-4: 161 54% 52%;
+  --chart-5: 161 44% 58%;
 }
 
 @layer base {

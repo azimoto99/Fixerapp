@@ -102,9 +102,9 @@ const WorkerDashboard = () => {
                   <p className="text-sm text-muted-foreground mt-1 line-clamp-2">{job.description}</p>
                   <div className="flex items-center mt-2">
                     <span className={`px-2 py-0.5 text-xs rounded-full ${
-                      job.status === 'open' ? 'bg-red-900 text-white' : 
-                      job.status === 'assigned' ? 'bg-red-800/70 text-white' : 
-                      'bg-red-700/50 text-white'
+                      job.status === 'open' ? 'bg-emerald-600 text-white' : 
+                      job.status === 'assigned' ? 'bg-emerald-700 text-white' : 
+                      'bg-emerald-800 text-white'
                     }`}>
                       {job.status.charAt(0).toUpperCase() + job.status.slice(1)}
                     </span>
@@ -251,9 +251,9 @@ const PosterDashboard = () => {
                     <p className="text-sm text-muted-foreground mt-1">{job.description.substring(0, 100)}...</p>
                     <div className="flex items-center mt-2">
                       <span className={`px-2 py-1 text-xs rounded-full ${
-                        job.status === 'open' ? 'bg-red-900 text-white' : 
-                        job.status === 'assigned' ? 'bg-red-800/70 text-white' : 
-                        'bg-red-700/50 text-white'
+                        job.status === 'open' ? 'bg-emerald-600 text-white' : 
+                        job.status === 'assigned' ? 'bg-emerald-700 text-white' : 
+                        'bg-emerald-800 text-white'
                       }`}>
                         {job.status.charAt(0).toUpperCase() + job.status.slice(1)}
                       </span>
