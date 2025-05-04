@@ -205,11 +205,15 @@ export type User = typeof users.$inferSelect & {
   badgeIds?: string[]; // Not in DB
   stripeCustomerId?: string | null; // Not in DB
   stripeConnectAccountId?: string | null; // Not in DB
+  stripeConnectAccountStatus?: string | null; // Not in DB - 'pending', 'active', 'incomplete', 'disabled', 'deauthorized'
 };
 export type InsertUser = z.infer<typeof insertUserSchema> & {
   requiresProfileCompletion?: boolean | null; // Not in DB
   needsAccountType?: boolean | null; // Not in DB
   skillsVerified?: Record<string, boolean>; // Not in DB
+  stripeConnectAccountId?: string | null; // Not in DB
+  stripeCustomerId?: string | null; // Not in DB
+  stripeConnectAccountStatus?: string | null; // Not in DB
 };
 
 export type Job = typeof jobs.$inferSelect;

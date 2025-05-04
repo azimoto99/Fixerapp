@@ -1905,6 +1905,138 @@ export async function registerRoutes(app: Express): Promise<Server> {
       console.error(`Error handling canceled payment: ${(error as Error).message}`);
     }
   }
+  
+  // Helper function to handle Connect account updates
+  async function handleConnectAccountUpdate(account: Stripe.Account) {
+    try {
+      // Find the user with this Connect account ID
+      const users = await storage.getAllUsers();
+      const user = users.find(u => u.stripeConnectAccountId === account.id);
+      
+      if (!user) {
+        console.error(`No user found with Stripe Connect account ID: ${account.id}`);
+        return;
+      }
+      
+      // Update the user's account status based on the Connect account details
+      const accountStatus = getConnectAccountStatus(account);
+      
+      // Update the user in the database with the new status
+      await storage.updateUser(user.id, {
+        stripeConnectAccountStatus: accountStatus
+      });
+      
+      console.log(`Updated Connect account status for user ${user.id} to ${accountStatus}`);
+    } catch (error) {
+      console.error(`Error handling Connect account update: ${(error as Error).message}`);
+    }
+  }
+  
+  // Helper function to determine Connect account status
+  function getConnectAccountStatus(account: Stripe.Account): string {
+    // Check if the account is fully onboarded
+    if (account.charges_enabled && account.payouts_enabled) {
+      return 'active';
+    }
+    
+    // Check if the account is disabled
+    if (account.requirements?.disabled_reason) {
+      return 'disabled';
+    }
+    
+    // Check if the account has pending requirements
+    if (account.requirements?.currently_due?.length > 0) {
+      return 'incomplete';
+    }
+    
+    // Default status if we can't determine
+    return 'pending';
+  }
+  
+  // Helper function to handle Connect account authorization
+  async function handleConnectAccountAuthorized(account: Stripe.Account) {
+    try {
+      // Find the user with this Connect account ID
+      const users = await storage.getAllUsers();
+      const user = users.find(u => u.stripeConnectAccountId === account.id);
+      
+      if (!user) {
+        console.error(`No user found with Stripe Connect account ID: ${account.id}`);
+        return;
+      }
+      
+      // Update the user's account status in the database
+      await storage.updateUser(user.id, {
+        stripeConnectAccountStatus: 'active'
+      });
+      
+      console.log(`Connect account for user ${user.id} is now authorized`);
+    } catch (error) {
+      console.error(`Error handling Connect account authorization: ${(error as Error).message}`);
+    }
+  }
+  
+  // Helper function to handle Connect account deauthorization
+  async function handleConnectAccountDeauthorized(account: Stripe.Account) {
+    try {
+      // Find the user with this Connect account ID
+      const users = await storage.getAllUsers();
+      const user = users.find(u => u.stripeConnectAccountId === account.id);
+      
+      if (!user) {
+        console.error(`No user found with Stripe Connect account ID: ${account.id}`);
+        return;
+      }
+      
+      // Update the user's account status in the database
+      await storage.updateUser(user.id, {
+        stripeConnectAccountStatus: 'deauthorized'
+      });
+      
+      console.log(`Connect account for user ${user.id} has been deauthorized`);
+    } catch (error) {
+      console.error(`Error handling Connect account deauthorization: ${(error as Error).message}`);
+    }
+  }
+  
+  // Helper function to handle transfer events (payout to worker)
+  async function handleTransferEvent(transfer: Stripe.Transfer, eventType: string) {
+    try {
+      // Extract metadata from transfer (job ID, worker ID, earning ID)
+      const { jobId, workerId, earningId } = transfer.metadata || {};
+      
+      if (!jobId || !workerId || !earningId) {
+        console.log(`Transfer ${transfer.id} doesn't have required metadata, ignoring`);
+        return;
+      }
+      
+      // Parse IDs to integers
+      const jobIdInt = parseInt(jobId);
+      const workerIdInt = parseInt(workerId);
+      const earningIdInt = parseInt(earningId);
+      
+      // Get the earning record
+      const earning = await storage.getEarning(earningIdInt);
+      
+      if (!earning) {
+        console.error(`No earning found with ID: ${earningIdInt}`);
+        return;
+      }
+      
+      // Update the earning status based on the transfer event
+      if (eventType === 'transfer.paid') {
+        // Transfer has been paid out to the worker's bank account
+        await storage.updateEarningStatus(earningIdInt, 'paid', new Date());
+        console.log(`Earning ${earningIdInt} for job ${jobIdInt} marked as paid via webhook`);
+      } else if (eventType === 'transfer.created') {
+        // Transfer has been created but not yet paid out
+        await storage.updateEarningStatus(earningIdInt, 'processing');
+        console.log(`Earning ${earningIdInt} for job ${jobIdInt} marked as processing via webhook`);
+      }
+    } catch (error) {
+      console.error(`Error handling transfer event: ${(error as Error).message}`);
+    }
+  }
 
   // Mount the API router under /api prefix
   app.use("/api", apiRouter);

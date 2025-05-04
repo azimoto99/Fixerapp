@@ -43,6 +43,9 @@ export class DatabaseStorage implements IStorage {
       skillsVerified: user.skillsVerified || {},
       badgeIds: user.badgeIds || [],
       skills: user.skills || [],
+      stripeCustomerId: (user as any).stripe_customer_id || null,
+      stripeConnectAccountId: (user as any).stripe_connect_account_id || null,
+      stripeConnectAccountStatus: (user as any).stripe_connect_account_status || null,
       requiresProfileCompletion: needsProfileCompletion === true ? true : null
     };
     
@@ -208,24 +211,44 @@ export class DatabaseStorage implements IStorage {
     return this.addProfileCompletionFlag(createdUser);
   }
 
-  async updateUser(id: number, data: Partial<InsertUser> & { stripeConnectAccountId?: string }): Promise<User | undefined> {
+  async updateUser(id: number, data: Partial<InsertUser> & { stripeConnectAccountId?: string, stripeConnectAccountStatus?: string }): Promise<User | undefined> {
     // Extract the fields that don't exist in the database schema
-    const { requiresProfileCompletion, needsAccountType, stripeConnectAccountId, ...dbData } = data;
+    const { requiresProfileCompletion, needsAccountType, stripeConnectAccountId, stripeConnectAccountStatus, ...dbData } = data;
     
-    // Handle Stripe Connect Account ID separately
+    // Handle Stripe Connect Account ID and status separately
     let updatedUser;
     
     try {
-      if (stripeConnectAccountId !== undefined) {
-        // If stripeConnectAccountId is provided, use a direct SQL update to avoid ORM issues
+      if (stripeConnectAccountId !== undefined || stripeConnectAccountStatus !== undefined) {
+        // Build SQL for updating Stripe Connect fields
+        let updateFields = [];
+        const updateValues = [];
+        let valueIndex = 1;
+        
+        if (stripeConnectAccountId !== undefined) {
+          updateFields.push(`stripe_connect_account_id = $${valueIndex}`);
+          updateValues.push(stripeConnectAccountId);
+          valueIndex++;
+        }
+        
+        if (stripeConnectAccountStatus !== undefined) {
+          updateFields.push(`stripe_connect_account_status = $${valueIndex}`);
+          updateValues.push(stripeConnectAccountStatus);
+          valueIndex++;
+        }
+        
+        // Add ID parameter
+        updateValues.push(id);
+        
+        // If either Stripe Connect fields are provided, use a direct SQL update to avoid ORM issues
         const query = `
           UPDATE users 
-          SET stripe_connect_account_id = $1
-          WHERE id = $2
+          SET ${updateFields.join(', ')}
+          WHERE id = $${valueIndex}
           RETURNING *
         `;
         
-        const result = await db.execute(query, [stripeConnectAccountId, id]);
+        const result = await db.execute(query, updateValues);
         
         if (result.rows.length === 0) {
           return undefined;
