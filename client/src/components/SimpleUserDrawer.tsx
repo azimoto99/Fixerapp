@@ -84,11 +84,11 @@ const SimpleUserDrawer: React.FC<SimpleUserDrawerProps> = ({ children }) => {
 
       {isOpen && (
         <div 
-          className="fixed inset-0 bg-black bg-opacity-50 z-[20000]"
+          className="fixed inset-0 bg-black bg-opacity-50 z-[99998]"
         >
           <div
             ref={drawerRef}
-            className="fixed top-0 right-0 bottom-0 w-80 bg-white shadow-lg z-[20001] transform transition-transform ease-in-out duration-300"
+            className="fixed top-0 right-0 bottom-0 w-80 bg-white shadow-lg z-[99999] transform transition-transform ease-in-out duration-300"
             style={{ transform: isOpen ? 'translateX(0)' : 'translateX(100%)' }}
           >
             <div className="p-4 border-b flex justify-between items-start">

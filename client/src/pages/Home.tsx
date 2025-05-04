@@ -69,7 +69,7 @@ const WorkerDashboard = () => {
         />
         
         {/* DoorDash-style floating search box at bottom */}
-        <div className="absolute bottom-6 left-1/2 transform -translate-x-1/2 z-[1001]">
+        <div className="absolute bottom-6 left-1/2 transform -translate-x-1/2 z-[500]">
           <div className="bg-white rounded-full shadow-lg" style={{ width: '90vw', maxWidth: '400px' }}>
             <div className="p-1.5">
               <JobSearch onSearch={handleSearch} />
@@ -78,7 +78,7 @@ const WorkerDashboard = () => {
         </div>
         
         {/* Find Nearest Job Button - positioned at bottom left corner */}
-        <div className="absolute bottom-24 left-4 z-[1001]">
+        <div className="absolute bottom-24 left-4 z-[500]">
           <FindNearestJobButton />
         </div>
       </div>
