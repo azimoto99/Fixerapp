@@ -98,9 +98,9 @@ const WorkerDashboard = () => {
                   <p className="text-sm text-gray-500 mt-1 line-clamp-2">{job.description}</p>
                   <div className="flex items-center mt-2">
                     <span className={`px-2 py-0.5 text-xs rounded-full ${
-                      job.status === 'open' ? 'bg-blue-100 text-blue-800' : 
-                      job.status === 'assigned' ? 'bg-amber-100 text-amber-800' : 
-                      'bg-green-100 text-green-800'
+                      job.status === 'open' ? 'bg-red-900 text-white' : 
+                      job.status === 'assigned' ? 'bg-red-800/70 text-white' : 
+                      'bg-red-700/50 text-white'
                     }`}>
                       {job.status.charAt(0).toUpperCase() + job.status.slice(1)}
                     </span>
@@ -196,7 +196,7 @@ const PosterDashboard = () => {
   return (
     <div className="py-6 sm:px-6 lg:px-8">
       <div className="flex items-center justify-between mb-6">
-        <h1 className="text-2xl font-bold text-gray-900">Job Poster Dashboard</h1>
+        <h1 className="text-2xl font-bold text-foreground">Job Poster Dashboard</h1>
         <Button asChild>
           <a href="/post-job">Post a New Job</a>
         </Button>
@@ -238,25 +238,25 @@ const PosterDashboard = () => {
         </Card>
       </div>
 
-      <div className="bg-white shadow rounded-lg p-6">
-        <h2 className="text-lg font-medium text-gray-900 mb-4">My Posted Jobs</h2>
+      <div className="bg-card shadow rounded-lg p-6">
+        <h2 className="text-lg font-medium text-card-foreground mb-4">My Posted Jobs</h2>
         {jobs && jobs.length > 0 ? (
           <div className="space-y-4">
             {jobs.map(job => (
-              <div key={job.id} className="border rounded-md p-4 hover:bg-gray-50">
+              <div key={job.id} className="border border-border rounded-md p-4 hover:bg-secondary">
                 <div className="flex justify-between items-start">
                   <div>
-                    <h3 className="font-medium text-gray-900">{job.title}</h3>
-                    <p className="text-sm text-gray-500 mt-1">{job.description.substring(0, 100)}...</p>
+                    <h3 className="font-medium text-foreground">{job.title}</h3>
+                    <p className="text-sm text-muted-foreground mt-1">{job.description.substring(0, 100)}...</p>
                     <div className="flex items-center mt-2">
                       <span className={`px-2 py-1 text-xs rounded-full ${
-                        job.status === 'open' ? 'bg-blue-100 text-blue-800' : 
-                        job.status === 'assigned' ? 'bg-amber-100 text-amber-800' : 
-                        'bg-green-100 text-green-800'
+                        job.status === 'open' ? 'bg-red-900 text-white' : 
+                        job.status === 'assigned' ? 'bg-red-800/70 text-white' : 
+                        'bg-red-700/50 text-white'
                       }`}>
                         {job.status.charAt(0).toUpperCase() + job.status.slice(1)}
                       </span>
-                      <span className="text-xs text-gray-500 ml-2">
+                      <span className="text-xs text-muted-foreground ml-2">
                         Posted on {job.datePosted ? new Date(job.datePosted).toLocaleDateString() : 'Unknown date'}
                       </span>
                     </div>
@@ -290,7 +290,7 @@ export default function Home() {
   const { user } = useAuth();
 
   return (
-    <div className="min-h-screen flex flex-col bg-gray-50">
+    <div className="min-h-screen flex flex-col bg-background">
       {/* Only show header for Job Posters - workers get fullscreen map */}
       {(user && user.accountType === 'poster') && <Header />}
       
