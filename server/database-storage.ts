@@ -41,7 +41,7 @@ export class DatabaseStorage implements IStorage {
       
       return {
         ...user,
-        requiresProfileCompletion: needsProfileCompletion
+        requiresProfileCompletion: needsProfileCompletion === true ? true : null
       };
     });
   }
@@ -127,7 +127,7 @@ export class DatabaseStorage implements IStorage {
     // Add the requiresProfileCompletion property back to the user object for the client
     return {
       ...createdUser,
-      requiresProfileCompletion: requiresProfileCompletion
+      requiresProfileCompletion: requiresProfileCompletion === true ? true : null
     };
   }
 
@@ -147,7 +147,7 @@ export class DatabaseStorage implements IStorage {
     // Add the requiresProfileCompletion property back to the user object for the client
     return {
       ...updatedUser,
-      requiresProfileCompletion: requiresProfileCompletion
+      requiresProfileCompletion: requiresProfileCompletion === true ? true : null
     };
   }
   
