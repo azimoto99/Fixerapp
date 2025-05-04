@@ -179,6 +179,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         });
       }
       
+      // Allow any user to post jobs regardless of their account type (both workers and posters)
       // Service fee and total amount are calculated in storage.createJob
       const newJob = await storage.createJob(jobData);
       

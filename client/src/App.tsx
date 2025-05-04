@@ -17,6 +17,7 @@ import CompleteProfile from "@/pages/CompleteProfile";
 import { AuthProvider } from "@/hooks/use-auth";
 import { ProtectedRoute } from "@/lib/protected-route";
 import { AccountTypeRoute } from "@/lib/account-type-route";
+import { MultiAccountTypeRoute } from "@/lib/multi-account-type-route";
 import { useAuth } from "@/hooks/use-auth";
 import { useEffect } from "react";
 
@@ -47,7 +48,7 @@ function RouterWithAuth() {
   return (
     <Switch>
       <ProtectedRoute path="/" component={Home} />
-      <AccountTypeRoute path="/post-job" component={PostJob} allowedType="poster" />
+      <MultiAccountTypeRoute path="/post-job" component={PostJob} allowedTypes={['worker', 'poster']} />
       <ProtectedRoute path="/job/:id" component={JobDetails} />
       <ProtectedRoute path="/profile" component={Profile} />
       <AccountTypeRoute path="/earnings" component={EarningsPage} allowedType="worker" />
