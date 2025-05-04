@@ -61,7 +61,7 @@ export default function JobDetails() {
           </div>
         </main>
         
-        <MobileNav />
+        {/* Mobile nav removed */}
       </div>
     );
   }
@@ -85,7 +85,7 @@ export default function JobDetails() {
           </div>
         </main>
         
-        <MobileNav />
+        {/* Mobile nav removed */}
       </div>
     );
   }
@@ -138,7 +138,7 @@ export default function JobDetails() {
         </div>
       </main>
       
-      <MobileNav />
+      {/* Mobile nav removed */}
     </div>
   );
 }

@@ -3,7 +3,7 @@ import { useQuery } from '@tanstack/react-query';
 import { useAuth } from '@/hooks/use-auth';
 import { Earning, Job } from '@shared/schema';
 import Header from '@/components/Header';
-import MobileNav from '@/components/MobileNav';
+// Mobile Nav removed as requested
 import { 
   Card, 
   CardContent, 
@@ -104,7 +104,7 @@ export default function EarningsPage() {
             <Loader2 className="h-10 w-10 animate-spin text-primary" />
           </div>
         </main>
-        <MobileNav />
+        {/* Mobile nav removed */}
       </div>
     );
   }
