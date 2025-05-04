@@ -12,7 +12,7 @@ interface UseJobsOptions {
 
 export function useJobs(
   options?: UseJobsOptions,
-  searchParams?: { query?: string; category?: string }
+  searchParams?: { query?: string; category?: string; searchMode?: 'location' | 'description' }
 ) {
   const { userLocation } = useGeolocation();
   const { user } = useAuth();
@@ -22,6 +22,9 @@ export function useJobs(
     poster = false,
     includeAll = false 
   } = options || {};
+  
+  // Default search mode is location if not specified
+  const searchMode = searchParams?.searchMode || 'location';
   
   // Create a function to build the query path
   const buildQueryString = (params: string[]) => {
@@ -33,7 +36,11 @@ export function useJobs(
     const queryParams: string[] = [];
     
     if (searchParams?.query) {
-      queryParams.push(`search=${encodeURIComponent(searchParams.query)}`);
+      if (searchMode === 'location') {
+        queryParams.push(`location=${encodeURIComponent(searchParams.query)}`);
+      } else {
+        queryParams.push(`search=${encodeURIComponent(searchParams.query)}`);
+      }
     }
     
     if (searchParams?.category) {
@@ -64,7 +71,11 @@ export function useJobs(
     ];
     
     if (searchParams?.query) {
-      queryParams.push(`search=${encodeURIComponent(searchParams.query)}`);
+      if (searchMode === 'location') {
+        queryParams.push(`location=${encodeURIComponent(searchParams.query)}`);
+      } else {
+        queryParams.push(`search=${encodeURIComponent(searchParams.query)}`);
+      }
     }
     
     if (searchParams?.category) {
@@ -95,7 +106,7 @@ export function useJobs(
   
   // Get jobs query
   const { data: jobs, isLoading, error } = useQuery<Job[]>({
-    queryKey: [queryPath],
+    queryKey: [queryPath, searchMode],
   });
   
   return {

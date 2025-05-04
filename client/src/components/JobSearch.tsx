@@ -5,18 +5,30 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { JOB_CATEGORIES } from '@shared/schema';
 
 interface JobSearchProps {
-  onSearch: (params: { query: string; category: string }) => void;
+  onSearch: (params: { query: string; category: string; searchMode?: 'location' | 'description' }) => void;
 }
 
 const JobSearch: React.FC<JobSearchProps> = ({ onSearch }) => {
   const [query, setQuery] = useState('');
   const [category, setCategory] = useState('');
+  const [searchMode, setSearchMode] = useState<'location' | 'description'>('location');
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     // If category is 'all', pass empty string to search all categories
     const searchCategory = category === 'all' ? '' : category;
-    onSearch({ query, category: searchCategory });
+    onSearch({ query, category: searchCategory, searchMode });
+  };
+
+  const toggleSearchMode = () => {
+    const newSearchMode = searchMode === 'location' ? 'description' : 'location';
+    setSearchMode(newSearchMode);
+    
+    // Also trigger search with the new search mode if there's a query
+    if (query) {
+      const searchCategory = category === 'all' ? '' : category;
+      onSearch({ query, category: searchCategory, searchMode: newSearchMode });
+    }
   };
 
   return (
@@ -27,14 +39,21 @@ const JobSearch: React.FC<JobSearchProps> = ({ onSearch }) => {
           <div className="flex items-center">
             <div className="relative flex-1">
               <div className="absolute inset-y-0 left-3 flex items-center pointer-events-none">
-                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-4 h-4 text-gray-400">
-                  <circle cx="11" cy="11" r="8"></circle>
-                  <path d="m21 21-4.3-4.3"></path>
-                </svg>
+                {searchMode === 'location' ? (
+                  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-4 h-4 text-gray-400">
+                    <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path>
+                    <circle cx="12" cy="10" r="3"></circle>
+                  </svg>
+                ) : (
+                  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-4 h-4 text-gray-400">
+                    <circle cx="11" cy="11" r="8"></circle>
+                    <path d="m21 21-4.3-4.3"></path>
+                  </svg>
+                )}
               </div>
               <Input
                 type="text"
-                placeholder="Search jobs..."
+                placeholder={searchMode === 'location' ? "Search by location..." : "Search by description..."}
                 className="pl-10 pr-2 py-2 rounded-full border-gray-200 shadow-none bg-gray-100 focus:bg-white focus:ring-2 focus:ring-primary/20 transition-all"
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
@@ -42,11 +61,31 @@ const JobSearch: React.FC<JobSearchProps> = ({ onSearch }) => {
                   if (e.key === 'Enter') {
                     e.preventDefault();
                     const searchCategory = category === 'all' ? '' : category;
-                    onSearch({ query, category: searchCategory });
+                    onSearch({ query, category: searchCategory, searchMode });
                   }
                 }}
               />
             </div>
+            <Button
+              type="button"
+              size="sm"
+              variant="outline"
+              className="ml-1 rounded-full w-8 h-8 p-0 flex items-center justify-center transition-transform hover:scale-105 active:scale-95"
+              onClick={toggleSearchMode}
+              title={searchMode === 'location' ? 'Switch to description search' : 'Switch to location search'}
+            >
+              {searchMode === 'location' ? (
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-4 h-4">
+                  <circle cx="11" cy="11" r="8"></circle>
+                  <path d="m21 21-4.3-4.3"></path>
+                </svg>
+              ) : (
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-4 h-4">
+                  <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path>
+                  <circle cx="12" cy="10" r="3"></circle>
+                </svg>
+              )}
+            </Button>
             <Button
               type="submit"
               size="sm"
@@ -66,7 +105,7 @@ const JobSearch: React.FC<JobSearchProps> = ({ onSearch }) => {
                 // Toggle current category filter
                 if (category) {
                   setCategory('');
-                  onSearch({ query, category: '' });
+                  onSearch({ query, category: '', searchMode });
                 } else {
                   // Show category horizontal scrollbar
                   const categoryScroll = document.getElementById('category-scroll');
@@ -92,7 +131,7 @@ const JobSearch: React.FC<JobSearchProps> = ({ onSearch }) => {
               }`}
               onClick={() => {
                 setCategory('');
-                onSearch({ query, category: '' });
+                onSearch({ query, category: '', searchMode });
               }}
             >
               All
@@ -107,7 +146,7 @@ const JobSearch: React.FC<JobSearchProps> = ({ onSearch }) => {
                 }`}
                 onClick={() => {
                   setCategory(cat);
-                  onSearch({ query, category: cat });
+                  onSearch({ query, category: cat, searchMode });
                 }}
               >
                 {cat}
