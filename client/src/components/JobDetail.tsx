@@ -104,7 +104,18 @@ const JobDetail: React.FC<JobDetailProps> = ({ job, distance = 0.5, onClose }) =
       return;
     }
     
+    // Check if user has a Stripe Connect account
     try {
+      const res = await apiRequest('GET', '/api/stripe/connect/account-status');
+      const accountStatus = await res.json();
+      
+      // If user doesn't have an active Connect account, show the setup modal
+      if (!accountStatus || accountStatus.accountStatus !== 'active') {
+        setShowStripeConnectRequired(true);
+        return;
+      }
+      
+      // If they have an active Connect account, proceed with application
       setIsApplying(true);
       await apiRequest('POST', '/api/applications', {
         jobId: job.id,
@@ -116,7 +127,13 @@ const JobDetail: React.FC<JobDetailProps> = ({ job, distance = 0.5, onClose }) =
         title: "Application Submitted",
         description: "Your application has been submitted successfully"
       });
-    } catch (error) {
+    } catch (error: any) {
+      // If the error is a 404 (no account), show the Stripe Connect setup
+      if (error.status === 404) {
+        setShowStripeConnectRequired(true);
+        return;
+      }
+      
       toast({
         title: "Application Failed",
         description: "There was an error submitting your application. Please try again.",
@@ -216,6 +233,20 @@ const JobDetail: React.FC<JobDetailProps> = ({ job, distance = 0.5, onClose }) =
 
   return (
     <div className="bg-card">
+      {/* Stripe Connect Required Modal */}
+      {showStripeConnectRequired && (
+        <StripeConnectRequired
+          onComplete={() => {
+            setShowStripeConnectRequired(false);
+            // After setup, try to apply again after a small delay
+            setTimeout(() => {
+              handleApply();
+            }, 500);
+          }}
+          onSkip={() => setShowStripeConnectRequired(false)}
+        />
+      )}
+      
       {/* Payment notification overlay */}
       {showPaymentNotification && earnedPayment && (
         <PaymentNotification

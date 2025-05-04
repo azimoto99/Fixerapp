@@ -1,314 +1,371 @@
-import React, { useState, useEffect } from 'react';
+import React from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Loader2, ExternalLink, CheckCircle, AlertCircle } from 'lucide-react';
-import { useToast } from '@/hooks/use-toast';
+import { Loader2, ExternalLink, AlertCircle, CheckCircle, XCircle } from 'lucide-react';
+import { apiRequest, queryClient } from '@/lib/queryClient';
 import { useQuery, useMutation } from '@tanstack/react-query';
-import { queryClient, apiRequest } from '@/lib/queryClient';
+import { useToast } from '@/hooks/use-toast';
 
-interface ConnectAccountStatus {
+interface StripeConnectSetupProps {
+  compact?: boolean;
+}
+
+type AccountStatus = {
+  accountStatus: string;
+  requirements?: {
+    currentlyDue?: string[];
+    eventuallyDue?: string[];
+    pendingVerification?: string[];
+  };
   accountId: string;
   detailsSubmitted: boolean;
   payoutsEnabled: boolean;
   chargesEnabled: boolean;
-  accountLinkUrl: string | null;
-  defaultCurrency: string;
-  country: string;
-  accountStatus: 'active' | 'restricted' | 'incomplete';
-}
+};
 
-const StripeConnectSetup: React.FC = () => {
+const StripeConnectSetup: React.FC<StripeConnectSetupProps> = ({ compact = false }) => {
   const { toast } = useToast();
-  const [isRedirecting, setIsRedirecting] = useState(false);
-
-  // Check if user has a Connect account
-  const { data: accountStatus, isLoading, isError, error, refetch } = useQuery<ConnectAccountStatus>({
+  
+  // Query account status
+  const { data: accountStatus, isLoading, error, refetch } = useQuery({
     queryKey: ['/api/stripe/connect/account-status'],
     queryFn: async () => {
       try {
         const res = await apiRequest('GET', '/api/stripe/connect/account-status');
-        return await res.json();
-      } catch (error) {
-        // If error is 404, it means the user doesn't have a Connect account yet
-        // If error is 401, the user is not authenticated
-        if ((error as any).status === 404 || (error as any).status === 401) {
+        return await res.json() as AccountStatus;
+      } catch (error: any) {
+        // Handle 404 (no account) as a legitimate response
+        if (error.status === 404) {
           return null;
         }
         throw error;
       }
     },
-    // Don't show error toasts for 404 or 401 errors
     retry: (failureCount, error: any) => {
-      return failureCount < 3 && error.status !== 404 && error.status !== 401;
+      return failureCount < 3 && error.status !== 404;
     }
   });
-
-  // Create a Connect account
+  
+  // Create account mutation
   const createAccountMutation = useMutation({
     mutationFn: async () => {
-      const res = await apiRequest('POST', '/api/stripe/connect/create-account');
+      const res = await apiRequest('POST', '/api/stripe/connect/create-account', {});
       return await res.json();
     },
     onSuccess: (data) => {
-      // Redirect to the account link URL
-      if (data.accountLinkUrl) {
-        setIsRedirecting(true);
-        window.location.href = data.accountLinkUrl;
-      }
-    },
-    onError: (error: any) => {
-      toast({
-        title: 'Error creating Stripe Connect account',
-        description: error.message || 'Please try again later',
-        variant: 'destructive',
-      });
-    }
-  });
-
-  // Create login link for existing account
-  const loginLinkMutation = useMutation({
-    mutationFn: async () => {
-      const res = await apiRequest('POST', '/api/stripe/connect/create-login-link');
-      return await res.json();
-    },
-    onSuccess: (data) => {
-      // Redirect to the login link URL
       if (data.url) {
-        setIsRedirecting(true);
-        window.location.href = data.url;
-      }
-    },
-    onError: (error: any) => {
-      toast({
-        title: 'Error creating login link',
-        description: error.message || 'Please try again later',
-        variant: 'destructive',
-      });
-    }
-  });
-
-  // Check for query parameters in URL that might indicate return from Stripe
-  useEffect(() => {
-    const url = new URL(window.location.href);
-    const refreshParam = url.searchParams.get('refresh');
-    const successParam = url.searchParams.get('success');
-
-    if (refreshParam === 'true' || successParam === 'true') {
-      // Clean up URL
-      url.searchParams.delete('refresh');
-      url.searchParams.delete('success');
-      window.history.replaceState({}, document.title, url.toString());
-
-      // Refetch account status
-      refetch();
-
-      // Show toast based on status
-      if (successParam === 'true') {
+        // Open the Stripe Connect onboarding link in a new tab
+        window.open(data.url, '_blank');
+        
         toast({
-          title: 'Stripe Connect setup progress',
-          description: 'Thank you for updating your account information!',
+          title: 'Stripe Connect Setup Started',
+          description: 'Please complete the setup in the new tab.',
         });
       }
+    },
+    onError: (error: any) => {
+      toast({
+        title: 'Error',
+        description: 'Failed to create Stripe Connect account: ' + (error.message || 'Unknown error'),
+        variant: 'destructive',
+      });
     }
-  }, [refetch, toast]);
-
-  const handleCreateAccount = () => {
-    createAccountMutation.mutate();
-  };
-
-  const handleManageAccount = () => {
-    loginLinkMutation.mutate();
-  };
-
-  const handleContinueSetup = () => {
-    if (accountStatus?.accountLinkUrl) {
-      setIsRedirecting(true);
-      window.location.href = accountStatus.accountLinkUrl;
+  });
+  
+  // Create login link mutation
+  const createLoginLinkMutation = useMutation({
+    mutationFn: async () => {
+      const res = await apiRequest('POST', '/api/stripe/connect/create-login-link', {});
+      return await res.json();
+    },
+    onSuccess: (data) => {
+      if (data.url) {
+        // Open the Stripe Connect dashboard in a new tab
+        window.open(data.url, '_blank');
+      }
+    },
+    onError: (error: any) => {
+      toast({
+        title: 'Error',
+        description: 'Failed to access your Stripe account: ' + (error.message || 'Unknown error'),
+        variant: 'destructive',
+      });
+    }
+  });
+  
+  // Get status badge props based on account status
+  const getStatusBadge = () => {
+    if (!accountStatus) {
+      return { text: 'Not Connected', variant: 'outline', icon: <XCircle className="h-4 w-4 mr-1" /> };
+    }
+    
+    switch (accountStatus.accountStatus) {
+      case 'active':
+        return { text: 'Active', variant: 'default', icon: <CheckCircle className="h-4 w-4 mr-1" /> };
+      case 'incomplete':
+        return { text: 'Incomplete', variant: 'warning', icon: <AlertCircle className="h-4 w-4 mr-1" /> };
+      case 'pending':
+        return { text: 'Pending Verification', variant: 'secondary', icon: <Loader2 className="h-4 w-4 mr-1 animate-spin" /> };
+      case 'restricted':
+        return { text: 'Restricted', variant: 'destructive', icon: <AlertCircle className="h-4 w-4 mr-1" /> };
+      case 'disabled':
+        return { text: 'Disabled', variant: 'destructive', icon: <XCircle className="h-4 w-4 mr-1" /> };
+      default:
+        return { text: accountStatus.accountStatus, variant: 'outline', icon: <AlertCircle className="h-4 w-4 mr-1" /> };
     }
   };
-
-  // Loading state
-  if (isLoading) {
+  
+  // If in compact mode, just show a simple card with status and action button
+  if (compact) {
+    const statusBadge = getStatusBadge();
+    const hasAccount = !!accountStatus;
+    
     return (
-      <Card className="w-full max-w-md mx-auto">
-        <CardHeader>
-          <CardTitle className="text-lg">Loading payment account...</CardTitle>
-        </CardHeader>
-        <CardContent className="flex justify-center">
-          <Loader2 className="h-8 w-8 animate-spin text-primary" />
-        </CardContent>
-      </Card>
-    );
-  }
-
-  // Error state (excluding 404 and 401 which are handled specially)
-  if (isError && (error as any).status !== 404 && (error as any).status !== 401) {
-    return (
-      <Card className="w-full max-w-md mx-auto">
-        <CardHeader>
-          <CardTitle className="text-lg">Error loading payment account</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <p className="text-sm text-red-500">
-            {(error as Error).message || 'There was an error loading your payment account information.'}
-          </p>
-        </CardContent>
-        <CardFooter>
-          <Button onClick={() => refetch()}>Try Again</Button>
-        </CardFooter>
-      </Card>
-    );
-  }
-
-  // No account yet
-  if (!accountStatus) {
-    return (
-      <Card className="w-full max-w-md mx-auto">
-        <CardHeader>
-          <CardTitle>Set Up Payment Account</CardTitle>
+      <Card className="mb-4">
+        <CardHeader className="pb-2">
+          <div className="flex justify-between items-center">
+            <CardTitle className="text-lg">Payment Account</CardTitle>
+            <Badge variant={statusBadge.variant as any} className="flex items-center">
+              {statusBadge.icon}
+              {statusBadge.text}
+            </Badge>
+          </div>
           <CardDescription>
-            Create a Stripe Connect account to receive payments for completed jobs.
+            {hasAccount 
+              ? "Your Stripe Connect account status"
+              : "Set up a Stripe Connect account to receive payments"}
           </CardDescription>
         </CardHeader>
-        <CardContent>
-          <p className="text-sm mb-4">
-            Setting up a payment account allows you to receive earnings directly to your bank account.
-            The $2.50 service fee is retained by the platform, while the rest of your earnings will be
-            transferred to your account.
-          </p>
-        </CardContent>
-        <CardFooter>
-          <Button 
-            onClick={handleCreateAccount} 
-            disabled={createAccountMutation.isPending || isRedirecting}
-            className="w-full"
-          >
-            {createAccountMutation.isPending || isRedirecting ? (
-              <>
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                Setting up...
-              </>
-            ) : (
-              'Set Up Payment Account'
-            )}
-          </Button>
+        <CardFooter className="pt-2">
+          {isLoading ? (
+            <Button disabled className="w-full">
+              <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+              Loading...
+            </Button>
+          ) : hasAccount ? (
+            <Button 
+              onClick={() => createLoginLinkMutation.mutate()}
+              disabled={createLoginLinkMutation.isPending}
+              className="w-full"
+            >
+              {createLoginLinkMutation.isPending ? (
+                <>
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  Opening...
+                </>
+              ) : (
+                <>
+                  <ExternalLink className="h-4 w-4 mr-2" />
+                  Manage Account
+                </>
+              )}
+            </Button>
+          ) : (
+            <Button 
+              onClick={() => createAccountMutation.mutate()}
+              disabled={createAccountMutation.isPending}
+              className="w-full"
+            >
+              {createAccountMutation.isPending ? (
+                <>
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  Creating...
+                </>
+              ) : (
+                <>
+                  <ExternalLink className="h-4 w-4 mr-2" />
+                  Set Up Account
+                </>
+              )}
+            </Button>
+          )}
         </CardFooter>
       </Card>
     );
   }
-
-  // Account exists - show status and actions
+  
+  // Full detailed view
   return (
-    <Card className="w-full max-w-md mx-auto">
+    <Card className="mb-6">
       <CardHeader>
         <div className="flex justify-between items-center">
-          <CardTitle>Payment Account</CardTitle>
-          <Badge 
-            variant="outline"
-            className={
-              accountStatus.accountStatus === 'active' 
-                ? 'bg-green-100 text-green-800 hover:bg-green-100' 
-                : accountStatus.accountStatus === 'restricted' 
-                  ? 'bg-yellow-100 text-yellow-800 hover:bg-yellow-100' 
-                  : 'bg-red-100 text-red-800 hover:bg-red-100'
-            }
-          >
-            {accountStatus.accountStatus === 'active' 
-              ? 'Active' 
-              : accountStatus.accountStatus === 'restricted' 
-                ? 'Restricted' 
-                : 'Incomplete'}
-          </Badge>
+          <CardTitle>Stripe Connect Account</CardTitle>
+          {!isLoading && (
+            <Badge variant={getStatusBadge().variant as any} className="flex items-center">
+              {getStatusBadge().icon}
+              {getStatusBadge().text}
+            </Badge>
+          )}
         </div>
         <CardDescription>
-          Your Stripe Connect account for receiving payments
+          Your payment account status and details
         </CardDescription>
       </CardHeader>
+      
       <CardContent>
-        <div className="space-y-4">
-          <div className="grid grid-cols-2 gap-2 text-sm">
-            <div className="text-muted-foreground">Account ID:</div>
-            <div className="font-medium truncate">{accountStatus.accountId}</div>
-            
-            <div className="text-muted-foreground">Currency:</div>
-            <div className="font-medium">{accountStatus.defaultCurrency?.toUpperCase() || 'USD'}</div>
-            
-            <div className="text-muted-foreground">Country:</div>
-            <div className="font-medium">{accountStatus.country || 'US'}</div>
+        {isLoading ? (
+          <div className="flex items-center justify-center py-8">
+            <Loader2 className="h-8 w-8 animate-spin text-primary" />
           </div>
-          
-          <div className="mt-4 space-y-2">
+        ) : error ? (
+          <div className="rounded-md bg-destructive/10 p-4 text-destructive">
             <div className="flex items-center">
-              {accountStatus.detailsSubmitted ? (
-                <CheckCircle className="h-5 w-5 text-green-500 mr-2" />
-              ) : (
-                <AlertCircle className="h-5 w-5 text-red-500 mr-2" />
-              )}
-              <span>Account details submitted</span>
+              <AlertCircle className="h-5 w-5 mr-2" />
+              <span>Error loading account data</span>
             </div>
-            
-            <div className="flex items-center">
-              {accountStatus.payoutsEnabled ? (
-                <CheckCircle className="h-5 w-5 text-green-500 mr-2" />
-              ) : (
-                <AlertCircle className="h-5 w-5 text-red-500 mr-2" />
-              )}
-              <span>Payouts enabled</span>
-            </div>
-            
-            <div className="flex items-center">
-              {accountStatus.chargesEnabled ? (
-                <CheckCircle className="h-5 w-5 text-green-500 mr-2" />
-              ) : (
-                <AlertCircle className="h-5 w-5 text-amber-500 mr-2" />
-              )}
-              <span>Charges enabled</span>
-            </div>
+            <Button 
+              variant="outline" 
+              size="sm" 
+              className="mt-2" 
+              onClick={() => refetch()}
+            >
+              Try Again
+            </Button>
           </div>
-          
-          {!accountStatus.detailsSubmitted || !accountStatus.payoutsEnabled ? (
-            <div className="mt-4 p-3 bg-yellow-50 text-yellow-800 rounded-md text-sm">
-              Your account setup is incomplete. Please continue the setup process to receive payments.
-            </div>
-          ) : null}
-        </div>
-      </CardContent>
-      <CardFooter className="flex flex-col gap-2">
-        {accountStatus.accountLinkUrl ? (
-          <Button 
-            onClick={handleContinueSetup} 
-            className="w-full"
-            disabled={isRedirecting}
-          >
-            {isRedirecting ? (
-              <>
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                Redirecting...
-              </>
-            ) : (
-              <>
-                Complete Account Setup
-                <ExternalLink className="ml-2 h-4 w-4" />
-              </>
-            )}
-          </Button>
+        ) : !accountStatus ? (
+          <div className="text-center py-4">
+            <p className="mb-4 text-muted-foreground">
+              You haven't set up a Stripe Connect account yet. This is required to receive payments through the platform.
+            </p>
+            <Button 
+              onClick={() => createAccountMutation.mutate()}
+              disabled={createAccountMutation.isPending}
+            >
+              {createAccountMutation.isPending ? (
+                <>
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  Creating Account...
+                </>
+              ) : (
+                <>
+                  Set Up Stripe Connect Account
+                </>
+              )}
+            </Button>
+          </div>
         ) : (
+          <div>
+            {/* Account details */}
+            <div className="space-y-4">
+              <div className="grid grid-cols-2 gap-2 text-sm">
+                <div className="font-medium">Account ID:</div>
+                <div className="text-muted-foreground">{accountStatus.accountId}</div>
+                
+                <div className="font-medium">Details Submitted:</div>
+                <div>
+                  {accountStatus.detailsSubmitted ? (
+                    <span className="text-green-600 flex items-center">
+                      <CheckCircle className="h-4 w-4 mr-1" /> Yes
+                    </span>
+                  ) : (
+                    <span className="text-amber-600 flex items-center">
+                      <XCircle className="h-4 w-4 mr-1" /> No
+                    </span>
+                  )}
+                </div>
+                
+                <div className="font-medium">Payouts Enabled:</div>
+                <div>
+                  {accountStatus.payoutsEnabled ? (
+                    <span className="text-green-600 flex items-center">
+                      <CheckCircle className="h-4 w-4 mr-1" /> Yes
+                    </span>
+                  ) : (
+                    <span className="text-amber-600 flex items-center">
+                      <XCircle className="h-4 w-4 mr-1" /> No
+                    </span>
+                  )}
+                </div>
+                
+                <div className="font-medium">Charges Enabled:</div>
+                <div>
+                  {accountStatus.chargesEnabled ? (
+                    <span className="text-green-600 flex items-center">
+                      <CheckCircle className="h-4 w-4 mr-1" /> Yes
+                    </span>
+                  ) : (
+                    <span className="text-amber-600 flex items-center">
+                      <XCircle className="h-4 w-4 mr-1" /> No
+                    </span>
+                  )}
+                </div>
+              </div>
+              
+              {/* Requirements section */}
+              {accountStatus.requirements && (
+                <div className="border rounded-md p-3 mt-4 bg-muted/40">
+                  <h4 className="text-sm font-medium mb-2">Requirements</h4>
+                  
+                  {accountStatus.requirements.currentlyDue?.length > 0 && (
+                    <div className="mb-3">
+                      <div className="text-xs font-medium text-amber-600 mb-1">Currently Due:</div>
+                      <ul className="text-xs list-disc list-inside space-y-1 text-muted-foreground">
+                        {accountStatus.requirements.currentlyDue.map((item, index) => (
+                          <li key={index}>{item}</li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+                  
+                  {accountStatus.requirements.eventuallyDue?.length > 0 && (
+                    <div className="mb-3">
+                      <div className="text-xs font-medium text-blue-600 mb-1">Eventually Due:</div>
+                      <ul className="text-xs list-disc list-inside space-y-1 text-muted-foreground">
+                        {accountStatus.requirements.eventuallyDue.map((item, index) => (
+                          <li key={index}>{item}</li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+                  
+                  {accountStatus.requirements.pendingVerification?.length > 0 && (
+                    <div>
+                      <div className="text-xs font-medium text-orange-600 mb-1">Pending Verification:</div>
+                      <ul className="text-xs list-disc list-inside space-y-1 text-muted-foreground">
+                        {accountStatus.requirements.pendingVerification.map((item, index) => (
+                          <li key={index}>{item}</li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+      </CardContent>
+      
+      <CardFooter className="flex justify-between">
+        <Button 
+          variant="outline"
+          onClick={() => refetch()}
+          disabled={isLoading}
+        >
+          {isLoading ? (
+            <>
+              <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+              Refreshing...
+            </>
+          ) : (
+            'Refresh'
+          )}
+        </Button>
+        
+        {accountStatus && (
           <Button 
-            onClick={handleManageAccount} 
-            className="w-full"
-            variant="outline"
-            disabled={loginLinkMutation.isPending || isRedirecting}
+            onClick={() => createLoginLinkMutation.mutate()}
+            disabled={createLoginLinkMutation.isPending || isLoading}
           >
-            {loginLinkMutation.isPending || isRedirecting ? (
+            {createLoginLinkMutation.isPending ? (
               <>
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                Redirecting...
+                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                Opening Dashboard...
               </>
             ) : (
               <>
+                <ExternalLink className="h-4 w-4 mr-2" />
                 Manage Account
-                <ExternalLink className="ml-2 h-4 w-4" />
               </>
             )}
           </Button>

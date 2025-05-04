@@ -1,133 +1,124 @@
-import React, { useState } from 'react';
-import { useLocation } from 'wouter';
+import React from 'react';
 import { Button } from '@/components/ui/button';
-import { 
-  Card, 
-  CardContent, 
-  CardDescription, 
-  CardFooter, 
-  CardHeader, 
-  CardTitle 
-} from '@/components/ui/card';
-import { Loader2, CreditCard, ArrowRight } from 'lucide-react';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
+import { Loader2 } from 'lucide-react';
+import { apiRequest, queryClient } from '@/lib/queryClient';
 import { useToast } from '@/hooks/use-toast';
-import { useQuery, useMutation } from '@tanstack/react-query';
-import { apiRequest } from '@/lib/queryClient';
 
 interface StripeConnectRequiredProps {
-  onSkip?: () => void;
   onComplete?: () => void;
+  onSkip?: () => void;
   showSkip?: boolean;
 }
 
 const StripeConnectRequired: React.FC<StripeConnectRequiredProps> = ({ 
-  onSkip, 
-  onComplete,
-  showSkip = true 
+  onComplete, 
+  onSkip,
+  showSkip = true
 }) => {
-  const [_, navigate] = useLocation();
   const { toast } = useToast();
-  const [isRedirecting, setIsRedirecting] = useState(false);
-  
-  // Create a Connect account
-  const createAccountMutation = useMutation({
-    mutationFn: async () => {
-      const res = await apiRequest('POST', '/api/stripe/connect/create-account');
-      return await res.json();
-    },
-    onSuccess: (data) => {
-      // Redirect to the account link URL
-      if (data.accountLinkUrl) {
-        setIsRedirecting(true);
-        window.location.href = data.accountLinkUrl;
+  const [isCreating, setIsCreating] = React.useState(false);
+  const [isNavigating, setIsNavigating] = React.useState(false);
+
+  const createStripeConnectAccount = async () => {
+    try {
+      setIsCreating(true);
+      const res = await apiRequest('POST', '/api/stripe/connect/create-account', {});
+      const data = await res.json();
+      
+      if (data.url) {
+        setIsNavigating(true);
+        
+        // Open the Stripe Connect onboarding link in a new tab
+        window.open(data.url, '_blank');
+        
+        // Invalidate account status queries so they refresh when user returns
+        queryClient.invalidateQueries({ queryKey: ['/api/stripe/connect/account-status'] });
+        
+        toast({
+          title: 'Stripe Connect Setup Started',
+          description: 'Please complete the setup in the new tab. You can close this dialog and continue your application afterward.',
+        });
+        
         if (onComplete) {
           onComplete();
         }
       }
-    },
-    onError: (error: any) => {
+    } catch (error) {
+      console.error('Error creating Stripe Connect account:', error);
       toast({
-        title: 'Error creating Stripe Connect account',
-        description: error.message || 'Please try again later',
+        title: 'Error',
+        description: 'Failed to create Stripe Connect account. Please try again later.',
         variant: 'destructive',
       });
-    }
-  });
-
-  const handleSetupAccount = () => {
-    createAccountMutation.mutate();
-  };
-
-  const handleSkipForNow = () => {
-    if (onSkip) {
-      onSkip();
+    } finally {
+      setIsCreating(false);
+      setIsNavigating(false);
     }
   };
 
   return (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-      <Card className="w-full max-w-md">
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <CreditCard className="h-5 w-5 text-primary" />
-            Payment Account Required
-          </CardTitle>
-          <CardDescription>
-            Set up a payment account to receive earnings from completed jobs
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="space-y-4">
-            <p className="text-sm">
-              To receive payments for jobs you complete on The Job platform, you need to connect
-              a Stripe payment account. This is a simple process that takes just a few minutes.
-            </p>
-            
-            <div className="bg-primary/10 p-4 rounded-md border border-primary/20">
-              <h3 className="text-sm font-medium flex items-center gap-2 mb-2">
-                <CreditCard className="h-4 w-4 text-primary" />
-                Benefits of connecting your account:
-              </h3>
-              <ul className="text-sm space-y-2 ml-6 list-disc">
-                <li>Receive direct deposits for completed jobs</li>
-                <li>Track all your earnings in one place</li>
-                <li>Get paid faster with secure transfers</li>
-                <li>Required for applying to certain jobs</li>
-              </ul>
-            </div>
+    <Dialog open={true} onOpenChange={() => onSkip && onSkip()}>
+      <DialogContent className="sm:max-w-[425px]">
+        <DialogHeader>
+          <DialogTitle>Connect Payment Account Required</DialogTitle>
+          <DialogDescription>
+            To apply for jobs and receive payments through our platform, you need to set up a Stripe Connect account.
+            This is a secure payment account that allows us to send your earnings directly to you.
+          </DialogDescription>
+        </DialogHeader>
+        
+        <div className="flex flex-col space-y-2 py-4">
+          <div className="bg-gray-100 rounded-lg p-4 text-sm">
+            <h4 className="font-medium text-black mb-2">Why is this required?</h4>
+            <ul className="list-disc pl-5 space-y-1 text-gray-700">
+              <li>Receive payments securely and quickly</li>
+              <li>Your banking details are stored safely by Stripe</li>
+              <li>We never see or store your banking information</li>
+              <li>One-time setup that takes only a few minutes</li>
+            </ul>
           </div>
-        </CardContent>
-        <CardFooter className="flex flex-col gap-3">
-          <Button 
-            onClick={handleSetupAccount} 
-            className="w-full" 
-            disabled={createAccountMutation.isPending || isRedirecting}
-          >
-            {createAccountMutation.isPending || isRedirecting ? (
-              <>
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                Setting up...
-              </>
-            ) : (
-              <>
-                Set Up Payment Account
-                <ArrowRight className="ml-2 h-4 w-4" />
-              </>
-            )}
-          </Button>
-          
+        </div>
+
+        <DialogFooter className="flex flex-col sm:flex-row gap-2">
           {showSkip && (
             <Button 
-              variant="ghost" 
-              className="w-full text-gray-500" 
-              onClick={handleSkipForNow}
+              variant="outline" 
+              onClick={onSkip}
+              disabled={isCreating || isNavigating}
             >
-              Skip for now
+              Skip for Now
             </Button>
           )}
-        </CardFooter>
-      </Card>
-    </div>
+          <Button 
+            onClick={createStripeConnectAccount}
+            disabled={isCreating || isNavigating}
+            className="flex-1"
+          >
+            {isCreating ? (
+              <>
+                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                Creating Account...
+              </>
+            ) : isNavigating ? (
+              <>
+                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                Redirecting...
+              </>
+            ) : (
+              'Set Up Payment Account'
+            )}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   );
 };
 
