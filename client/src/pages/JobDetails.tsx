@@ -31,12 +31,12 @@ export default function JobDetails() {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen flex flex-col bg-gray-50">
+      <div className="min-h-screen flex flex-col bg-background">
         <Header />
         
         <main className="flex-1">
           <div className="max-w-3xl mx-auto py-6 sm:px-6 lg:px-8">
-            <div className="bg-white shadow rounded-lg p-6">
+            <div className="bg-card shadow rounded-lg p-6">
               <div className="flex items-center space-x-4 mb-4">
                 <Skeleton className="h-10 w-10 rounded-md" />
                 <div>
@@ -68,14 +68,14 @@ export default function JobDetails() {
 
   if (!job) {
     return (
-      <div className="min-h-screen flex flex-col bg-gray-50">
+      <div className="min-h-screen flex flex-col bg-background">
         <Header />
         
         <main className="flex-1">
           <div className="max-w-3xl mx-auto py-6 sm:px-6 lg:px-8">
-            <div className="bg-white shadow rounded-lg p-6 text-center">
-              <h2 className="text-xl font-semibold text-gray-900 mb-2">Job Not Found</h2>
-              <p className="text-gray-600 mb-6">The job you're looking for doesn't exist or has been removed.</p>
+            <div className="bg-card shadow rounded-lg p-6 text-center">
+              <h2 className="text-xl font-semibold text-foreground mb-2">Job Not Found</h2>
+              <p className="text-muted-foreground mb-6">The job you're looking for doesn't exist or has been removed.</p>
               <Link href="/">
                 <Button>
                   Back to Home
@@ -91,14 +91,14 @@ export default function JobDetails() {
   }
 
   return (
-    <div className="min-h-screen flex flex-col bg-gray-50">
+    <div className="min-h-screen flex flex-col bg-background">
       <Header />
       
       <main className="flex-1">
         <div className="max-w-3xl mx-auto py-6 sm:px-6 lg:px-8">
           <div className="mb-4">
             <Link href="/">
-              <Button variant="ghost" className="text-gray-600">
+              <Button variant="ghost" className="text-primary">
                 <i className="ri-arrow-left-line mr-2"></i>
                 Back to Listings
               </Button>
@@ -107,16 +107,16 @@ export default function JobDetails() {
           
           <JobDetail job={job} />
           
-          <div className="mt-6 bg-white shadow rounded-lg p-6">
-            <h2 className="text-lg font-semibold text-gray-900 mb-4">Job Poster</h2>
+          <div className="mt-6 bg-card shadow rounded-lg p-6">
+            <h2 className="text-lg font-semibold text-foreground mb-4">Job Poster</h2>
             
             <div className="flex items-center">
-              <div className="h-12 w-12 rounded-full bg-gray-200 flex items-center justify-center text-gray-500">
+              <div className="h-12 w-12 rounded-full bg-secondary flex items-center justify-center text-muted-foreground">
                 <i className="ri-user-line text-xl"></i>
               </div>
               <div className="ml-4">
-                <h3 className="text-base font-medium text-gray-900">User {job.posterId}</h3>
-                <div className="flex items-center text-sm text-gray-500">
+                <h3 className="text-base font-medium text-foreground">User {job.posterId}</h3>
+                <div className="flex items-center text-sm text-muted-foreground">
                   <i className="ri-star-fill text-yellow-400 mr-1"></i>
                   <span>4.8</span>
                   <span className="mx-1">•</span>
@@ -130,10 +130,10 @@ export default function JobDetails() {
             </div>
           </div>
           
-          <div className="mt-6 bg-white shadow rounded-lg p-6">
-            <h2 className="text-lg font-semibold text-gray-900 mb-4">Similar Jobs</h2>
+          <div className="mt-6 bg-card shadow rounded-lg p-6">
+            <h2 className="text-lg font-semibold text-foreground mb-4">Similar Jobs</h2>
             
-            <p className="text-gray-500 text-center py-6">No similar jobs found</p>
+            <p className="text-muted-foreground text-center py-6">No similar jobs found</p>
           </div>
         </div>
       </main>

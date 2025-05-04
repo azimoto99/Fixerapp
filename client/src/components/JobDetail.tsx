@@ -180,7 +180,7 @@ const JobDetail: React.FC<JobDetailProps> = ({ job, distance = 0.5, onClose }) =
   });
 
   return (
-    <div className="bg-white">
+    <div className="bg-card">
       {/* Payment notification overlay */}
       {showPaymentNotification && earnedPayment && (
         <PaymentNotification
@@ -210,16 +210,16 @@ const JobDetail: React.FC<JobDetailProps> = ({ job, distance = 0.5, onClose }) =
             <TabsContent value="details" className="px-5 py-3">
               {/* Title and location */}
               <div className="flex items-center justify-between mb-1">
-                <h3 className="text-lg font-bold text-gray-900">{title}</h3>
+                <h3 className="text-lg font-bold text-foreground">{title}</h3>
                 
                 {/* Status badge */}
                 <Badge 
                   className={`${
                     isJobCompleted 
-                      ? 'bg-green-100 text-green-800' 
+                      ? 'bg-gradient-to-r from-green-900 to-green-800 text-white' 
                       : isJobInProgress 
-                        ? 'bg-blue-100 text-blue-800' 
-                        : 'bg-yellow-100 text-yellow-800'
+                        ? 'bg-gradient-to-r from-primary/80 to-primary text-white' 
+                        : 'bg-gradient-to-r from-yellow-800 to-amber-700 text-white'
                   }`}
                 >
                   {isJobCompleted 
@@ -249,27 +249,27 @@ const JobDetail: React.FC<JobDetailProps> = ({ job, distance = 0.5, onClose }) =
               </div>
               
               {/* Payment info in a card - DoorDash-style */}
-              <div className="bg-gray-50 rounded-lg p-3 mb-4 border border-gray-100 animate-bounce-in">
+              <div className="bg-gradient-to-br from-black/90 to-primary/80 text-white rounded-lg p-3 mb-4 border border-primary/40 animate-bounce-in shadow-md">
                 <div className="flex justify-between items-center">
                   <div>
-                    <div className="text-sm text-gray-500">Payment</div>
-                    <div className="font-bold text-lg text-gray-900">
+                    <div className="text-sm text-white/80">Payment</div>
+                    <div className="font-bold text-lg text-white">
                       {formatCurrency(paymentAmount)}{paymentType === 'hourly' ? '/hr' : ''}
                     </div>
                   </div>
                   <div className="text-right">
-                    <div className="text-sm text-gray-500">Service Fee</div>
-                    <div className="font-medium text-gray-700">
+                    <div className="text-sm text-white/80">Service Fee</div>
+                    <div className="font-medium text-white/90">
                       {formatCurrency(serviceFee)}
                     </div>
                   </div>
                 </div>
                 
-                <div className="flex justify-between items-center mt-2 pt-2 border-t border-gray-200">
-                  <div className="text-sm font-medium text-gray-600">
+                <div className="flex justify-between items-center mt-2 pt-2 border-t border-white/20">
+                  <div className="text-sm font-medium text-white/90">
                     Total
                   </div>
-                  <div className="font-bold text-green-600">
+                  <div className="font-bold text-white bg-gradient-to-r from-amber-200 to-yellow-400 bg-clip-text text-transparent">
                     {formatCurrency(totalAmount)}{paymentType === 'hourly' ? '/hr' : ''}
                   </div>
                 </div>
