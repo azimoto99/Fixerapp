@@ -698,6 +698,101 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Job completion endpoint for workers
+  apiRouter.post("/jobs/:id/complete", isAuthenticated, async (req: Request, res: Response) => {
+    try {
+      const id = parseInt(req.params.id);
+      
+      // Get the job first
+      const job = await storage.getJob(id);
+      if (!job) {
+        return res.status(404).json({ message: "Job not found" });
+      }
+      
+      // Only assigned workers can mark jobs as complete
+      if (job.workerId !== req.user.id) {
+        return res.status(403).json({ 
+          message: "Forbidden: Only the assigned worker can mark a job as complete" 
+        });
+      }
+      
+      // Check if all tasks are complete
+      const tasks = await storage.getTasksForJob(id);
+      const allTasksComplete = tasks.length > 0 && tasks.every(task => task.isCompleted);
+      
+      if (!allTasksComplete) {
+        return res.status(400).json({ 
+          message: "All tasks must be completed before marking the job as complete" 
+        });
+      }
+      
+      // Update job status to completed
+      const updatedJob = await storage.updateJob(id, { 
+        status: "completed",
+        completedAt: new Date()
+      });
+      
+      // Check if payment has already been processed for this job
+      const existingEarnings = await storage.getEarningsForJob(id);
+      
+      // Only create earnings if none exist yet
+      if (existingEarnings.length === 0) {
+        // Calculate earnings (minus service fee)
+        const netAmount = job.paymentAmount - job.serviceFee;
+        
+        // Create earning record for the worker
+        const earning = await storage.createEarning({
+          jobId: job.id,
+          workerId: job.workerId,
+          amount: job.paymentAmount,
+          serviceFee: job.serviceFee,
+          netAmount: netAmount,
+          status: "pending"
+        });
+        
+        // If the worker has a Stripe Connect account, initiate transfer
+        const worker = await storage.getUser(job.workerId);
+        if (worker && worker.stripeConnectAccountId) {
+          try {
+            // Find the payment record for this job
+            const payments = await storage.getPaymentsForUser(job.posterId);
+            const jobPayment = payments.find(p => p.jobId === job.id && p.status === "completed");
+            
+            if (jobPayment) {
+              // Create a transfer to the worker's Connect account
+              const transfer = await stripe.transfers.create({
+                amount: Math.round(netAmount * 100), // Convert to cents for Stripe
+                currency: 'usd',
+                destination: worker.stripeConnectAccountId,
+                transfer_group: `job-${job.id}`,
+                metadata: {
+                  jobId: job.id.toString(),
+                  workerId: job.workerId.toString(),
+                  earningId: earning.id.toString(),
+                  paymentId: jobPayment.id.toString()
+                },
+                description: `Payment for job: ${job.title}`
+              });
+              
+              console.log(`Successfully transferred $${netAmount} to worker ${job.workerId} (Connect account: ${worker.stripeConnectAccountId})`);
+              
+              // Update the earning record to mark it as paid
+              await storage.updateEarningStatus(earning.id, 'paid', new Date());
+            }
+          } catch (transferError) {
+            console.error(`Error transferring to Connect account: ${(transferError as Error).message}`);
+            // We don't want to fail the job completion if payment transfer fails
+            // The admin can manually transfer later
+          }
+        }
+      }
+      
+      res.json(updatedJob);
+    } catch (error) {
+      res.status(400).json({ message: (error as Error).message });
+    }
+  });
+  
   // Application endpoints
   apiRouter.post("/applications", isAuthenticated, async (req: Request, res: Response) => {
     try {

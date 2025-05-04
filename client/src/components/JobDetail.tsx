@@ -128,22 +128,18 @@ const JobDetail: React.FC<JobDetailProps> = ({ job, distance = 0.5, onClose }) =
   // Complete job mutation
   const completeJobMutation = useMutation({
     mutationFn: async () => {
-      const res = await apiRequest('PATCH', `/api/jobs/${jobId}`, {
-        status: 'completed'
-      });
+      const res = await apiRequest('POST', `/api/jobs/${jobId}/complete`, {});
       return res.json();
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: [`/api/jobs/${jobId}`] });
       queryClient.invalidateQueries({ queryKey: ['/api/jobs'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/earnings/worker', user?.id] });
       
       toast({
         title: "Job Completed",
-        description: "The job has been marked as completed. Your payment will be processed soon.",
+        description: "The job has been marked as completed. Your payment will be processed automatically if all tasks are completed.",
       });
-      
-      // Create an earning record for this job
-      createEarningMutation.mutate();
       
       // Show the review form
       setShowReviewForm(true);
@@ -333,8 +329,8 @@ const JobDetail: React.FC<JobDetailProps> = ({ job, distance = 0.5, onClose }) =
                       <AlertDialogHeader>
                         <AlertDialogTitle>Confirm Job Completion</AlertDialogTitle>
                         <AlertDialogDescription>
-                          Are you sure you want to mark this job as complete? This will notify the job poster and process your payment.
-                          Make sure you have completed all required tasks.
+                          Are you sure you want to mark this job as complete? This will process your payment automatically.
+                          <strong>All tasks must be completed before you can mark the job as complete.</strong> If any tasks are incomplete, your request will be rejected.
                         </AlertDialogDescription>
                       </AlertDialogHeader>
                       <AlertDialogFooter>
