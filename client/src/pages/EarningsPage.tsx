@@ -81,7 +81,8 @@ export default function EarningsPage() {
     }
     
     return earnings.filter(earning => {
-      const earningDate = new Date(earning.dateEarned);
+      // Handle possible null dates (should not happen in practice)
+      const earningDate = earning.dateEarned ? new Date(earning.dateEarned) : new Date();
       return earningDate >= cutoffDate;
     });
   };
@@ -231,7 +232,7 @@ export default function EarningsPage() {
         </Tabs>
       </main>
       
-      <MobileNav />
+      {/* Mobile nav removed */}
     </div>
   );
 }
@@ -272,7 +273,7 @@ function EarningsTable({ earnings }: { earnings: (Earning & { job?: Job })[] }) 
                   {earning.job?.title || `Job #${earning.jobId}`}
                 </TableCell>
                 <TableCell>
-                  {new Date(earning.dateEarned).toLocaleDateString()}
+                  {earning.dateEarned ? new Date(earning.dateEarned).toLocaleDateString() : 'N/A'}
                 </TableCell>
                 <TableCell>{formatCurrency(earning.amount)}</TableCell>
                 <TableCell>

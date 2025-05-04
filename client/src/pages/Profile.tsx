@@ -8,7 +8,7 @@ import { Award, Edit, Wallet, DollarSign } from 'lucide-react';
 import StripeConnectSetup from '@/components/stripe/StripeConnectSetup';
 
 import Header from '@/components/Header';
-import MobileNav from '@/components/MobileNav';
+// Mobile Nav removed as requested
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { 
@@ -453,7 +453,7 @@ export default function Profile() {
         </div>
       </main>
       
-      <MobileNav />
+      {/* Mobile nav removed */}
     </div>
   );
 }
