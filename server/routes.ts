@@ -1345,13 +1345,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Stripe Connect endpoints for worker payouts
   apiRouter.post("/stripe/connect/create-account", isAuthenticated, async (req: Request, res: Response) => {
     try {
-      // Only workers should be able to create Connect accounts
-      if (req.user.accountType !== 'worker') {
-        return res.status(403).json({ 
-          message: "Forbidden: Only worker accounts can create Stripe Connect accounts" 
-        });
-      }
-      
       // Check if the user already has a Connect account
       if (req.user.stripeConnectAccountId) {
         return res.status(400).json({ 
@@ -1415,13 +1408,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
   
   apiRouter.get("/stripe/connect/account-status", isAuthenticated, async (req: Request, res: Response) => {
     try {
-      // Only workers should be able to check Connect accounts
-      if (req.user.accountType !== 'worker') {
-        return res.status(403).json({ 
-          message: "Forbidden: Only worker accounts can access Connect account status" 
-        });
-      }
-      
       // Check if the user has a Connect account
       if (!req.user.stripeConnectAccountId) {
         return res.status(404).json({ 
@@ -1466,13 +1452,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
   
   apiRouter.post("/stripe/connect/create-login-link", isAuthenticated, async (req: Request, res: Response) => {
     try {
-      // Only workers should be able to access their Connect dashboard
-      if (req.user.accountType !== 'worker') {
-        return res.status(403).json({ 
-          message: "Forbidden: Only worker accounts can access Connect dashboard" 
-        });
-      }
-      
       // Check if the user has a Connect account
       if (!req.user.stripeConnectAccountId) {
         return res.status(404).json({ 
