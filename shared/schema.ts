@@ -14,23 +14,14 @@ export const users = pgTable("users", {
   avatarUrl: text("avatar_url"),
   accountType: text("account_type").notNull().default("worker"), // "worker", "poster", or "pending"
   skills: text("skills").array(), // Array of skill names for workers
-  // skillsVerified field is added to the type but not required in the database
-  // This allows for backward compatibility with existing database schemas
   rating: doublePrecision("rating"), // Average rating from completed jobs
-  completedJobs: integer("completed_jobs").default(0), // Count of completed jobs
-  successRate: doublePrecision("success_rate"), // Percentage of successfully completed jobs
-  responseTime: integer("response_time"), // Average response time in minutes
-  badgeIds: text("badge_ids").array(), // Array of badge/achievement IDs earned
   isActive: boolean("is_active").notNull().default(true),
   lastActive: timestamp("last_active").defaultNow(),
   // Social login fields
   googleId: text("google_id"), // Google OAuth ID
   facebookId: text("facebook_id"), // Facebook OAuth ID
-  // Payment processing fields
-  stripeCustomerId: text("stripe_customer_id"), // For easier payment processing
-  stripeConnectAccountId: text("stripe_connect_account_id"), // For payouts to workers
-  // Note: The requiresProfileCompletion field doesn't exist in the DB yet
-  // We'll handle this in code until we can properly migrate the database
+  // Note: These fields don't exist in the DB yet but are added to the type
+  // We'll handle them in code until we can properly migrate the database
 }, (table) => {
   // Create a unique constraint on the combination of email and accountType
   // This allows the same email to have multiple accounts with different types
@@ -147,12 +138,6 @@ export const insertUserSchema = createInsertSchema(users).omit({
   id: true,
   rating: true,
   lastActive: true,
-  completedJobs: true,
-  successRate: true,
-  responseTime: true,
-  badgeIds: true,
-  stripeCustomerId: true,
-  stripeConnectAccountId: true,
 });
 
 export const insertJobSchema = createInsertSchema(jobs).omit({
@@ -211,14 +196,20 @@ export const insertUserBadgeSchema = createInsertSchema(userBadges).omit({
 
 // Types
 export type User = typeof users.$inferSelect & {
-  requiresProfileCompletion?: boolean | null; // Adding this field to the type even though it's not in the DB yet
-  needsAccountType?: boolean | null; // Flag to indicate account type selection is needed
-  skillsVerified?: Record<string, boolean>; // Adding this field to the type even though it's not in the DB yet
+  requiresProfileCompletion?: boolean | null; // Not in DB
+  needsAccountType?: boolean | null; // Not in DB
+  skillsVerified?: Record<string, boolean>; // Not in DB
+  completedJobs?: number; // Not in DB
+  successRate?: number; // Not in DB
+  responseTime?: number; // Not in DB
+  badgeIds?: string[]; // Not in DB
+  stripeCustomerId?: string | null; // Not in DB
+  stripeConnectAccountId?: string | null; // Not in DB
 };
 export type InsertUser = z.infer<typeof insertUserSchema> & {
-  requiresProfileCompletion?: boolean | null; // Adding this field to the type even though it's not in the DB
-  needsAccountType?: boolean | null; // Flag to indicate account type selection is needed
-  skillsVerified?: Record<string, boolean>; // Adding this field to match the User type
+  requiresProfileCompletion?: boolean | null; // Not in DB
+  needsAccountType?: boolean | null; // Not in DB
+  skillsVerified?: Record<string, boolean>; // Not in DB
 };
 
 export type Job = typeof jobs.$inferSelect;
