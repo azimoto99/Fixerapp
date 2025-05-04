@@ -87,7 +87,7 @@ const JobDetail: React.FC<JobDetailProps> = ({ job, distance = 0.5, onClose }) =
         <h3 className="text-lg font-bold text-gray-900 mb-1">{title}</h3>
         <div className="flex items-center mb-3">
           <span 
-            className="inline-flex items-center justify-center w-5 h-5 rounded-full mr-1"
+            className="inline-flex items-center justify-center w-5 h-5 rounded-full mr-1 animate-bounce-in"
             style={{ backgroundColor: categoryColor || '#3b82f6' }}
           >
             <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-3 h-3">
@@ -103,8 +103,8 @@ const JobDetail: React.FC<JobDetailProps> = ({ job, distance = 0.5, onClose }) =
           <span className="text-sm text-gray-600">{formatDistance(distance)} away</span>
         </div>
         
-        {/* Payment info in a card */}
-        <div className="bg-gray-50 rounded-lg p-3 mb-4 border border-gray-100">
+        {/* Payment info in a card - DoorDash-style */}
+        <div className="bg-gray-50 rounded-lg p-3 mb-4 border border-gray-100 animate-bounce-in">
           <div className="flex justify-between items-center">
             <div>
               <div className="text-sm text-gray-500">Payment</div>

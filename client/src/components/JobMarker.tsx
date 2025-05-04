@@ -24,11 +24,9 @@ export function JobMarker({ job, position, isSelected, onClick }: JobMarkerProps
         {/* Main marker circle */}
         <div 
           className={`flex items-center justify-center rounded-full shadow-lg border-2 border-white
-                    ${isSelected ? 'w-14 h-14 font-bold' : 'w-12 h-12'}`}
+                    ${isSelected ? 'w-14 h-14 font-bold animate-selected-marker' : 'w-12 h-12 animate-bounce-in'}`}
           style={{ 
             backgroundColor: color,
-            transform: isSelected ? 'scale(1.1)' : 'scale(1)',
-            transition: 'all 0.2s ease',
             zIndex: isSelected ? '1000' : '1',
             position: 'relative'
           }}
@@ -40,10 +38,9 @@ export function JobMarker({ job, position, isSelected, onClick }: JobMarkerProps
           {/* Animated pulse effect when selected */}
           {isSelected && (
             <div
-              className="absolute w-full h-full rounded-full"
+              className="absolute w-full h-full rounded-full animate-pulse-marker"
               style={{
                 border: `2px solid ${color}`,
-                animation: 'pulse 1.5s infinite',
                 opacity: 0.7,
                 transform: 'scale(1.2)'
               }}
@@ -54,7 +51,7 @@ export function JobMarker({ job, position, isSelected, onClick }: JobMarkerProps
         {/* Mini label below (optional) */}
         {isSelected && (
           <div 
-            className="text-xs mt-1 px-2 py-1 bg-white rounded-full shadow-md text-center whitespace-nowrap"
+            className="text-xs mt-1 px-2 py-1 bg-white rounded-full shadow-md text-center whitespace-nowrap animate-bounce-in"
             style={{ color: color, fontWeight: 'bold' }}
           >
             {job.category}

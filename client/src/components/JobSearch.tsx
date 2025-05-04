@@ -35,47 +35,80 @@ const JobSearch: React.FC<JobSearchProps> = ({ onSearch }) => {
               <Input
                 type="text"
                 placeholder="Search jobs..."
-                className="pl-10 pr-2 py-2 rounded-full border-gray-200 shadow-none bg-gray-100"
+                className="pl-10 pr-2 py-2 rounded-full border-gray-200 shadow-none bg-gray-100 focus:bg-white focus:ring-2 focus:ring-primary/20 transition-all"
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
+                onKeyPress={(e) => {
+                  if (e.key === 'Enter') {
+                    e.preventDefault();
+                    const searchCategory = category === 'all' ? '' : category;
+                    onSearch({ query, category: searchCategory });
+                  }
+                }}
               />
             </div>
             <Button
               type="submit"
               size="sm"
-              className="ml-1 rounded-full w-8 h-8 p-0 flex items-center justify-center"
+              className="ml-1 rounded-full w-8 h-8 p-0 flex items-center justify-center transition-transform hover:scale-105 active:scale-95"
             >
               <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-4 h-4">
-                <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"></path>
+                <circle cx="11" cy="11" r="8"></circle>
+                <path d="m21 21-4.3-4.3"></path>
               </svg>
             </Button>
             <Button
               type="button"
               size="sm"
-              variant="outline"
-              className="ml-1 rounded-full w-8 h-8 p-0 flex items-center justify-center"
-              onClick={() => setCategory(category ? '' : 'Delivery')}
+              variant={category ? "default" : "outline"}
+              className="ml-1 rounded-full w-8 h-8 p-0 flex items-center justify-center transition-transform hover:scale-105 active:scale-95"
+              onClick={() => {
+                // Toggle current category filter
+                if (category) {
+                  setCategory('');
+                  onSearch({ query, category: '' });
+                } else {
+                  // Show category horizontal scrollbar
+                  const categoryScroll = document.getElementById('category-scroll');
+                  if (categoryScroll) {
+                    categoryScroll.scrollIntoView({ behavior: 'smooth' });
+                  }
+                }
+              }}
             >
               <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-4 h-4">
-                <path d="M12 22s-8-4.5-8-11.8A8 8 0 0 1 12 2a8 8 0 0 1 8 8.2c0 7.3-8 11.8-8 11.8z"></path>
-                <circle cx="12" cy="10" r="3"></circle>
+                <polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"></polygon>
               </svg>
             </Button>
           </div>
           
-          {/* Ultra-compact category horizontal pills */}
-          <div className="flex items-center space-x-1 overflow-x-auto mt-1 no-scrollbar">
+          {/* Ultra-compact category horizontal pills - with animation */}
+          <div id="category-scroll" className="flex items-center space-x-1 overflow-x-auto mt-1 no-scrollbar">
             <div 
-              className={`px-2 py-0.5 rounded-full text-xs cursor-pointer whitespace-nowrap ${category === '' ? 'bg-primary text-white' : 'bg-gray-100 text-gray-700'}`}
-              onClick={() => setCategory('')}
+              className={`px-2 py-0.5 rounded-full text-xs cursor-pointer whitespace-nowrap transition-all duration-200 ${
+                category === '' 
+                  ? 'bg-primary text-white font-medium shadow-md scale-105' 
+                  : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+              }`}
+              onClick={() => {
+                setCategory('');
+                onSearch({ query, category: '' });
+              }}
             >
               All
             </div>
             {JOB_CATEGORIES.map((cat) => (
               <div
                 key={cat}
-                className={`px-2 py-0.5 rounded-full text-xs cursor-pointer whitespace-nowrap ${category === cat ? 'bg-primary text-white' : 'bg-gray-100 text-gray-700'}`}
-                onClick={() => setCategory(cat)}
+                className={`px-2 py-0.5 rounded-full text-xs cursor-pointer whitespace-nowrap transition-all duration-200 ${
+                  category === cat 
+                    ? 'bg-primary text-white font-medium shadow-md scale-105' 
+                    : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                }`}
+                onClick={() => {
+                  setCategory(cat);
+                  onSearch({ query, category: cat });
+                }}
               >
                 {cat}
               </div>
