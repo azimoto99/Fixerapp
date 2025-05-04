@@ -132,18 +132,28 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  apiRouter.patch("/users/:id", isAuthenticated, async (req: Request, res: Response) => {
+  apiRouter.patch("/users/:id", async (req: Request, res: Response) => {
     try {
       const id = parseInt(req.params.id);
       
-      // Ensure users can only update their own profile
-      if (req.user.id !== id) {
-        return res.status(403).json({ message: "Forbidden: You can only update your own profile" });
+      // Only enforce authentication check if user is not completing their profile from social login
+      if (req.isAuthenticated()) {
+        // Ensure authenticated users can only update their own profile
+        if (req.user.id !== id) {
+          return res.status(403).json({ message: "Forbidden: You can only update your own profile" });
+        }
       }
       
-      const userData = insertUserSchema.partial().parse(req.body);
+      // Parse the user data, but allow the requiresProfileCompletion flag
+      const { requiresProfileCompletion, ...standardFields } = req.body;
+      const userData = insertUserSchema.partial().parse(standardFields);
       
-      const updatedUser = await storage.updateUser(id, userData);
+      // Merge back the profileCompletion flag if it exists
+      const dataToUpdate = requiresProfileCompletion !== undefined 
+        ? { ...userData, requiresProfileCompletion } 
+        : userData;
+      
+      const updatedUser = await storage.updateUser(id, dataToUpdate);
       
       if (!updatedUser) {
         return res.status(404).json({ message: "User not found" });

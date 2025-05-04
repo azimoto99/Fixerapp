@@ -20,6 +20,8 @@ export const users = pgTable("users", {
   // Social login fields
   googleId: text("google_id"), // Google OAuth ID
   facebookId: text("facebook_id"), // Facebook OAuth ID
+  // User status flags
+  requiresProfileCompletion: boolean("requires_profile_completion").default(false), // For social login users who need to complete their profile
 }, (table) => {
   // Create a unique constraint on the combination of email and accountType
   // This allows the same email to have multiple accounts with different types

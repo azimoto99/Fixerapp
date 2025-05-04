@@ -56,16 +56,50 @@ export default function CompleteProfile() {
   // Get query parameters from URL if any
   const location = typeof window !== 'undefined' ? window.location : { search: '' };
   const params = new URLSearchParams(location.search);
-  const profileStep = params.get('step') || '';
+  const userId = params.get('id');
+  const provider = params.get('provider') || 'local';
   
-  // Initialize form with user data if available
+  // State to hold profile data we might need to fetch
+  const [profileData, setProfileData] = useState<ProfileFormValues>({
+    fullName: '',
+    phone: '',
+    bio: '',
+    skills: [],
+  });
+  
+  // If we're coming directly from Google auth, we may need to fetch the user data
+  useEffect(() => {
+    const fetchUserData = async () => {
+      if (userId && !user) {
+        try {
+          // Fetch the user data if we have an ID from URL but no user in context
+          const response = await apiRequest('GET', `/api/users/${userId}`);
+          if (response.ok) {
+            const userData = await response.json();
+            setProfileData({
+              fullName: userData.fullName || '',
+              phone: userData.phone || '',
+              bio: userData.bio || '',
+              skills: userData.skills || [],
+            });
+          }
+        } catch (error) {
+          console.error('Error fetching user data:', error);
+        }
+      }
+    };
+    
+    fetchUserData();
+  }, [userId, user]);
+  
+  // Initialize form with user data if available, or profile data from fetch
   const form = useForm<ProfileFormValues>({
     resolver: zodResolver(profileSchema),
     defaultValues: {
-      fullName: user?.fullName || '',
-      phone: user?.phone || '',
-      bio: user?.bio || '',
-      skills: user?.skills || [],
+      fullName: user?.fullName || profileData.fullName || '',
+      phone: user?.phone || profileData.phone || '',
+      bio: user?.bio || profileData.bio || '',
+      skills: user?.skills || profileData.skills || [],
     },
   });
   
@@ -78,40 +112,63 @@ export default function CompleteProfile() {
         bio: user.bio || '',
         skills: user.skills || [],
       });
+    } else if (profileData.fullName) {
+      form.reset(profileData);
     }
-  }, [user, form]);
+  }, [user, profileData, form]);
   
-  // If user is not logged in or doesn't have an accountType, redirect
+  // Only redirect to auth if there's no user AND no userId in the URL
   useEffect(() => {
-    if (!isLoading && !user) {
+    if (!isLoading && !user && !userId) {
       setLocation('/auth');
-    } else if (!isLoading && user && user.accountType === 'pending') {
-      setLocation(`/account-type-selection?id=${user.id}&provider=local`);
+    } else if (!isLoading && user && !user.requiresProfileCompletion && user.accountType === 'pending') {
+      // Only redirect to account type selection if the profile is complete but account type is pending
+      setLocation(`/account-type-selection?id=${user.id}&provider=${provider}`);
     }
-  }, [user, isLoading, setLocation]);
+  }, [user, isLoading, setLocation, userId, provider]);
   
   // Function to handle form submission
   async function onSubmit(data: ProfileFormValues) {
-    if (!user) return;
-    
     setIsSubmitting(true);
     
     try {
-      // Call API to update user profile
-      const response = await apiRequest('PATCH', `/api/users/${user.id}`, data);
+      // Get the user ID from URL parameters (for social login flow) or from user object
+      const params = new URLSearchParams(window.location.search);
+      const idFromUrl = params.get('id');
+      const userId = idFromUrl || (user?.id?.toString() || '');
+      
+      if (!userId) {
+        throw new Error('No user ID available');
+      }
+      
+      // Call API to update user profile and clear the requiresProfileCompletion flag
+      const updatedData = {
+        ...data,
+        requiresProfileCompletion: false
+      };
+      
+      const response = await apiRequest('PATCH', `/api/users/${userId}`, updatedData);
       
       if (response.ok) {
-        // Update the cached user data
+        // Update the cached user data if we're in an authenticated context
         const updatedUser = await response.json();
-        queryClient.setQueryData(['/api/user'], updatedUser);
+        if (user) {
+          queryClient.setQueryData(['/api/user'], updatedUser);
+        }
         
         toast({
           title: 'Profile Updated',
           description: 'Your profile has been successfully updated',
         });
         
-        // Redirect to home page
-        setLocation('/');
+        // Redirect to account type selection if the user has a pending account type
+        if (updatedUser.accountType === 'pending') {
+          const provider = params.get('provider') || 'local';
+          setLocation(`/account-type-selection?id=${userId}&provider=${provider}`);
+        } else {
+          // Otherwise, redirect to home page
+          setLocation('/');
+        }
       } else {
         const error = await response.json();
         throw new Error(error.message || 'Failed to update profile');
