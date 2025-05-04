@@ -27,7 +27,12 @@ export function AccountTypeRoute({
         }
 
         if (!user) {
-          return <Redirect to="/login" />;
+          return <Redirect to="/auth" />;
+        }
+        
+        // If user has pending account type, redirect to account type selection
+        if (user.accountType === "pending") {
+          return <Redirect to={`/account-type-selection?id=${user.id}&provider=local`} />;
         }
 
         if (user.accountType !== allowedType) {

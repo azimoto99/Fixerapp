@@ -11,7 +11,7 @@ export default function AccountTypeSelection() {
   const [_, setLocation] = useLocation();
   const [isPending, setIsPending] = useState(false);
   const { toast } = useToast();
-  const { user, isLoading } = useAuth();
+  const { user, isLoading, setAccountTypeMutation } = useAuth();
   
   // Get query parameters from URL
   const location = typeof window !== 'undefined' ? window.location : { search: '' };
@@ -19,8 +19,8 @@ export default function AccountTypeSelection() {
   const userId = params.get('id');
   const provider = params.get('provider');
   
-  // If user already has an account type, redirect to home
-  if (!isLoading && user?.accountType) {
+  // If user already has an account type (and it's not "pending"), redirect to home
+  if (!isLoading && user?.accountType && user.accountType !== "pending") {
     setLocation('/');
     return null;
   }
@@ -35,8 +35,6 @@ export default function AccountTypeSelection() {
     setLocation('/auth');
     return null;
   }
-  
-  const { setAccountTypeMutation } = useAuth();
   
   const handleAccountTypeSelection = async (accountType: 'worker' | 'poster') => {
     if (!userId || !provider) return;

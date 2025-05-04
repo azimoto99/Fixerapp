@@ -23,7 +23,12 @@ export function ProtectedRoute({
         }
 
         if (!user) {
-          return <Redirect to="/login" />;
+          return <Redirect to="/auth" />;
+        }
+
+        // If the user has a "pending" account type, redirect to account type selection
+        if (user.accountType === "pending") {
+          return <Redirect to={`/account-type-selection?id=${user.id}&provider=local`} />;
         }
 
         return <Component {...params} />;

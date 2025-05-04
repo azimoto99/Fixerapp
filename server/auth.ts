@@ -66,8 +66,9 @@ async function findOrCreateUserFromSocial(
     profile._json && profile._json.picture ? profile._json.picture : 
     null;
   
-  // Create a username based on provider ID
-  const username = `${profile.provider}_${profile.id}`;
+  // Create a username based on provider ID and a random number to avoid collisions
+  const randomSuffix = Math.floor(Math.random() * 10000); // Add a random number to avoid collisions
+  const username = `${profile.provider}_${profile.id}_${randomSuffix}`;
   
   // Generate a random password
   const password = await hashPassword(generateRandomPassword());
@@ -93,8 +94,13 @@ async function findOrCreateUserFromSocial(
     (userData as any).facebookId = profile.id;
   }
   
-  // Create the user
-  return await storage.createUser(userData);
+  // Create the user - the returned user will have a requiresProfileCompletion flag set
+  const newUser = await storage.createUser(userData);
+  
+  // Add a flag to indicate that this is a new social login user who needs to complete their profile
+  (newUser as any).requiresProfileCompletion = true;
+  
+  return newUser;
 }
 
 export function setupAuth(app: Express) {
@@ -365,7 +371,13 @@ export function setupAuth(app: Express) {
         return res.redirect('/login');
       }
       
-      // Always redirect to account selection for users with a "pending" account type
+      // Check if this is a new social login user who needs to complete their profile
+      if ((req.user as any).requiresProfileCompletion) {
+        // Send to complete profile page first before account type selection
+        return res.redirect(`/complete-profile?id=${req.user.id}&provider=google`);
+      }
+      
+      // Otherwise check if they need to select an account type
       if (req.user.accountType === "pending") {
         // No account type set, redirect to selection page with user ID and provider
         return res.redirect(`/account-type-selection?id=${req.user.id}&provider=google`);
@@ -399,7 +411,13 @@ export function setupAuth(app: Express) {
         return res.redirect('/login');
       }
       
-      // Always redirect to account selection for users with a "pending" account type
+      // Check if this is a new social login user who needs to complete their profile
+      if ((req.user as any).requiresProfileCompletion) {
+        // Send to complete profile page first before account type selection
+        return res.redirect(`/complete-profile?id=${req.user.id}&provider=facebook`);
+      }
+      
+      // Otherwise check if they need to select an account type
       if (req.user.accountType === "pending") {
         // No account type set, redirect to selection page with user ID and provider
         return res.redirect(`/account-type-selection?id=${req.user.id}&provider=facebook`);
