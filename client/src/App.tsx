@@ -15,6 +15,7 @@ import CompleteProfile from "@/pages/CompleteProfile";
 import { AuthProvider } from "@/hooks/use-auth";
 import { ProtectedRoute } from "@/lib/protected-route";
 import { useAuth } from "@/hooks/use-auth";
+import { StripeConnectCheck } from "@/components/stripe";
 import { useEffect } from "react";
 
 // Redirect component for old routes
@@ -66,8 +67,10 @@ function App() {
     <QueryClientProvider client={queryClient}>
       <TooltipProvider>
         <AuthProvider>
-          <RouterWithAuth />
-          <Toaster />
+          <StripeConnectCheck workersOnly={true} enforce={false}>
+            <RouterWithAuth />
+            <Toaster />
+          </StripeConnectCheck>
         </AuthProvider>
       </TooltipProvider>
     </QueryClientProvider>
