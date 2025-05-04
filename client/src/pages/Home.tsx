@@ -75,10 +75,10 @@ const WorkerDashboard = () => {
     if (!showPostedJobs) return null;
     
     return (
-      <div className="absolute top-0 right-0 h-full w-80 bg-white shadow-lg z-[1000] transform transition-transform duration-300">
-        <div className="px-4 py-3 border-b border-gray-200">
+      <div className="absolute top-0 right-0 h-full w-80 bg-card shadow-lg z-[1000] transform transition-transform duration-300">
+        <div className="px-4 py-3 border-b border-border">
           <div className="flex items-center justify-between">
-            <h3 className="text-lg font-medium">My Posted Jobs</h3>
+            <h3 className="text-lg font-medium text-card-foreground">My Posted Jobs</h3>
             <Button size="sm" variant="ghost" onClick={togglePostedJobs}>
               <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
             </Button>
@@ -93,9 +93,9 @@ const WorkerDashboard = () => {
           ) : postedJobs && postedJobs.length > 0 ? (
             <div className="space-y-3">
               {postedJobs.map((job: Job) => (
-                <div key={job.id} className="border rounded-md p-3 hover:bg-gray-50">
-                  <h4 className="font-medium">{job.title}</h4>
-                  <p className="text-sm text-gray-500 mt-1 line-clamp-2">{job.description}</p>
+                <div key={job.id} className="border border-border rounded-md p-3 hover:bg-secondary">
+                  <h4 className="font-medium text-foreground">{job.title}</h4>
+                  <p className="text-sm text-muted-foreground mt-1 line-clamp-2">{job.description}</p>
                   <div className="flex items-center mt-2">
                     <span className={`px-2 py-0.5 text-xs rounded-full ${
                       job.status === 'open' ? 'bg-red-900 text-white' : 
@@ -115,7 +115,7 @@ const WorkerDashboard = () => {
             </div>
           ) : (
             <div className="text-center py-8">
-              <p className="text-gray-500 mb-4">You haven't posted any jobs yet.</p>
+              <p className="text-muted-foreground mb-4">You haven't posted any jobs yet.</p>
               <Button asChild>
                 <a href="/post-job">Post Your First Job</a>
               </Button>
@@ -134,7 +134,7 @@ const WorkerDashboard = () => {
           onClick={togglePostedJobs}
           variant="circle" 
           size="circle"
-          className="bg-white text-primary hover:bg-primary hover:text-white transition-colors shadow-md"
+          className="bg-card text-primary hover:bg-primary hover:text-card transition-colors shadow-md"
           aria-label="My Posted Jobs"
         >
           <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M20 5H4a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2Z"></path><path d="M14 2v6"></path><path d="M10 2v6"></path><path d="M3 10h18"></path></svg>
@@ -165,7 +165,7 @@ const WorkerDashboard = () => {
         
         {/* DoorDash-style floating search box at bottom */}
         <div className="absolute bottom-6 left-1/2 transform -translate-x-1/2 z-[500]">
-          <div className="bg-white rounded-full shadow-lg" style={{ width: '90vw', maxWidth: '400px' }}>
+          <div className="bg-card border border-border rounded-full shadow-lg" style={{ width: '90vw', maxWidth: '400px' }}>
             <div className="p-1.5">
               <JobSearch onSearch={handleSearch} />
             </div>
@@ -275,7 +275,7 @@ const PosterDashboard = () => {
           </div>
         ) : (
           <div className="text-center py-8">
-            <p className="text-gray-500">You haven't posted any jobs yet.</p>
+            <p className="text-muted-foreground">You haven't posted any jobs yet.</p>
             <Button className="mt-4" asChild>
               <a href="/post-job">Post Your First Job</a>
             </Button>
