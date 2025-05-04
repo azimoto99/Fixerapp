@@ -122,8 +122,7 @@ export class MemStorage implements IStorage {
     this.earningIdCounter = 1;
     this.paymentIdCounter = 1;
     
-    // Initialize with sample data
-    this.initializeSampleData();
+    // No sample data in production
   }
 
   // Helper function to calculate distance between two points in miles
