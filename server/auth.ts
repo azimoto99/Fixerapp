@@ -1,7 +1,6 @@
 import passport from "passport";
 import { Strategy as LocalStrategy } from "passport-local";
 import { Strategy as GoogleStrategy } from "passport-google-oauth20";
-import { Strategy as FacebookStrategy } from "passport-facebook";
 import { Express, Request } from "express";
 import session from "express-session";
 import { scrypt, randomBytes, timingSafeEqual } from "crypto";
@@ -50,9 +49,7 @@ async function findOrCreateUserFromSocial(
   // Check if a user with this social profile ID already exists
   // We'll handle all users regardless of account type
   const allUsers = Array.from((storage as any).users.values());
-  const existingUser = allUsers.find(
-    u => (u.googleId === profile.id || u.facebookId === profile.id)
-  );
+  const existingUser = allUsers.find(u => u.googleId === profile.id);
   
   if (existingUser) {
     return existingUser;
@@ -87,12 +84,9 @@ async function findOrCreateUserFromSocial(
     isActive: true,
   };
   
-  // Add the specific provider ID
-  if (profile.provider === 'google') {
-    (userData as any).googleId = profile.id;
-  } else if (profile.provider === 'facebook') {
-    (userData as any).facebookId = profile.id;
-  }
+  // Add the Google ID
+  (userData as any).googleId = profile.id;
+  (userData as any).facebookId = null;
   
   // Create the user - the returned user will have a requiresProfileCompletion flag set
   const newUser = await storage.createUser(userData);
@@ -180,25 +174,7 @@ export function setupAuth(app: Express) {
     }));
   }
   
-  // Facebook Strategy
-  if (process.env.FACEBOOK_APP_ID && process.env.FACEBOOK_APP_SECRET) {
-    passport.use(new FacebookStrategy({
-      clientID: process.env.FACEBOOK_APP_ID,
-      clientSecret: process.env.FACEBOOK_APP_SECRET,
-      callbackURL: "/auth/facebook/callback",
-      profileFields: ['id', 'displayName', 'photos', 'email', 'name'],
-      passReqToCallback: true
-    }, async (req, accessToken, refreshToken, profile, done) => {
-      try {
-        // Find or create the user with "pending" account type
-        const user = await findOrCreateUserFromSocial(profile);
-        
-        return done(null, user);
-      } catch (err) {
-        return done(err as Error);
-      }
-    }));
-  }
+  // Only Google authentication is used
 
   passport.serializeUser((user, done) => done(null, user.id));
   
@@ -388,43 +364,5 @@ export function setupAuth(app: Express) {
     }
   );
 
-  // Facebook Authentication Routes
-  app.get('/auth/facebook', (req, res, next) => {
-    // Store the account type in the session
-    if (req.query.accountType) {
-      req.session.accountType = req.query.accountType;
-    }
-    
-    passport.authenticate('facebook', { 
-      scope: ['email', 'public_profile'],
-      session: true
-    })(req, res, next);
-  });
-
-  app.get('/auth/facebook/callback',
-    passport.authenticate('facebook', { 
-      failureRedirect: '/login',
-      session: true
-    }),
-    (req, res) => {
-      if (!req.user) {
-        return res.redirect('/login');
-      }
-      
-      // Check if this is a new social login user who needs to complete their profile
-      if ((req.user as any).requiresProfileCompletion) {
-        // Send to complete profile page first before account type selection
-        return res.redirect(`/complete-profile?id=${req.user.id}&provider=facebook`);
-      }
-      
-      // Otherwise check if they need to select an account type
-      if (req.user.accountType === "pending") {
-        // No account type set, redirect to selection page with user ID and provider
-        return res.redirect(`/account-type-selection?id=${req.user.id}&provider=facebook`);
-      } else {
-        // Account type already set, redirect home
-        return res.redirect('/');
-      }
-    }
-  );
+  // No Facebook integration
 }

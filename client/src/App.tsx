@@ -13,6 +13,7 @@ import NotFound from "@/pages/not-found";
 import TransactionHistory from "@/pages/TransactionHistory";
 import PaymentDashboard from "@/pages/PaymentDashboard";
 import AccountTypeSelection from "@/pages/AccountTypeSelection";
+import CompleteProfile from "@/pages/CompleteProfile";
 import { AuthProvider } from "@/hooks/use-auth";
 import { ProtectedRoute } from "@/lib/protected-route";
 import { AccountTypeRoute } from "@/lib/account-type-route";
@@ -57,6 +58,7 @@ function RouterWithAuth() {
       <Route path="/register" component={RedirectToAuth} />
       <Route path="/auth/callback" component={() => <div>Processing authentication...</div>} />
       <Route path="/account-type-selection" component={AccountTypeSelection} />
+      <Route path="/complete-profile" component={CompleteProfile} />
       <Route component={NotFound} />
     </Switch>
   );
