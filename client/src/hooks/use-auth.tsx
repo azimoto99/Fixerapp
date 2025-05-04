@@ -7,27 +7,42 @@ import {
 import { insertUserSchema, User as SelectUser, InsertUser } from "@shared/schema";
 import { getQueryFn, apiRequest, queryClient } from "../lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
+import { useLocation } from "wouter";
+
+// Extended user type to include potential account type selection flag
+interface UserWithFlags extends SelectUser {
+  needsAccountType?: boolean;
+}
 
 type AuthContextType = {
-  user: SelectUser | null;
+  user: UserWithFlags | null;
   isLoading: boolean;
   error: Error | null;
-  loginMutation: UseMutationResult<SelectUser, Error, LoginData>;
+  loginMutation: UseMutationResult<UserWithFlags, Error, LoginData>;
   logoutMutation: UseMutationResult<void, Error, void>;
-  registerMutation: UseMutationResult<SelectUser, Error, InsertUser>;
+  registerMutation: UseMutationResult<UserWithFlags, Error, InsertUser>;
+  setAccountTypeMutation: UseMutationResult<UserWithFlags, Error, SetAccountTypeData>;
 };
 
 type LoginData = Pick<InsertUser, "username" | "password">;
+
+type SetAccountTypeData = {
+  userId: number;
+  accountType: 'worker' | 'poster';
+  provider: string;
+};
 
 export const AuthContext = createContext<AuthContextType | null>(null);
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const { toast } = useToast();
+  const [_, setLocation] = useLocation();
+  
   const {
     data: user,
     error,
     isLoading,
-  } = useQuery<SelectUser | undefined, Error>({
+  } = useQuery<UserWithFlags | undefined, Error>({
     queryKey: ["/api/user"],
     queryFn: getQueryFn({ on401: "returnNull" }),
   });
@@ -37,12 +52,23 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const res = await apiRequest("POST", "/api/login", credentials);
       return await res.json();
     },
-    onSuccess: (user: SelectUser) => {
-      queryClient.setQueryData(["/api/user"], user);
-      toast({
-        title: "Login successful",
-        description: "Welcome back!",
-      });
+    onSuccess: (userData: UserWithFlags) => {
+      // Check if user needs to select an account type
+      if (userData.needsAccountType) {
+        // Redirect to account type selection page
+        setLocation(`/account-type-selection?id=${userData.id}&provider=local`);
+        toast({
+          title: "Account type required",
+          description: "Please select your account type to continue",
+        });
+      } else {
+        // Normal login flow
+        queryClient.setQueryData(["/api/user"], userData);
+        toast({
+          title: "Login successful",
+          description: "Welcome back!",
+        });
+      }
     },
     onError: (error: Error) => {
       toast({
@@ -58,16 +84,49 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const res = await apiRequest("POST", "/api/register", credentials);
       return await res.json();
     },
-    onSuccess: (user: SelectUser) => {
-      queryClient.setQueryData(["/api/user"], user);
-      toast({
-        title: "Registration successful",
-        description: "Your account has been created!",
-      });
+    onSuccess: (userData: UserWithFlags) => {
+      // Check if user needs to select an account type
+      if (userData.needsAccountType) {
+        // Redirect to account type selection page
+        setLocation(`/account-type-selection?id=${userData.id}&provider=local`);
+        toast({
+          title: "Registration successful",
+          description: "Please select your account type to continue",
+        });
+      } else {
+        // Normal registration flow
+        queryClient.setQueryData(["/api/user"], userData);
+        toast({
+          title: "Registration successful", 
+          description: "Your account has been created!",
+        });
+      }
     },
     onError: (error: Error) => {
       toast({
         title: "Registration failed",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+  
+  const setAccountTypeMutation = useMutation({
+    mutationFn: async (data: SetAccountTypeData) => {
+      const res = await apiRequest("POST", "/api/set-account-type", data);
+      return await res.json();
+    },
+    onSuccess: (userData: UserWithFlags) => {
+      queryClient.setQueryData(["/api/user"], userData);
+      setLocation('/');
+      toast({
+        title: "Account type set",
+        description: `You are now signed in as a ${userData.accountType}`,
+      });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Error setting account type",
         description: error.message,
         variant: "destructive",
       });
@@ -103,6 +162,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         loginMutation,
         logoutMutation,
         registerMutation,
+        setAccountTypeMutation,
       }}
     >
       {children}

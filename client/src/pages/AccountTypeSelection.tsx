@@ -36,35 +36,24 @@ export default function AccountTypeSelection() {
     return null;
   }
   
+  const { setAccountTypeMutation } = useAuth();
+  
   const handleAccountTypeSelection = async (accountType: 'worker' | 'poster') => {
+    if (!userId || !provider) return;
+    
+    setIsPending(true);
+    
     try {
-      setIsPending(true);
-      
-      const response = await apiRequest('POST', '/api/set-account-type', {
-        userId, 
+      await setAccountTypeMutation.mutateAsync({
+        userId: parseInt(userId),
         accountType,
         provider
       });
       
-      if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.message || 'Failed to set account type');
-      }
-      
-      toast({
-        title: 'Success',
-        description: `You are now signed in as a ${accountType}`,
-      });
-      
-      // Redirect to home page after success
-      setLocation('/');
-      
+      // The mutation success handler will handle the redirect and toast
     } catch (error) {
-      toast({
-        title: 'Error',
-        description: (error as Error).message,
-        variant: 'destructive',
-      });
+      // The mutation error handler will handle the toast
+      console.error('Failed to set account type:', error);
     } finally {
       setIsPending(false);
     }
