@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import Header from '@/components/Header';
 import MobileNav from '@/components/MobileNav';
 import JobSearch from '@/components/JobSearch';
@@ -21,13 +22,21 @@ const WorkerDashboard = () => {
   const [view, setView] = useState<'list' | 'map'>('map');
   const [selectedJob, setSelectedJob] = useState<Job | undefined>(undefined);
   const [searchParams, setSearchParams] = useState({ query: '', category: '' });
+  const [showPostedJobs, setShowPostedJobs] = useState(false);
   
   // Keep all custom hook calls after useState hooks
+  const { user } = useAuth();
   const { userLocation } = useGeolocation();
   const { jobs, isLoading } = useJobs({
     nearbyOnly: true,
     radiusMiles: 2
   }, searchParams);
+  
+  // Get jobs posted by this worker (if any)
+  const { data: postedJobs, isLoading: isLoadingPostedJobs } = useQuery<Job[]>({
+    queryKey: ['/api/jobs', { posterId: user?.id }],
+    enabled: !!user?.id
+  });
 
   const handleSearch = (params: { query: string; category: string }) => {
     setSearchParams(params);
@@ -39,6 +48,10 @@ const WorkerDashboard = () => {
 
   const handleViewChange = (newView: 'list' | 'map') => {
     setView(newView);
+  };
+  
+  const togglePostedJobs = () => {
+    setShowPostedJobs(!showPostedJobs);
   };
 
   // Initial data loading
@@ -56,6 +69,81 @@ const WorkerDashboard = () => {
       </div>
     );
   }
+  
+  // Jobs Posted by Worker Drawer
+  const PostedJobsDrawer = () => {
+    if (!showPostedJobs) return null;
+    
+    return (
+      <div className="absolute top-0 right-0 h-full w-80 bg-white shadow-lg z-[600] transform transition-transform duration-300">
+        <div className="px-4 py-3 border-b border-gray-200">
+          <div className="flex items-center justify-between">
+            <h3 className="text-lg font-medium">My Posted Jobs</h3>
+            <Button size="sm" variant="ghost" onClick={togglePostedJobs}>
+              <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+            </Button>
+          </div>
+        </div>
+        
+        <div className="p-4 overflow-y-auto" style={{ maxHeight: 'calc(100vh - 60px)' }}>
+          {isLoadingPostedJobs ? (
+            <div className="flex justify-center items-center py-8">
+              <Loader2 className="h-6 w-6 animate-spin text-primary" />
+            </div>
+          ) : postedJobs && postedJobs.length > 0 ? (
+            <div className="space-y-3">
+              {postedJobs.map((job: Job) => (
+                <div key={job.id} className="border rounded-md p-3 hover:bg-gray-50">
+                  <h4 className="font-medium">{job.title}</h4>
+                  <p className="text-sm text-gray-500 mt-1 line-clamp-2">{job.description}</p>
+                  <div className="flex items-center mt-2">
+                    <span className={`px-2 py-0.5 text-xs rounded-full ${
+                      job.status === 'open' ? 'bg-blue-100 text-blue-800' : 
+                      job.status === 'assigned' ? 'bg-amber-100 text-amber-800' : 
+                      'bg-green-100 text-green-800'
+                    }`}>
+                      {job.status.charAt(0).toUpperCase() + job.status.slice(1)}
+                    </span>
+                  </div>
+                  <div className="mt-3">
+                    <Button size="sm" variant="outline" asChild className="w-full">
+                      <a href={`/job/${job.id}`}>View Details</a>
+                    </Button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div className="text-center py-8">
+              <p className="text-gray-500 mb-4">You haven't posted any jobs yet.</p>
+              <Button asChild>
+                <a href="/post-job">Post Your First Job</a>
+              </Button>
+            </div>
+          )}
+        </div>
+      </div>
+    );
+  };
+  
+  // My Posted Jobs button
+  const PostedJobsButton = () => {
+    return (
+      <div className="absolute top-4 right-4 z-[500]">
+        <Button 
+          onClick={togglePostedJobs}
+          className="bg-white text-primary hover:bg-primary hover:text-white transition-colors shadow-md"
+        >
+          My Posted Jobs
+          {(postedJobs && postedJobs.length > 0) ? (
+            <span className="ml-2 bg-primary text-white rounded-full w-5 h-5 flex items-center justify-center text-xs">
+              {postedJobs.length}
+            </span>
+          ) : null}
+        </Button>
+      </div>
+    );
+  };
 
   return (
     <div className="h-full">
@@ -67,6 +155,10 @@ const WorkerDashboard = () => {
           selectedJob={selectedJob}
           onSelectJob={handleSelectJob}
         />
+        
+        {/* Worker can view jobs they've posted */}
+        <PostedJobsButton />
+        <PostedJobsDrawer />
         
         {/* DoorDash-style floating search box at bottom */}
         <div className="absolute bottom-6 left-1/2 transform -translate-x-1/2 z-[500]">
@@ -216,8 +308,8 @@ export default function Home() {
       {/* Always show mobile nav for both account types */}
       {user && <MobileNav />}
       
-      {/* Only show new job button for posters */}
-      {(user && user.accountType === 'poster') && <NewJobButton />}
+      {/* Show new job button for all logged-in users */}
+      {user && <NewJobButton />}
     </div>
   );
 }

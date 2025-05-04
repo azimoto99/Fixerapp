@@ -19,21 +19,13 @@ const MobileNav: React.FC = () => {
             </div>
           </Link>
           
-          {accountType === 'worker' ? (
-            <Link href="/earnings">
-              <div className={`group flex flex-col items-center py-3 px-2 cursor-pointer ${location === '/earnings' ? 'text-primary-600 border-t-2 border-primary-600' : 'text-gray-500'}`}>
-                <i className="ri-money-dollar-circle-line text-xl"></i>
-                <span className={`text-xs mt-1 ${location === '/earnings' ? 'font-medium' : ''}`}>Earnings</span>
-              </div>
-            </Link>
-          ) : (
-            <Link href="/post-job">
-              <div className={`group flex flex-col items-center py-3 px-2 cursor-pointer ${location === '/post-job' ? 'text-primary-600 border-t-2 border-primary-600' : 'text-gray-500'}`}>
-                <i className="ri-add-circle-line text-xl"></i>
-                <span className={`text-xs mt-1 ${location === '/post-job' ? 'font-medium' : ''}`}>Post Job</span>
-              </div>
-            </Link>
-          )}
+          {/* Always show post job for all users */}
+          <Link href="/post-job">
+            <div className={`group flex flex-col items-center py-3 px-2 cursor-pointer ${location === '/post-job' ? 'text-primary-600 border-t-2 border-primary-600' : 'text-gray-500'}`}>
+              <i className="ri-add-circle-line text-xl"></i>
+              <span className={`text-xs mt-1 ${location === '/post-job' ? 'font-medium' : ''}`}>Post Job</span>
+            </div>
+          </Link>
           
           <Link href={accountType === 'worker' ? '/saved-jobs' : '/my-jobs'}>
             <div className={`group flex flex-col items-center py-3 px-2 cursor-pointer ${location === (accountType === 'worker' ? '/saved-jobs' : '/my-jobs') ? 'text-primary-600 border-t-2 border-primary-600' : 'text-gray-500'}`}>
