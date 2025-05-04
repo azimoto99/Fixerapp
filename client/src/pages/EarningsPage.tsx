@@ -1,6 +1,6 @@
 import { useState } from 'react';
-import { useQuery } from '@tanstack/react-query';
-import { Earning, Job, User } from '@shared/schema';
+import { useQuery, useMutation } from '@tanstack/react-query';
+import { Earning, Job, Payment, InsertPayment } from '@shared/schema';
 import { useAuth } from '@/hooks/use-auth';
 import RatingDisplay from '@/components/RatingDisplay';
 import { 
@@ -13,9 +13,20 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
-import { DollarSign, Calendar, Check, Clock, ChevronRight, TrendingUp } from 'lucide-react';
+import { 
+  DollarSign, 
+  Calendar, 
+  Check, 
+  Clock, 
+  CreditCard, 
+  TrendingUp, 
+  AlertCircle,
+  CheckCircle2,
+  XCircle
+} from 'lucide-react';
 import { format } from 'date-fns';
 import { useToast } from '@/hooks/use-toast';
+import { apiRequest, queryClient } from '@/lib/queryClient';
 
 export default function EarningsPage() {
   const { user } = useAuth();
@@ -34,23 +45,84 @@ export default function EarningsPage() {
     enabled: !!user && user.accountType === 'worker',
   });
 
+  // Fetch the worker's payment history
+  const { data: payments, isLoading: paymentsLoading } = useQuery<Payment[]>({
+    queryKey: ['/api/payments/user', user?.id],
+    enabled: !!user && user.accountType === 'worker',
+  });
+
   // Calculate total earnings
   const totalEarnings = earnings?.reduce((total, earning) => total + earning.amount, 0) || 0;
   const totalNetEarnings = earnings?.reduce((total, earning) => total + earning.netAmount, 0) || 0;
   const pendingPayments = earnings?.filter(e => e.status === 'pending').length || 0;
+  
+  // Calculate total pending amount that can be paid out (minimum $10)
+  const pendingAmount = earnings
+    ?.filter(e => e.status === 'pending')
+    .reduce((total, earning) => total + earning.netAmount, 0) || 0;
+  
+  const canRequestPayout = pendingAmount >= 10;
 
   // Format currency
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(amount);
   };
 
+  // Format date with fallback
+  const formatDate = (date: Date | string | null) => {
+    if (!date) return 'N/A';
+    return format(new Date(date), 'MMM d, yyyy');
+  };
+
+  // Payment request mutation
+  const paymentRequestMutation = useMutation({
+    mutationFn: async () => {
+      if (!user) throw new Error("User not authenticated");
+      
+      // Create a payment request with the minimum $10 amount and $2.50 service fee
+      const paymentData: InsertPayment = {
+        userId: user.id,
+        amount: pendingAmount,
+        type: 'payout',
+        status: 'pending',
+        paymentMethod: 'bank_transfer',
+        description: `Payout request for ${pendingPayments} pending earnings`,
+        metadata: {}
+      };
+      
+      const res = await apiRequest('POST', '/api/payments', paymentData);
+      return await res.json();
+    },
+    onSuccess: () => {
+      // Invalidate queries to refresh data
+      queryClient.invalidateQueries({ queryKey: ['/api/payments/user', user?.id] });
+      
+      toast({
+        title: "Payment Requested",
+        description: `Your payment of ${formatCurrency(pendingAmount)} has been requested and will be processed soon.`,
+      });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Payment Request Failed",
+        description: error.message,
+        variant: "destructive"
+      });
+    }
+  });
+
   // Handle payment request
   const handleRequestPayment = () => {
-    // In a real implementation, this would initiate a payment request to the system
-    toast({
-      title: "Payment Requested",
-      description: "Your payment request has been submitted and will be processed soon.",
-    });
+    if (!canRequestPayout) {
+      toast({
+        title: "Cannot Request Payment",
+        description: "You need at least $10 in pending earnings to request a payment.",
+        variant: "destructive"
+      });
+      return;
+    }
+    
+    paymentRequestMutation.mutate();
   };
 
   if (!user || user.accountType !== 'worker') {
@@ -114,21 +186,30 @@ export default function EarningsPage() {
         
         <Card>
           <CardHeader className="pb-2">
-            <CardDescription>Pending Payments</CardDescription>
+            <CardDescription>Pending Earnings</CardDescription>
             <CardTitle className="text-2xl flex items-center">
               <Clock className="h-5 w-5 mr-1 text-amber-500" />
-              {pendingPayments}
+              {formatCurrency(pendingAmount)}
             </CardTitle>
           </CardHeader>
           <CardContent>
+            <div className="text-xs text-muted-foreground mb-2">
+              {pendingAmount >= 10 ? (
+                <span className="text-green-600">Available for withdrawal</span>
+              ) : pendingAmount > 0 ? (
+                <span>Need {formatCurrency(10 - pendingAmount)} more to withdraw</span>
+              ) : (
+                <span>No pending earnings</span>
+              )}
+            </div>
             <Button 
               size="sm" 
-              variant="outline" 
+              variant={pendingAmount >= 10 ? "default" : "outline"}
               className="w-full"
-              disabled={pendingPayments === 0}
+              disabled={pendingAmount < 10 || paymentRequestMutation.isPending}
               onClick={handleRequestPayment}
             >
-              Request Payment
+              {paymentRequestMutation.isPending ? "Processing..." : "Request Payment"}
             </Button>
           </CardContent>
         </Card>
@@ -207,14 +288,97 @@ export default function EarningsPage() {
             <CardHeader>
               <CardTitle>Your Payments</CardTitle>
               <CardDescription>
-                History of payments received
+                History of payment requests and received payments
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <div className="py-8 text-center">
-                <p className="text-muted-foreground">No payment history yet</p>
-                <p className="text-sm mt-1">Payments will appear here once processed</p>
-              </div>
+              {paymentsLoading ? (
+                <div className="py-4 text-center">Loading payment history...</div>
+              ) : payments && payments.length > 0 ? (
+                <div className="space-y-4">
+                  {payments.map((payment) => (
+                    <div key={payment.id} className="flex flex-col space-y-2">
+                      <div className="flex justify-between items-center">
+                        <div>
+                          <div className="font-medium">
+                            {payment.type.charAt(0).toUpperCase() + payment.type.slice(1)} {payment.description ? `- ${payment.description}` : ''}
+                          </div>
+                          <div className="text-sm text-muted-foreground flex items-center">
+                            <Calendar className="h-3 w-3 mr-1" />
+                            {formatDate(payment.createdAt)}
+                          </div>
+                        </div>
+                        <div className="text-right">
+                          <div className="font-semibold text-lg">
+                            {formatCurrency(payment.amount)}
+                          </div>
+                          <div className="text-xs text-muted-foreground">
+                            Method: {payment.paymentMethod || 'Bank Transfer'}
+                          </div>
+                        </div>
+                      </div>
+                      
+                      <div className="flex justify-between items-center">
+                        <div className="flex items-center">
+                          {payment.status === 'completed' ? (
+                            <CheckCircle2 className="h-4 w-4 mr-1 text-green-500" />
+                          ) : payment.status === 'pending' ? (
+                            <Clock className="h-4 w-4 mr-1 text-amber-500" />
+                          ) : (
+                            <XCircle className="h-4 w-4 mr-1 text-red-500" />
+                          )}
+                          <span className={`text-xs px-2 py-1 rounded-full ${
+                            payment.status === 'completed' 
+                              ? 'bg-green-100 text-green-800'
+                              : payment.status === 'pending' 
+                              ? 'bg-amber-100 text-amber-800' 
+                              : 'bg-red-100 text-red-800'
+                          }`}>
+                            {payment.status.charAt(0).toUpperCase() + payment.status.slice(1)}
+                          </span>
+                        </div>
+                        
+                        {payment.transactionId && (
+                          <div className="text-xs text-muted-foreground">
+                            Transaction: {payment.transactionId.substring(0, 6)}...
+                          </div>
+                        )}
+                      </div>
+                      <Separator className="mt-2" />
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="py-8 text-center">
+                  <p className="text-muted-foreground">No payment history yet</p>
+                  <p className="text-sm mt-1">
+                    {pendingAmount >= 10 ? (
+                      <>
+                        You have <span className="font-semibold">{formatCurrency(pendingAmount)}</span> available to withdraw.
+                        Click "Request Payment" to receive your earnings.
+                      </>
+                    ) : pendingAmount > 0 ? (
+                      <>
+                        You need <span className="font-semibold">{formatCurrency(10 - pendingAmount)}</span> more in 
+                        earnings to reach the minimum withdrawal amount of $10.
+                      </>
+                    ) : (
+                      "Complete jobs to earn money that you can withdraw."
+                    )}
+                  </p>
+                  
+                  {pendingAmount >= 10 && (
+                    <Button 
+                      className="mt-4"
+                      variant="default"
+                      disabled={paymentRequestMutation.isPending}
+                      onClick={handleRequestPayment}
+                    >
+                      {paymentRequestMutation.isPending ? "Processing..." : "Request Payment Now"}
+                    </Button>
+                  )}
+                </div>
+              )}
             </CardContent>
           </Card>
         </TabsContent>
