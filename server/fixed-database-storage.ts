@@ -133,9 +133,12 @@ export class DatabaseStorage implements IStorage {
   async getUserByUsername(username: string): Promise<User | undefined> {
     // Skip ORM and use a raw query directly to avoid column errors
     try {
+      // Use LOWER() function to make username comparison case-insensitive
       const query = `SELECT id, username, password, full_name, email, 
                     phone, bio, avatar_url, account_type, 
-                    google_id, facebook_id FROM users WHERE username = '${username}'`;
+                    google_id, facebook_id, stripe_customer_id, stripe_connect_account_id, stripe_connect_account_status 
+                    FROM users WHERE LOWER(username) = LOWER('${username}')`;
+      
       const result = await db.execute(query);
       if (result.rows.length === 0) return undefined;
       
@@ -156,7 +159,10 @@ export class DatabaseStorage implements IStorage {
         skillsVerified: {},
         badgeIds: [],
         lastActive: new Date(),
-        isActive: true
+        isActive: true,
+        stripeCustomerId: user.stripe_customer_id,
+        stripeConnectAccountId: user.stripe_connect_account_id,
+        stripeConnectAccountStatus: user.stripe_connect_account_status
       });
     } catch (error) {
       console.error("Error getting user by username:", error);
@@ -167,10 +173,12 @@ export class DatabaseStorage implements IStorage {
   async getUserByUsernameAndType(username: string, accountType: string): Promise<User | undefined> {
     // Skip ORM and use a raw query directly to avoid column errors
     try {
+      // Use LOWER() function to make username comparison case-insensitive
       const query = `SELECT id, username, password, full_name, email, 
                     phone, bio, avatar_url, account_type, 
-                    google_id, facebook_id FROM users 
-                    WHERE username = '${username}' AND account_type = '${accountType}'`;
+                    google_id, facebook_id, stripe_customer_id, stripe_connect_account_id, stripe_connect_account_status
+                    FROM users 
+                    WHERE LOWER(username) = LOWER('${username}') AND account_type = '${accountType}'`;
       const result = await db.execute(query);
       if (result.rows.length === 0) return undefined;
       
@@ -191,7 +199,10 @@ export class DatabaseStorage implements IStorage {
         skillsVerified: {},
         badgeIds: [],
         lastActive: new Date(),
-        isActive: true
+        isActive: true,
+        stripeCustomerId: user.stripe_customer_id,
+        stripeConnectAccountId: user.stripe_connect_account_id,
+        stripeConnectAccountStatus: user.stripe_connect_account_status
       });
     } catch (error) {
       console.error("Error getting user by username and type:", error);
