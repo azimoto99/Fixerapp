@@ -95,9 +95,9 @@ const SimpleUserDrawer: React.FC<SimpleUserDrawerProps> = ({
     <>
       <div onClick={() => setIsOpen(true)} className="cursor-pointer">
         {children || (
-          <div className="relative bg-white shadow-lg rounded-full p-2 flex items-center transform transition-all duration-300 hover:scale-110 hover:bg-primary hover:text-white group">
-            <div className="absolute -top-1 -right-1 w-3 h-3 bg-green-500 rounded-full animate-pulse-marker"></div>
-            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-5 w-5 text-gray-700 group-hover:text-white transition-colors">
+          <div className="relative bg-card shadow-lg rounded-full p-2 flex items-center transform transition-all duration-300 hover:scale-110 hover:bg-emerald-600 hover:text-white group">
+            <div className="absolute -top-1 -right-1 w-3 h-3 bg-emerald-500 rounded-full animate-pulse-marker"></div>
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-5 w-5 text-foreground group-hover:text-white transition-colors">
               <rect x="4" y="4" width="16" height="16" rx="2" ry="2"></rect>
               <line x1="4" y1="10" x2="20" y2="10"></line>
               <line x1="10" y1="4" x2="10" y2="20"></line>
@@ -112,12 +112,12 @@ const SimpleUserDrawer: React.FC<SimpleUserDrawerProps> = ({
         >
           <div
             ref={drawerRef}
-            className="fixed top-0 right-0 bottom-0 w-80 bg-white shadow-lg z-[99999] transform transition-transform ease-in-out duration-300"
+            className="fixed top-0 right-0 bottom-0 w-80 bg-background shadow-lg z-[99999] transform transition-transform ease-in-out duration-300"
             style={{ transform: isOpen ? 'translateX(0)' : 'translateX(100%)' }}
           >
             <div className="p-4 border-b flex justify-between items-start">
               <div className="flex items-center">
-                <div className="w-10 h-10 bg-primary/10 text-primary rounded-full flex items-center justify-center mr-3">
+                <div className="w-10 h-10 bg-emerald-600/10 text-emerald-600 rounded-full flex items-center justify-center mr-3">
                   <User className="h-5 w-5" />
                 </div>
                 <div>
@@ -147,8 +147,8 @@ const SimpleUserDrawer: React.FC<SimpleUserDrawerProps> = ({
                     className={cn(
                       "flex flex-col items-center justify-center w-16 h-16 rounded-lg",
                       activeTab === "profile" 
-                        ? "bg-primary/10 text-primary" 
-                        : "hover:bg-primary/5 text-gray-600"
+                        ? "bg-emerald-600/10 text-emerald-600" 
+                        : "hover:bg-emerald-600/5 text-gray-600"
                     )}
                   >
                     <User className="h-5 w-5 mb-1" />
@@ -161,8 +161,8 @@ const SimpleUserDrawer: React.FC<SimpleUserDrawerProps> = ({
                       className={cn(
                         "flex flex-col items-center justify-center w-16 h-16 rounded-lg",
                         activeTab === "earnings" 
-                          ? "bg-primary/10 text-primary" 
-                          : "hover:bg-primary/5 text-gray-600"
+                          ? "bg-emerald-600/10 text-emerald-600" 
+                          : "hover:bg-emerald-600/5 text-gray-600"
                       )}
                     >
                       <BarChart2 className="h-5 w-5 mb-1" />
@@ -201,8 +201,8 @@ const SimpleUserDrawer: React.FC<SimpleUserDrawerProps> = ({
                     className={cn(
                       "flex flex-col items-center justify-center w-16 h-16 rounded-lg",
                       activeTab === "reviews" 
-                        ? "bg-primary/10 text-primary" 
-                        : "hover:bg-primary/5 text-gray-600"
+                        ? "bg-emerald-600/10 text-emerald-600" 
+                        : "hover:bg-emerald-600/5 text-gray-600"
                     )}
                   >
                     <StarIcon className="h-5 w-5 mb-1" />
@@ -214,8 +214,8 @@ const SimpleUserDrawer: React.FC<SimpleUserDrawerProps> = ({
                     className={cn(
                       "flex flex-col items-center justify-center w-16 h-16 rounded-lg",
                       activeTab === "settings" 
-                        ? "bg-primary/10 text-primary" 
-                        : "hover:bg-primary/5 text-gray-600"
+                        ? "bg-emerald-600/10 text-emerald-600" 
+                        : "hover:bg-emerald-600/5 text-gray-600"
                     )}
                   >
                     <Settings className="h-5 w-5 mb-1" />
