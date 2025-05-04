@@ -111,7 +111,8 @@ const MapSection: React.FC<MapSectionProps> = ({ jobs, selectedJob, onSelectJob 
   };
   
   // Handle map click to close panels
-  const handleMapClick = () => {
+  // Memoize expensive calculations and event handlers for better performance
+  const handleMapClick = React.useCallback(() => {
     // Close job details panel if open
     if (showJobDetail) {
       setShowJobDetail(false);
@@ -125,7 +126,19 @@ const MapSection: React.FC<MapSectionProps> = ({ jobs, selectedJob, onSelectJob 
         setForceCloseDrawer(false);
       }, 100);
     }
-  };
+  }, [showJobDetail, isUserDrawerOpen]);
+  
+  // Use debounced updater for performance sensitive operations
+  const debouncedSetShowJobDetail = React.useMemo(() => {
+    const debounce = (func: Function, wait: number) => {
+      let timeout: NodeJS.Timeout;
+      return (...args: any[]) => {
+        clearTimeout(timeout);
+        timeout = setTimeout(() => func(...args), wait);
+      };
+    };
+    return debounce(setShowJobDetail, 100);
+  }, []);
 
   // Close the job detail panel
   const handleCloseDetail = () => {
