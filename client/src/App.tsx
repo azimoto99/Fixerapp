@@ -61,6 +61,7 @@ function RouterWithAuth() {
       <Route path="/auth/callback" component={() => <div>Processing authentication...</div>} />
       <Route path="/account-type-selection" component={AccountTypeSelection} />
       <Route path="/complete-profile" component={CompleteProfile} />
+      <Route path="/connect-setup" component={ConnectSetup} />
       <Route component={NotFound} />
     </Switch>
   );
