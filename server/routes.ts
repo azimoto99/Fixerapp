@@ -1620,7 +1620,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
               // Calculate the net amount (payment amount minus service fee)
               const netAmount = job.paymentAmount - job.serviceFee;
               
-              await storage.createEarning({
+              const earning = await storage.createEarning({
                 jobId: job.id,
                 workerId: job.workerId,
                 amount: job.paymentAmount,
@@ -1629,6 +1629,40 @@ export async function registerRoutes(app: Express): Promise<Server> {
               });
               
               console.log(`Earning created for worker ${job.workerId} for job ${job.id}`);
+              
+              // Get the worker to check if they have a Stripe Connect account
+              const worker = await storage.getUser(job.workerId);
+              
+              // If the worker has a Stripe Connect account, transfer the payment to them
+              if (worker && worker.stripeConnectAccountId) {
+                try {
+                  // Create a transfer to the worker's Connect account
+                  const transfer = await stripe.transfers.create({
+                    amount: Math.round(netAmount * 100), // Convert to cents for Stripe
+                    currency: 'usd',
+                    destination: worker.stripeConnectAccountId,
+                    transfer_group: `job-${job.id}`,
+                    metadata: {
+                      jobId: job.id.toString(),
+                      workerId: job.workerId.toString(),
+                      earningId: earning.id.toString(),
+                      paymentId: payment.id.toString()
+                    },
+                    description: `Payment for job: ${job.title}`
+                  });
+                  
+                  console.log(`Successfully transferred $${netAmount} to worker ${job.workerId} (Connect account: ${worker.stripeConnectAccountId})`);
+                  
+                  // Update the earning record to mark it as paid
+                  await storage.updateEarningStatus(earning.id, 'paid', new Date());
+                } catch (transferError) {
+                  console.error(`Error transferring to Connect account: ${(transferError as Error).message}`);
+                  // We don't want to fail the whole transaction if the transfer fails
+                  // The admin can manually transfer later
+                }
+              } else {
+                console.log(`Worker ${job.workerId} doesn't have a Stripe Connect account yet. Funds will be held by the platform.`);
+              }
             }
           }
         }
@@ -1660,7 +1694,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           if (job.workerId) {
             const netAmount = job.paymentAmount - job.serviceFee;
             
-            await storage.createEarning({
+            const earning = await storage.createEarning({
               jobId: job.id,
               workerId: job.workerId,
               amount: job.paymentAmount,
@@ -1669,6 +1703,40 @@ export async function registerRoutes(app: Express): Promise<Server> {
             });
             
             console.log(`Earning created for worker ${job.workerId} for job ${job.id}`);
+            
+            // Get the worker to check if they have a Stripe Connect account
+            const worker = await storage.getUser(job.workerId);
+            
+            // If the worker has a Stripe Connect account, transfer the payment to them
+            if (worker && worker.stripeConnectAccountId) {
+              try {
+                // Create a transfer to the worker's Connect account
+                const transfer = await stripe.transfers.create({
+                  amount: Math.round(netAmount * 100), // Convert to cents for Stripe
+                  currency: 'usd',
+                  destination: worker.stripeConnectAccountId,
+                  transfer_group: `job-${job.id}`,
+                  metadata: {
+                    jobId: job.id.toString(),
+                    workerId: job.workerId.toString(),
+                    earningId: earning.id.toString(),
+                    paymentId: createdPayment.id.toString()
+                  },
+                  description: `Payment for job: ${job.title}`
+                });
+                
+                console.log(`Successfully transferred $${netAmount} to worker ${job.workerId} (Connect account: ${worker.stripeConnectAccountId})`);
+                
+                // Update the earning record to mark it as paid
+                await storage.updateEarningStatus(earning.id, 'paid', new Date());
+              } catch (transferError) {
+                console.error(`Error transferring to Connect account: ${(transferError as Error).message}`);
+                // We don't want to fail the whole transaction if the transfer fails
+                // The admin can manually transfer later
+              }
+            } else {
+              console.log(`Worker ${job.workerId} doesn't have a Stripe Connect account yet. Funds will be held by the platform.`);
+            }
           }
         }
       }

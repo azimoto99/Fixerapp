@@ -208,21 +208,51 @@ export class DatabaseStorage implements IStorage {
     return this.addProfileCompletionFlag(createdUser);
   }
 
-  async updateUser(id: number, data: Partial<InsertUser>): Promise<User | undefined> {
-    // Extract the requiresProfileCompletion property (if it exists) and remove it from the data object
-    // since it doesn't exist in the database schema
-    const { requiresProfileCompletion, needsAccountType, ...dbData } = data;
+  async updateUser(id: number, data: Partial<InsertUser> & { stripeConnectAccountId?: string }): Promise<User | undefined> {
+    // Extract the fields that don't exist in the database schema
+    const { requiresProfileCompletion, needsAccountType, stripeConnectAccountId, ...dbData } = data;
     
-    // Update the user without the requiresProfileCompletion field
-    const [updatedUser] = await db.update(users)
-      .set(dbData)
-      .where(eq(users.id, id))
-      .returning();
+    // Handle Stripe Connect Account ID separately
+    let updatedUser;
+    
+    try {
+      if (stripeConnectAccountId !== undefined) {
+        // If stripeConnectAccountId is provided, use a direct SQL update to avoid ORM issues
+        const query = `
+          UPDATE users 
+          SET stripe_connect_account_id = $1
+          WHERE id = $2
+          RETURNING *
+        `;
+        
+        const result = await db.execute(query, [stripeConnectAccountId, id]);
+        
+        if (result.rows.length === 0) {
+          return undefined;
+        }
+        
+        updatedUser = result.rows[0];
+        
+        // Check if we have other fields to update
+        if (Object.keys(dbData).length === 0) {
+          return this.addProfileCompletionFlag(updatedUser);
+        }
+      }
       
-    if (!updatedUser) return undefined;
-    
-    // Add the requiresProfileCompletion property back to the user object for the client
-    return this.addProfileCompletionFlag(updatedUser);
+      // Update the other user fields using the ORM
+      [updatedUser] = await db.update(users)
+        .set(dbData)
+        .where(eq(users.id, id))
+        .returning();
+      
+      if (!updatedUser) return undefined;
+      
+      // Add the requiresProfileCompletion property back to the user object for the client
+      return this.addProfileCompletionFlag(updatedUser);
+    } catch (error) {
+      console.error("Error updating user:", error);
+      return undefined;
+    }
   }
   
   async uploadProfileImage(userId: number, imageData: string): Promise<User | undefined> {
