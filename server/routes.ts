@@ -1698,6 +1698,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
       else if (event.type === 'payment_intent.canceled') {
         await handleCanceledPayment(event.data.object);
       }
+      // Connect account events 
+      else if (event.type === 'account.updated') {
+        await handleConnectAccountUpdate(event.data.object);
+      }
+      else if (event.type === 'account.application.authorized') {
+        await handleConnectAccountAuthorized(event.data.object);
+      }
+      else if (event.type === 'account.application.deauthorized') {
+        await handleConnectAccountDeauthorized(event.data.object);
+      }
+      else if (event.type === 'transfer.created' || event.type === 'transfer.paid') {
+        await handleTransferEvent(event.data.object, event.type);
+      }
       
       // Return success response
       res.json({received: true});
