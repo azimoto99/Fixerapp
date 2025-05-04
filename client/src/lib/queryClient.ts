@@ -14,7 +14,14 @@ async function throwIfResNotOk(res: Response) {
     // Handle common status codes with friendly messages
     switch (res.status) {
       case 401:
-        throw new Error("You need to be logged in to perform this action");
+        try {
+          // For login errors, provide the actual error message from the server
+          const errorData = JSON.parse(errorText);
+          throw new Error(errorData.message || "Authentication failed");
+        } catch {
+          // If parsing fails, use a generic message
+          throw new Error("Authentication failed. Please check your credentials.");
+        }
       case 403:
         throw new Error("You don't have permission to perform this action");
       case 404:
