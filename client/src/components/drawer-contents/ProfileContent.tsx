@@ -10,6 +10,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { apiRequest, queryClient } from '@/lib/queryClient';
 import { useToast } from '@/hooks/use-toast';
 import { UserPlus, Phone, Mail, MapPin, Briefcase, Clock, Save } from 'lucide-react';
+import StripeConnectSetup from '@/components/stripe/StripeConnectSetup';
 
 interface ProfileContentProps {
   user: User;
@@ -214,6 +215,10 @@ const ProfileContent: React.FC<ProfileContentProps> = ({ user }) => {
                 </div>
               </CardContent>
             </Card>
+          )}
+          
+          {user.accountType === 'worker' && (
+            <StripeConnectSetup compact={true} />
           )}
           
           <Card>

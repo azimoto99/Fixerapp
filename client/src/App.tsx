@@ -6,7 +6,6 @@ import { Toaster } from "@/components/ui/toaster";
 import Home from "@/pages/Home";
 import PostJob from "@/pages/PostJob";
 import JobDetails from "@/pages/JobDetails";
-import Profile from "@/pages/Profile";
 import EarningsPage from "@/pages/EarningsPage";
 import AuthPage from "@/pages/auth-page";
 import NotFound from "@/pages/not-found";
@@ -16,6 +15,7 @@ import { AuthProvider } from "@/hooks/use-auth";
 import { ProtectedRoute } from "@/lib/protected-route";
 import { useAuth } from "@/hooks/use-auth";
 import { StripeConnectCheck } from "@/components/stripe";
+import WelcomeMessage from "@/components/WelcomeMessage";
 import { useEffect } from "react";
 
 // Redirect component for old routes
@@ -47,7 +47,6 @@ function RouterWithAuth() {
       <ProtectedRoute path="/" component={Home} />
       <ProtectedRoute path="/post-job" component={PostJob} />
       <ProtectedRoute path="/job/:id" component={JobDetails} />
-      <ProtectedRoute path="/profile" component={Profile} />
       <ProtectedRoute path="/earnings" component={EarningsPage} />
       <ProtectedRoute path="/transactions" component={TransactionHistory} />
       {/* Payment dashboard is not accessible as there are no job posters */}
