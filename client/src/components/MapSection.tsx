@@ -324,6 +324,17 @@ const MapSection: React.FC<MapSectionProps> = ({ jobs, selectedJob, onSelectJob 
             
             {/* Recenter map component */}
             <RecenterMap position={position} />
+
+            {/* Map Controls - properly implemented inside the map context */}
+            <div className="leaflet-control-container">
+              <div className="leaflet-bottom leaflet-left">
+                <div className="leaflet-control leaflet-bar" style={{ margin: '0 0 70px 10px', background: 'none', border: 'none' }}>
+                  <ZoomInControl />
+                  <ZoomOutControl />
+                  <RecenterControl position={position} />
+                </div>
+              </div>
+            </div>
           </MapContainer>
         )}
         
@@ -341,30 +352,7 @@ const MapSection: React.FC<MapSectionProps> = ({ jobs, selectedJob, onSelectJob 
           </div>
         )}
         
-        {/* Custom Map Controls */}
-        {position && (
-          <>
-            <div className="absolute left-4 bottom-28 z-[1000] hidden sm:flex flex-col gap-2">
-              {/* These are hidden on mobile since we'll use our custom in-map controls */}
-              <button 
-                onClick={() => {
-                  const mapInstance = document.querySelector('.leaflet-container');
-                  if (mapInstance && 'leafletElement' in mapInstance) {
-                    // @ts-ignore - This is a legacy way to access the map instance
-                    mapInstance.leafletElement.zoomIn();
-                  }
-                }}
-                className="bg-white shadow-lg rounded-full w-10 h-10 flex items-center justify-center transform transition-all hover:scale-105 active:scale-95"
-                aria-label="Zoom in"
-              >
-                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-5 w-5">
-                  <line x1="12" y1="5" x2="12" y2="19"></line>
-                  <line x1="5" y1="12" x2="19" y2="12"></line>
-                </svg>
-              </button>
-            </div>
-          </>
-        )}
+
 
         {/* Actions menu in top right */}
         <div className="absolute top-4 right-4 z-[1000] flex gap-2">
