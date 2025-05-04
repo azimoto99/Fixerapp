@@ -19,9 +19,9 @@ export const users = pgTable("users", {
   lastActive: timestamp("last_active").defaultNow(),
   // Social login fields
   googleId: text("google_id"), // Google OAuth ID
-  facebookId: text("facebook_id"), // Facebook OAuth ID
-  // User status flags
-  requiresProfileCompletion: boolean("requires_profile_completion").default(false), // For social login users who need to complete their profile
+  facebookId: text("facebook_id") // Facebook OAuth ID
+  // Note: The requiresProfileCompletion field doesn't exist in the DB yet
+  // We'll handle this in code until we can properly migrate the database
 }, (table) => {
   // Create a unique constraint on the combination of email and accountType
   // This allows the same email to have multiple accounts with different types
@@ -160,8 +160,12 @@ export const insertPaymentSchema = createInsertSchema(payments).omit({
 });
 
 // Types
-export type User = typeof users.$inferSelect;
-export type InsertUser = z.infer<typeof insertUserSchema>;
+export type User = typeof users.$inferSelect & {
+  requiresProfileCompletion?: boolean; // Adding this field to the type even though it's not in the DB yet
+};
+export type InsertUser = z.infer<typeof insertUserSchema> & {
+  requiresProfileCompletion?: boolean; // Adding this field to the type even though it's not in the DB
+};
 
 export type Job = typeof jobs.$inferSelect;
 export type InsertJob = z.infer<typeof insertJobSchema>;

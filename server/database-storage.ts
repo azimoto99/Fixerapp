@@ -34,6 +34,22 @@ export class DatabaseStorage implements IStorage {
 
   async getUser(id: number): Promise<User | undefined> {
     const [user] = await db.select().from(users).where(eq(users.id, id));
+    
+    // If user is found and is a social login user (has googleId or facebookId), 
+    // we may need to mark it as requiring profile completion
+    if (user) {
+      // Add the requiresProfileCompletion property for social login users
+      // who have pending account type or have just registered
+      const needsProfileCompletion = 
+        (user.googleId || user.facebookId) && 
+        (user.accountType === 'pending' || !user.bio || !user.phone);
+      
+      return {
+        ...user,
+        requiresProfileCompletion: needsProfileCompletion
+      };
+    }
+    
     return user;
   }
 
@@ -53,16 +69,38 @@ export class DatabaseStorage implements IStorage {
   }
 
   async createUser(user: InsertUser): Promise<User> {
-    const [createdUser] = await db.insert(users).values(user).returning();
-    return createdUser;
+    // Extract the requiresProfileCompletion property (if it exists) and remove it from the user object
+    // since it doesn't exist in the database schema
+    const { requiresProfileCompletion, ...dbUser } = user;
+    
+    // Insert the user without the requiresProfileCompletion field
+    const [createdUser] = await db.insert(users).values(dbUser).returning();
+    
+    // Add the requiresProfileCompletion property back to the user object for the client
+    return {
+      ...createdUser,
+      requiresProfileCompletion: requiresProfileCompletion
+    };
   }
 
   async updateUser(id: number, data: Partial<InsertUser>): Promise<User | undefined> {
+    // Extract the requiresProfileCompletion property (if it exists) and remove it from the data object
+    // since it doesn't exist in the database schema
+    const { requiresProfileCompletion, ...dbData } = data;
+    
+    // Update the user without the requiresProfileCompletion field
     const [updatedUser] = await db.update(users)
-      .set(data)
+      .set(dbData)
       .where(eq(users.id, id))
       .returning();
-    return updatedUser;
+      
+    if (!updatedUser) return undefined;
+    
+    // Add the requiresProfileCompletion property back to the user object for the client
+    return {
+      ...updatedUser,
+      requiresProfileCompletion: requiresProfileCompletion
+    };
   }
   
   // Job operations
