@@ -225,24 +225,10 @@ const MapSection: React.FC<MapSectionProps> = ({ jobs, selectedJob, onSelectJob 
           </MapContainer>
         )}
         
-        {/* Minimalist Job counter - DoorDash style */}
-        <div className="absolute top-4 left-4 z-[1000]">
-          <div className="flex items-center gap-2">
-            <div className="bg-white shadow-lg rounded-full px-4 py-2 flex items-center">
-              <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-5 w-5 text-primary mr-2">
-                <circle cx="12" cy="12" r="10" />
-                <line x1="12" y1="8" x2="12" y2="12" />
-                <line x1="12" y1="16" x2="12.01" y2="16" />
-              </svg>
-              <span className="text-sm font-medium">
-                {jobs.length} jobs within 2 miles
-              </span>
-            </div>
-          </div>
-          
-          {/* Fallback location notice */}
-          {isUsingFallback && (
-            <div className="mt-2 bg-amber-50 border border-amber-200 rounded-full shadow px-3 py-1 text-amber-800 text-xs">
+        {/* Fallback location notice */}
+        {isUsingFallback && (
+          <div className="absolute top-4 left-4 z-[1000]">
+            <div className="bg-amber-50 border border-amber-200 rounded-full shadow px-3 py-1 text-amber-800 text-xs">
               <p className="flex items-center">
                 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" className="w-3 h-3 mr-1">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
@@ -250,8 +236,8 @@ const MapSection: React.FC<MapSectionProps> = ({ jobs, selectedJob, onSelectJob 
                 Using approximate location
               </p>
             </div>
-          )}
-        </div>
+          </div>
+        )}
         
         {/* Actions menu in top right */}
         <div className="absolute top-4 right-4 z-[1000] flex gap-2">

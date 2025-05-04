@@ -5,49 +5,22 @@ import {
   SheetHeader, 
   SheetTitle, 
   SheetTrigger,
-  SheetClose
+  SheetDescription
 } from "@/components/ui/sheet";
-import { Button } from "@/components/ui/button";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { 
+  User, 
+  Settings, 
+  LogOut, 
+  Star as StarIcon, 
+  BarChart2
+} from "lucide-react";
 import { useAuth } from '@/hooks/use-auth';
-import { User, Home, CreditCard, Settings, BarChart2, Star as StarIcon, LogOut } from 'lucide-react';
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
-import { useLocation } from 'wouter';
-// Simple internal content components instead of importing from separate files
-const ProfileContent = ({ user }: { user: any }) => (
-  <div className="space-y-4">
-    <h3 className="text-lg font-semibold">Profile</h3>
-    <p>Welcome, {user.fullName}!</p>
-    <div className="text-sm text-muted-foreground">
-      Email: {user.email}<br />
-      Account Type: {user.accountType}
-    </div>
-  </div>
-);
-
-const EarningsContent = ({ userId }: { userId: number }) => (
-  <div className="space-y-4">
-    <h3 className="text-lg font-semibold">Earnings</h3>
-    <p>Your earnings will be displayed here.</p>
-    <a href="/earnings" className="text-primary hover:underline">View detailed earnings</a>
-  </div>
-);
-
-const ReviewsContent = ({ userId }: { userId: number }) => (
-  <div className="space-y-4">
-    <h3 className="text-lg font-semibold">Reviews</h3>
-    <p>Your reviews will be displayed here.</p>
-  </div>
-);
-
-const SettingsContent = ({ user }: { user: any }) => (
-  <div className="space-y-4">
-    <h3 className="text-lg font-semibold">Settings</h3>
-    <p>Account settings and preferences will be displayed here.</p>
-  </div>
-);
+import { Button } from '@/components/ui/button';
+import ProfileContent from './drawer-contents/ProfileContent';
+import EarningsContent from './drawer-contents/EarningsContent';
+import ReviewsContent from './drawer-contents/ReviewsContent';
+import SettingsContent from './drawer-contents/SettingsContent';
 
 interface UserDrawerProps {
   children?: React.ReactNode;
@@ -55,34 +28,29 @@ interface UserDrawerProps {
 
 const UserDrawer: React.FC<UserDrawerProps> = ({ children }) => {
   const { user, logoutMutation } = useAuth();
-  const [activeTab, setActiveTab] = useState("profile");
-  const { toast } = useToast();
-  const [, setLocation] = useLocation();
+  const [activeTab, setActiveTab] = useState<string>("profile");
 
-  const handleLogout = async () => {
-    try {
-      await logoutMutation.mutateAsync();
-      toast({
-        title: "Logged out successfully",
-        description: "You have been logged out of your account"
-      });
-      setLocation('/auth');
-    } catch (error) {
-      toast({
-        title: "Logout failed",
-        description: "There was a problem logging out",
-        variant: "destructive"
-      });
-    }
+  if (!user) {
+    return <>{children}</>;
+  }
+
+  const handleLogout = () => {
+    logoutMutation.mutate();
   };
 
-  if (!user) return null;
-
-  const getInitials = (name: string) => {
-    return name.split(' ')
-      .map(part => part[0])
-      .join('')
-      .toUpperCase();
+  const renderTabContent = () => {
+    switch (activeTab) {
+      case "profile":
+        return <ProfileContent user={user} />;
+      case "earnings":
+        return <EarningsContent userId={user.id} />;
+      case "reviews":
+        return <ReviewsContent userId={user.id} />;
+      case "settings":
+        return <SettingsContent user={user} />;
+      default:
+        return <ProfileContent user={user} />;
+    }
   };
 
   return (
@@ -95,113 +63,102 @@ const UserDrawer: React.FC<UserDrawerProps> = ({ children }) => {
           </Button>
         )}
       </SheetTrigger>
-      <SheetContent className="w-full sm:max-w-md p-0 overflow-y-auto">
-        <SheetHeader className="pt-6 px-6 border-b pb-4">
-          <div className="flex items-center space-x-4">
-            <Avatar className="h-12 w-12">
-              <AvatarImage src={user.avatarUrl || ''} alt={user.fullName} />
-              <AvatarFallback className="bg-primary text-white">
-                {getInitials(user.fullName)}
-              </AvatarFallback>
-            </Avatar>
-            <div className="space-y-1">
-              <SheetTitle className="text-left text-lg font-medium">{user.fullName}</SheetTitle>
-              <p className="text-sm text-muted-foreground">{user.email}</p>
-              <div className="flex items-center">
-                <span className="inline-flex items-center rounded-full bg-blue-50 px-2 py-1 text-xs font-medium text-blue-700 mr-2">
-                  {user.accountType}
-                </span>
-                {user.rating && user.rating > 0 && (
-                  <span className="inline-flex items-center text-amber-500 font-medium text-sm">
-                    <StarIcon className="w-4 h-4 mr-1 fill-amber-500" />
+      <SheetContent side="left" className="p-0 overflow-hidden">
+        <SheetHeader className="p-4 border-b">
+          <SheetTitle className="flex items-center">
+            <div className="w-10 h-10 bg-primary/10 text-primary rounded-full flex items-center justify-center mr-3">
+              <User className="h-5 w-5" />
+            </div>
+            <div>
+              <div className="font-bold text-lg">{user.fullName}</div>
+              <div className="text-sm text-muted-foreground flex items-center">
+                <span className="capitalize">{user.accountType}</span>
+                {user.rating > 0 && (
+                  <span className="flex items-center ml-2">
+                    •
+                    <StarIcon className="h-3 w-3 text-yellow-500 ml-2 mr-1 inline" />
                     {user.rating.toFixed(1)}
                   </span>
                 )}
               </div>
             </div>
-          </div>
+          </SheetTitle>
+          <SheetDescription>
+            Your account dashboard
+          </SheetDescription>
         </SheetHeader>
         
         <div className="flex h-[calc(100vh-120px)]">
-          <Tabs value={activeTab} orientation="vertical" className="flex w-full">
-            <div className="w-20 border-r bg-muted/30 py-4">
-              <TabsList className="flex flex-col items-center space-y-4 bg-transparent h-auto">
-                <TabsTrigger 
-                  value="profile" 
-                  onClick={() => setActiveTab("profile")}
-                  className={cn(
-                    "flex flex-col items-center justify-center w-16 h-16 rounded-lg",
-                    activeTab === "profile" 
-                      ? "bg-primary/10 text-primary" 
-                      : "hover:bg-primary/5 data-[state=active]:bg-primary/10 data-[state=active]:text-primary"
-                  )}
-                >
-                  <User className="h-5 w-5 mb-1" />
-                  <span className="text-xs">Profile</span>
-                </TabsTrigger>
-                
-                {user.accountType === 'worker' && (
-                  <TabsTrigger 
-                    value="earnings" 
-                    onClick={() => setActiveTab("earnings")}
-                    className={cn(
-                      "flex flex-col items-center justify-center w-16 h-16 rounded-lg",
-                      activeTab === "earnings" 
-                        ? "bg-primary/10 text-primary" 
-                        : "hover:bg-primary/5 data-[state=active]:bg-primary/10 data-[state=active]:text-primary"
-                    )}
-                  >
-                    <BarChart2 className="h-5 w-5 mb-1" />
-                    <span className="text-xs">Earnings</span>
-                  </TabsTrigger>
+          <div className="w-20 border-r bg-muted/30 py-4">
+            <div className="flex flex-col items-center space-y-4">
+              <button 
+                onClick={() => setActiveTab("profile")}
+                className={cn(
+                  "flex flex-col items-center justify-center w-16 h-16 rounded-lg",
+                  activeTab === "profile" 
+                    ? "bg-primary/10 text-primary" 
+                    : "hover:bg-primary/5 text-gray-600"
                 )}
-                
-                <TabsTrigger 
-                  value="reviews" 
-                  onClick={() => setActiveTab("reviews")}
+              >
+                <User className="h-5 w-5 mb-1" />
+                <span className="text-xs">Profile</span>
+              </button>
+              
+              {user.accountType === 'worker' && (
+                <button 
+                  onClick={() => setActiveTab("earnings")}
                   className={cn(
                     "flex flex-col items-center justify-center w-16 h-16 rounded-lg",
-                    activeTab === "reviews" 
+                    activeTab === "earnings" 
                       ? "bg-primary/10 text-primary" 
-                      : "hover:bg-primary/5 data-[state=active]:bg-primary/10 data-[state=active]:text-primary"
+                      : "hover:bg-primary/5 text-gray-600"
                   )}
                 >
-                  <StarIcon className="h-5 w-5 mb-1" />
-                  <span className="text-xs">Reviews</span>
-                </TabsTrigger>
-                
-                <TabsTrigger 
-                  value="settings" 
-                  onClick={() => setActiveTab("settings")}
-                  className={cn(
-                    "flex flex-col items-center justify-center w-16 h-16 rounded-lg",
-                    activeTab === "settings" 
-                      ? "bg-primary/10 text-primary" 
-                      : "hover:bg-primary/5 data-[state=active]:bg-primary/10 data-[state=active]:text-primary"
-                  )}
-                >
-                  <Settings className="h-5 w-5 mb-1" />
-                  <span className="text-xs">Settings</span>
-                </TabsTrigger>
-                
-                <Button 
-                  variant="ghost" 
-                  className="flex flex-col items-center justify-center w-16 h-16 rounded-lg hover:bg-red-100 hover:text-red-600"
-                  onClick={handleLogout}
-                >
-                  <LogOut className="h-5 w-5 mb-1" />
-                  <span className="text-xs">Logout</span>
-                </Button>
-              </TabsList>
+                  <BarChart2 className="h-5 w-5 mb-1" />
+                  <span className="text-xs">Earnings</span>
+                </button>
+              )}
+              
+              <button 
+                onClick={() => setActiveTab("reviews")}
+                className={cn(
+                  "flex flex-col items-center justify-center w-16 h-16 rounded-lg",
+                  activeTab === "reviews" 
+                    ? "bg-primary/10 text-primary" 
+                    : "hover:bg-primary/5 text-gray-600"
+                )}
+              >
+                <StarIcon className="h-5 w-5 mb-1" />
+                <span className="text-xs">Reviews</span>
+              </button>
+              
+              <button 
+                onClick={() => setActiveTab("settings")}
+                className={cn(
+                  "flex flex-col items-center justify-center w-16 h-16 rounded-lg",
+                  activeTab === "settings" 
+                    ? "bg-primary/10 text-primary" 
+                    : "hover:bg-primary/5 text-gray-600"
+                )}
+              >
+                <Settings className="h-5 w-5 mb-1" />
+                <span className="text-xs">Settings</span>
+              </button>
+              
+              <Button 
+                variant="ghost" 
+                className="flex flex-col items-center justify-center w-16 h-16 rounded-lg hover:bg-red-100 hover:text-red-600"
+                onClick={handleLogout}
+              >
+                <LogOut className="h-5 w-5 mb-1" />
+                <span className="text-xs">Logout</span>
+              </Button>
             </div>
-            
-            <div className="flex-1 p-4 overflow-y-auto">
-              <TabsContent value="profile"><ProfileContent user={user} /></TabsContent>
-              <TabsContent value="earnings"><EarningsContent userId={user.id} /></TabsContent>
-              <TabsContent value="reviews"><ReviewsContent userId={user.id} /></TabsContent>
-              <TabsContent value="settings"><SettingsContent user={user} /></TabsContent>
-            </div>
-          </Tabs>
+          </div>
+          
+          <div className="flex-1 p-4 overflow-y-auto">
+            {renderTabContent()}
+          </div>
         </div>
       </SheetContent>
     </Sheet>
