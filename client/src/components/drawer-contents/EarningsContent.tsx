@@ -6,7 +6,6 @@ import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Progress } from '@/components/ui/progress';
 import { Button } from '@/components/ui/button';
-import StripeConnectSetup from '@/components/stripe/StripeConnectSetup';
 import {
   BarChart,
   Bar,
@@ -80,29 +79,14 @@ const EarningsContent: React.FC<EarningsContentProps> = ({ userId }) => {
 
   if (!earnings || earnings.length === 0) {
     return (
-      <div className="space-y-6">
-        {/* Stripe Connect Setup Card - shown even with no earnings */}
-        <Card className="mb-6">
-          <CardHeader>
-            <CardTitle>Payment Account Setup</CardTitle>
-            <CardDescription>
-              Set up your Stripe Connect account to receive payments directly
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <StripeConnectSetup />
-          </CardContent>
-        </Card>
-        
-        <div className="flex flex-col items-center justify-center text-center p-8">
-          <div className="bg-primary/10 rounded-full p-4 mb-4">
-            <DollarSign className="h-8 w-8 text-primary" />
-          </div>
-          <h3 className="text-lg font-semibold mb-2">No earnings yet</h3>
-          <p className="text-muted-foreground text-sm">
-            Complete jobs to start tracking your earnings here
-          </p>
+      <div className="flex flex-col items-center justify-center h-full text-center p-8">
+        <div className="bg-primary/10 rounded-full p-4 mb-4">
+          <DollarSign className="h-8 w-8 text-primary" />
         </div>
+        <h3 className="text-lg font-semibold mb-2">No earnings yet</h3>
+        <p className="text-muted-foreground text-sm">
+          Complete jobs to start tracking your earnings here
+        </p>
       </div>
     );
   }
@@ -170,19 +154,6 @@ const EarningsContent: React.FC<EarningsContentProps> = ({ userId }) => {
 
   return (
     <div className="space-y-6">
-      {/* Stripe Connect Setup Card */}
-      <Card className="mb-6">
-        <CardHeader>
-          <CardTitle>Payment Account Setup</CardTitle>
-          <CardDescription>
-            Set up your Stripe Connect account to receive payments directly
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <StripeConnectSetup />
-        </CardContent>
-      </Card>
-
       <div className="flex items-center justify-between">
         <h2 className="text-xl font-semibold">Earnings Dashboard</h2>
         <Tabs defaultValue="all" className="w-auto">

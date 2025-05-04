@@ -11,7 +11,6 @@ import { Badge } from '@/components/ui/badge';
 import { Loader2, Download, FileText, CreditCard, Calendar, ReceiptIcon, Filter, Search, ArrowRight, DollarSign, Clock, ArrowLeft, ChevronLeft } from 'lucide-react';
 import { Payment, Earning, Job } from '@shared/schema';
 import DownloadReceipt from '@/components/DownloadReceipt';
-import StripeConnectSetup from '@/components/stripe/StripeConnectSetup';
 import { Input } from '@/components/ui/input';
 import { 
   Select, 
@@ -39,9 +38,6 @@ const TransactionHistory: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [dateSort, setDateSort] = useState<'asc' | 'desc'>('desc');
-  
-  // Debug log - remove after testing
-  console.log("User details:", user);
 
   // Fetch payments made by the user as a job poster
   const { data: payments, isLoading: paymentsLoading } = useQuery({
@@ -268,19 +264,6 @@ const TransactionHistory: React.FC = () => {
 
         {/* Earnings Tab */}
         <TabsContent value="earnings">
-          {/* Stripe Connect Setup Card */}
-          <Card className="mb-6">
-            <CardHeader>
-              <CardTitle>Payment Account Setup</CardTitle>
-              <CardDescription>
-                Set up your Stripe Connect account to receive payments directly
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <StripeConnectSetup />
-            </CardContent>
-          </Card>
-          
           <Card>
             <CardHeader>
               <CardTitle>Earnings Received</CardTitle>
