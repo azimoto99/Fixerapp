@@ -352,6 +352,116 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Task endpoints
+  apiRouter.get("/tasks/job/:jobId", async (req: Request, res: Response) => {
+    try {
+      const jobId = parseInt(req.params.jobId);
+      const tasks = await storage.getTasksForJob(jobId);
+      res.json(tasks);
+    } catch (error) {
+      res.status(400).json({ message: (error as Error).message });
+    }
+  });
+
+  apiRouter.post("/tasks", isAuthenticated, async (req: Request, res: Response) => {
+    try {
+      const taskData = insertTaskSchema.parse(req.body);
+      
+      // Get the job to verify that the user is the job poster
+      const job = await storage.getJob(taskData.jobId);
+      if (!job) {
+        return res.status(404).json({ message: "Job not found" });
+      }
+      
+      // Only job posters can add tasks
+      if (job.posterId !== req.user.id) {
+        return res.status(403).json({ 
+          message: "Forbidden: Only job posters can add tasks" 
+        });
+      }
+      
+      const newTask = await storage.createTask(taskData);
+      res.status(201).json(newTask);
+    } catch (error) {
+      res.status(400).json({ message: (error as Error).message });
+    }
+  });
+
+  apiRouter.patch("/tasks/:id", isAuthenticated, async (req: Request, res: Response) => {
+    try {
+      const id = parseInt(req.params.id);
+      const task = await storage.getTask(id);
+      
+      if (!task) {
+        return res.status(404).json({ message: "Task not found" });
+      }
+      
+      // Get the related job
+      const job = await storage.getJob(task.jobId);
+      if (!job) {
+        return res.status(404).json({ message: "Job not found" });
+      }
+      
+      // Check if user is the job poster or worker
+      const isPoster = job.posterId === req.user.id;
+      const isWorker = job.workerId === req.user.id;
+      
+      if (!isPoster && !isWorker) {
+        return res.status(403).json({ 
+          message: "Forbidden: Only the job poster or worker can update tasks" 
+        });
+      }
+      
+      // Handle the update based on the user's role
+      if (isPoster) {
+        // Job posters can update any task details
+        const taskData = insertTaskSchema.partial().parse(req.body);
+        const updatedTask = await storage.updateTask(id, taskData);
+        return res.json(updatedTask);
+      } else {
+        // Workers can only mark tasks as complete
+        if (req.body.isCompleted === true) {
+          const completedTask = await storage.completeTask(id, req.user.id);
+          return res.json(completedTask);
+        } else {
+          return res.status(403).json({ 
+            message: "Forbidden: Workers can only mark tasks as complete" 
+          });
+        }
+      }
+    } catch (error) {
+      res.status(400).json({ message: (error as Error).message });
+    }
+  });
+
+  apiRouter.post("/tasks/reorder", isAuthenticated, async (req: Request, res: Response) => {
+    try {
+      const { jobId, taskIds } = req.body;
+      
+      if (!jobId || !Array.isArray(taskIds)) {
+        return res.status(400).json({ message: "Invalid request data" });
+      }
+      
+      // Get the job to verify that the user is the job poster
+      const job = await storage.getJob(jobId);
+      if (!job) {
+        return res.status(404).json({ message: "Job not found" });
+      }
+      
+      // Only job posters can reorder tasks
+      if (job.posterId !== req.user.id) {
+        return res.status(403).json({ 
+          message: "Forbidden: Only job posters can reorder tasks" 
+        });
+      }
+      
+      const reorderedTasks = await storage.reorderTasks(jobId, taskIds);
+      res.json(reorderedTasks);
+    } catch (error) {
+      res.status(400).json({ message: (error as Error).message });
+    }
+  });
+
   // Mount the API router under /api prefix
   app.use("/api", apiRouter);
 

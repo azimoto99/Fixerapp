@@ -6,6 +6,7 @@ import { useAuth } from '@/hooks/use-auth';
 import { useState } from 'react';
 import { apiRequest } from '@/lib/queryClient';
 import { useToast } from '@/hooks/use-toast';
+import TaskList from './TaskList';
 
 interface JobDetailProps {
   job: Job;
@@ -148,6 +149,15 @@ const JobDetail: React.FC<JobDetailProps> = ({ job, distance = 0.5, onClose }) =
             {equipmentProvided ? 'None (provided by poster)' : 'Worker must provide equipment'}
           </p>
         </div>
+      </div>
+      
+      {/* Task checklist */}
+      <div className="mt-6">
+        <TaskList 
+          jobId={job.id} 
+          isJobPoster={user?.id === job.posterId}
+          isWorker={user?.id === job.workerId}
+        />
       </div>
       
       <div className="mt-5 flex justify-end space-x-3">
