@@ -25,6 +25,7 @@ import {
 // Storage interface for all CRUD operations
 export interface IStorage {
   // User operations
+  getAllUsers(): Promise<User[]>;
   getUser(id: number): Promise<User | undefined>;
   getUserByUsername(username: string): Promise<User | undefined>;
   getUserByUsernameAndType(username: string, accountType: string): Promise<User | undefined>;
@@ -254,6 +255,10 @@ export class MemStorage implements IStorage {
   }
 
   // User operations
+  async getAllUsers(): Promise<User[]> {
+    return Array.from(this.users.values());
+  }
+  
   async getUser(id: number): Promise<User | undefined> {
     return this.users.get(id);
   }

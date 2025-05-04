@@ -47,6 +47,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // User endpoints
+  apiRouter.get("/users", async (_req: Request, res: Response) => {
+    try {
+      const users = await storage.getAllUsers();
+      
+      // Don't return passwords in response
+      const safeUsers = users.map(user => {
+        const { password, ...userData } = user;
+        return userData;
+      });
+      
+      res.json(safeUsers);
+    } catch (error) {
+      res.status(400).json({ message: (error as Error).message });
+    }
+  });
+
   apiRouter.get("/users/:id", async (req: Request, res: Response) => {
     try {
       const id = parseInt(req.params.id);
