@@ -14,12 +14,20 @@ export const users = pgTable("users", {
   avatarUrl: text("avatar_url"),
   accountType: text("account_type").notNull().default("worker"), // "worker", "poster", or "pending"
   skills: text("skills").array(), // Array of skill names for workers
+  skillsVerified: jsonb("skills_verified"), // JSON object mapping skill name to verification status
   rating: doublePrecision("rating"), // Average rating from completed jobs
+  completedJobs: integer("completed_jobs").default(0), // Count of completed jobs
+  successRate: doublePrecision("success_rate"), // Percentage of successfully completed jobs
+  responseTime: integer("response_time"), // Average response time in minutes
+  badgeIds: text("badge_ids").array(), // Array of badge/achievement IDs earned
   isActive: boolean("is_active").notNull().default(true),
   lastActive: timestamp("last_active").defaultNow(),
   // Social login fields
   googleId: text("google_id"), // Google OAuth ID
-  facebookId: text("facebook_id") // Facebook OAuth ID
+  facebookId: text("facebook_id"), // Facebook OAuth ID
+  // Payment processing fields
+  stripeCustomerId: text("stripe_customer_id"), // For easier payment processing
+  stripeConnectAccountId: text("stripe_connect_account_id"), // For payouts to workers
   // Note: The requiresProfileCompletion field doesn't exist in the DB yet
   // We'll handle this in code until we can properly migrate the database
 }, (table) => {
@@ -112,11 +120,38 @@ export const payments = pgTable("payments", {
   metadata: jsonb("metadata"), // Additional payment data
 });
 
+// Badges and achievements table
+export const badges = pgTable("badges", {
+  id: serial("id").primaryKey(),
+  name: text("name").notNull(),
+  description: text("description").notNull(),
+  iconUrl: text("icon_url").notNull(),
+  category: text("category").notNull(), // "skill", "milestone", "reputation", etc.
+  requirements: jsonb("requirements"), // Requirements to earn this badge
+  tier: integer("tier").default(1), // 1, 2, 3, etc. for bronze, silver, gold
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+// User badges junction table
+export const userBadges = pgTable("user_badges", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id").notNull(), // References users.id
+  badgeId: integer("badge_id").notNull(), // References badges.id
+  earnedAt: timestamp("earned_at").defaultNow(),
+  metadata: jsonb("metadata"), // Additional data about how the badge was earned
+});
+
 // Insert schemas
 export const insertUserSchema = createInsertSchema(users).omit({
   id: true,
   rating: true,
   lastActive: true,
+  completedJobs: true,
+  successRate: true,
+  responseTime: true,
+  badgeIds: true,
+  stripeCustomerId: true,
+  stripeConnectAccountId: true,
 });
 
 export const insertJobSchema = createInsertSchema(jobs).omit({
@@ -159,6 +194,16 @@ export const insertPaymentSchema = createInsertSchema(payments).omit({
   createdAt: true,
 });
 
+export const insertBadgeSchema = createInsertSchema(badges).omit({
+  id: true,
+  createdAt: true,
+});
+
+export const insertUserBadgeSchema = createInsertSchema(userBadges).omit({
+  id: true,
+  earnedAt: true,
+});
+
 // Types
 export type User = typeof users.$inferSelect & {
   requiresProfileCompletion?: boolean | null; // Adding this field to the type even though it's not in the DB yet
@@ -186,6 +231,12 @@ export type InsertEarning = z.infer<typeof insertEarningSchema>;
 
 export type Payment = typeof payments.$inferSelect;
 export type InsertPayment = z.infer<typeof insertPaymentSchema>;
+
+export type Badge = typeof badges.$inferSelect;
+export type InsertBadge = z.infer<typeof insertBadgeSchema>;
+
+export type UserBadge = typeof userBadges.$inferSelect;
+export type InsertUserBadge = z.infer<typeof insertUserBadgeSchema>;
 
 // Categories enum for job types
 export const JOB_CATEGORIES = [
@@ -221,4 +272,16 @@ export const SKILLS = [
   "Photography",
   "Design",
   "Writing"
+] as const;
+
+// Badge categories
+export const BADGE_CATEGORIES = [
+  "Skill Mastery",
+  "Milestone",
+  "Job Completion",
+  "Reputation",
+  "Customer Satisfaction",
+  "Speed",
+  "Reliability",
+  "Special Achievement"
 ] as const;
