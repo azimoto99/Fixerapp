@@ -3,7 +3,9 @@ import {
   jobs, 
   applications, 
   reviews,
-  tasks, 
+  tasks,
+  earnings,
+  payments,
   type User, 
   type InsertUser, 
   type Job,
@@ -13,7 +15,11 @@ import {
   type Review,
   type InsertReview,
   type Task,
-  type InsertTask
+  type InsertTask,
+  type Earning,
+  type InsertEarning,
+  type Payment,
+  type InsertPayment
 } from "@shared/schema";
 
 // Storage interface for all CRUD operations
@@ -65,6 +71,19 @@ export interface IStorage {
   updateTask(id: number, data: Partial<Task>): Promise<Task | undefined>;
   completeTask(id: number, completedBy: number): Promise<Task | undefined>;
   reorderTasks(jobId: number, taskIds: number[]): Promise<Task[]>;
+  
+  // Earnings operations
+  getEarning(id: number): Promise<Earning | undefined>;
+  getEarningsForWorker(workerId: number): Promise<Earning[]>;
+  getEarningsForJob(jobId: number): Promise<Earning[]>;
+  createEarning(earning: InsertEarning): Promise<Earning>;
+  updateEarningStatus(id: number, status: string, datePaid?: Date): Promise<Earning | undefined>;
+  
+  // Payment operations
+  getPayment(id: number): Promise<Payment | undefined>;
+  getPaymentsForUser(userId: number): Promise<Payment[]>;
+  createPayment(payment: InsertPayment): Promise<Payment>;
+  updatePaymentStatus(id: number, status: string, transactionId?: string): Promise<Payment | undefined>;
 }
 
 export class MemStorage implements IStorage {

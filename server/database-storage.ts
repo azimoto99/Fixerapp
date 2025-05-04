@@ -389,4 +389,100 @@ export class DatabaseStorage implements IStorage {
     // Return tasks sorted by position
     return updatedTasks.sort((a, b) => a.position - b.position);
   }
+
+  // Earnings operations
+  async getEarning(id: number): Promise<Earning | undefined> {
+    const [earning] = await db.select().from(earnings).where(eq(earnings.id, id));
+    return earning;
+  }
+
+  async getEarningsForWorker(workerId: number): Promise<Earning[]> {
+    return await db.select()
+      .from(earnings)
+      .where(eq(earnings.workerId, workerId))
+      .orderBy(desc(earnings.dateEarned));
+  }
+
+  async getEarningsForJob(jobId: number): Promise<Earning[]> {
+    return await db.select()
+      .from(earnings)
+      .where(eq(earnings.jobId, jobId))
+      .orderBy(desc(earnings.dateEarned));
+  }
+
+  async createEarning(earning: InsertEarning): Promise<Earning> {
+    // Default service fee if not provided
+    const serviceFee = earning.serviceFee ?? 2.5;
+    
+    // Calculate net amount (earnings - service fee)
+    const netAmount = earning.amount - serviceFee;
+    
+    // Create earning object with all required fields
+    const earningData = {
+      workerId: earning.workerId,
+      jobId: earning.jobId,
+      amount: earning.amount,
+      serviceFee: serviceFee,
+      netAmount: netAmount,
+      // Default values
+      status: 'pending',
+      dateEarned: new Date(),
+      datePaid: null,
+    };
+    
+    const [createdEarning] = await db.insert(earnings).values(earningData).returning();
+    return createdEarning;
+  }
+
+  async updateEarningStatus(id: number, status: string, datePaid?: Date): Promise<Earning | undefined> {
+    const updateData: Partial<Earning> = { status };
+    
+    if (status === 'paid' && datePaid) {
+      updateData.datePaid = datePaid;
+    }
+    
+    const [updatedEarning] = await db.update(earnings)
+      .set(updateData)
+      .where(eq(earnings.id, id))
+      .returning();
+    
+    return updatedEarning;
+  }
+
+  // Payment operations
+  async getPayment(id: number): Promise<Payment | undefined> {
+    const [payment] = await db.select().from(payments).where(eq(payments.id, id));
+    return payment;
+  }
+
+  async getPaymentsForUser(userId: number): Promise<Payment[]> {
+    return await db.select()
+      .from(payments)
+      .where(eq(payments.userId, userId))
+      .orderBy(desc(payments.createdAt));
+  }
+
+  async createPayment(payment: InsertPayment): Promise<Payment> {
+    const [createdPayment] = await db.insert(payments).values({
+      ...payment,
+      createdAt: new Date()
+    }).returning();
+    
+    return createdPayment;
+  }
+
+  async updatePaymentStatus(id: number, status: string, transactionId?: string): Promise<Payment | undefined> {
+    const updateData: Partial<Payment> = { status };
+    
+    if (transactionId) {
+      updateData.transactionId = transactionId;
+    }
+    
+    const [updatedPayment] = await db.update(payments)
+      .set(updateData)
+      .where(eq(payments.id, id))
+      .returning();
+    
+    return updatedPayment;
+  }
 }
