@@ -1,11 +1,5 @@
-import React from 'react';
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
+import React, { useState } from 'react';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import PaymentProcessor from './PaymentProcessor';
 
 interface PaymentModalProps {
@@ -14,7 +8,7 @@ interface PaymentModalProps {
   jobId: number;
   jobTitle: string;
   amount: number;
-  onPaymentComplete: () => void;
+  onPaymentComplete?: () => void;
 }
 
 const PaymentModal: React.FC<PaymentModalProps> = ({
@@ -23,20 +17,26 @@ const PaymentModal: React.FC<PaymentModalProps> = ({
   jobId,
   jobTitle,
   amount,
-  onPaymentComplete,
+  onPaymentComplete
 }) => {
   const handlePaymentComplete = () => {
-    onPaymentComplete();
+    if (onPaymentComplete) {
+      onPaymentComplete();
+    }
+    onClose();
+  };
+
+  const handleCancel = () => {
     onClose();
   };
 
   return (
-    <Dialog open={isOpen} onOpenChange={onClose}>
+    <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
-          <DialogTitle>Payment for Job</DialogTitle>
+          <DialogTitle>Process Payment</DialogTitle>
           <DialogDescription>
-            {jobTitle} - ${amount.toFixed(2)}
+            Complete the payment for job: {jobTitle}
           </DialogDescription>
         </DialogHeader>
         <div className="py-4">
@@ -44,7 +44,7 @@ const PaymentModal: React.FC<PaymentModalProps> = ({
             jobId={jobId}
             amount={amount}
             onPaymentComplete={handlePaymentComplete}
-            onCancel={onClose}
+            onCancel={handleCancel}
           />
         </div>
       </DialogContent>

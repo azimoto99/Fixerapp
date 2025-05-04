@@ -10,6 +10,7 @@ import TaskList from './TaskList';
 import ReviewForm from './ReviewForm';
 import ReviewsList from './ReviewsList';
 import PaymentNotification from './PaymentNotification';
+import JobPayment from './JobPayment';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { Loader2, CheckCircle2, MessageCircle, Star } from 'lucide-react';
 import { useMutation, useQuery } from '@tanstack/react-query';
@@ -313,6 +314,23 @@ const JobDetail: React.FC<JobDetailProps> = ({ job, distance = 0.5, onClose }) =
                       </AlertDialogFooter>
                     </AlertDialogContent>
                   </AlertDialog>
+                </div>
+              )}
+              
+              {/* Payment section for job poster */}
+              {isJobPoster && isJobInProgress && (
+                <div className="mb-4">
+                  <JobPayment 
+                    job={job}
+                    onPaymentComplete={() => {
+                      // Refresh job data
+                      queryClient.invalidateQueries({ queryKey: [`/api/jobs/${jobId}`] });
+                      queryClient.invalidateQueries({ queryKey: ['/api/jobs'] });
+                      
+                      // Show the review form when payment is complete
+                      setShowReviewForm(true);
+                    }}
+                  />
                 </div>
               )}
               

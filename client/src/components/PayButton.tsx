@@ -18,24 +18,27 @@ const PayButton: React.FC<PayButtonProps> = ({
   amount,
   disabled = false,
   variant = 'default',
-  onPaymentComplete = () => {},
+  onPaymentComplete
 }) => {
   const [isPaymentModalOpen, setIsPaymentModalOpen] = useState(false);
 
-  const handlePayButtonClick = () => {
-    setIsPaymentModalOpen(true);
+  const handlePaymentComplete = () => {
+    setIsPaymentModalOpen(false);
+    if (onPaymentComplete) {
+      onPaymentComplete();
+    }
   };
 
   return (
     <>
       <Button
         variant={variant}
-        onClick={handlePayButtonClick}
         disabled={disabled}
+        onClick={() => setIsPaymentModalOpen(true)}
         className="flex items-center"
       >
         <CreditCard className="mr-2 h-4 w-4" />
-        Pay ${amount.toFixed(2)}
+        Process Payment
       </Button>
 
       <PaymentModal
@@ -44,7 +47,7 @@ const PayButton: React.FC<PayButtonProps> = ({
         jobId={jobId}
         jobTitle={jobTitle}
         amount={amount}
-        onPaymentComplete={onPaymentComplete}
+        onPaymentComplete={handlePaymentComplete}
       />
     </>
   );
