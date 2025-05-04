@@ -121,7 +121,6 @@ async function seedDatabase() {
 
 // Only run seed in development environment
 if (process.env.NODE_ENV === 'development') {
-  // Don't seed automatically anymore
-  console.log('Seed data disabled for production readiness');
-  // To manually seed, uncomment and run: seedDatabase().catch(console.error);
+  // Temporarily enable seeding for testing purposes
+  seedDatabase().catch(console.error);
 }
