@@ -82,6 +82,7 @@ export interface IStorage {
   
   // Payment operations
   getPayment(id: number): Promise<Payment | undefined>;
+  getPaymentByTransactionId(transactionId: string): Promise<Payment | undefined>;
   getPaymentsForUser(userId: number): Promise<Payment[]>;
   createPayment(payment: InsertPayment): Promise<Payment>;
   updatePaymentStatus(id: number, status: string, transactionId?: string): Promise<Payment | undefined>;
@@ -624,23 +625,33 @@ export class MemStorage implements IStorage {
   async getPayment(id: number): Promise<Payment | undefined> {
     return this.payments.get(id);
   }
+  
+  async getPaymentByTransactionId(transactionId: string): Promise<Payment | undefined> {
+    return Array.from(this.payments.values())
+      .find(payment => payment.transactionId === transactionId);
+  }
 
   async getPaymentsForUser(userId: number): Promise<Payment[]> {
     return Array.from(this.payments.values())
       .filter(payment => payment.userId === userId)
-      .sort((a, b) => new Date(b.dateInitiated).getTime() - new Date(a.dateInitiated).getTime());
+      .sort((a, b) => {
+        // Use createdAt instead of dateInitiated
+        const dateA = b.createdAt ? new Date(b.createdAt).getTime() : 0;
+        const dateB = a.createdAt ? new Date(a.createdAt).getTime() : 0;
+        return dateA - dateB;
+      });
   }
 
   async createPayment(payment: InsertPayment): Promise<Payment> {
     const id = this.paymentIdCounter++;
-    const dateInitiated = new Date();
+    const createdAt = new Date();
     const status = "pending";
     const transactionId = null;
     
     const newPayment: Payment = {
       ...payment,
       id,
-      dateInitiated,
+      createdAt,
       status,
       transactionId
     };
