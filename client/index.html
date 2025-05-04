@@ -11,5 +11,23 @@
     <script type="module" src="/src/main.tsx"></script>
     <!-- This is a replit script which adds a banner on the top of the page when opened in development mode outside the replit environment -->
     <script type="text/javascript" src="https://replit.com/public/js/replit-dev-banner.js"></script>
+    <style>
+      /* Override for Replit dev banner */
+      .replit-dev-banner {
+        background-color: hsl(0 0% 7%) !important;
+        color: hsl(0 0% 95%) !important;
+        border-top: 1px solid hsl(0 0% 20%) !important;
+      }
+      
+      .replit-dev-banner a {
+        color: hsl(161 84% 34%) !important;
+      }
+      
+      .replit-dev-banner button {
+        background-color: hsl(161 84% 34%) !important;
+        color: hsl(0 0% 95%) !important;
+        border: none !important;
+      }
+    </style>
   </body>
 </html>
