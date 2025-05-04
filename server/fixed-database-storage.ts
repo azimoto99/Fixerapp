@@ -63,12 +63,8 @@ export class DatabaseStorage implements IStorage {
   
   // USER OPERATIONS
   async getAllUsers(): Promise<User[]> {
+    // Skip Drizzle ORM and use a raw query to avoid issues with missing columns
     try {
-      const allUsers = await db.select().from(users);
-      return allUsers.map(user => this.addProfileCompletionFlag(user));
-    } catch (error) {
-      console.error("Error getting all users:", error);
-      // Fallback to basic query to get minimal user data
       const query = `SELECT id, username, password, full_name, email, 
                     phone, bio, avatar_url, account_type, 
                     google_id, facebook_id FROM users`;
@@ -91,17 +87,15 @@ export class DatabaseStorage implements IStorage {
         lastActive: new Date(),
         isActive: true
       }));
+    } catch (error) {
+      console.error("Error getting all users:", error);
+      return []; // Return empty array on error
     }
   }
 
   async getUser(id: number): Promise<User | undefined> {
+    // Skip ORM query and use a raw query directly to avoid column errors
     try {
-      const [user] = await db.select().from(users).where(eq(users.id, id));
-      if (!user) return undefined;
-      return this.addProfileCompletionFlag(user);
-    } catch (error) {
-      console.error("Error getting user by ID:", error);
-      // Fallback to basic query to get minimal user data
       const query = `SELECT id, username, password, full_name, email, 
                     phone, bio, avatar_url, account_type, 
                     google_id, facebook_id FROM users WHERE id = ${id}`;
@@ -127,17 +121,15 @@ export class DatabaseStorage implements IStorage {
         lastActive: new Date(),
         isActive: true
       });
+    } catch (error) {
+      console.error("Error getting user by ID:", error);
+      return undefined;
     }
   }
 
   async getUserByUsername(username: string): Promise<User | undefined> {
+    // Skip ORM and use a raw query directly to avoid column errors
     try {
-      const [user] = await db.select().from(users).where(eq(users.username, username));
-      if (!user) return undefined;
-      return this.addProfileCompletionFlag(user);
-    } catch (error) {
-      console.error("Error getting user by username:", error);
-      // Fallback to basic query to get minimal user data
       const query = `SELECT id, username, password, full_name, email, 
                     phone, bio, avatar_url, account_type, 
                     google_id, facebook_id FROM users WHERE username = '${username}'`;
@@ -163,22 +155,15 @@ export class DatabaseStorage implements IStorage {
         lastActive: new Date(),
         isActive: true
       });
+    } catch (error) {
+      console.error("Error getting user by username:", error);
+      return undefined;
     }
   }
   
   async getUserByUsernameAndType(username: string, accountType: string): Promise<User | undefined> {
+    // Skip ORM and use a raw query directly to avoid column errors
     try {
-      const [user] = await db.select().from(users).where(
-        and(
-          eq(users.username, username),
-          eq(users.accountType, accountType)
-        )
-      );
-      if (!user) return undefined;
-      return this.addProfileCompletionFlag(user);
-    } catch (error) {
-      console.error("Error getting user by username and type:", error);
-      // Fallback to basic query to get minimal user data
       const query = `SELECT id, username, password, full_name, email, 
                     phone, bio, avatar_url, account_type, 
                     google_id, facebook_id FROM users 
@@ -205,6 +190,9 @@ export class DatabaseStorage implements IStorage {
         lastActive: new Date(),
         isActive: true
       });
+    } catch (error) {
+      console.error("Error getting user by username and type:", error);
+      return undefined;
     }
   }
 
