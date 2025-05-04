@@ -8,9 +8,9 @@ import {
   Elements, 
   PaymentElement, 
   useStripe, 
-  useElements,
-  StripeElementsOptions
+  useElements
 } from '@stripe/react-stripe-js';
+import { StripeElementsOptions } from '@stripe/stripe-js';
 import { loadStripe } from '@stripe/stripe-js';
 
 // Initialize Stripe
