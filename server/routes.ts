@@ -7,6 +7,7 @@ import {
   insertJobSchema, 
   insertApplicationSchema, 
   insertReviewSchema,
+  insertTaskSchema,
   JOB_CATEGORIES,
   SKILLS
 } from "@shared/schema";

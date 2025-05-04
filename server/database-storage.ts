@@ -1,12 +1,13 @@
-import { eq, and, like, desc, or } from 'drizzle-orm';
+import { eq, and, like, desc, or, asc } from 'drizzle-orm';
 import { db } from './db';
 import { IStorage } from './storage';
 import {
-  users, jobs, applications, reviews,
+  users, jobs, applications, reviews, tasks,
   User, InsertUser,
   Job, InsertJob,
   Application, InsertApplication,
-  Review, InsertReview
+  Review, InsertReview,
+  Task, InsertTask
 } from '@shared/schema';
 import connectPg from "connect-pg-simple";
 import session from "express-session";
@@ -291,5 +292,99 @@ export class DatabaseStorage implements IStorage {
     
     const [createdReview] = await db.insert(reviews).values(reviewData).returning();
     return createdReview;
+  }
+
+  // Task operations
+  async getTask(id: number): Promise<Task | undefined> {
+    const [task] = await db.select().from(tasks).where(eq(tasks.id, id));
+    return task;
+  }
+
+  async getTasksForJob(jobId: number): Promise<Task[]> {
+    return await db.select()
+      .from(tasks)
+      .where(eq(tasks.jobId, jobId))
+      .orderBy(asc(tasks.position));
+  }
+
+  async createTask(task: InsertTask): Promise<Task> {
+    // First, count existing tasks for this job to determine position
+    const existingTasks = await this.getTasksForJob(task.jobId);
+    const position = existingTasks.length;
+    
+    // Create a task object with all required fields
+    const taskData = {
+      jobId: task.jobId,
+      description: task.description,
+      position,
+      // Additional fields with default values
+      isCompleted: false,
+      completedAt: null,
+      completedBy: null
+    };
+    
+    const [createdTask] = await db.insert(tasks).values(taskData).returning();
+    return createdTask;
+  }
+
+  async updateTask(id: number, data: Partial<Task>): Promise<Task | undefined> {
+    const updateData: Partial<Task> = {};
+    
+    // Copy over fields from data that we want to update
+    if (data.description !== undefined) updateData.description = data.description;
+    if (data.position !== undefined) updateData.position = data.position;
+    if (data.isCompleted !== undefined) updateData.isCompleted = data.isCompleted;
+    
+    const [updatedTask] = await db.update(tasks)
+      .set(updateData)
+      .where(eq(tasks.id, id))
+      .returning();
+    
+    return updatedTask;
+  }
+
+  async completeTask(id: number, completedBy: number): Promise<Task | undefined> {
+    const [task] = await db.select().from(tasks).where(eq(tasks.id, id));
+    if (!task) return undefined;
+    
+    const updateData = {
+      isCompleted: true,
+      completedAt: new Date(),
+      completedBy
+    };
+    
+    const [updatedTask] = await db.update(tasks)
+      .set(updateData)
+      .where(eq(tasks.id, id))
+      .returning();
+    
+    return updatedTask;
+  }
+
+  async reorderTasks(jobId: number, taskIds: number[]): Promise<Task[]> {
+    // Get all tasks for the job
+    const jobTasks = await this.getTasksForJob(jobId);
+    
+    // Make sure all tasks exist and belong to this job
+    const allTasksExist = taskIds.every(id => jobTasks.some(task => task.id === id));
+    if (!allTasksExist) {
+      throw new Error('Some tasks do not exist or do not belong to this job');
+    }
+    
+    // Update positions for each task
+    const updatedTasks: Task[] = [];
+    
+    for (let i = 0; i < taskIds.length; i++) {
+      const taskId = taskIds[i];
+      const [updatedTask] = await db.update(tasks)
+        .set({ position: i })
+        .where(and(eq(tasks.id, taskId), eq(tasks.jobId, jobId)))
+        .returning();
+      
+      updatedTasks.push(updatedTask);
+    }
+    
+    // Return tasks sorted by position
+    return updatedTasks.sort((a, b) => a.position - b.position);
   }
 }
