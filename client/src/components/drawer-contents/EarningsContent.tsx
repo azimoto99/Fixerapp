@@ -89,14 +89,14 @@ const EarningsContent: React.FC<EarningsContentProps> = ({ userId }) => {
       startDate.setFullYear(now.getFullYear() - 1);
     }
     
-    return earnings.filter(e => new Date(e.createdAt) >= startDate);
+    return earnings.filter(e => new Date(e.dateEarned) >= startDate);
   };
 
   const filteredEarnings = getFilteredEarnings();
   
   // Prepare data for the bar chart
   const chartData = filteredEarnings.map(earning => ({
-    date: formatDate(earning.createdAt),
+    date: formatDate(earning.dateEarned),
     amount: earning.amount,
     jobTitle: jobs?.find(j => j.id === earning.jobId)?.title || 'Job',
   }));
@@ -296,7 +296,7 @@ const EarningsContent: React.FC<EarningsContentProps> = ({ userId }) => {
                   <div>
                     <p className="font-medium">{job?.title || 'Job'}</p>
                     <p className="text-sm text-muted-foreground">
-                      {new Date(earning.createdAt).toLocaleDateString()}
+                      {new Date(earning.dateEarned).toLocaleDateString()}
                     </p>
                   </div>
                   <div className="flex items-center">
