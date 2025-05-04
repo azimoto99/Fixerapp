@@ -749,11 +749,49 @@ export async function registerRoutes(app: Express): Promise<Server> {
         });
       }
       
+      // Check if there's an existing pending payment for this job
+      const existingPayments = await storage.getPaymentsForUser(req.user.id);
+      const existingPayment = existingPayments.find(p => 
+        p.jobId === job.id && 
+        (p.status === 'pending' || p.status === 'processing')
+      );
+      
+      // If there's an existing pending payment, check if we can reuse the payment intent
+      if (existingPayment && existingPayment.transactionId) {
+        try {
+          // Attempt to retrieve the payment intent
+          const existingIntent = await stripe.paymentIntents.retrieve(existingPayment.transactionId);
+          
+          // Only reuse if it's in a usable state
+          if (existingIntent && 
+              (existingIntent.status === 'requires_payment_method' || 
+               existingIntent.status === 'requires_confirmation' ||
+               existingIntent.status === 'requires_action')) {
+            
+            return res.json({ 
+              clientSecret: existingIntent.client_secret,
+              paymentId: existingPayment.id,
+              existing: true 
+            });
+          }
+        } catch (err) {
+          // If we can't retrieve the intent, create a new one
+          console.log("Error retrieving existing payment intent, creating new one:", err);
+        }
+      }
+      
       // Calculate the total amount including the service fee
       // Amount must be in cents for Stripe
       const amountInCents = Math.round(job.totalAmount * 100);
       
-      // Create a payment intent with Stripe
+      // Get worker info for metadata if available
+      let workerName = 'N/A';
+      if (job.workerId) {
+        const worker = await storage.getUser(job.workerId);
+        if (worker) workerName = worker.fullName;
+      }
+      
+      // Create a payment intent with enhanced metadata
       const paymentIntent = await stripe.paymentIntents.create({
         amount: amountInCents,
         currency: "usd",
@@ -761,31 +799,49 @@ export async function registerRoutes(app: Express): Promise<Server> {
           jobId: job.id.toString(),
           posterId: job.posterId.toString(),
           workerId: job.workerId ? job.workerId.toString() : null,
-          jobTitle: job.title
-        }
+          jobTitle: job.title,
+          workerName: workerName,
+          paymentAmount: job.paymentAmount.toString(),
+          serviceFee: job.serviceFee.toString(),
+          platform: "The Job"
+        },
+        // Add receipt email if available
+        receipt_email: req.user.email,
+        description: `Payment for job: ${job.title}`
       });
       
-      // Create a pending payment record in our database
-      const payment = await storage.createPayment({
-        type: "job_payment",
-        status: "pending",
-        description: `Payment for job: ${job.title}`,
-        jobId: job.id,
-        amount: job.totalAmount,
-        userId: req.user.id,
-        paymentMethod: "stripe",
-        transactionId: paymentIntent.id,
-        metadata: {
-          clientSecret: paymentIntent.client_secret
-        }
-      });
+      // Create a pending payment record or update existing one
+      let payment;
+      if (existingPayment) {
+        payment = await storage.updatePaymentStatus(
+          existingPayment.id, 
+          'pending', 
+          paymentIntent.id
+        );
+      } else {
+        payment = await storage.createPayment({
+          type: "job_payment",
+          status: "pending",
+          description: `Payment for job: ${job.title}`,
+          jobId: job.id,
+          amount: job.totalAmount,
+          userId: req.user.id,
+          paymentMethod: "stripe",
+          transactionId: paymentIntent.id,
+          metadata: {
+            clientSecret: paymentIntent.client_secret
+          }
+        });
+      }
       
       // Return the client secret to the frontend
       res.json({ 
         clientSecret: paymentIntent.client_secret,
-        paymentId: payment.id
+        paymentId: payment.id,
+        existing: false
       });
     } catch (error) {
+      console.error("Error creating payment intent:", error);
       res.status(400).json({ message: (error as Error).message });
     }
   });
@@ -859,47 +915,157 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post("/webhook/stripe", express.raw({type: 'application/json'}), async (req: Request, res: Response) => {
     const sig = req.headers['stripe-signature'];
     
-    // Webhook signing is recommended, but optional
-    // This would require setting up a webhook endpoint in the Stripe dashboard
-    // and getting the webhook signing secret
-    // For now, we'll just log the event type
     try {
-      // Parse the event
-      const event = stripe.webhooks.constructEvent(
-        req.body, 
-        sig as string, 
-        process.env.STRIPE_WEBHOOK_SECRET || 'whsec_test'
-      );
-      
-      // Handle the event
-      switch (event.type) {
-        case 'payment_intent.succeeded':
-          const paymentIntent = event.data.object;
-          const jobId = paymentIntent.metadata?.jobId;
-          
-          if (jobId) {
-            // Find the related payment in our database
-            // This would require an additional storage method to find by transactionId
-            // For now, we'll just log the success
-            console.log(`PaymentIntent ${paymentIntent.id} succeeded for job ${jobId}`);
-          }
-          break;
-          
-        case 'payment_intent.payment_failed':
-          const failedPaymentIntent = event.data.object;
-          console.log(`PaymentIntent ${failedPaymentIntent.id} failed`);
-          break;
-          
-        default:
-          console.log(`Unhandled event type: ${event.type}`);
+      // Parse the event - with or without webhook secret
+      let event;
+      if (process.env.STRIPE_WEBHOOK_SECRET) {
+        // If we have a webhook secret, verify the signature
+        event = stripe.webhooks.constructEvent(
+          req.body, 
+          sig as string, 
+          process.env.STRIPE_WEBHOOK_SECRET
+        );
+      } else {
+        // Without webhook secret, just parse the event
+        event = JSON.parse(req.body.toString());
       }
       
+      // Handle different payment events
+      if (event.type === 'payment_intent.succeeded') {
+        await handleSuccessfulPayment(event.data.object);
+      } 
+      else if (event.type === 'payment_intent.payment_failed') {
+        await handleFailedPayment(event.data.object);
+      }
+      else if (event.type === 'payment_intent.canceled') {
+        await handleCanceledPayment(event.data.object);
+      }
+      
+      // Return success response
       res.json({received: true});
     } catch (error) {
       console.error('Webhook error:', error);
       res.status(400).send(`Webhook Error: ${(error as Error).message}`);
     }
   });
+  
+  // Helper function to handle successful payments
+  async function handleSuccessfulPayment(paymentIntent: Stripe.PaymentIntent) {
+    const { id: paymentIntentId, metadata } = paymentIntent;
+    
+    try {
+      // Find the payment in our database by transaction ID
+      const payment = await storage.getPaymentByTransactionId(paymentIntentId);
+      
+      if (payment) {
+        // Payment record exists, update its status
+        await storage.updatePaymentStatus(payment.id, 'completed', paymentIntentId);
+        console.log(`Payment ${payment.id} marked as completed via webhook`);
+        
+        // If this is a job payment, also create an earning record for the worker
+        if (payment.jobId) {
+          const job = await storage.getJob(payment.jobId);
+          if (job && job.workerId) {
+            // Check if we already have an earning record
+            const existingEarnings = await storage.getEarningsForJob(job.id);
+            const hasEarning = existingEarnings.some(e => e.workerId === job.workerId);
+            
+            if (!hasEarning) {
+              // Calculate the net amount (payment amount minus service fee)
+              const netAmount = job.paymentAmount - job.serviceFee;
+              
+              await storage.createEarning({
+                jobId: job.id,
+                workerId: job.workerId,
+                amount: job.paymentAmount,
+                serviceFee: job.serviceFee,
+                netAmount: netAmount
+              });
+              
+              console.log(`Earning created for worker ${job.workerId} for job ${job.id}`);
+            }
+          }
+        }
+      } else if (metadata && metadata.jobId) {
+        // Payment record doesn't exist yet, but we have job info
+        // This could happen if the client closed before the payment was confirmed
+        const jobId = parseInt(metadata.jobId);
+        const job = await storage.getJob(jobId);
+        
+        if (job) {
+          // Create a payment record
+          const createdPayment = await storage.createPayment({
+            type: "job_payment",
+            status: "completed",
+            description: `Payment for job: ${job.title}`,
+            jobId: job.id,
+            amount: job.totalAmount,
+            userId: job.posterId,
+            paymentMethod: "stripe",
+            transactionId: paymentIntentId,
+            metadata: {
+              clientSecret: paymentIntent.client_secret
+            }
+          });
+          
+          console.log(`Created payment record ${createdPayment.id} from webhook`);
+          
+          // Create earning for worker if assigned
+          if (job.workerId) {
+            const netAmount = job.paymentAmount - job.serviceFee;
+            
+            await storage.createEarning({
+              jobId: job.id,
+              workerId: job.workerId,
+              amount: job.paymentAmount,
+              serviceFee: job.serviceFee,
+              netAmount: netAmount
+            });
+            
+            console.log(`Earning created for worker ${job.workerId} for job ${job.id}`);
+          }
+        }
+      }
+    } catch (error) {
+      console.error(`Error handling successful payment: ${(error as Error).message}`);
+    }
+  }
+  
+  // Helper function to handle failed payments
+  async function handleFailedPayment(paymentIntent: Stripe.PaymentIntent) {
+    const { id: paymentIntentId } = paymentIntent;
+    
+    try {
+      // Find the payment in our database
+      const payment = await storage.getPaymentByTransactionId(paymentIntentId);
+      
+      if (payment) {
+        // Update the payment status to failed
+        await storage.updatePaymentStatus(payment.id, 'failed', paymentIntentId);
+        console.log(`Payment ${payment.id} marked as failed via webhook`);
+      }
+    } catch (error) {
+      console.error(`Error handling failed payment: ${(error as Error).message}`);
+    }
+  }
+  
+  // Helper function to handle canceled payments
+  async function handleCanceledPayment(paymentIntent: Stripe.PaymentIntent) {
+    const { id: paymentIntentId } = paymentIntent;
+    
+    try {
+      // Find the payment in our database
+      const payment = await storage.getPaymentByTransactionId(paymentIntentId);
+      
+      if (payment) {
+        // Update the payment status to canceled
+        await storage.updatePaymentStatus(payment.id, 'canceled', paymentIntentId);
+        console.log(`Payment ${payment.id} marked as canceled via webhook`);
+      }
+    } catch (error) {
+      console.error(`Error handling canceled payment: ${(error as Error).message}`);
+    }
+  }
 
   // Mount the API router under /api prefix
   app.use("/api", apiRouter);

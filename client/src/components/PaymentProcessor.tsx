@@ -155,6 +155,15 @@ const PaymentProcessor: React.FC<PaymentProcessorProps> = ({
     onSuccess: (data) => {
       setClientSecret(data.clientSecret);
       setPaymentId(data.paymentId);
+      
+      // If this is an existing payment intent, show a message to the user
+      if (data.existing) {
+        toast({
+          title: "Resuming Previous Payment",
+          description: "We found an existing payment in progress. You can continue where you left off.",
+        });
+      }
+      
       setLoading(false);
     },
     onError: (error: Error) => {
