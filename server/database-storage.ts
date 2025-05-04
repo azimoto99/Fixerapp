@@ -29,7 +29,21 @@ export class DatabaseStorage implements IStorage {
   
   // User operations
   async getAllUsers(): Promise<User[]> {
-    return await db.select().from(users);
+    const allUsers = await db.select().from(users);
+    
+    // Add the requiresProfileCompletion property to each user
+    return allUsers.map(user => {
+      // Check if user has social login and either has 'pending' account type or missing profile fields
+      const hasSocialLogin = Boolean(user.googleId || user.facebookId);
+      const hasPendingAccountType = user.accountType === 'pending';
+      const hasMissingProfileFields = !user.bio || !user.phone;
+      const needsProfileCompletion = hasSocialLogin && (hasPendingAccountType || hasMissingProfileFields);
+      
+      return {
+        ...user,
+        requiresProfileCompletion: needsProfileCompletion
+      };
+    });
   }
 
   async getUser(id: number): Promise<User | undefined> {
@@ -40,9 +54,11 @@ export class DatabaseStorage implements IStorage {
     if (user) {
       // Add the requiresProfileCompletion property for social login users
       // who have pending account type or have just registered
-      const needsProfileCompletion = 
-        (user.googleId || user.facebookId) && 
-        (user.accountType === 'pending' || !user.bio || !user.phone);
+      // Check if user has social login and either has 'pending' account type or missing profile fields
+      const hasSocialLogin = Boolean(user.googleId || user.facebookId);
+      const hasPendingAccountType = user.accountType === 'pending';
+      const hasMissingProfileFields = !user.bio || !user.phone;
+      const needsProfileCompletion = hasSocialLogin && (hasPendingAccountType || hasMissingProfileFields);
       
       return {
         ...user,
@@ -55,6 +71,22 @@ export class DatabaseStorage implements IStorage {
 
   async getUserByUsername(username: string): Promise<User | undefined> {
     const [user] = await db.select().from(users).where(eq(users.username, username));
+    
+    // If user is found, add the requiresProfileCompletion property
+    if (user) {
+      // Same logic as in getUser
+      // Check if user has social login and either has 'pending' account type or missing profile fields
+      const hasSocialLogin = Boolean(user.googleId || user.facebookId);
+      const hasPendingAccountType = user.accountType === 'pending';
+      const hasMissingProfileFields = !user.bio || !user.phone;
+      const needsProfileCompletion = hasSocialLogin && (hasPendingAccountType || hasMissingProfileFields);
+      
+      return {
+        ...user,
+        requiresProfileCompletion: needsProfileCompletion
+      };
+    }
+    
     return user;
   }
   
@@ -65,6 +97,22 @@ export class DatabaseStorage implements IStorage {
         eq(users.accountType, accountType)
       )
     );
+    
+    // If user is found, add the requiresProfileCompletion property
+    if (user) {
+      // Same logic as in getUser
+      // Check if user has social login and either has 'pending' account type or missing profile fields
+      const hasSocialLogin = Boolean(user.googleId || user.facebookId);
+      const hasPendingAccountType = user.accountType === 'pending';
+      const hasMissingProfileFields = !user.bio || !user.phone;
+      const needsProfileCompletion = hasSocialLogin && (hasPendingAccountType || hasMissingProfileFields);
+      
+      return {
+        ...user,
+        requiresProfileCompletion: needsProfileCompletion
+      };
+    }
+    
     return user;
   }
 
