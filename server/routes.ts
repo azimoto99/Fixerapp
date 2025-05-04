@@ -46,6 +46,49 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Create API router
   const apiRouter = express.Router();
 
+  // Handle account type selection
+  apiRouter.post("/set-account-type", async (req: Request, res: Response) => {
+    const schema = z.object({
+      userId: z.number(),
+      accountType: z.enum(["worker", "poster"]),
+      provider: z.string()
+    });
+
+    try {
+      const { userId, accountType, provider } = schema.parse(req.body);
+      
+      // Get the user
+      const user = await storage.getUser(userId);
+      
+      if (!user) {
+        return res.status(404).json({ message: "User not found" });
+      }
+      
+      // Update the user with the selected account type
+      const updatedUser = await storage.updateUser(userId, { accountType });
+      
+      if (!updatedUser) {
+        return res.status(500).json({ message: "Failed to update user" });
+      }
+      
+      // If a user is not currently logged in, log them in
+      if (!req.isAuthenticated()) {
+        // Log the user in
+        req.login(updatedUser, (err) => {
+          if (err) {
+            return res.status(500).json({ message: "Failed to log in user" });
+          }
+          return res.status(200).json(updatedUser);
+        });
+      } else {
+        return res.status(200).json(updatedUser);
+      }
+    } catch (error) {
+      console.error("Error setting account type:", error);
+      return res.status(400).json({ message: "Invalid input data" });
+    }
+  });
+
   // Categories and skills endpoints
   apiRouter.get("/categories", (_req: Request, res: Response) => {
     res.json(JOB_CATEGORIES);

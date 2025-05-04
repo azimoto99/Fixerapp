@@ -12,7 +12,7 @@ export const users = pgTable("users", {
   phone: text("phone"),
   bio: text("bio"),
   avatarUrl: text("avatar_url"),
-  accountType: text("account_type").notNull().default("worker"), // "worker" or "poster"
+  accountType: text("account_type").notNull().default("worker"), // "worker", "poster", or "pending"
   skills: text("skills").array(), // Array of skill names for workers
   rating: doublePrecision("rating"), // Average rating from completed jobs
   isActive: boolean("is_active").notNull().default(true),
