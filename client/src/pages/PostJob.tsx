@@ -117,13 +117,13 @@ export default function PostJob() {
   }
 
   return (
-    <div className="min-h-screen flex flex-col bg-gray-50">
+    <div className="min-h-screen flex flex-col bg-background">
       <Header />
       
       <main className="flex-1">
         <div className="max-w-3xl mx-auto py-6 sm:px-6 lg:px-8">
-          <div className="bg-white shadow rounded-lg p-6">
-            <h1 className="text-2xl font-bold text-gray-900 mb-6">Post a New Job</h1>
+          <div className="bg-card shadow rounded-lg p-6">
+            <h1 className="text-2xl font-bold text-foreground mb-6">Post a New Job</h1>
             
             <Form {...form}>
               <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
@@ -248,8 +248,8 @@ export default function PostJob() {
                 </div>
 
                 {/* Service Fee Display */}
-                <div className="bg-gray-50 p-4 rounded-md border border-gray-200">
-                  <div className="flex justify-between text-sm mb-2">
+                <div className="bg-secondary p-4 rounded-md border border-border">
+                  <div className="flex justify-between text-sm mb-2 text-foreground">
                     <span>
                       {form.watch('paymentType') === 'hourly' 
                         ? 'Hourly Rate:' 
@@ -257,24 +257,24 @@ export default function PostJob() {
                     </span>
                     <span>${parseFloat(form.watch('paymentAmount') || 0).toFixed(2)}</span>
                   </div>
-                  <div className="flex justify-between text-sm mb-2">
+                  <div className="flex justify-between text-sm mb-2 text-foreground">
                     <span>Service Fee:</span>
                     <span>$2.50</span>
                   </div>
                   {form.watch('paymentType') === 'fixed' && (
-                    <div className="flex justify-between font-medium border-t border-gray-200 pt-2 mt-2">
+                    <div className="flex justify-between font-medium border-t border-border pt-2 mt-2 text-foreground">
                       <span>Total Amount:</span>
                       <span>${(parseFloat(form.watch('paymentAmount') || 0) + 2.50).toFixed(2)}</span>
                     </div>
                   )}
                   {form.watch('paymentType') === 'fixed' && (
-                    <div className="flex justify-between text-sm mt-2">
+                    <div className="flex justify-between text-sm mt-2 text-muted-foreground">
                       <span>Worker Receives:</span>
                       <span>${parseFloat(form.watch('paymentAmount') || 0).toFixed(2)}</span>
                     </div>
                   )}
                   {form.watch('paymentType') === 'hourly' && (
-                    <div className="flex justify-between text-sm mt-2">
+                    <div className="flex justify-between text-sm mt-2 text-muted-foreground">
                       <span>Note:</span>
                       <span className="text-right">For hourly jobs, the $2.50 service fee<br/>is added to the total upon completion</span>
                     </div>
