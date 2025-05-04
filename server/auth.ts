@@ -45,14 +45,13 @@ function generateRandomPassword() {
 
 // Function to find or create a user from social login
 async function findOrCreateUserFromSocial(
-  profile: any, 
-  accountType: 'worker' | 'poster'
+  profile: any
 ): Promise<SelectUser> {
   // Check if a user with this social profile ID already exists
-  // If so, return that user (assuming their account type matches)
+  // We'll handle all users regardless of account type
   const allUsers = Array.from((storage as any).users.values());
   const existingUser = allUsers.find(
-    u => (u.googleId === profile.id || u.facebookId === profile.id) && u.accountType === accountType
+    u => (u.googleId === profile.id || u.facebookId === profile.id)
   );
   
   if (existingUser) {
@@ -67,12 +66,13 @@ async function findOrCreateUserFromSocial(
     profile._json && profile._json.picture ? profile._json.picture : 
     null;
   
-  const username = `${accountType}_${profile.provider}_${profile.id}`;
+  // Create a username based on provider ID
+  const username = `${profile.provider}_${profile.id}`;
   
   // Generate a random password
   const password = await hashPassword(generateRandomPassword());
   
-  // Create user data object
+  // Create user data object - using "pending" account type that will need to be selected
   const userData: InsertUser = {
     username,
     password,
@@ -80,7 +80,7 @@ async function findOrCreateUserFromSocial(
     email,
     phone: null,
     bio: null,
-    accountType,
+    accountType: "pending", // User will need to select account type
     avatarUrl: photoUrl,
     skills: [],
     isActive: true,
@@ -164,16 +164,8 @@ export function setupAuth(app: Express) {
       passReqToCallback: true
     }, async (req, accessToken, refreshToken, profile, done) => {
       try {
-        // Get the account type from the session or query parameter
-        const accountType = req.query.accountType || req.session.accountType || 'worker';
-        
-        // Store the account type in the session
-        if (req.session) {
-          req.session.accountType = accountType;
-        }
-        
-        // Find or create the user
-        const user = await findOrCreateUserFromSocial(profile, accountType as 'worker' | 'poster');
+        // Find or create the user with "pending" account type
+        const user = await findOrCreateUserFromSocial(profile);
         
         return done(null, user);
       } catch (err) {
@@ -192,16 +184,8 @@ export function setupAuth(app: Express) {
       passReqToCallback: true
     }, async (req, accessToken, refreshToken, profile, done) => {
       try {
-        // Get the account type from the session or query parameter
-        const accountType = req.query.accountType || req.session.accountType || 'worker';
-        
-        // Store the account type in the session
-        if (req.session) {
-          req.session.accountType = accountType;
-        }
-        
-        // Find or create the user
-        const user = await findOrCreateUserFromSocial(profile, accountType as 'worker' | 'poster');
+        // Find or create the user with "pending" account type
+        const user = await findOrCreateUserFromSocial(profile);
         
         return done(null, user);
       } catch (err) {
@@ -377,13 +361,17 @@ export function setupAuth(app: Express) {
       session: true
     }),
     (req, res) => {
-      // Check if the account type was already set or not
-      if (!req.session.accountType) {
+      if (!req.user) {
+        return res.redirect('/login');
+      }
+      
+      // Always redirect to account selection for users with a "pending" account type
+      if (req.user.accountType === "pending") {
         // No account type set, redirect to selection page with user ID and provider
-        res.redirect(`/account-type-selection?id=${req.user.id}&provider=google`);
+        return res.redirect(`/account-type-selection?id=${req.user.id}&provider=google`);
       } else {
-        // Account type was already selected, redirect home
-        res.redirect('/');
+        // Account type already set, redirect home
+        return res.redirect('/');
       }
     }
   );
@@ -407,13 +395,17 @@ export function setupAuth(app: Express) {
       session: true
     }),
     (req, res) => {
-      // Check if the account type was already set or not
-      if (!req.session.accountType) {
+      if (!req.user) {
+        return res.redirect('/login');
+      }
+      
+      // Always redirect to account selection for users with a "pending" account type
+      if (req.user.accountType === "pending") {
         // No account type set, redirect to selection page with user ID and provider
-        res.redirect(`/account-type-selection?id=${req.user.id}&provider=facebook`);
+        return res.redirect(`/account-type-selection?id=${req.user.id}&provider=facebook`);
       } else {
-        // Account type was already selected, redirect home
-        res.redirect('/');
+        // Account type already set, redirect home
+        return res.redirect('/');
       }
     }
   );
