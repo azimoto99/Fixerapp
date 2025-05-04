@@ -248,7 +248,7 @@ export default function PostJob() {
                 </div>
 
                 {/* Service Fee Display */}
-                <div className="bg-secondary p-4 rounded-md border border-border">
+                <div className="bg-card p-4 rounded-md border border-border">
                   <div className="flex justify-between text-sm mb-2 text-foreground">
                     <span>
                       {form.watch('paymentType') === 'hourly' 

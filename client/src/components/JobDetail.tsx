@@ -239,13 +239,13 @@ const JobDetail: React.FC<JobDetailProps> = ({ job, distance = 0.5, onClose }) =
                     {categoryIcon}
                   </svg>
                 </span>
-                <span className="text-sm text-gray-600">{category}</span>
-                <span className="mx-2 text-gray-300">•</span>
-                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-4 h-4 text-gray-500 mr-1">
+                <span className="text-sm text-muted-foreground">{category}</span>
+                <span className="mx-2 text-muted-foreground/40">•</span>
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-4 h-4 text-primary/70 mr-1">
                   <path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z" />
                   <circle cx="12" cy="10" r="3" />
                 </svg>
-                <span className="text-sm text-gray-600">{formatDistance(distance)} away</span>
+                <span className="text-sm text-muted-foreground">{formatDistance(distance)} away</span>
               </div>
               
               {/* Payment info in a card - DoorDash-style */}
@@ -350,7 +350,7 @@ const JobDetail: React.FC<JobDetailProps> = ({ job, distance = 0.5, onClose }) =
               
               {/* Date and time */}
               <div className="flex items-center mb-4">
-                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-4 h-4 text-gray-500 mr-2">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-4 h-4 text-primary/70 mr-2">
                   <path d="M21 7.5V6a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-1.5" />
                   <path d="M16 2v4" />
                   <path d="M8 2v4" />
@@ -358,31 +358,31 @@ const JobDetail: React.FC<JobDetailProps> = ({ job, distance = 0.5, onClose }) =
                   <path d="M18 14v4h-4" />
                   <path d="M15 14h3v3" />
                 </svg>
-                <div className="text-sm text-gray-700">{formatDateTime(dateNeeded)}</div>
+                <div className="text-sm text-muted-foreground">{formatDateTime(dateNeeded)}</div>
               </div>
               
               {/* Job description */}
               <div className="mb-4">
-                <h4 className="text-sm font-semibold text-gray-800 mb-2">Description</h4>
-                <p className="text-sm text-gray-600 leading-relaxed">{description}</p>
+                <h4 className="text-sm font-semibold text-foreground mb-2">Description</h4>
+                <p className="text-sm text-muted-foreground leading-relaxed">{description}</p>
               </div>
               
               {/* Location */}
               <div className="mb-4">
-                <h4 className="text-sm font-semibold text-gray-800 mb-2">Location</h4>
-                <div className="bg-gray-50 rounded-lg overflow-hidden h-24 flex items-center justify-center mb-1">
-                  <div className="text-sm text-gray-500">Map location preview</div>
+                <h4 className="text-sm font-semibold text-foreground mb-2">Location</h4>
+                <div className="bg-card/50 border border-border rounded-lg overflow-hidden h-24 flex items-center justify-center mb-1">
+                  <div className="text-sm text-muted-foreground">Map location preview</div>
                 </div>
-                <p className="text-sm text-gray-700">{location}</p>
+                <p className="text-sm text-muted-foreground">{location}</p>
               </div>
               
               {/* Skills tags */}
               {requiredSkills && requiredSkills.length > 0 && (
                 <div className="mb-4">
-                  <h4 className="text-sm font-semibold text-gray-800 mb-2">Skills Required</h4>
+                  <h4 className="text-sm font-semibold text-foreground mb-2">Skills Required</h4>
                   <div className="flex flex-wrap gap-1.5">
                     {requiredSkills.map((skill, index) => (
-                      <Badge key={index} variant="outline" className="bg-blue-50 text-blue-700 border-blue-200">
+                      <Badge key={index} variant="outline" className="bg-primary/10 text-primary border-primary/30">
                         {skill}
                       </Badge>
                     ))}
@@ -392,8 +392,8 @@ const JobDetail: React.FC<JobDetailProps> = ({ job, distance = 0.5, onClose }) =
               
               {/* Equipment */}
               <div className="mb-4">
-                <h4 className="text-sm font-semibold text-gray-800 mb-2">Equipment</h4>
-                <div className="flex items-center text-sm text-gray-700">
+                <h4 className="text-sm font-semibold text-foreground mb-2">Equipment</h4>
+                <div className="flex items-center text-sm text-muted-foreground">
                   {equipmentProvided ? (
                     <>
                       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-4 h-4 text-green-500 mr-2">
@@ -417,7 +417,7 @@ const JobDetail: React.FC<JobDetailProps> = ({ job, distance = 0.5, onClose }) =
               
               {/* Task checklist */}
               <div className="mb-12"> {/* Extra margin at bottom for the fixed Apply button */}
-                <h4 className="text-sm font-semibold text-gray-800 mb-2">Job Tasks</h4>
+                <h4 className="text-sm font-semibold text-foreground mb-2">Job Tasks</h4>
                 <TaskList 
                   jobId={job.id} 
                   isJobPoster={isJobPoster}
