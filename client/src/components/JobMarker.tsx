@@ -12,29 +12,30 @@ interface JobMarkerProps {
   onClick: (job: Job) => void;
 }
 
-// Helper function to get color based on job category
+// Helper function to get color based on job category using our theme colors
 function getColorForCategory(category: string): string {
+  // Create variations of our primary color (hsl(160, 84%, 39%))
   switch(category) {
     case 'Home Maintenance':
-      return '#3b82f6'; // blue-500
+      return 'hsl(160, 84%, 39%)'; // primary
     case 'Cleaning':
-      return '#06b6d4'; // cyan-500
+      return 'hsl(160, 84%, 45%)'; // lighter primary
     case 'Delivery':
-      return '#f97316'; // orange-500
+      return 'hsl(180, 84%, 39%)'; // blue-green variant
     case 'Event Help':
-      return '#8b5cf6'; // purple-500
+      return 'hsl(140, 84%, 39%)'; // green variant
     case 'Moving':
-      return '#6366f1'; // indigo-500
+      return 'hsl(160, 84%, 30%)'; // darker primary
     case 'Tech Support':
-      return '#f59e0b'; // amber-500
+      return 'hsl(170, 84%, 39%)'; // teal variant
     case 'Shopping':
-      return '#f43f5e'; // rose-500
+      return 'hsl(150, 84%, 39%)'; // lighter green variant
     case 'Pet Care':
-      return '#10b981'; // emerald-500
+      return 'hsl(130, 84%, 39%)'; // green variant
     case 'Tutoring':
-      return '#3b82f6'; // blue-500
+      return 'hsl(190, 84%, 39%)'; // blue variant
     default:
-      return '#6b7280'; // gray-500
+      return 'hsl(160, 30%, 39%)'; // desaturated primary
   }
 }
 

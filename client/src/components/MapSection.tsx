@@ -365,8 +365,8 @@ const MapSection: React.FC<MapSectionProps> = ({ jobs, selectedJob, onSelectJob,
             className="mobile-optimized-map"
           >
             <TileLayer
-              attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-              url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+              attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>'
+              url="https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png"
               eventHandlers={{
                 click: handleMapClick,
               }}
@@ -376,10 +376,10 @@ const MapSection: React.FC<MapSectionProps> = ({ jobs, selectedJob, onSelectJob,
             <Circle 
               center={position}
               pathOptions={{ 
-                fillColor: 'hsl(160, 84%, 39%)', // Primary color
-                fillOpacity: 0.1, 
-                color: 'hsl(160, 84%, 39%)',
-                weight: 1
+                fillColor: 'hsl(160, 84%, 50%)', // Brighter primary color for dark background
+                fillOpacity: 0.15, 
+                color: 'hsl(160, 84%, 50%)',
+                weight: 2
               }}
               radius={3218} // 2 miles in meters
             />
@@ -388,14 +388,14 @@ const MapSection: React.FC<MapSectionProps> = ({ jobs, selectedJob, onSelectJob,
             <CircleMarker 
               center={position}
               pathOptions={{ 
-                fillColor: '#3b82f6', 
-                fillOpacity: 0.6, 
+                fillColor: 'hsl(160, 84%, 60%)', // Brighter primary color for dark background
+                fillOpacity: 0.8, 
                 color: 'white',
-                weight: 2
+                weight: 3
               }}
               radius={8}
             >
-              <Popup>Your location</Popup>
+              <Popup className="leaflet-popup-dark">Your location</Popup>
             </CircleMarker>
             
             {/* Job markers */}
@@ -419,7 +419,7 @@ const MapSection: React.FC<MapSectionProps> = ({ jobs, selectedJob, onSelectJob,
         {/* Fallback location notice */}
         {isUsingFallback && (
           <div className="absolute top-4 left-4 z-[1000]">
-            <div className="bg-amber-50 border border-amber-200 rounded-full shadow px-3 py-1 text-amber-800 text-xs">
+            <div className="bg-primary/10 border border-primary/20 rounded-full shadow px-3 py-1 text-primary text-xs">
               <p className="flex items-center">
                 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" className="w-3 h-3 mr-1">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
@@ -505,8 +505,8 @@ const MapSection: React.FC<MapSectionProps> = ({ jobs, selectedJob, onSelectJob,
               <div className="flex justify-between items-center">
                 <div>
                   <h3 className="text-lg font-bold">${selectedJob.paymentAmount}</h3>
-                  <div className="text-xs text-green-600 font-medium flex items-center">
-                    <span className="inline-block w-2 h-2 rounded-full bg-green-500 mr-1"></span>
+                  <div className="text-xs text-primary font-medium flex items-center">
+                    <span className="inline-block w-2 h-2 rounded-full bg-primary mr-1"></span>
                     Available Now
                   </div>
                 </div>
