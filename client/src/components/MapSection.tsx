@@ -203,9 +203,13 @@ const MapSection: React.FC<MapSectionProps> = ({ jobs, selectedJob, onSelectJob 
           )}
         </div>
         
-        {/* Bottom card for job details */}
+        {/* Bottom card for job details - DoorDash-style slide-up panel */}
         {showJobDetail && selectedJob && (
-          <div className="absolute bottom-0 left-0 right-0 z-[1000] max-h-[50%] overflow-y-auto">
+          <div className="absolute bottom-0 left-0 right-0 z-[1000] max-h-[50%] overflow-y-auto 
+                          bg-white rounded-t-xl shadow-lg animate-slide-up">
+            <div className="flex justify-center py-2">
+              <div className="w-10 h-1 bg-gray-300 rounded-full"></div>
+            </div>
             <JobDetail job={selectedJob} onClose={handleCloseDetail} />
           </div>
         )}

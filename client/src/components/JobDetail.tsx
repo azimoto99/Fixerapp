@@ -80,97 +80,125 @@ const JobDetail: React.FC<JobDetailProps> = ({ job, distance = 0.5, onClose }) =
   };
 
   return (
-    <div className="p-4 bg-white rounded-lg shadow-lg">
-      <div className="flex items-start justify-between">
-        <div className="flex items-start">
-          <div className={`flex-shrink-0 bg-${categoryColor}-100 rounded-md p-2 mt-1`}>
-            <i className={`ri-${categoryIcon} text-${categoryColor}-600 text-xl`}></i>
+    <div className="bg-white rounded-t-xl">
+      {/* Close button */}
+      {onClose && (
+        <div className="absolute top-4 right-4 z-[1001]">
+          <Button 
+            size="icon" 
+            variant="ghost" 
+            onClick={onClose} 
+            className="h-8 w-8 rounded-full"
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-5 h-5">
+              <path d="M18 6 6 18M6 6l12 12" />
+            </svg>
+          </Button>
+        </div>
+      )}
+      
+      {/* Header with pay amount */}
+      <div className="px-4 pt-4 pb-2 border-b">
+        <div className="flex items-center mb-2">
+          <div className={`w-10 h-10 rounded-full flex items-center justify-center mr-3`} 
+               style={{ backgroundColor: categoryColor || '#3b82f6' }}>
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-5 h-5">
+              <path d="M20 7h-9m0 0-4 4m4-4-4-4M4 17h9m0 0 4 4m-4-4 4-4" />
+            </svg>
           </div>
-          <div className="ml-3">
-            <h3 className="text-lg font-semibold text-gray-900">{title}</h3>
-            <div className="mt-1 flex items-center">
-              <p className="text-sm text-gray-500">Posted by</p>
-              <div className="ml-2 flex items-center">
-                <span className="text-sm font-medium text-gray-700">User {posterId}</span>
-              </div>
+          <div>
+            <h3 className="text-xl font-bold text-gray-900">{title}</h3>
+            <p className="text-sm text-gray-500">
+              <span className="font-medium">{formatDistance(distance)}</span> • {category}
+            </p>
+          </div>
+        </div>
+        
+        <div className="flex justify-between items-center mt-3 mb-2">
+          <div className="text-sm font-medium text-gray-600">
+            {location} • {formatDateTime(dateNeeded)}
+          </div>
+          <div className="text-right">
+            <div className="text-xl font-bold text-green-600">
+              {formatCurrency(paymentAmount)}<span className="text-sm font-normal text-gray-600">{paymentType === 'hourly' ? '/hr' : ''}</span>
+            </div>
+            <div className="text-xs text-gray-500">
+              + {formatCurrency(serviceFee)} service fee
             </div>
           </div>
         </div>
-        <div className="flex-shrink-0 text-right">
-          <div>
-            <span className="text-xl font-bold text-green-600">{formatCurrency(paymentAmount)}</span>
-            <span className="text-sm text-gray-500">{paymentType === 'hourly' ? '/hr' : ' flat'}</span>
+      </div>
+      
+      {/* Job details */}
+      <div className="px-4 py-3">
+        <h4 className="text-sm font-semibold text-gray-800 mb-2">Job Details</h4>
+        <p className="text-sm text-gray-600 mb-3">{description}</p>
+        
+        {/* Skills tags */}
+        {requiredSkills && requiredSkills.length > 0 && (
+          <div className="mb-3">
+            <h5 className="text-xs font-medium text-gray-500 uppercase mb-1">Skills Required</h5>
+            <div className="flex flex-wrap gap-1">
+              {requiredSkills.map((skill, index) => (
+                <Badge key={index} variant="outline" className="bg-blue-50 text-blue-700 border-blue-200">
+                  {skill}
+                </Badge>
+              ))}
+            </div>
           </div>
-          <div className="text-xs text-gray-500 mt-1">
-            {paymentType === 'hourly' 
-              ? `+ ${formatCurrency(serviceFee)} service fee (added upon completion)` 
-              : `+ ${formatCurrency(serviceFee)} service fee`}
-          </div>
-          <div className="text-sm font-semibold text-gray-700 mt-1">
-            {paymentType === 'hourly'
-              ? `Worker receives: ${formatCurrency(paymentAmount)}/hr`
-              : `Total: ${formatCurrency(totalAmount)} (Worker receives: ${formatCurrency(paymentAmount)})`}
-          </div>
+        )}
+        
+        {/* Equipment */}
+        <div className="text-sm mb-4">
+          <span className="text-xs font-medium text-gray-500 uppercase block mb-1">Equipment</span>
+          <span className="text-gray-700">
+            {equipmentProvided ? 'All equipment provided by job poster' : 'Worker must provide equipment'}
+          </span>
+        </div>
+        
+        {/* Task checklist */}
+        <div className="mt-2 mb-3">
+          <h5 className="text-xs font-medium text-gray-500 uppercase mb-2">Job Tasks</h5>
+          <TaskList 
+            jobId={job.id} 
+            isJobPoster={user?.id === job.posterId}
+            isWorker={user?.id === job.workerId}
+          />
         </div>
       </div>
       
-      <div className="mt-4 text-sm text-gray-600">
-        <p>{description}</p>
-      </div>
-      
-      <div className="mt-4 grid grid-cols-2 gap-4">
-        <div>
-          <h4 className="text-xs font-medium text-gray-500 uppercase">Date & Time</h4>
-          <p className="mt-1 text-sm font-medium text-gray-800">
-            <i className="ri-calendar-line text-gray-400 mr-1"></i>
-            {formatDateTime(dateNeeded)}
-          </p>
-        </div>
-        <div>
-          <h4 className="text-xs font-medium text-gray-500 uppercase">Location</h4>
-          <p className="mt-1 text-sm font-medium text-gray-800">
-            <i className="ri-map-pin-line text-gray-400 mr-1"></i>
-            {formatDistance(distance)} • {location}
-          </p>
-        </div>
-        <div>
-          <h4 className="text-xs font-medium text-gray-500 uppercase">Skills Required</h4>
-          <div className="mt-1 flex flex-wrap gap-1">
-            {requiredSkills?.map((skill, index) => (
-              <Badge key={index} variant="gray">
-                {skill}
-              </Badge>
-            )) || <span className="text-sm text-gray-500">No specific skills required</span>}
-          </div>
-        </div>
-        <div>
-          <h4 className="text-xs font-medium text-gray-500 uppercase">Required Equipment</h4>
-          <p className="mt-1 text-sm text-gray-700">
-            {equipmentProvided ? 'None (provided by poster)' : 'Worker must provide equipment'}
-          </p>
-        </div>
-      </div>
-      
-      {/* Task checklist */}
-      <div className="mt-6">
-        <TaskList 
-          jobId={job.id} 
-          isJobPoster={user?.id === job.posterId}
-          isWorker={user?.id === job.workerId}
-        />
-      </div>
-      
-      <div className="mt-5 flex justify-end space-x-3">
-        <Button variant="outline" className="text-gray-700">
-          <i className="ri-heart-line mr-2"></i>
-          Save
+      {/* Quick action buttons */}
+      <div className="sticky bottom-0 left-0 right-0 bg-white border-t px-4 py-3 flex space-x-3">
+        <Button 
+          variant="outline" 
+          className="flex-1 flex items-center justify-center text-gray-700"
+          size="sm"
+        >
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-4 h-4 mr-1">
+            <circle cx="12" cy="12" r="10" />
+            <path d="m12 8 4 4-4 4M8 12h8" />
+          </svg>
+          Directions
         </Button>
-        <Button variant="outline" className="text-gray-700">
-          <i className="ri-message-3-line mr-2"></i>
+        
+        <Button 
+          variant="outline"  
+          className="flex-1 flex items-center justify-center text-gray-700"
+          size="sm"
+        >
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-4 h-4 mr-1">
+            <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
+          </svg>
           Message
         </Button>
-        <Button onClick={handleApply} disabled={isApplying || !user || user.accountType !== 'worker'}>
-          {isApplying ? 'Applying...' : 'Apply Now'}
+        
+        <Button 
+          onClick={handleApply} 
+          disabled={isApplying || !user || user.accountType !== 'worker'}
+          className="flex-[2]"
+          size="sm"
+        >
+          {isApplying ? 'Applying...' : 'Apply for Job'}
         </Button>
       </div>
     </div>
