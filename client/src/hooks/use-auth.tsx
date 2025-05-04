@@ -12,6 +12,7 @@ import { useLocation } from "wouter";
 // Extended user type to include potential account type selection flag
 interface UserWithFlags extends SelectUser {
   needsAccountType?: boolean;
+  requiresProfileCompletion?: boolean;
 }
 
 type AuthContextType = {
@@ -53,8 +54,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       return await res.json();
     },
     onSuccess: (userData: UserWithFlags) => {
-      // Check if user needs to select an account type
-      if (userData.needsAccountType) {
+      // Check if user needs to complete their profile first (for social logins)
+      if (userData.requiresProfileCompletion) {
+        // Redirect to profile completion page
+        setLocation(`/complete-profile?id=${userData.id}&provider=google`);
+        toast({
+          title: "Profile completion required",
+          description: "Please complete your profile to continue",
+        });
+      } 
+      // Then check if user needs to select an account type
+      else if (userData.needsAccountType) {
         // Redirect to account type selection page
         setLocation(`/account-type-selection?id=${userData.id}&provider=local`);
         toast({
@@ -85,8 +95,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       return await res.json();
     },
     onSuccess: (userData: UserWithFlags) => {
-      // Check if user needs to select an account type
-      if (userData.needsAccountType) {
+      // Check if user needs to complete their profile first (for social logins)
+      if (userData.requiresProfileCompletion) {
+        // Redirect to profile completion page
+        setLocation(`/complete-profile?id=${userData.id}&provider=google`);
+        toast({
+          title: "Profile completion required",
+          description: "Please complete your profile to continue",
+        });
+      } 
+      // Then check if user needs to select an account type
+      else if (userData.needsAccountType) {
         // Redirect to account type selection page
         setLocation(`/account-type-selection?id=${userData.id}&provider=local`);
         toast({

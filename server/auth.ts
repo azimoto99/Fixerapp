@@ -82,17 +82,13 @@ async function findOrCreateUserFromSocial(
     avatarUrl: photoUrl,
     skills: [],
     isActive: true,
+    requiresProfileCompletion: true, // Flag to indicate profile needs completion
+    googleId: profile.id,
+    facebookId: null,
   };
   
-  // Add the Google ID
-  (userData as any).googleId = profile.id;
-  (userData as any).facebookId = null;
-  
-  // Create the user - the returned user will have a requiresProfileCompletion flag set
+  // Create the user
   const newUser = await storage.createUser(userData);
-  
-  // Add a flag to indicate that this is a new social login user who needs to complete their profile
-  (newUser as any).requiresProfileCompletion = true;
   
   return newUser;
 }
@@ -215,6 +211,7 @@ export function setupAuth(app: Express) {
         skills: req.body.skills || [],
         isActive: true,
         rating: 0,
+        requiresProfileCompletion: false, // Regular sign-ups don't need profile completion
         location: req.body.location || null,
         googleId: null,
         facebookId: null
