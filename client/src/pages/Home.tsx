@@ -21,7 +21,12 @@ const WorkerDashboard = () => {
   // Keep all useState calls together and in the same order every render
   const [view, setView] = useState<'list' | 'map'>('map');
   const [selectedJob, setSelectedJob] = useState<Job | undefined>(undefined);
-  const [searchParams, setSearchParams] = useState({ query: '', category: '', searchMode: 'location' as 'location' | 'description' });
+  const [searchParams, setSearchParams] = useState({ 
+    query: '', 
+    category: '', 
+    searchMode: 'location' as 'location' | 'description',
+    coordinates: undefined as { latitude: number; longitude: number } | undefined
+  });
   const [showPostedJobs, setShowPostedJobs] = useState(false);
   
   // Keep all custom hook calls after useState hooks
@@ -38,11 +43,20 @@ const WorkerDashboard = () => {
     enabled: !!user?.id
   });
 
-  const handleSearch = (params: { query: string; category: string }) => {
-    // Preserve the current searchMode when updating search parameters
+  const handleSearch = (params: { 
+    query: string; 
+    category: string; 
+    searchMode?: 'location' | 'description';
+    coordinates?: { latitude: number; longitude: number }
+  }) => {
+    // Preserve existing searchMode if not provided
+    const newSearchMode = params.searchMode || searchParams.searchMode;
+    
     setSearchParams({
-      ...params,
-      searchMode: searchParams.searchMode
+      query: params.query,
+      category: params.category,
+      searchMode: newSearchMode,
+      coordinates: params.coordinates
     });
   };
 

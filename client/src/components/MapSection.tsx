@@ -238,6 +238,28 @@ const MapSection: React.FC<MapSectionProps> = ({ jobs, selectedJob, onSelectJob 
             align-items: center;
             justify-content: center;
           }
+          
+          /* Animation for markers */
+          @keyframes bounce-in {
+            0% { transform: scale(0.8); opacity: 0; }
+            60% { transform: scale(1.1); }
+            100% { transform: scale(1); opacity: 1; }
+          }
+          
+          @keyframes pulse-marker {
+            0% { transform: scale(1); opacity: 0.8; }
+            50% { transform: scale(1.3); opacity: 0.3; }
+            100% { transform: scale(1.6); opacity: 0; }
+          }
+          
+          .animate-bounce-in {
+            animation: bounce-in 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+          }
+          
+          .animate-pulse-marker {
+            animation: pulse-marker 2s infinite;
+          }
+          
           /* Mobile optimizations */
           @media (max-width: 768px) {
             .leaflet-control-zoom {
@@ -245,24 +267,55 @@ const MapSection: React.FC<MapSectionProps> = ({ jobs, selectedJob, onSelectJob 
             }
             .leaflet-control-attribution {
               font-size: 8px;
+              max-width: 70%;
+              white-space: nowrap;
+              overflow: hidden;
+              text-overflow: ellipsis;
             }
             .leaflet-touch .leaflet-bar {
               border: none;
               box-shadow: 0 1px 5px rgba(0,0,0,0.2);
             }
+            .leaflet-control-container .leaflet-bottom .leaflet-control {
+              margin-bottom: 70px; /* Give space for the job search bar */
+            }
+            /* Larger touch targets for mobile */
+            .leaflet-touch .leaflet-bar a {
+              width: 40px;
+              height: 40px;
+              line-height: 40px;
+              font-size: 20px;
+            }
+            /* Space buttons for easier tapping */
+            .leaflet-bottom .leaflet-control .leaflet-control-zoom {
+              margin-bottom: 10px;
+            }
           }
+          
           /* Improve tap targets */
           .leaflet-touch .leaflet-control-layers, 
           .leaflet-touch .leaflet-bar {
             border: none;
             box-shadow: 0 2px 5px rgba(0,0,0,0.1);
           }
+          
           /* Loading performance optimizations */
           .leaflet-tile {
             will-change: transform;
           }
           .leaflet-fade-anim .leaflet-tile {
             will-change: opacity;
+          }
+          
+          /* Custom controls spacing */
+          .leaflet-control-container .leaflet-bottom .leaflet-control button {
+            margin-top: 10px;
+            display: block;
+          }
+          
+          /* Smooth transition for panel */
+          .job-detail-panel {
+            transition: transform 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
           }
         `}</style>
         
@@ -375,18 +428,68 @@ const MapSection: React.FC<MapSectionProps> = ({ jobs, selectedJob, onSelectJob 
         
         {/* Bottom card for job details - DoorDash-style slide-up panel */}
         {showJobDetail && selectedJob && (
-          <div className="absolute bottom-0 left-0 right-0 z-[9000] max-h-[70%] overflow-y-auto 
-                          bg-white rounded-t-xl shadow-xl animate-slide-up"
-              style={{ filter: 'drop-shadow(0 -10px 8px rgb(0 0 0 / 0.04))' }}>
+          <div 
+            className="absolute bottom-0 left-0 right-0 z-[9000] max-h-[70%] overflow-y-auto 
+                      bg-white rounded-t-xl shadow-xl animate-slide-up job-detail-panel"
+            style={{ filter: 'drop-shadow(0 -10px 8px rgb(0 0 0 / 0.04))' }}
+            onTouchStart={(e) => {
+              // Store initial touch position for swipe detection
+              const touchY = e.touches[0].clientY;
+              const panel = e.currentTarget;
+              
+              // Add data attribute to store touch position
+              panel.setAttribute('data-touch-start-y', touchY.toString());
+            }}
+            onTouchMove={(e) => {
+              // Get handle element (the drag indicator)
+              const handle = e.currentTarget.querySelector('.drag-handle');
+              if (!handle || handle.contains(e.target as Node)) {
+                const panel = e.currentTarget;
+                const touchStartY = parseInt(panel.getAttribute('data-touch-start-y') || '0');
+                const currentTouchY = e.touches[0].clientY;
+                const deltaY = currentTouchY - touchStartY;
+                
+                // Only allow downward swipes to close (deltaY > 0)
+                if (deltaY > 0) {
+                  // Calculate opacity based on swipe distance
+                  const opacity = Math.max(0, 1 - (deltaY / 200));
+                  panel.style.transform = `translateY(${deltaY}px)`;
+                  panel.style.opacity = opacity.toString();
+                }
+              }
+            }}
+            onTouchEnd={(e) => {
+              const panel = e.currentTarget;
+              const touchStartY = parseInt(panel.getAttribute('data-touch-start-y') || '0');
+              const touchEndY = e.changedTouches[0].clientY;
+              const deltaY = touchEndY - touchStartY;
+              
+              // If swipe down is significant, close the panel
+              if (deltaY > 100) {
+                handleCloseDetail();
+              } else {
+                // Reset the panel position with animation
+                panel.style.transform = '';
+                panel.style.opacity = '1';
+              }
+            }}
+          >
             <div className="sticky top-0 bg-white pt-2 pb-1 px-4 border-b z-[9999]">
-              <div className="flex justify-center pb-1">
+              <div className="flex justify-center pb-1 drag-handle cursor-grab active:cursor-grabbing">
                 <div className="w-10 h-1 bg-gray-300 rounded-full"></div>
               </div>
               <div className="flex justify-between items-center">
-                <h3 className="text-lg font-bold">${selectedJob.paymentAmount}</h3>
+                <div>
+                  <h3 className="text-lg font-bold">${selectedJob.paymentAmount}</h3>
+                  <div className="text-xs text-green-600 font-medium flex items-center">
+                    <span className="inline-block w-2 h-2 rounded-full bg-green-500 mr-1"></span>
+                    Available Now
+                  </div>
+                </div>
                 <button 
                   onClick={handleCloseDetail}
                   className="p-1 rounded-full hover:bg-gray-100 transition-colors"
+                  aria-label="Close details"
                 >
                   <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-5 h-5">
                     <line x1="18" y1="6" x2="6" y2="18"></line>
@@ -395,10 +498,11 @@ const MapSection: React.FC<MapSectionProps> = ({ jobs, selectedJob, onSelectJob 
                 </button>
               </div>
             </div>
+            
             <JobDetail job={selectedJob} onClose={handleCloseDetail} />
             
             {/* Apply button fixed at bottom */}
-            <div className="sticky bottom-0 left-0 right-0 bg-white p-4 border-t z-[9999]">
+            <div className="sticky bottom-0 left-0 right-0 bg-white p-4 border-t z-[9999] pb-[calc(0.5rem+env(safe-area-inset-bottom))]">
               <button 
                 onClick={handleApply}
                 disabled={isApplying}
