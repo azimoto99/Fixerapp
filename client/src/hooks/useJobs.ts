@@ -54,23 +54,38 @@ export function useJobs(
     queryKey: [queryPath],
   });
   
-  // For nearby jobs, filter in the client
-  // In a real implementation, we would use the nearby API endpoint
-  let jobs = allJobs;
-  
-  if (nearbyOnly && userLocation && jobs) {
-    // This would use the API endpoint in a real implementation
-    // For now, we'll assume all jobs are within the radius for demo purposes
-    const nearbyPath = `/api/jobs/nearby/location?latitude=${userLocation.latitude}&longitude=${userLocation.longitude}&radius=${radiusMiles}`;
+  // If we need nearby jobs and have location, use the specialized endpoint
+  if (nearbyOnly && userLocation) {
+    let nearbyPath = `/api/jobs/nearby/location?latitude=${userLocation.latitude}&longitude=${userLocation.longitude}&radius=${radiusMiles}`;
     
-    // In a real implementation, we'd use this query:
-    // return useQuery<Job[]>({
-    //   queryKey: [nearbyPath],
-    // });
+    // Apply any other search params to the nearby path
+    if (searchParams?.query) {
+      nearbyPath += `&search=${encodeURIComponent(searchParams.query)}`;
+    }
+    
+    if (searchParams?.category) {
+      nearbyPath += `&category=${encodeURIComponent(searchParams.category)}`;
+    }
+    
+    // Always limit to open jobs for nearby view unless explicitly showing all
+    if (!includeAll) {
+      nearbyPath += '&status=open';
+    }
+
+    const { data: nearbyJobs, isLoading: nearbyLoading, error: nearbyError } = useQuery<Job[]>({
+      queryKey: [nearbyPath],
+    });
+    
+    return {
+      jobs: nearbyJobs,
+      isLoading: nearbyLoading,
+      error: nearbyError
+    };
   }
   
+  // Otherwise just return all jobs from the standard endpoint
   return {
-    jobs,
+    jobs: allJobs,
     isLoading,
     error
   };

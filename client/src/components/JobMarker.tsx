@@ -1,7 +1,7 @@
-import { useState, useEffect } from 'react';
+import { useMemo } from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { Marker, Popup } from 'react-leaflet';
-import { divIcon, LatLngExpression, Icon } from 'leaflet';
+import { divIcon, LatLngExpression } from 'leaflet';
 import { Job } from '@shared/schema';
 import { formatCurrency } from '@/lib/utils';
 
@@ -13,11 +13,11 @@ interface JobMarkerProps {
 }
 
 export function JobMarker({ job, position, isSelected, onClick }: JobMarkerProps) {
+  // Get color based on category
+  const color = getColorForCategory(job.category);
+  
   // Create a custom DoorDash-style marker with price
-  const getJobIcon = () => {
-    // Get color based on category
-    const color = getColorForCategory(job.category);
-    
+  const icon = useMemo(() => {
     // Create HTML content for the marker
     const html = renderToStaticMarkup(
       <div 
@@ -27,7 +27,7 @@ export function JobMarker({ job, position, isSelected, onClick }: JobMarkerProps
           backgroundColor: color,
           transform: isSelected ? 'scale(1.1)' : 'scale(1)',
           transition: 'all 0.2s ease',
-          zIndex: isSelected ? 1000 : 1
+          zIndex: isSelected ? '1000' : '1'
         }}
       >
         <span className="text-white text-sm">
@@ -43,12 +43,12 @@ export function JobMarker({ job, position, isSelected, onClick }: JobMarkerProps
       iconSize: [isSelected ? 56 : 48, isSelected ? 56 : 48],
       iconAnchor: [isSelected ? 28 : 24, isSelected ? 28 : 24]
     });
-  };
+  }, [job.paymentAmount, color, isSelected]);
 
   return (
     <Marker
       position={position}
-      icon={getJobIcon()}
+      icon={icon}
       eventHandlers={{
         click: () => onClick(job)
       }}
