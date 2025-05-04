@@ -213,8 +213,8 @@ export default function Home() {
         )}
       </main>
       
-      {/* Only show mobile nav for Job Posters */}
-      {(user && user.accountType === 'poster') && <MobileNav />}
+      {/* Always show mobile nav for both account types */}
+      {user && <MobileNav />}
       
       {/* Only show new job button for posters */}
       {(user && user.accountType === 'poster') && <NewJobButton />}

@@ -1,7 +1,7 @@
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { formatCurrency, formatDistance, formatDateTime, getCategoryIcon, getCategoryColor } from '@/lib/utils';
-import { Job } from '@shared/schema';
+import { Job, Earning, Review } from '@shared/schema';
 import { useAuth } from '@/hooks/use-auth';
 import { useState } from 'react';
 import { apiRequest, queryClient } from '@/lib/queryClient';
@@ -9,11 +9,11 @@ import { useToast } from '@/hooks/use-toast';
 import TaskList from './TaskList';
 import ReviewForm from './ReviewForm';
 import ReviewsList from './ReviewsList';
+import PaymentNotification from './PaymentNotification';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { Loader2, CheckCircle2, MessageCircle, Star } from 'lucide-react';
 import { useMutation, useQuery } from '@tanstack/react-query';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Review } from '@shared/schema';
 
 interface JobDetailProps {
   job: Job;
@@ -150,6 +150,10 @@ const JobDetail: React.FC<JobDetailProps> = ({ job, distance = 0.5, onClose }) =
     }
   });
   
+  // State for payment notification
+  const [showPaymentNotification, setShowPaymentNotification] = useState(false);
+  const [earnedPayment, setEarnedPayment] = useState<(Earning & { job?: Job }) | null>(null);
+  
   // Create earning mutation
   const createEarningMutation = useMutation({
     mutationFn: async () => {
@@ -161,8 +165,12 @@ const JobDetail: React.FC<JobDetailProps> = ({ job, distance = 0.5, onClose }) =
       });
       return res.json();
     },
-    onSuccess: () => {
+    onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ['/api/earnings/worker', user?.id] });
+      
+      // Show the payment notification with the job details
+      setEarnedPayment({ ...data, job });
+      setShowPaymentNotification(true);
     },
     onError: (error: Error) => {
       console.error("Error creating earning record:", error);
@@ -172,6 +180,14 @@ const JobDetail: React.FC<JobDetailProps> = ({ job, distance = 0.5, onClose }) =
 
   return (
     <div className="bg-white">
+      {/* Payment notification overlay */}
+      {showPaymentNotification && earnedPayment && (
+        <PaymentNotification
+          earning={earnedPayment}
+          onDismiss={() => setShowPaymentNotification(false)}
+        />
+      )}
+      
       {showReviewForm ? (
         <div className="p-4">
           <ReviewForm 
