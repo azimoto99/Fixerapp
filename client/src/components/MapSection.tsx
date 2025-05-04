@@ -376,9 +376,9 @@ const MapSection: React.FC<MapSectionProps> = ({ jobs, selectedJob, onSelectJob,
             <Circle 
               center={position}
               pathOptions={{ 
-                fillColor: '#3b82f6', 
+                fillColor: 'hsl(160, 84%, 39%)', // Primary color
                 fillOpacity: 0.1, 
-                color: '#3b82f6',
+                color: 'hsl(160, 84%, 39%)',
                 weight: 1
               }}
               radius={3218} // 2 miles in meters
