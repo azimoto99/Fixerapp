@@ -121,11 +121,9 @@ export default function CompleteProfile() {
   useEffect(() => {
     if (!isLoading && !user && !userId) {
       setLocation('/auth');
-    } else if (!isLoading && user && !user.requiresProfileCompletion && user.accountType === 'pending') {
-      // Only redirect to account type selection if the profile is complete but account type is pending
-      setLocation(`/account-type-selection?id=${user.id}&provider=${provider}`);
     }
-  }, [user, isLoading, setLocation, userId, provider]);
+    // No need to redirect to account type selection anymore, as all users are workers
+  }, [user, isLoading, setLocation, userId]);
   
   // Function to handle form submission
   async function onSubmit(data: ProfileFormValues) {
@@ -141,10 +139,11 @@ export default function CompleteProfile() {
         throw new Error('No user ID available');
       }
       
-      // Call API to update user profile and clear the requiresProfileCompletion flag
+      // Call API to update user profile, set account type to worker, and clear the requiresProfileCompletion flag
       const updatedData = {
         ...data,
-        requiresProfileCompletion: false
+        requiresProfileCompletion: false,
+        accountType: 'worker' // Automatically set all accounts to worker type
       };
       
       const response = await apiRequest('PATCH', `/api/users/${userId}`, updatedData);
@@ -161,14 +160,8 @@ export default function CompleteProfile() {
           description: 'Your profile has been successfully updated',
         });
         
-        // Redirect to account type selection if the user has a pending account type
-        if (updatedUser.accountType === 'pending') {
-          const provider = params.get('provider') || 'local';
-          setLocation(`/account-type-selection?id=${userId}&provider=${provider}`);
-        } else {
-          // Otherwise, redirect to home page
-          setLocation('/');
-        }
+        // Always redirect to home page
+        setLocation('/');
       } else {
         const error = await response.json();
         throw new Error(error.message || 'Failed to update profile');

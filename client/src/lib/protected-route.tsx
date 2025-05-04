@@ -31,10 +31,7 @@ export function ProtectedRoute({
           return <Redirect to={`/complete-profile?id=${user.id}`} />;
         }
 
-        // If the user has a "pending" account type, redirect to account type selection
-        if (user.accountType === "pending") {
-          return <Redirect to={`/account-type-selection?id=${user.id}&provider=local`} />;
-        }
+        // Always set account type to worker, so no need to check for pending status
 
         return <Component {...params} />;
       }}
