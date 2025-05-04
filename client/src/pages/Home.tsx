@@ -153,10 +153,10 @@ const WorkerDashboard = () => {
     );
   };
   
-  // My Posted Jobs button - positioned 50px from right
+  // My Posted Jobs button - positioned 80px from right (30px more to the left)
   const PostedJobsButton = () => {
     return (
-      <div className="absolute top-4 right-[calc(4rem+50px)] z-[900]">
+      <div className="absolute top-4 right-[calc(4rem+80px)] z-[900]">
         <Button 
           onClick={togglePostedJobs}
           className="bg-primary text-white shadow-lg rounded-full w-10 h-10 flex items-center justify-center transition-all hover:scale-105 active:scale-95 p-0"

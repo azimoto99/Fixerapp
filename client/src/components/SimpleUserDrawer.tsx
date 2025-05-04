@@ -95,13 +95,13 @@ const SimpleUserDrawer: React.FC<SimpleUserDrawerProps> = ({
     <>
       <div onClick={() => setIsOpen(true)} className="cursor-pointer">
         {children || (
-          <div className="relative bg-card shadow-lg rounded-full p-2 flex items-center transform transition-all duration-300 hover:scale-110 hover:bg-emerald-600 hover:text-white group">
+          <div className="bg-primary text-white shadow-lg rounded-full w-10 h-10 flex items-center justify-center transform transition-all hover:scale-105 active:scale-95">
             <div className="absolute -top-1 -right-1 w-3 h-3 bg-emerald-500 rounded-full animate-pulse-marker"></div>
-            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-5 w-5 text-foreground group-hover:text-white transition-colors">
-              <rect x="4" y="4" width="16" height="16" rx="2" ry="2"></rect>
-              <line x1="4" y1="10" x2="20" y2="10"></line>
-              <line x1="10" y1="4" x2="10" y2="20"></line>
-            </svg>
+            {isOpen ? (
+              <X className="h-5 w-5" />
+            ) : (
+              <User className="h-5 w-5" />
+            )}
           </div>
         )}
       </div>

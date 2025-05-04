@@ -329,7 +329,7 @@ const EarningsContent: React.FC<EarningsContentProps> = ({ userId }) => {
                   <div>
                     <p className="font-medium">{job?.title || 'Job'}</p>
                     <p className="text-sm text-muted-foreground">
-                      {new Date(earning.dateEarned).toLocaleDateString()}
+                      {earning.dateEarned ? new Date(earning.dateEarned.toString()).toLocaleDateString() : 'No date'}
                     </p>
                   </div>
                   <div className="flex items-center">
