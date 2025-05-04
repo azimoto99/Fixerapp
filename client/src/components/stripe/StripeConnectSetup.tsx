@@ -204,13 +204,7 @@ const StripeConnectSetup: React.FC = () => {
         <div className="flex justify-between items-center">
           <CardTitle>Payment Account</CardTitle>
           <Badge 
-            variant={
-              accountStatus.accountStatus === 'active' 
-                ? 'success' 
-                : accountStatus.accountStatus === 'restricted' 
-                  ? 'warning' 
-                  : 'destructive'
-            }
+            variant="outline"
             className={
               accountStatus.accountStatus === 'active' 
                 ? 'bg-green-100 text-green-800 hover:bg-green-100' 

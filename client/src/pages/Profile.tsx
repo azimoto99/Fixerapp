@@ -4,7 +4,7 @@ import { useQuery } from '@tanstack/react-query';
 import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/hooks/use-toast';
 import { apiRequest } from '@/lib/queryClient';
-import { Award, Edit } from 'lucide-react';
+import { Award, Edit, Wallet } from 'lucide-react';
 
 import Header from '@/components/Header';
 import MobileNav from '@/components/MobileNav';
@@ -28,6 +28,9 @@ import {
   BadgesDisplay,
   ProfileEditor
 } from '@/components/profile';
+
+// Import Stripe Connect component
+import StripeConnectSetup from '@/components/stripe/StripeConnectSetup';
 
 export default function Profile() {
   const { user, logoutMutation } = useAuth();
@@ -149,10 +152,16 @@ export default function Profile() {
           {/* Tabs */}
           {!editMode && (
             <Tabs defaultValue="info" onValueChange={setActiveTab} value={activeTab}>
-              <TabsList className="grid grid-cols-4 mb-6">
+              <TabsList className="grid grid-cols-5 mb-6">
                 <TabsTrigger value="info">Information</TabsTrigger>
                 <TabsTrigger value="jobs">
                   {user.accountType === 'poster' ? 'My Jobs' : 'Applications'}
+                </TabsTrigger>
+                <TabsTrigger value="payments">
+                  <span className="flex items-center gap-1">
+                    <Wallet className="h-3.5 w-3.5" />
+                    Payments
+                  </span>
                 </TabsTrigger>
                 <TabsTrigger value="reviews">Reviews</TabsTrigger>
                 <TabsTrigger value="badges">Badges</TabsTrigger>
@@ -265,6 +274,102 @@ export default function Profile() {
                     </div>
                   </CardContent>
                 </Card>
+              </TabsContent>
+              
+              {/* Payments Tab */}
+              <TabsContent value="payments">
+                <div className="space-y-6">
+                  {/* Payment Account Setup Card (for workers) */}
+                  {user.accountType === 'worker' && (
+                    <Card>
+                      <CardHeader>
+                        <CardTitle>Payment Account Setup</CardTitle>
+                        <CardDescription>
+                          Set up your Stripe Connect account to receive payments directly
+                        </CardDescription>
+                      </CardHeader>
+                      <CardContent>
+                        <StripeConnectSetup />
+                      </CardContent>
+                    </Card>
+                  )}
+                  
+                  {/* Payment History Card */}
+                  <Card>
+                    <CardHeader>
+                      <CardTitle>Payment History</CardTitle>
+                      <CardDescription>
+                        {user.accountType === 'worker' 
+                          ? 'View your earnings history' 
+                          : 'View your payment history'}
+                      </CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="space-y-2">
+                        <h3 className="text-sm font-medium text-gray-500 mb-4">Recent Transactions</h3>
+                        
+                        {/* Add some sample payments with future pagination */}
+                        <div className="rounded-md border">
+                          <div className="divide-y">
+                            <div className="flex items-center justify-between p-4">
+                              <div>
+                                <p className="font-medium">No transaction history yet</p>
+                                <p className="text-sm text-gray-500">
+                                  {user.accountType === 'worker'
+                                    ? 'When you receive payments, they will appear here'
+                                    : 'When you make payments, they will appear here'}
+                                </p>
+                              </div>
+                              <Link href="/transaction-history">
+                                <Button variant="ghost" size="sm">
+                                  View All
+                                </Button>
+                              </Link>
+                            </div>
+                          </div>
+                        </div>
+                        
+                        <div className="mt-4 text-center">
+                          <Link href="/transaction-history">
+                            <Button variant="outline" size="sm">
+                              View Complete Transaction History
+                            </Button>
+                          </Link>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                  
+                  {/* Platform Fees Card */}
+                  <Card>
+                    <CardHeader>
+                      <CardTitle>Platform Fees</CardTitle>
+                      <CardDescription>
+                        Information about payment processing and service fees
+                      </CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="space-y-4 text-sm">
+                        <div className="p-4 bg-gray-50 rounded-md">
+                          <p className="font-medium mb-2">Platform Service Fee:</p>
+                          <p>A flat $2.50 service fee is applied to all transactions.</p>
+                        </div>
+                        
+                        <div className="p-4 bg-gray-50 rounded-md">
+                          <p className="font-medium mb-2">Minimum Payment:</p>
+                          <p>The minimum payment amount for any job is $10.00.</p>
+                        </div>
+                        
+                        {user.accountType === 'worker' && (
+                          <div className="p-4 bg-gray-50 rounded-md">
+                            <p className="font-medium mb-2">Direct Deposits:</p>
+                            <p>Payments are transferred directly to your connected Stripe account once the job poster marks the payment as "Paid".</p>
+                          </div>
+                        )}
+                      </div>
+                    </CardContent>
+                  </Card>
+                </div>
               </TabsContent>
               
               {/* Badges Tab */}
