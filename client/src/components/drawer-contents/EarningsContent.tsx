@@ -6,6 +6,7 @@ import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Progress } from '@/components/ui/progress';
 import { Button } from '@/components/ui/button';
+import StripeConnectSetup from '@/components/stripe/StripeConnectSetup';
 import {
   BarChart,
   Bar,
@@ -37,7 +38,8 @@ import {
   Award, 
   Star, 
   Download,
-  CheckCircle2
+  CheckCircle2,
+  CreditCard
 } from 'lucide-react';
 
 interface EarningsContentProps {
