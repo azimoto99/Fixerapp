@@ -64,7 +64,7 @@ const Header = () => {
                   </div>
                 </Link>
                 <Link href="/messages">
-                  <div className={`text-gray-500 hover:text-gray-900 font-medium px-1 py-5 cursor-pointer ${location === '/messages' ? 'text-primary-600 border-b-2 border-primary-600' : ''}`}>
+                  <div className={`text-gray-500 hover:text-gray-900 font-medium px-1 py-5 cursor-pointer ${location === '/messages' ? 'text-emerald-600 border-b-2 border-emerald-600' : ''}`}>
                     Messages
                   </div>
                 </Link>
@@ -106,7 +106,7 @@ const Header = () => {
             </DropdownMenu>
           ) : (
             <Link href="/login">
-              <div className="text-primary-600 hover:text-primary-700 font-medium cursor-pointer">Login</div>
+              <div className="text-emerald-600 hover:text-emerald-700 font-medium cursor-pointer">Login</div>
             </Link>
           )}
         </div>
