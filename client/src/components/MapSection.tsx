@@ -414,12 +414,11 @@ const MapSection: React.FC<MapSectionProps> = ({ jobs, selectedJob, onSelectJob 
               onDrawerStateChange={setIsUserDrawerOpen}
               externalCloseState={forceCloseDrawer}
             >
-              <div className="bg-white shadow-lg rounded-full p-2 cursor-pointer flex items-center transform transition-all duration-300 hover:scale-110 hover:bg-primary hover:text-white group relative">
-                <div className="absolute -top-1 -right-1 w-3 h-3 bg-green-500 rounded-full animate-pulse-marker"></div>
-                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-5 w-5 text-gray-700 group-hover:text-white transition-colors">
-                  <rect x="4" y="4" width="16" height="16" rx="2" ry="2"></rect>
-                  <line x1="4" y1="10" x2="20" y2="10"></line>
-                  <line x1="10" y1="4" x2="10" y2="20"></line>
+              <div className="bg-primary text-white shadow-lg rounded-full w-10 h-10 flex items-center justify-center transform transition-all hover:scale-105 active:scale-95 p-0 relative">
+                <div className="absolute -top-1 -right-1 w-3 h-3 bg-red-500 rounded-full animate-pulse-marker"></div>
+                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"></path>
+                  <circle cx="12" cy="7" r="4"></circle>
                 </svg>
               </div>
             </SimpleUserDrawer>

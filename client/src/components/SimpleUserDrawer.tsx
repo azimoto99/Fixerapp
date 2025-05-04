@@ -108,12 +108,11 @@ const SimpleUserDrawer: React.FC<SimpleUserDrawerProps> = ({
 
       {isOpen && (
         <div 
-          className="fixed inset-0 bg-black bg-opacity-50 z-[99998]"
+          className="fixed inset-0 bg-black bg-opacity-50 z-[99998] animate-in fade-in duration-200"
         >
           <div
             ref={drawerRef}
-            className="fixed top-0 right-0 bottom-0 w-80 bg-background shadow-lg z-[99999] transform transition-transform ease-in-out duration-300"
-            style={{ transform: isOpen ? 'translateX(0)' : 'translateX(100%)' }}
+            className="fixed top-0 right-0 bottom-0 w-80 bg-background shadow-lg z-[99999] transform transition-transform ease-in-out duration-300 animate-in slide-in-from-right"
           >
             <div className="p-4 border-b flex justify-between items-start">
               <div className="flex items-center">
@@ -134,9 +133,13 @@ const SimpleUserDrawer: React.FC<SimpleUserDrawerProps> = ({
                   </div>
                 </div>
               </div>
-              <Button variant="ghost" size="icon" onClick={() => setIsOpen(false)}>
-                <X className="h-5 w-5" />
-              </Button>
+              <button 
+                onClick={() => setIsOpen(false)}
+                className="bg-primary text-white shadow-lg rounded-full w-8 h-8 flex items-center justify-center transform transition-all hover:scale-105 active:scale-95 p-0"
+                aria-label="Close menu"
+              >
+                <X className="h-4 w-4" />
+              </button>
             </div>
             
             <div className="flex h-[calc(100vh-90px)]">

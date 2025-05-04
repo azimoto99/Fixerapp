@@ -93,13 +93,22 @@ const WorkerDashboard = () => {
     if (!showPostedJobs) return null;
     
     return (
-      <div className="absolute top-0 right-0 h-full w-80 bg-card shadow-lg z-[1000] transform transition-transform duration-300">
+      <div className="absolute top-0 right-0 h-full w-80 bg-card shadow-lg z-[1000] transform transition-transform duration-300 animate-in slide-in-from-right">
+        {/* X button in top-right corner - circular with no text */}
+        <button 
+          onClick={togglePostedJobs}
+          className="absolute -left-12 top-4 bg-primary text-white shadow-lg rounded-full w-10 h-10 flex items-center justify-center transform transition-all hover:scale-105 active:scale-95 p-0"
+          aria-label="Close posted jobs panel"
+        >
+          <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <line x1="18" y1="6" x2="6" y2="18"></line>
+            <line x1="6" y1="6" x2="18" y2="18"></line>
+          </svg>
+        </button>
+        
         <div className="px-4 py-3 border-b border-border">
           <div className="flex items-center justify-between">
             <h3 className="text-lg font-medium text-card-foreground">My Posted Jobs</h3>
-            <Button size="sm" variant="ghost" onClick={togglePostedJobs}>
-              <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
-            </Button>
           </div>
         </div>
         
@@ -134,7 +143,7 @@ const WorkerDashboard = () => {
           ) : (
             <div className="text-center py-8">
               <p className="text-muted-foreground mb-4">You haven't posted any jobs yet.</p>
-              <Button asChild>
+              <Button className="bg-primary text-white hover:bg-primary/90" asChild>
                 <a href="/post-job">Post Your First Job</a>
               </Button>
             </div>
@@ -144,20 +153,18 @@ const WorkerDashboard = () => {
     );
   };
   
-  // My Posted Jobs button
+  // My Posted Jobs button - positioned 50px from right
   const PostedJobsButton = () => {
     return (
-      <div className="absolute top-4 right-[calc(4rem+8px)] z-[900]">
+      <div className="absolute top-4 right-[calc(4rem+50px)] z-[900]">
         <Button 
           onClick={togglePostedJobs}
-          variant="circle" 
-          size="circle"
-          className="bg-card text-primary hover:bg-primary hover:text-card transition-colors shadow-md"
+          className="bg-primary text-white shadow-lg rounded-full w-10 h-10 flex items-center justify-center transition-all hover:scale-105 active:scale-95 p-0"
           aria-label="My Posted Jobs"
         >
-          <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M20 5H4a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2Z"></path><path d="M14 2v6"></path><path d="M10 2v6"></path><path d="M3 10h18"></path></svg>
+          <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M20 5H4a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2Z"></path><path d="M14 2v6"></path><path d="M10 2v6"></path><path d="M3 10h18"></path></svg>
           {(postedJobs && postedJobs.length > 0) ? (
-            <span className="absolute -top-1 -right-1 bg-primary text-white rounded-full w-5 h-5 flex items-center justify-center text-xs">
+            <span className="absolute -top-1 -right-1 bg-red-500 text-white rounded-full w-5 h-5 flex items-center justify-center text-xs">
               {postedJobs.length}
             </span>
           ) : null}
