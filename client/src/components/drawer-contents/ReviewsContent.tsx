@@ -18,11 +18,22 @@ const ReviewsContent: React.FC<ReviewsContentProps> = ({ userId }) => {
   const { data: jobs } = useQuery<Job[]>({
     queryKey: ['/api/jobs'],
   });
+
+  const { data: users } = useQuery<User[]>({
+    queryKey: ['/api/users'],
+  });
   
   // Helper function to get job details
   const getJobDetails = (jobId: number | null) => {
     if (!jobId || !jobs) return { title: 'Job' };
     return jobs.find(job => job.id === jobId) || { title: 'Job' };
+  };
+
+  // Helper function to get user name
+  const getUserName = (userId: number | null) => {
+    if (!userId || !users) return 'User';
+    const user = users.find(user => user.id === userId);
+    return user ? user.fullName : 'User';
   };
 
   if (isLoading) {
@@ -106,7 +117,7 @@ const ReviewsContent: React.FC<ReviewsContentProps> = ({ userId }) => {
 
       {/* Reviews list */}
       <div className="space-y-4">
-        {reviews.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+        {reviews.sort((a, b) => new Date(b.dateReviewed || Date.now()).getTime() - new Date(a.dateReviewed || Date.now()).getTime())
           .map((review, index) => {
             const job = getJobDetails(review.jobId);
             return (
@@ -116,7 +127,7 @@ const ReviewsContent: React.FC<ReviewsContentProps> = ({ userId }) => {
                     <div>
                       <CardTitle className="text-base">{job.title}</CardTitle>
                       <p className="text-sm text-muted-foreground">
-                        {new Date(review.createdAt).toLocaleDateString()}
+                        {new Date(review.dateReviewed || Date.now()).toLocaleDateString()}
                       </p>
                     </div>
                     <div className="flex">
@@ -139,10 +150,10 @@ const ReviewsContent: React.FC<ReviewsContentProps> = ({ userId }) => {
                       <div className="flex items-center">
                         <Avatar className="h-8 w-8 mr-2">
                           <AvatarFallback className="bg-primary/10 text-primary text-xs">
-                            {review.reviewerName?.substring(0, 2) || 'CL'}
+                            {getUserName(review.reviewerId)?.substring(0, 2) || 'CL'}
                           </AvatarFallback>
                         </Avatar>
-                        <span className="text-sm font-medium">{review.reviewerName || 'Client'}</span>
+                        <span className="text-sm font-medium">{getUserName(review.reviewerId) || 'Client'}</span>
                       </div>
                       
                       <div className="flex items-center space-x-2 text-muted-foreground">

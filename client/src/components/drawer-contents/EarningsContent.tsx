@@ -125,36 +125,38 @@ const EarningsContent: React.FC<EarningsContentProps> = ({ userId }) => {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <h2 className="text-xl font-semibold">Earnings Dashboard</h2>
-        <TabsList>
-          <TabsTrigger 
-            value="week" 
-            onClick={() => setTimeframe('week')}
-            className={timeframe === 'week' ? 'bg-primary text-white' : ''}
-          >
-            Week
-          </TabsTrigger>
-          <TabsTrigger 
-            value="month"
-            onClick={() => setTimeframe('month')}
-            className={timeframe === 'month' ? 'bg-primary text-white' : ''}
-          >
-            Month
-          </TabsTrigger>
-          <TabsTrigger 
-            value="year"
-            onClick={() => setTimeframe('year')}
-            className={timeframe === 'year' ? 'bg-primary text-white' : ''}
-          >
-            Year
-          </TabsTrigger>
-          <TabsTrigger 
-            value="all"
-            onClick={() => setTimeframe('all')}
-            className={timeframe === 'all' ? 'bg-primary text-white' : ''}
-          >
-            All
-          </TabsTrigger>
-        </TabsList>
+        <Tabs defaultValue="all" className="w-auto">
+          <TabsList>
+            <TabsTrigger 
+              value="week" 
+              onClick={() => setTimeframe('week')}
+              className={timeframe === 'week' ? 'bg-primary text-white' : ''}
+            >
+              Week
+            </TabsTrigger>
+            <TabsTrigger 
+              value="month"
+              onClick={() => setTimeframe('month')}
+              className={timeframe === 'month' ? 'bg-primary text-white' : ''}
+            >
+              Month
+            </TabsTrigger>
+            <TabsTrigger 
+              value="year"
+              onClick={() => setTimeframe('year')}
+              className={timeframe === 'year' ? 'bg-primary text-white' : ''}
+            >
+              Year
+            </TabsTrigger>
+            <TabsTrigger 
+              value="all"
+              onClick={() => setTimeframe('all')}
+              className={timeframe === 'all' ? 'bg-primary text-white' : ''}
+            >
+              All
+            </TabsTrigger>
+          </TabsList>
+        </Tabs>
       </div>
 
       <div className="grid grid-cols-2 gap-4">
