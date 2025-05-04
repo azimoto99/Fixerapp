@@ -77,8 +77,8 @@ const WorkerDashboard = () => {
           </div>
         </div>
         
-        {/* Find Nearest Job Button - positioned at bottom right */}
-        <div className="absolute top-20 right-4 z-[1001]">
+        {/* Find Nearest Job Button - positioned at bottom left corner */}
+        <div className="absolute bottom-24 left-4 z-[1001]">
           <FindNearestJobButton />
         </div>
       </div>
