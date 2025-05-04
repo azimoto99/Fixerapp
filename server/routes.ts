@@ -67,24 +67,86 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ message: "User not found" });
       }
       
-      // Update the user with the selected account type
-      const updatedUser = await storage.updateUser(userId, { accountType });
+      let accountUser = user;
       
-      if (!updatedUser) {
-        return res.status(500).json({ message: "Failed to update user" });
+      // Check if the user already has this account type
+      if (user.accountType === accountType) {
+        // Already has this account type, just return the user
+        console.log(`User ${userId} already has account type ${accountType}`);
+      } 
+      // If user has pending account type, update it
+      else if (user.accountType === 'pending') {
+        try {
+          // Update the user with the selected account type
+          const updatedUser = await storage.updateUser(userId, { accountType });
+          
+          if (!updatedUser) {
+            return res.status(500).json({ message: "Failed to update user" });
+          }
+          
+          accountUser = updatedUser;
+        } catch (error) {
+          console.error("Error updating account type:", error);
+          return res.status(500).json({ message: "Failed to update account type" });
+        }
+      } 
+      // Otherwise, create a new user with this account type (dual account)
+      else {
+        try {
+          // Create a new user with the selected account type
+          const newUsername = `${user.username}_${accountType}`;
+          
+          // Check if username already exists
+          const existingUser = await storage.getUserByUsername(newUsername);
+          if (existingUser) {
+            // User already has both account types, use the existing one
+            accountUser = existingUser;
+          } else {
+            // Create a new user with the new account type
+            const newUser = await storage.createUser({
+              username: newUsername,
+              password: user.password, // Same password as original account
+              email: user.email,
+              fullName: user.fullName,
+              accountType,
+              phone: user.phone || undefined,
+              bio: user.bio || undefined,
+              avatarUrl: user.avatarUrl || undefined,
+              skills: user.skills || [],
+              googleId: user.googleId || undefined,
+              facebookId: user.facebookId || undefined,
+              isActive: true
+            });
+            
+            accountUser = newUser;
+          }
+        } catch (error) {
+          console.error("Error creating dual account:", error);
+          return res.status(500).json({ message: "Failed to create dual account" });
+        }
       }
       
       // If a user is not currently logged in, log them in
       if (!req.isAuthenticated()) {
         // Log the user in
-        req.login(updatedUser, (err) => {
+        req.login(accountUser, (err) => {
           if (err) {
             return res.status(500).json({ message: "Failed to log in user" });
           }
-          return res.status(200).json(updatedUser);
+          return res.status(200).json(accountUser);
         });
       } else {
-        return res.status(200).json(updatedUser);
+        // Update session user
+        if (req.user?.id !== accountUser.id) {
+          req.login(accountUser, (err) => {
+            if (err) {
+              return res.status(500).json({ message: "Failed to update user session" });
+            }
+            return res.status(200).json(accountUser);
+          });
+        } else {
+          return res.status(200).json(accountUser);
+        }
       }
     } catch (error) {
       console.error("Error setting account type:", error);
