@@ -15,6 +15,9 @@ import {
 import 'leaflet/dist/leaflet.css';
 import { LatLngExpression } from 'leaflet';
 import { Loader2 } from 'lucide-react';
+import { useAuth } from '@/hooks/use-auth';
+import { useToast } from '@/hooks/use-toast';
+import { apiRequest } from '@/lib/queryClient';
 
 interface MapSectionProps {
   jobs: Job[];
@@ -40,6 +43,9 @@ const MapSection: React.FC<MapSectionProps> = ({ jobs, selectedJob, onSelectJob 
   const { userLocation, locationError, isUsingFallback } = useGeolocation();
   const [showJobDetail, setShowJobDetail] = useState<boolean>(false);
   const [mapReady, setMapReady] = useState(false);
+  const [isApplying, setIsApplying] = useState(false);
+  const { user } = useAuth();
+  const { toast } = useToast();
   
   // Convert user location to leaflet format
   const position: LatLngExpression | null = userLocation 
@@ -214,12 +220,39 @@ const MapSection: React.FC<MapSectionProps> = ({ jobs, selectedJob, onSelectJob 
         
         {/* Bottom card for job details - DoorDash-style slide-up panel */}
         {showJobDetail && selectedJob && (
-          <div className="absolute bottom-0 left-0 right-0 z-[1000] max-h-[50%] overflow-y-auto 
-                          bg-white rounded-t-xl shadow-lg animate-slide-up">
-            <div className="flex justify-center py-2">
-              <div className="w-10 h-1 bg-gray-300 rounded-full"></div>
+          <div className="absolute bottom-0 left-0 right-0 z-[1000] max-h-[70%] overflow-y-auto 
+                          bg-white rounded-t-xl shadow-xl animate-slide-up">
+            <div className="sticky top-0 bg-white pt-2 pb-1 px-4 border-b">
+              <div className="flex justify-center pb-1">
+                <div className="w-10 h-1 bg-gray-300 rounded-full"></div>
+              </div>
+              <div className="flex justify-between items-center">
+                <h3 className="text-lg font-bold">${selectedJob.paymentAmount}</h3>
+                <button 
+                  onClick={handleCloseDetail}
+                  className="p-1 rounded-full hover:bg-gray-100"
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-5 h-5">
+                    <line x1="18" y1="6" x2="6" y2="18"></line>
+                    <line x1="6" y1="6" x2="18" y2="18"></line>
+                  </svg>
+                </button>
+              </div>
             </div>
             <JobDetail job={selectedJob} onClose={handleCloseDetail} />
+            
+            {/* Apply button fixed at bottom */}
+            <div className="sticky bottom-0 left-0 right-0 bg-white p-4 border-t">
+              <button 
+                className="w-full py-3 px-4 rounded-full bg-primary hover:bg-primary/90 text-white font-medium flex items-center justify-center"
+              >
+                <span>Apply for this Job</span>
+                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-5 h-5 ml-2">
+                  <path d="M5 12h14"></path>
+                  <path d="m12 5 7 7-7 7"></path>
+                </svg>
+              </button>
+            </div>
           </div>
         )}
       </div>
