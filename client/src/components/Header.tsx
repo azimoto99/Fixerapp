@@ -23,16 +23,16 @@ const Header = () => {
         <div className="flex items-center">
           <Link href="/">
             <div className="flex-shrink-0 flex items-center cursor-pointer">
-              <svg className="h-8 w-8 text-primary-600" viewBox="0 0 24 24" fill="currentColor">
+              <svg className="h-8 w-8 text-emerald-600" viewBox="0 0 24 24" fill="currentColor">
                 <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"></path>
               </svg>
-              <span className="ml-2 text-xl font-bold text-primary-600">The Job</span>
+              <span className="ml-2 text-xl font-bold text-emerald-600">The Job</span>
             </div>
           </Link>
           <nav className="hidden md:ml-8 md:flex md:space-x-8">
             {/* Links for all users */}
             <Link href="/">
-              <div className={`text-gray-500 hover:text-gray-900 font-medium px-1 py-5 cursor-pointer ${location === '/' ? 'text-primary-600 border-b-2 border-primary-600' : ''}`}>
+              <div className={`text-gray-500 hover:text-gray-900 font-medium px-1 py-5 cursor-pointer ${location === '/' ? 'text-emerald-600 border-b-2 border-emerald-600' : ''}`}>
                 {user?.accountType === 'worker' ? 'Find Jobs' : 'Browse Workers'}
               </div>
             </Link>
@@ -40,7 +40,7 @@ const Header = () => {
             {/* Links for posters only */}
             {(!user || user.accountType === 'poster') && (
               <Link href="/post-job">
-                <div className={`text-gray-500 hover:text-gray-900 font-medium px-1 py-5 cursor-pointer ${location === '/post-job' ? 'text-primary-600 border-b-2 border-primary-600' : ''}`}>
+                <div className={`text-gray-500 hover:text-gray-900 font-medium px-1 py-5 cursor-pointer ${location === '/post-job' ? 'text-emerald-600 border-b-2 border-emerald-600' : ''}`}>
                   Post a Job
                 </div>
               </Link>
@@ -49,7 +49,7 @@ const Header = () => {
             {/* Links for workers only */}
             {user?.accountType === 'worker' && (
               <Link href="/applications">
-                <div className={`text-gray-500 hover:text-gray-900 font-medium px-1 py-5 cursor-pointer ${location === '/applications' ? 'text-primary-600 border-b-2 border-primary-600' : ''}`}>
+                <div className={`text-gray-500 hover:text-gray-900 font-medium px-1 py-5 cursor-pointer ${location === '/applications' ? 'text-emerald-600 border-b-2 border-emerald-600' : ''}`}>
                   My Applications
                 </div>
               </Link>
@@ -59,7 +59,7 @@ const Header = () => {
             {user && (
               <>
                 <Link href={user.accountType === 'poster' ? '/my-jobs' : '/saved-jobs'}>
-                  <div className={`text-gray-500 hover:text-gray-900 font-medium px-1 py-5 cursor-pointer ${location === (user.accountType === 'poster' ? '/my-jobs' : '/saved-jobs') ? 'text-primary-600 border-b-2 border-primary-600' : ''}`}>
+                  <div className={`text-gray-500 hover:text-gray-900 font-medium px-1 py-5 cursor-pointer ${location === (user.accountType === 'poster' ? '/my-jobs' : '/saved-jobs') ? 'text-emerald-600 border-b-2 border-emerald-600' : ''}`}>
                     {user.accountType === 'poster' ? 'My Jobs' : 'Saved Jobs'}
                   </div>
                 </Link>
