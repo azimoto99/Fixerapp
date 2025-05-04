@@ -12,7 +12,8 @@ import {
   Settings, 
   LogOut, 
   Star as StarIcon, 
-  BarChart2
+  BarChart2,
+  HelpCircle
 } from "lucide-react";
 import { useAuth } from '@/hooks/use-auth';
 import { cn } from '@/lib/utils';
@@ -21,6 +22,7 @@ import ProfileContent from './drawer-contents/ProfileContent';
 import EarningsContent from './drawer-contents/EarningsContent';
 import ReviewsContent from './drawer-contents/ReviewsContent';
 import SettingsContent from './drawer-contents/SettingsContent';
+import FAQContent from './drawer-contents/FAQContent';
 
 interface UserDrawerProps {
   children?: React.ReactNode;
@@ -48,6 +50,8 @@ const UserDrawer: React.FC<UserDrawerProps> = ({ children }) => {
         return <ReviewsContent userId={user.id} />;
       case "settings":
         return <SettingsContent user={user} />;
+      case "faq":
+        return <FAQContent />;
       default:
         return <ProfileContent user={user} />;
     }
@@ -143,6 +147,19 @@ const UserDrawer: React.FC<UserDrawerProps> = ({ children }) => {
               >
                 <Settings className="h-5 w-5 mb-1" />
                 <span className="text-xs">Settings</span>
+              </button>
+              
+              <button 
+                onClick={() => setActiveTab("faq")}
+                className={cn(
+                  "flex flex-col items-center justify-center w-16 h-16 rounded-lg",
+                  activeTab === "faq" 
+                    ? "bg-primary/10 text-primary" 
+                    : "hover:bg-primary/5 text-gray-600"
+                )}
+              >
+                <HelpCircle className="h-5 w-5 mb-1" />
+                <span className="text-xs">FAQ</span>
               </button>
               
               <Button 
