@@ -11,6 +11,7 @@ import { useGeolocation } from '@/lib/geolocation';
 
 import Header from '@/components/Header';
 import PaymentDetailsForm from '@/components/PaymentDetailsForm';
+import AddressAutocomplete from '@/components/AddressAutocomplete';
 import { Button } from '@/components/ui/button';
 import {
   Form,
@@ -367,7 +368,7 @@ export default function PostJob() {
                   )}
                 </div>
                 
-                {/* Location */}
+                {/* Location with Autocomplete */}
                 <FormField
                   control={form.control}
                   name="location"
@@ -375,8 +376,25 @@ export default function PostJob() {
                     <FormItem>
                       <FormLabel>Location</FormLabel>
                       <FormControl>
-                        <Input placeholder="Address or location description" {...field} />
+                        <AddressAutocomplete 
+                          placeholder="Enter job address or location" 
+                          value={field.value}
+                          onChange={(value) => {
+                            field.onChange(value);
+                          }}
+                          onLocationSelect={(result) => {
+                            if (result.success) {
+                              // Update the coordinates in the form data
+                              form.setValue("latitude", result.latitude);
+                              form.setValue("longitude", result.longitude);
+                              console.log("Updated coordinates:", result.latitude, result.longitude);
+                            }
+                          }}
+                        />
                       </FormControl>
+                      <FormDescription>
+                        Start typing to see address suggestions
+                      </FormDescription>
                       <FormMessage />
                     </FormItem>
                   )}
