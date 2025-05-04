@@ -61,6 +61,9 @@ const JobDetail: React.FC<JobDetailProps> = ({ job, distance = 0.5, onClose }) =
   // Determine if job is completed
   const isJobCompleted = status === 'completed';
   
+  // Determine if job can be canceled (no worker assigned yet or still in open status)
+  const isJobCancelable = status === 'open' || (status === 'assigned' && !job.workerId);
+  
   // Check if the current user has already reviewed this job
   const { data: hasReviewed } = useQuery({
     queryKey: ['/api/reviews/job', job.id, 'user-has-reviewed', user?.id],
@@ -176,6 +179,37 @@ const JobDetail: React.FC<JobDetailProps> = ({ job, distance = 0.5, onClose }) =
     onError: (error: Error) => {
       console.error("Error creating earning record:", error);
       // We don't show this error to the user since the job was already marked complete
+    }
+  });
+  
+  // Cancel job mutation
+  const cancelJobMutation = useMutation({
+    mutationFn: async () => {
+      const res = await apiRequest('PATCH', `/api/jobs/${jobId}`, {
+        status: 'canceled'
+      });
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: [`/api/jobs/${jobId}`] });
+      queryClient.invalidateQueries({ queryKey: ['/api/jobs'] });
+      
+      toast({
+        title: "Job Canceled",
+        description: "The job has been canceled successfully.",
+      });
+      
+      // Close the job detail view if there's a close function
+      if (onClose) {
+        onClose();
+      }
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Error Canceling Job",
+        description: error.message,
+        variant: "destructive",
+      });
     }
   });
 
@@ -331,6 +365,50 @@ const JobDetail: React.FC<JobDetailProps> = ({ job, distance = 0.5, onClose }) =
                       setShowReviewForm(true);
                     }}
                   />
+                </div>
+              )}
+              
+              {/* Cancel Job button for job poster */}
+              {isJobPoster && isJobCancelable && (
+                <div className="mb-4">
+                  <AlertDialog>
+                    <AlertDialogTrigger asChild>
+                      <Button 
+                        className="w-full"
+                        variant="destructive"
+                      >
+                        <X className="h-4 w-4 mr-2" />
+                        Cancel Job
+                      </Button>
+                    </AlertDialogTrigger>
+                    <AlertDialogContent>
+                      <AlertDialogHeader>
+                        <AlertDialogTitle>Cancel Job</AlertDialogTitle>
+                        <AlertDialogDescription>
+                          Are you sure you want to cancel this job? This action cannot be undone.
+                          {!job.workerId 
+                            ? " Since no worker has been assigned yet, you can cancel without penalty."
+                            : " This will notify the assigned worker."}
+                        </AlertDialogDescription>
+                      </AlertDialogHeader>
+                      <AlertDialogFooter>
+                        <AlertDialogCancel>Keep Job</AlertDialogCancel>
+                        <AlertDialogAction
+                          onClick={() => cancelJobMutation.mutate()}
+                          disabled={cancelJobMutation.isPending}
+                        >
+                          {cancelJobMutation.isPending ? (
+                            <>
+                              <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                              Canceling...
+                            </>
+                          ) : (
+                            "Yes, Cancel Job"
+                          )}
+                        </AlertDialogAction>
+                      </AlertDialogFooter>
+                    </AlertDialogContent>
+                  </AlertDialog>
                 </div>
               )}
               
