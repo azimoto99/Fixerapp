@@ -84,8 +84,13 @@ const TransactionHistory: React.FC = () => {
         return matchesSearch && matchesStatus;
       })
       .sort((a: Payment, b: Payment) => {
-        const dateA = a.createdAt ? new Date(a.createdAt).getTime() : 0;
-        const dateB = b.createdAt ? new Date(b.createdAt).getTime() : 0;
+        // Handle both string and Date formats safely
+        const getTime = (date: Date | string | null) => {
+          if (!date) return 0;
+          return typeof date === 'string' ? new Date(date).getTime() : date.getTime();
+        };
+        const dateA = getTime(a.createdAt);
+        const dateB = getTime(b.createdAt);
         return dateSort === 'desc' ? dateB - dateA : dateA - dateB;
       });
   }, [payments, searchTerm, statusFilter, dateSort]);
@@ -217,7 +222,7 @@ const TransactionHistory: React.FC = () => {
                           <TableCell>
                             <div className="flex items-center">
                               <Calendar className="h-4 w-4 mr-1 text-muted-foreground" />
-                              <span>{payment.createdAt ? formatDate(new Date(payment.createdAt)) : 'N/A'}</span>
+                              <span>{payment.createdAt ? formatDate(payment.createdAt) : 'N/A'}</span>
                             </div>
                           </TableCell>
                           <TableCell>{payment.description || 'Payment for services'}</TableCell>
@@ -360,7 +365,7 @@ const TransactionHistory: React.FC = () => {
                           <TableCell>
                             <div className="flex items-center">
                               <Calendar className="h-4 w-4 mr-1 text-muted-foreground" />
-                              <span>{earning.dateEarned ? formatDate(new Date(earning.dateEarned)) : 'N/A'}</span>
+                              <span>{earning.dateEarned ? formatDate(earning.dateEarned) : 'N/A'}</span>
                             </div>
                           </TableCell>
                           <TableCell className="text-right">
