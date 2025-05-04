@@ -2,12 +2,13 @@ import React, { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { apiRequest } from '@/lib/queryClient';
 import { useAuth } from '@/hooks/use-auth';
+import { Link, useLocation } from 'wouter';
 import { formatCurrency, formatDate } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
-import { Loader2, Download, FileText, CreditCard, Calendar, ReceiptIcon, Filter, Search, ArrowRight, DollarSign, Clock } from 'lucide-react';
+import { Loader2, Download, FileText, CreditCard, Calendar, ReceiptIcon, Filter, Search, ArrowRight, DollarSign, Clock, ArrowLeft, ChevronLeft } from 'lucide-react';
 import { Payment, Earning, Job } from '@shared/schema';
 import DownloadReceipt from '@/components/DownloadReceipt';
 import { Input } from '@/components/ui/input';
@@ -116,7 +117,15 @@ const TransactionHistory: React.FC = () => {
 
   return (
     <div className="container mx-auto p-6 max-w-4xl">
-      <h1 className="text-2xl font-bold mb-6">Transaction History</h1>
+      <div className="flex items-center mb-6">
+        <Link to="/profile" className="mr-3">
+          <Button variant="ghost" size="sm" className="text-gray-500 hover:text-gray-700">
+            <ChevronLeft className="h-4 w-4 mr-1" />
+            Back to Profile
+          </Button>
+        </Link>
+        <h1 className="text-2xl font-bold">Transaction History</h1>
+      </div>
 
       <Tabs defaultValue="payments" className="w-full">
         <TabsList className="mb-6">
