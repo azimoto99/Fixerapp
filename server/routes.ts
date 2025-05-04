@@ -24,7 +24,7 @@ const locationParamsSchema = z.object({
 
 // Check if user is authenticated middleware
 function isAuthenticated(req: Request, res: Response, next: Function) {
-  if (req.isAuthenticated()) {
+  if (req.isAuthenticated() && req.user) {
     return next();
   }
   res.status(401).json({ message: "Unauthorized" });
