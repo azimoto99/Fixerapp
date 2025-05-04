@@ -36,7 +36,11 @@ export interface IStorage {
   getUserByUsername(username: string): Promise<User | undefined>;
   getUserByUsernameAndType(username: string, accountType: string): Promise<User | undefined>;
   createUser(user: InsertUser): Promise<User>;
-  updateUser(id: number, data: Partial<InsertUser>): Promise<User | undefined>;
+  updateUser(id: number, data: Partial<InsertUser> & { 
+    stripeConnectAccountId?: string, 
+    stripeConnectAccountStatus?: string,
+    stripeCustomerId?: string 
+  }): Promise<User | undefined>;
   uploadProfileImage(userId: number, imageData: string): Promise<User | undefined>;
   updateUserSkills(userId: number, skills: string[]): Promise<User | undefined>;
   verifyUserSkill(userId: number, skill: string, isVerified: boolean): Promise<User | undefined>;
@@ -225,7 +229,11 @@ export class MemStorage implements IStorage {
     return user;
   }
 
-  async updateUser(id: number, data: Partial<InsertUser>): Promise<User | undefined> {
+  async updateUser(id: number, data: Partial<InsertUser> & { 
+    stripeConnectAccountId?: string, 
+    stripeConnectAccountStatus?: string,
+    stripeCustomerId?: string 
+  }): Promise<User | undefined> {
     const user = this.users.get(id);
     if (!user) return undefined;
     
