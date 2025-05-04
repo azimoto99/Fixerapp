@@ -64,6 +64,54 @@ const MapSection: React.FC<MapSectionProps> = ({ jobs, selectedJob, onSelectJob 
   const handleCloseDetail = () => {
     setShowJobDetail(false);
   };
+  
+  // Handle job application
+  const handleApply = async () => {
+    if (!selectedJob) return;
+    
+    if (!user) {
+      toast({
+        title: "Login Required",
+        description: "Please login to apply for this job",
+        variant: "destructive"
+      });
+      return;
+    }
+    
+    if (user.accountType !== 'worker') {
+      toast({
+        title: "Worker Account Required",
+        description: "You need a worker account to apply for jobs",
+        variant: "destructive"
+      });
+      return;
+    }
+    
+    try {
+      setIsApplying(true);
+      await apiRequest('POST', '/api/applications', {
+        jobId: selectedJob.id,
+        workerId: user.id,
+        message: "I'm interested in this job!"
+      });
+      
+      toast({
+        title: "Application Submitted",
+        description: "Your application has been submitted successfully"
+      });
+      
+      // Close the job detail panel after successful application
+      handleCloseDetail();
+    } catch (error) {
+      toast({
+        title: "Application Failed",
+        description: "There was an error submitting your application. Please try again.",
+        variant: "destructive"
+      });
+    } finally {
+      setIsApplying(false);
+    }
+  };
 
   useEffect(() => {
     setShowJobDetail(!!selectedJob);
@@ -244,13 +292,24 @@ const MapSection: React.FC<MapSectionProps> = ({ jobs, selectedJob, onSelectJob 
             {/* Apply button fixed at bottom */}
             <div className="sticky bottom-0 left-0 right-0 bg-white p-4 border-t">
               <button 
-                className="w-full py-3 px-4 rounded-full bg-primary hover:bg-primary/90 text-white font-medium flex items-center justify-center"
+                onClick={handleApply}
+                disabled={isApplying}
+                className="w-full py-3 px-4 rounded-full bg-primary hover:bg-primary/90 text-white font-medium flex items-center justify-center disabled:opacity-70 disabled:cursor-not-allowed"
               >
-                <span>Apply for this Job</span>
-                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-5 h-5 ml-2">
-                  <path d="M5 12h14"></path>
-                  <path d="m12 5 7 7-7 7"></path>
-                </svg>
+                {isApplying ? (
+                  <>
+                    <Loader2 className="w-5 h-5 mr-2 animate-spin" />
+                    <span>Applying...</span>
+                  </>
+                ) : (
+                  <>
+                    <span>Apply for this Job</span>
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-5 h-5 ml-2">
+                      <path d="M5 12h14"></path>
+                      <path d="m12 5 7 7-7 7"></path>
+                    </svg>
+                  </>
+                )}
               </button>
             </div>
           </div>
