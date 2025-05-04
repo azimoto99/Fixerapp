@@ -20,8 +20,10 @@ export const users = pgTable("users", {
   // Social login fields
   googleId: text("google_id"), // Google OAuth ID
   facebookId: text("facebook_id"), // Facebook OAuth ID
-  // Note: These fields don't exist in the DB yet but are added to the type
-  // We'll handle them in code until we can properly migrate the database
+  // Payment integration fields
+  stripeCustomerId: text("stripe_customer_id"), // Stripe Customer ID for payments
+  stripeConnectAccountId: text("stripe_connect_account_id"), // Stripe Connect account for receiving payments
+  stripeConnectAccountStatus: text("stripe_connect_account_status"), // Status of Connect account
 }, (table) => {
   // Create a unique constraint on the combination of email and accountType
   // This allows the same email to have multiple accounts with different types
@@ -196,24 +198,18 @@ export const insertUserBadgeSchema = createInsertSchema(userBadges).omit({
 
 // Types
 export type User = typeof users.$inferSelect & {
-  requiresProfileCompletion?: boolean | null; // Not in DB
-  needsAccountType?: boolean | null; // Not in DB
-  skillsVerified?: Record<string, boolean>; // Not in DB
-  completedJobs?: number; // Not in DB
-  successRate?: number; // Not in DB
-  responseTime?: number; // Not in DB
-  badgeIds?: string[]; // Not in DB
-  stripeCustomerId?: string | null; // Not in DB
-  stripeConnectAccountId?: string | null; // Not in DB
-  stripeConnectAccountStatus?: string | null; // Not in DB - 'pending', 'active', 'incomplete', 'disabled', 'deauthorized'
+  requiresProfileCompletion?: boolean | null; // Virtual field, not in DB
+  needsAccountType?: boolean | null; // Virtual field, not in DB
+  skillsVerified?: Record<string, boolean>; // Virtual field, not in DB
+  completedJobs?: number; // Virtual field, not in DB
+  successRate?: number; // Virtual field, not in DB
+  responseTime?: number; // Virtual field, not in DB
+  badgeIds?: string[]; // Virtual field, not in DB
 };
 export type InsertUser = z.infer<typeof insertUserSchema> & {
-  requiresProfileCompletion?: boolean | null; // Not in DB
-  needsAccountType?: boolean | null; // Not in DB
-  skillsVerified?: Record<string, boolean>; // Not in DB
-  stripeConnectAccountId?: string | null; // Not in DB
-  stripeCustomerId?: string | null; // Not in DB
-  stripeConnectAccountStatus?: string | null; // Not in DB
+  requiresProfileCompletion?: boolean | null; // Virtual field, not in DB
+  needsAccountType?: boolean | null; // Virtual field, not in DB
+  skillsVerified?: Record<string, boolean>; // Virtual field, not in DB
 };
 
 export type Job = typeof jobs.$inferSelect;
