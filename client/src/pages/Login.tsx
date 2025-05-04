@@ -57,18 +57,7 @@ export default function Login({ onModeChange }: LoginProps) {
     });
   }
 
-  // Sample login functionality
-  const handleDemoLogin = (accountType: 'worker' | 'poster') => {
-    // Hardcoded demo credentials
-    const username = accountType === 'worker' ? 'worker1' : 'poster1';
-    
-    form.setValue('username', username);
-    form.setValue('password', 'password123');
-    form.setValue('accountType', accountType);
-    
-    // Submit the form
-    form.handleSubmit(onSubmit)();
-  };
+
 
   return (
     <div className="w-full max-w-md">
@@ -195,37 +184,7 @@ export default function Login({ onModeChange }: LoginProps) {
               </Button>
             </div>
             
-            <div className="mt-4">
-              <div className="relative">
-                <div className="absolute inset-0 flex items-center">
-                  <span className="w-full border-t border-gray-300" />
-                </div>
-                <div className="relative flex justify-center text-xs uppercase">
-                  <span className="bg-white px-2 text-gray-500">Or try a demo account</span>
-                </div>
-              </div>
-              
-              <div className="grid grid-cols-2 gap-3 mt-4">
-                <Button 
-                  type="button" 
-                  variant="outline" 
-                  onClick={() => handleDemoLogin('worker')}
-                  disabled={loginMutation.isPending}
-                >
-                  <i className="ri-user-line mr-2"></i>
-                  Demo Worker
-                </Button>
-                <Button 
-                  type="button" 
-                  variant="outline" 
-                  onClick={() => handleDemoLogin('poster')}
-                  disabled={loginMutation.isPending}
-                >
-                  <i className="ri-briefcase-line mr-2"></i>
-                  Demo Poster
-                </Button>
-              </div>
-            </div>
+
           </div>
         </CardContent>
         <CardFooter className="flex justify-center">
