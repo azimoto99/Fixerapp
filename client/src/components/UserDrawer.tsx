@@ -63,7 +63,7 @@ const UserDrawer: React.FC<UserDrawerProps> = ({ children }) => {
           </Button>
         )}
       </SheetTrigger>
-      <SheetContent side="left" className="p-0 overflow-hidden">
+      <SheetContent side="right" className="p-0 overflow-hidden">
         <SheetHeader className="p-4 border-b">
           <SheetTitle className="flex items-center">
             <div className="w-10 h-10 bg-primary/10 text-primary rounded-full flex items-center justify-center mr-3">
@@ -73,7 +73,7 @@ const UserDrawer: React.FC<UserDrawerProps> = ({ children }) => {
               <div className="font-bold text-lg">{user.fullName}</div>
               <div className="text-sm text-muted-foreground flex items-center">
                 <span className="capitalize">{user.accountType}</span>
-                {user.rating > 0 && (
+                {user.rating && user.rating > 0 && (
                   <span className="flex items-center ml-2">
                     •
                     <StarIcon className="h-3 w-3 text-yellow-500 ml-2 mr-1 inline" />
