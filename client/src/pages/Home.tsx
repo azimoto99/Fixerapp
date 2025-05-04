@@ -75,7 +75,7 @@ const WorkerDashboard = () => {
     if (!showPostedJobs) return null;
     
     return (
-      <div className="absolute top-0 right-0 h-full w-80 bg-white shadow-lg z-[600] transform transition-transform duration-300">
+      <div className="absolute top-0 right-0 h-full w-80 bg-white shadow-lg z-[1000] transform transition-transform duration-300">
         <div className="px-4 py-3 border-b border-gray-200">
           <div className="flex items-center justify-between">
             <h3 className="text-lg font-medium">My Posted Jobs</h3>
@@ -129,7 +129,7 @@ const WorkerDashboard = () => {
   // My Posted Jobs button
   const PostedJobsButton = () => {
     return (
-      <div className="absolute top-4 right-[calc(4rem+8px)] z-[500]">
+      <div className="absolute top-4 right-[calc(4rem+8px)] z-[900]">
         <Button 
           onClick={togglePostedJobs}
           variant="circle" 
