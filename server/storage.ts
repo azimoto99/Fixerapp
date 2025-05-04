@@ -122,7 +122,7 @@ export class MemStorage implements IStorage {
     this.earningIdCounter = 1;
     this.paymentIdCounter = 1;
     
-    // No sample data in production
+    // No sample data - never initialize any sample data
   }
 
   // Helper function to calculate distance between two points in miles
@@ -138,121 +138,7 @@ export class MemStorage implements IStorage {
     return R * c;
   }
 
-  // Initialize with sample data 
-  private initializeSampleData() {
-    // Sample users
-    this.createUser({
-      username: "worker1",
-      password: "password123",
-      fullName: "Worker One",
-      email: "worker1@example.com",
-      accountType: "worker",
-      skills: ["Cleaning", "Organization", "Driving"],
-      bio: "Experienced in cleaning and organization",
-      avatarUrl: "https://randomuser.me/api/portraits/men/1.jpg",
-      phone: "555-123-4567",
-      isActive: true,
-    });
-    
-    this.createUser({
-      username: "poster1",
-      password: "password123",
-      fullName: "Job Poster One",
-      email: "poster1@example.com",
-      accountType: "poster",
-      skills: [],
-      bio: "Looking for help with various tasks",
-      avatarUrl: "https://randomuser.me/api/portraits/women/1.jpg",
-      phone: "555-987-6543",
-      isActive: true,
-    });
-
-    // Sample jobs
-    const sampleLocation = {
-      latitude: 37.7749,
-      longitude: -122.4194
-    };
-
-    this.createJob({
-      title: "Lawn Mowing Service",
-      description: "Need help mowing my large backyard lawn. Equipment provided.",
-      category: "Home Maintenance",
-      posterId: 2,
-      status: "open",
-      paymentType: "hourly",
-      paymentAmount: 35,
-      location: "123 Main St",
-      latitude: sampleLocation.latitude + 0.01,
-      longitude: sampleLocation.longitude - 0.01,
-      dateNeeded: new Date(Date.now() + 86400000), // Tomorrow
-      requiredSkills: ["Gardening"],
-      equipmentProvided: true
-    });
-    
-    this.createJob({
-      title: "Package Delivery (5 items)",
-      description: "Need help delivering 5 small packages to addresses in the neighborhood.",
-      category: "Delivery",
-      posterId: 2,
-      status: "open",
-      paymentType: "fixed",
-      paymentAmount: 50,
-      location: "456 Oak St",
-      latitude: sampleLocation.latitude - 0.015,
-      longitude: sampleLocation.longitude + 0.02,
-      dateNeeded: new Date(Date.now() + 172800000), // 2 days from now
-      requiredSkills: ["Driving"],
-      equipmentProvided: false
-    });
-
-    this.createJob({
-      title: "WiFi Setup Assistance",
-      description: "Need help setting up a new WiFi router and connecting devices.",
-      category: "Tech Support",
-      posterId: 2,
-      status: "open",
-      paymentType: "fixed",
-      paymentAmount: 75,
-      location: "789 Pine St",
-      latitude: sampleLocation.latitude + 0.02,
-      longitude: sampleLocation.longitude + 0.01,
-      dateNeeded: new Date(Date.now() + 259200000), // 3 days from now
-      requiredSkills: ["Computer Repair"],
-      equipmentProvided: false
-    });
-
-    this.createJob({
-      title: "Birthday Party Setup",
-      description: "Need help setting up decorations, arranging tables and chairs, and preparing party favors for a child's birthday. Should take about 3-4 hours.",
-      category: "Event Help",
-      posterId: 2,
-      status: "open",
-      paymentType: "fixed",
-      paymentAmount: 120,
-      location: "321 Elm St",
-      latitude: sampleLocation.latitude - 0.005,
-      longitude: sampleLocation.longitude - 0.008,
-      dateNeeded: new Date(Date.now() + 432000000), // 5 days from now
-      requiredSkills: ["Organization", "Decoration"],
-      equipmentProvided: true
-    });
-
-    this.createJob({
-      title: "Grocery Shopping & Delivery",
-      description: "Need someone to do grocery shopping and deliver to my home. List will be provided.",
-      category: "Shopping",
-      posterId: 2,
-      status: "open",
-      paymentType: "hourly",
-      paymentAmount: 25,
-      location: "555 Maple St",
-      latitude: sampleLocation.latitude + 0.018,
-      longitude: sampleLocation.longitude - 0.023,
-      dateNeeded: new Date(Date.now() + 345600000), // 4 days from now
-      requiredSkills: ["Driving", "Organization"],
-      equipmentProvided: false
-    });
-  }
+  // No sample data in this implementation
 
   // User operations
   async getAllUsers(): Promise<User[]> {
