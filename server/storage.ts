@@ -92,12 +92,16 @@ export class MemStorage implements IStorage {
   private applications: Map<number, Application>;
   private reviews: Map<number, Review>;
   private tasks: Map<number, Task>;
+  private earnings: Map<number, Earning>;
+  private payments: Map<number, Payment>;
   
   private userIdCounter: number;
   private jobIdCounter: number;
   private applicationIdCounter: number;
   private reviewIdCounter: number;
   private taskIdCounter: number;
+  private earningIdCounter: number;
+  private paymentIdCounter: number;
 
   constructor() {
     this.users = new Map();
@@ -105,12 +109,16 @@ export class MemStorage implements IStorage {
     this.applications = new Map();
     this.reviews = new Map();
     this.tasks = new Map();
+    this.earnings = new Map();
+    this.payments = new Map();
     
     this.userIdCounter = 1;
     this.jobIdCounter = 1;
     this.applicationIdCounter = 1;
     this.reviewIdCounter = 1;
     this.taskIdCounter = 1;
+    this.earningIdCounter = 1;
+    this.paymentIdCounter = 1;
     
     // Initialize with sample data
     this.initializeSampleData();
@@ -334,6 +342,10 @@ export class MemStorage implements IStorage {
     const workerId = null;
     const serviceFee = 2.5; // Service fee is fixed at $2.50
     const totalAmount = insertJob.paymentType === 'fixed' ? insertJob.paymentAmount + serviceFee : insertJob.paymentAmount;
+    const status = insertJob.status || 'open'; // Default status is 'open'
+    
+    // Make sure boolean values are defined
+    const equipmentProvided = insertJob.equipmentProvided === undefined ? false : insertJob.equipmentProvided;
     
     const job: Job = { 
       ...insertJob, 
@@ -341,7 +353,9 @@ export class MemStorage implements IStorage {
       datePosted, 
       workerId, 
       serviceFee, 
-      totalAmount 
+      totalAmount,
+      status,
+      equipmentProvided
     };
     
     this.jobs.set(id, job);
@@ -413,7 +427,16 @@ export class MemStorage implements IStorage {
     const dateApplied = new Date();
     const status = "pending";
     
-    const application: Application = { ...insertApplication, id, dateApplied, status };
+    // Ensure message is null when undefined
+    const message = insertApplication.message === undefined ? null : insertApplication.message;
+    
+    const application: Application = { 
+      ...insertApplication, 
+      id, 
+      dateApplied, 
+      status,
+      message
+    };
     this.applications.set(id, application);
     return application;
   }
@@ -446,9 +469,191 @@ export class MemStorage implements IStorage {
     const id = this.reviewIdCounter++;
     const dateReviewed = new Date();
     
-    const review: Review = { ...insertReview, id, dateReviewed };
+    // Ensure comment is null when undefined
+    const comment = insertReview.comment === undefined ? null : insertReview.comment;
+    
+    const review: Review = { 
+      ...insertReview, 
+      id, 
+      dateReviewed,
+      comment 
+    };
     this.reviews.set(id, review);
     return review;
+  }
+  
+  // Task operations
+  async getTask(id: number): Promise<Task | undefined> {
+    return this.tasks.get(id);
+  }
+
+  async getTasksForJob(jobId: number): Promise<Task[]> {
+    return Array.from(this.tasks.values())
+      .filter(task => task.jobId === jobId)
+      .sort((a, b) => a.orderIndex - b.orderIndex);
+  }
+
+  async createTask(task: InsertTask): Promise<Task> {
+    const id = this.taskIdCounter++;
+    const createdAt = new Date();
+    const completedAt = null;
+    const completedBy = null;
+    
+    // Get the max order index for tasks in this job and add 1
+    const tasksForJob = await this.getTasksForJob(task.jobId);
+    const orderIndex = tasksForJob.length === 0 
+      ? 0 
+      : Math.max(...tasksForJob.map(t => t.orderIndex)) + 1;
+    
+    const newTask: Task = {
+      ...task,
+      id,
+      createdAt,
+      completedAt,
+      completedBy,
+      isCompleted: false,
+      orderIndex
+    };
+    this.tasks.set(id, newTask);
+    return newTask;
+  }
+
+  async updateTask(id: number, data: Partial<Task>): Promise<Task | undefined> {
+    const task = this.tasks.get(id);
+    if (!task) return undefined;
+    
+    const updatedTask = { ...task, ...data };
+    this.tasks.set(id, updatedTask);
+    return updatedTask;
+  }
+
+  async completeTask(id: number, completedBy: number): Promise<Task | undefined> {
+    const task = this.tasks.get(id);
+    if (!task) return undefined;
+    
+    const updatedTask = {
+      ...task,
+      isCompleted: true,
+      completedAt: new Date(),
+      completedBy
+    };
+    this.tasks.set(id, updatedTask);
+    return updatedTask;
+  }
+
+  async reorderTasks(jobId: number, taskIds: number[]): Promise<Task[]> {
+    // Verify all task IDs belong to this job
+    const tasksForJob = await this.getTasksForJob(jobId);
+    const taskMap = new Map<number, Task>();
+    tasksForJob.forEach(task => taskMap.set(task.id, task));
+    
+    // Check that all provided IDs exist and belong to this job
+    for (const id of taskIds) {
+      if (!taskMap.has(id)) {
+        throw new Error(`Task ID ${id} not found or does not belong to job ${jobId}`);
+      }
+    }
+    
+    // Update order indices
+    const updatedTasks: Task[] = [];
+    for (let i = 0; i < taskIds.length; i++) {
+      const taskId = taskIds[i];
+      const task = taskMap.get(taskId)!;
+      const updatedTask = await this.updateTask(taskId, { orderIndex: i });
+      updatedTasks.push(updatedTask!);
+    }
+    
+    return updatedTasks.sort((a, b) => a.orderIndex - b.orderIndex);
+  }
+  
+  // Earnings operations
+  async getEarning(id: number): Promise<Earning | undefined> {
+    return this.earnings.get(id);
+  }
+
+  async getEarningsForWorker(workerId: number): Promise<Earning[]> {
+    return Array.from(this.earnings.values())
+      .filter(earning => earning.workerId === workerId)
+      .sort((a, b) => new Date(b.dateEarned).getTime() - new Date(a.dateEarned).getTime());
+  }
+
+  async getEarningsForJob(jobId: number): Promise<Earning[]> {
+    return Array.from(this.earnings.values())
+      .filter(earning => earning.jobId === jobId)
+      .sort((a, b) => new Date(b.dateEarned).getTime() - new Date(a.dateEarned).getTime());
+  }
+
+  async createEarning(earning: InsertEarning): Promise<Earning> {
+    const id = this.earningIdCounter++;
+    const dateEarned = new Date();
+    const datePaid = null;
+    const status = "pending";  // Initial status is always "pending"
+    const serviceFee = earning.serviceFee || 2.5; // Default service fee is $2.50
+    
+    const newEarning: Earning = {
+      ...earning,
+      id,
+      dateEarned,
+      datePaid,
+      status,
+      serviceFee
+    };
+    this.earnings.set(id, newEarning);
+    return newEarning;
+  }
+
+  async updateEarningStatus(id: number, status: string, datePaid?: Date): Promise<Earning | undefined> {
+    const earning = this.earnings.get(id);
+    if (!earning) return undefined;
+    
+    const updatedEarning: Earning = {
+      ...earning,
+      status,
+      datePaid: status === "paid" ? (datePaid || new Date()) : earning.datePaid
+    };
+    this.earnings.set(id, updatedEarning);
+    return updatedEarning;
+  }
+  
+  // Payment operations
+  async getPayment(id: number): Promise<Payment | undefined> {
+    return this.payments.get(id);
+  }
+
+  async getPaymentsForUser(userId: number): Promise<Payment[]> {
+    return Array.from(this.payments.values())
+      .filter(payment => payment.userId === userId)
+      .sort((a, b) => new Date(b.dateInitiated).getTime() - new Date(a.dateInitiated).getTime());
+  }
+
+  async createPayment(payment: InsertPayment): Promise<Payment> {
+    const id = this.paymentIdCounter++;
+    const dateInitiated = new Date();
+    const status = "pending";
+    const transactionId = null;
+    
+    const newPayment: Payment = {
+      ...payment,
+      id,
+      dateInitiated,
+      status,
+      transactionId
+    };
+    this.payments.set(id, newPayment);
+    return newPayment;
+  }
+
+  async updatePaymentStatus(id: number, status: string, transactionId?: string): Promise<Payment | undefined> {
+    const payment = this.payments.get(id);
+    if (!payment) return undefined;
+    
+    const updatedPayment: Payment = {
+      ...payment,
+      status,
+      transactionId: transactionId || payment.transactionId
+    };
+    this.payments.set(id, updatedPayment);
+    return updatedPayment;
   }
 }
 
