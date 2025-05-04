@@ -162,7 +162,7 @@ const PosterDashboard = () => {
                         {job.status.charAt(0).toUpperCase() + job.status.slice(1)}
                       </span>
                       <span className="text-xs text-gray-500 ml-2">
-                        Posted on {new Date(job.datePosted).toLocaleDateString()}
+                        Posted on {job.datePosted ? new Date(job.datePosted).toLocaleDateString() : 'Unknown date'}
                       </span>
                     </div>
                   </div>

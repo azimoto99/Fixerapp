@@ -36,7 +36,8 @@ interface TaskListProps {
 
 const taskSchema = z.object({
   description: z.string().min(1, 'Task description is required'),
-  jobId: z.number()
+  jobId: z.number(),
+  position: z.number().optional()
 });
 
 type TaskFormValues = z.infer<typeof taskSchema>;
@@ -170,7 +171,15 @@ export default function TaskList({ jobId, isJobPoster, isWorker }: TaskListProps
 
   // Handle form submission for new task
   const onSubmit = (values: TaskFormValues) => {
-    addTaskMutation.mutate(values);
+    // Calculate the new task position (at the end of the list)
+    const newPosition = tasks && tasks.length > 0 ? tasks.length : 0;
+    
+    // Add position to the task data (ensure it's provided and not optional)
+    addTaskMutation.mutate({
+      ...values,
+      position: newPosition as number
+    });
+    
     form.reset();
   };
   
