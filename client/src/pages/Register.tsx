@@ -36,7 +36,6 @@ const formSchema = z.object({
   email: z.string().email('Invalid email address'),
   phone: z.string().optional(),
   bio: z.string().optional(),
-  accountType: z.enum(['worker', 'poster']),
   skills: z.array(z.string()).optional().default([]),
 });
 
@@ -66,12 +65,9 @@ export default function Register({ onModeChange }: RegisterProps) {
       email: '',
       phone: '',
       bio: '',
-      accountType: 'worker',
       skills: [],
     },
   });
-
-  const watchAccountType = form.watch('accountType');
 
   async function onSubmit(data: FormData) {
     // Remove confirmPassword as it's not part of our API schema
@@ -103,48 +99,7 @@ export default function Register({ onModeChange }: RegisterProps) {
         <CardContent>
           <Form {...form}>
             <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-              <FormField
-                control={form.control}
-                name="accountType"
-                render={({ field }) => (
-                  <FormItem className="space-y-3">
-                    <FormLabel>Account Type</FormLabel>
-                    <FormControl>
-                      <RadioGroup
-                        onValueChange={field.onChange}
-                        defaultValue={field.value}
-                        className="flex flex-col space-y-1"
-                      >
-                        <div className="grid grid-cols-2 gap-4">
-                          <FormItem className="flex items-center space-x-3 space-y-0 border rounded-md p-4">
-                            <FormControl>
-                              <RadioGroupItem value="worker" />
-                            </FormControl>
-                            <div className="space-y-1">
-                              <FormLabel className="font-normal">Worker</FormLabel>
-                              <FormDescription className="text-xs">
-                                Find and apply for gigs in your area
-                              </FormDescription>
-                            </div>
-                          </FormItem>
-                          <FormItem className="flex items-center space-x-3 space-y-0 border rounded-md p-4">
-                            <FormControl>
-                              <RadioGroupItem value="poster" />
-                            </FormControl>
-                            <div className="space-y-1">
-                              <FormLabel className="font-normal">Job Poster</FormLabel>
-                              <FormDescription className="text-xs">
-                                Post jobs and find workers
-                              </FormDescription>
-                            </div>
-                          </FormItem>
-                        </div>
-                      </RadioGroup>
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
+
               
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <FormField
@@ -252,58 +207,56 @@ export default function Register({ onModeChange }: RegisterProps) {
                 )}
               />
               
-              {watchAccountType === 'worker' && (
-                <FormField
-                  control={form.control}
-                  name="skills"
-                  render={() => (
-                    <FormItem>
-                      <div className="mb-4">
-                        <FormLabel className="text-base">Skills</FormLabel>
-                        <FormDescription>
-                          Select the skills you have to match with relevant jobs
-                        </FormDescription>
-                      </div>
-                      <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
-                        {SKILLS.map((skill) => (
-                          <FormField
-                            key={skill}
-                            control={form.control}
-                            name="skills"
-                            render={({ field }) => {
-                              return (
-                                <FormItem
-                                  key={skill}
-                                  className="flex flex-row items-start space-x-3 space-y-0"
-                                >
-                                  <FormControl>
-                                    <Checkbox
-                                      checked={field.value?.includes(skill)}
-                                      onCheckedChange={(checked) => {
-                                        return checked
-                                          ? field.onChange([...field.value, skill])
-                                          : field.onChange(
-                                              field.value?.filter(
-                                                (value) => value !== skill
-                                              )
+              <FormField
+                control={form.control}
+                name="skills"
+                render={() => (
+                  <FormItem>
+                    <div className="mb-4">
+                      <FormLabel className="text-base">Skills</FormLabel>
+                      <FormDescription>
+                        Select the skills you have to match with relevant jobs
+                      </FormDescription>
+                    </div>
+                    <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
+                      {SKILLS.map((skill) => (
+                        <FormField
+                          key={skill}
+                          control={form.control}
+                          name="skills"
+                          render={({ field }) => {
+                            return (
+                              <FormItem
+                                key={skill}
+                                className="flex flex-row items-start space-x-3 space-y-0"
+                              >
+                                <FormControl>
+                                  <Checkbox
+                                    checked={field.value?.includes(skill)}
+                                    onCheckedChange={(checked) => {
+                                      return checked
+                                        ? field.onChange([...field.value, skill])
+                                        : field.onChange(
+                                            field.value?.filter(
+                                              (value) => value !== skill
                                             )
-                                      }}
-                                    />
-                                  </FormControl>
-                                  <FormLabel className="font-normal">
-                                    {skill}
-                                  </FormLabel>
-                                </FormItem>
-                              )
-                            }}
-                          />
-                        ))}
-                      </div>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-              )}
+                                          )
+                                    }}
+                                  />
+                                </FormControl>
+                                <FormLabel className="font-normal">
+                                  {skill}
+                                </FormLabel>
+                              </FormItem>
+                            )
+                          }}
+                        />
+                      ))}
+                    </div>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
               
               <Button type="submit" className="w-full" disabled={registerMutation.isPending}>
                 {registerMutation.isPending ? 'Creating Account...' : 'Create Account'}
@@ -325,7 +278,7 @@ export default function Register({ onModeChange }: RegisterProps) {
               <Button 
                 type="button" 
                 variant="outline" 
-                onClick={() => window.location.href = '/auth/google?accountType=' + form.watch('accountType')}
+                onClick={() => window.location.href = '/auth/google'}
                 disabled={registerMutation.isPending}
                 className="flex items-center justify-center w-full"
               >

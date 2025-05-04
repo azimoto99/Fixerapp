@@ -15,7 +15,6 @@ import {
 import {
   Form,
   FormControl,
-  FormDescription,
   FormField,
   FormItem,
   FormLabel,
@@ -27,7 +26,6 @@ import { Button } from '@/components/ui/button';
 const formSchema = z.object({
   username: z.string().min(1, 'Username is required'),
   password: z.string().min(1, 'Password is required'),
-  accountType: z.enum(['worker', 'poster']),
 });
 
 type FormData = z.infer<typeof formSchema>;
@@ -45,19 +43,13 @@ export default function Login({ onModeChange }: LoginProps) {
     defaultValues: {
       username: '',
       password: '',
-      accountType: 'worker',
     },
   });
 
   async function onSubmit(data: FormData) {
-    loginMutation.mutate(data, {
-      onSuccess: () => {
-        navigate('/');
-      }
-    });
+    loginMutation.mutate(data);
+    // No need to handle navigation here - the auth context will redirect appropriately
   }
-
-
 
   return (
     <div className="w-full max-w-md">
@@ -106,48 +98,6 @@ export default function Login({ onModeChange }: LoginProps) {
                 )}
               />
               
-              <FormField
-                control={form.control}
-                name="accountType"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Account Type</FormLabel>
-                    <div className="flex space-x-4">
-                      <div className="flex items-center">
-                        <input
-                          type="radio"
-                          id="worker"
-                          value="worker"
-                          checked={field.value === 'worker'}
-                          onChange={() => field.onChange('worker')}
-                          className="h-4 w-4 text-primary-600 border-gray-300 focus:ring-primary-500"
-                        />
-                        <label htmlFor="worker" className="ml-2 block text-sm text-gray-700">
-                          Worker
-                        </label>
-                      </div>
-                      <div className="flex items-center">
-                        <input
-                          type="radio"
-                          id="poster"
-                          value="poster"
-                          checked={field.value === 'poster'}
-                          onChange={() => field.onChange('poster')}
-                          className="h-4 w-4 text-primary-600 border-gray-300 focus:ring-primary-500"
-                        />
-                        <label htmlFor="poster" className="ml-2 block text-sm text-gray-700">
-                          Job Poster
-                        </label>
-                      </div>
-                    </div>
-                    <FormDescription>
-                      Select the account type you want to use for this login
-                    </FormDescription>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              
               <Button type="submit" className="w-full" disabled={loginMutation.isPending}>
                 {loginMutation.isPending ? 'Logging in...' : 'Log In'}
               </Button>
@@ -168,7 +118,7 @@ export default function Login({ onModeChange }: LoginProps) {
               <Button 
                 type="button" 
                 variant="outline" 
-                onClick={() => window.location.href = '/auth/google?accountType=' + form.watch('accountType')}
+                onClick={() => window.location.href = '/auth/google'}
                 disabled={loginMutation.isPending}
                 className="flex items-center justify-center w-full"
               >
@@ -183,8 +133,6 @@ export default function Login({ onModeChange }: LoginProps) {
                 Sign in with Google
               </Button>
             </div>
-            
-
           </div>
         </CardContent>
         <CardFooter className="flex justify-center">
