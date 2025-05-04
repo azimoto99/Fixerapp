@@ -204,8 +204,7 @@ export function setupAuth(app: Express) {
       // Hash the password
       const hashedPassword = await hashPassword(rawPassword);
       
-      // Create a temporary user without account type
-      // We'll use a special "pending" account type that requires selection
+      // Create a user with worker account type directly
       const userData = {
         username,
         email,
@@ -214,7 +213,7 @@ export function setupAuth(app: Express) {
         phone: req.body.phone || null,
         bio: req.body.bio || null,
         avatarUrl: req.body.avatarUrl || null,
-        accountType: "pending", // Special type that requires selection
+        accountType: "worker", // Always set to worker
         skills: req.body.skills || [],
         isActive: true,
         rating: 0,
@@ -302,7 +301,7 @@ export function setupAuth(app: Express) {
       failureRedirect: '/login',
       session: true
     }),
-    (req, res) => {
+    async (req, res) => {
       if (!req.user) {
         return res.redirect('/login');
       }
@@ -313,10 +312,27 @@ export function setupAuth(app: Express) {
         return res.redirect(`/complete-profile?id=${req.user.id}&provider=google`);
       }
       
-      // Otherwise check if they need to select an account type
+      // Always set to worker and redirect home
       if (req.user.accountType === "pending") {
-        // No account type set, redirect to selection page with user ID and provider
-        return res.redirect(`/account-type-selection?id=${req.user.id}&provider=google`);
+        try {
+          // Update the account type directly to "worker"
+          const updatedUser = await storage.updateUser(req.user.id, { accountType: "worker" });
+          if (updatedUser) {
+            // Re-login with updated user
+            req.login(updatedUser, (err) => {
+              if (err) {
+                console.error("Failed to re-login after setting account type:", err);
+              }
+              return res.redirect('/');
+            });
+          } else {
+            // Failed to update, still redirect home
+            return res.redirect('/');
+          }
+        } catch (error) {
+          console.error("Error updating account type:", error);
+          return res.redirect('/');
+        }
       } else {
         // Account type already set, redirect home
         return res.redirect('/');
