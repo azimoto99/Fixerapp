@@ -11,6 +11,8 @@ import AuthPage from "@/pages/auth-page";
 import NotFound from "@/pages/not-found";
 import TransactionHistory from "@/pages/TransactionHistory";
 import CompleteProfile from "@/pages/CompleteProfile";
+import Checkout from "@/pages/Checkout";
+import PaymentConfirmation from "@/pages/PaymentConfirmation";
 import { AuthProvider } from "@/hooks/use-auth";
 import { ProtectedRoute } from "@/lib/protected-route";
 import { useAuth } from "@/hooks/use-auth";
@@ -49,6 +51,8 @@ function RouterWithAuth() {
       <ProtectedRoute path="/job/:id" component={JobDetails} />
       <ProtectedRoute path="/earnings" component={EarningsPage} />
       <ProtectedRoute path="/transactions" component={TransactionHistory} />
+      <ProtectedRoute path="/checkout" component={Checkout} />
+      <ProtectedRoute path="/payment-confirmation" component={PaymentConfirmation} />
       {/* Payment dashboard is not accessible as there are no job posters */}
       <Route path="/auth" component={AuthPage} />
       <Route path="/login" component={RedirectToAuth} />
