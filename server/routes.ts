@@ -11,8 +11,11 @@ import {
   insertTaskSchema,
   insertEarningSchema,
   insertPaymentSchema,
+  insertBadgeSchema,
+  insertUserBadgeSchema,
   JOB_CATEGORIES,
-  SKILLS
+  SKILLS,
+  BADGE_CATEGORIES
 } from "@shared/schema";
 import { setupAuth } from "./auth";
 
@@ -167,6 +170,321 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // User profile image endpoint
+  apiRouter.post("/users/:id/profile-image", isAuthenticated, async (req: Request, res: Response) => {
+    try {
+      const id = parseInt(req.params.id);
+      
+      // Ensure the authenticated user is uploading their own profile image
+      if (req.user.id !== id) {
+        return res.status(403).json({ 
+          message: "Forbidden: You can only upload your own profile image" 
+        });
+      }
+      
+      // Validate that imageData exists in request body
+      const schema = z.object({
+        imageData: z.string()
+      });
+      
+      const { imageData } = schema.parse(req.body);
+      
+      const updatedUser = await storage.uploadProfileImage(id, imageData);
+      
+      if (!updatedUser) {
+        return res.status(404).json({ message: "User not found" });
+      }
+      
+      // Don't return password in response
+      const { password, ...updatedUserData } = updatedUser;
+      res.json(updatedUserData);
+    } catch (error) {
+      res.status(400).json({ message: (error as Error).message });
+    }
+  });
+  
+  // User skills endpoints
+  apiRouter.post("/users/:id/skills", isAuthenticated, async (req: Request, res: Response) => {
+    try {
+      const id = parseInt(req.params.id);
+      
+      // Ensure the authenticated user is updating their own skills
+      if (req.user.id !== id) {
+        return res.status(403).json({ 
+          message: "Forbidden: You can only update your own skills" 
+        });
+      }
+      
+      // Validate that skills array exists in request body
+      const schema = z.object({
+        skills: z.array(z.string())
+      });
+      
+      const { skills } = schema.parse(req.body);
+      
+      // Validate that all skills are in the predefined SKILLS list
+      const invalidSkills = skills.filter(skill => !SKILLS.includes(skill));
+      if (invalidSkills.length > 0) {
+        return res.status(400).json({ 
+          message: `Invalid skills: ${invalidSkills.join(', ')}` 
+        });
+      }
+      
+      const updatedUser = await storage.updateUserSkills(id, skills);
+      
+      if (!updatedUser) {
+        return res.status(404).json({ message: "User not found" });
+      }
+      
+      // Don't return password in response
+      const { password, ...updatedUserData } = updatedUser;
+      res.json(updatedUserData);
+    } catch (error) {
+      res.status(400).json({ message: (error as Error).message });
+    }
+  });
+  
+  // Verify a user's skill (admin or job poster who has verified the skill)
+  apiRouter.post("/users/:id/skills/:skill/verify", isAuthenticated, async (req: Request, res: Response) => {
+    try {
+      const id = parseInt(req.params.id);
+      const skill = req.params.skill;
+      
+      // Validate that the skill is in the predefined SKILLS list
+      if (!SKILLS.includes(skill)) {
+        return res.status(400).json({ message: `Invalid skill: ${skill}` });
+      }
+      
+      // For now, only allow users to verify their own skills
+      // In a production app, we would have an admin role or a job poster to verify skills
+      if (req.user.id !== id) {
+        return res.status(403).json({ 
+          message: "Forbidden: You can only verify your own skills at this time" 
+        });
+      }
+      
+      // Get verification flag from request body, default to true
+      const { verified = true } = req.body;
+      
+      const updatedUser = await storage.verifyUserSkill(id, skill, verified);
+      
+      if (!updatedUser) {
+        return res.status(404).json({ message: "User not found" });
+      }
+      
+      // Don't return password in response
+      const { password, ...updatedUserData } = updatedUser;
+      res.json(updatedUserData);
+    } catch (error) {
+      res.status(400).json({ message: (error as Error).message });
+    }
+  });
+  
+  // Get users with specific skills
+  apiRouter.get("/users/with-skills", async (req: Request, res: Response) => {
+    try {
+      // Parse skills from query string, which could be a single skill or multiple skills
+      const querySkills = req.query.skills;
+      let skills: string[] = [];
+      
+      if (typeof querySkills === 'string') {
+        skills = [querySkills];
+      } else if (Array.isArray(querySkills)) {
+        skills = querySkills.map(s => s.toString());
+      }
+      
+      // Validate that all skills are in the predefined SKILLS list
+      const invalidSkills = skills.filter(skill => !SKILLS.includes(skill));
+      if (invalidSkills.length > 0) {
+        return res.status(400).json({ 
+          message: `Invalid skills: ${invalidSkills.join(', ')}` 
+        });
+      }
+      
+      const users = await storage.getUsersWithSkills(skills);
+      
+      // Don't return passwords in response
+      const safeUsers = users.map(user => {
+        const { password, ...userData } = user;
+        return userData;
+      });
+      
+      res.json(safeUsers);
+    } catch (error) {
+      res.status(400).json({ message: (error as Error).message });
+    }
+  });
+  
+  // Update user metrics endpoint
+  apiRouter.patch("/users/:id/metrics", isAuthenticated, async (req: Request, res: Response) => {
+    try {
+      const id = parseInt(req.params.id);
+      
+      // Ensure the authenticated user is updating their own metrics
+      // In a production app, this would be an admin-only or system update
+      if (req.user.id !== id) {
+        return res.status(403).json({ 
+          message: "Forbidden: You can only update your own metrics" 
+        });
+      }
+      
+      // Validate metrics data
+      const schema = z.object({
+        completedJobs: z.number().optional(),
+        successRate: z.number().min(0).max(100).optional(),
+        responseTime: z.number().min(0).optional()
+      });
+      
+      const metrics = schema.parse(req.body);
+      
+      const updatedUser = await storage.updateUserMetrics(id, metrics);
+      
+      if (!updatedUser) {
+        return res.status(404).json({ message: "User not found" });
+      }
+      
+      // Don't return password in response
+      const { password, ...updatedUserData } = updatedUser;
+      res.json(updatedUserData);
+    } catch (error) {
+      res.status(400).json({ message: (error as Error).message });
+    }
+  });
+  
+  // Badge category endpoint
+  apiRouter.get("/badge-categories", (_req: Request, res: Response) => {
+    res.json(BADGE_CATEGORIES);
+  });
+  
+  // Badge endpoints
+  apiRouter.get("/badges", async (_req: Request, res: Response) => {
+    try {
+      const badges = await storage.getAllBadges();
+      res.json(badges);
+    } catch (error) {
+      res.status(400).json({ message: (error as Error).message });
+    }
+  });
+  
+  apiRouter.get("/badges/category/:category", async (req: Request, res: Response) => {
+    try {
+      const category = req.params.category;
+      
+      // Validate that the category is in the predefined BADGE_CATEGORIES
+      if (!BADGE_CATEGORIES.includes(category)) {
+        return res.status(400).json({ message: `Invalid badge category: ${category}` });
+      }
+      
+      const badges = await storage.getBadgesByCategory(category);
+      res.json(badges);
+    } catch (error) {
+      res.status(400).json({ message: (error as Error).message });
+    }
+  });
+  
+  apiRouter.get("/badges/:id", async (req: Request, res: Response) => {
+    try {
+      const id = parseInt(req.params.id);
+      const badge = await storage.getBadge(id);
+      
+      if (!badge) {
+        return res.status(404).json({ message: "Badge not found" });
+      }
+      
+      res.json(badge);
+    } catch (error) {
+      res.status(400).json({ message: (error as Error).message });
+    }
+  });
+  
+  apiRouter.post("/badges", isAuthenticated, async (req: Request, res: Response) => {
+    try {
+      // In a production app, this would be admin-only
+      // For now, allow any authenticated user to create badges
+      const badgeData = insertBadgeSchema.parse(req.body);
+      
+      const newBadge = await storage.createBadge(badgeData);
+      res.status(201).json(newBadge);
+    } catch (error) {
+      res.status(400).json({ message: (error as Error).message });
+    }
+  });
+  
+  // User badge endpoints
+  apiRouter.get("/users/:id/badges", async (req: Request, res: Response) => {
+    try {
+      const id = parseInt(req.params.id);
+      const userBadges = await storage.getUserBadges(id);
+      res.json(userBadges);
+    } catch (error) {
+      res.status(400).json({ message: (error as Error).message });
+    }
+  });
+  
+  apiRouter.post("/users/:id/badges", isAuthenticated, async (req: Request, res: Response) => {
+    try {
+      const userId = parseInt(req.params.id);
+      
+      // In a production app, this would be admin-only or based on achievements
+      // For now, allow any authenticated user to award badges to themselves
+      if (req.user.id !== userId) {
+        return res.status(403).json({ 
+          message: "Forbidden: You can only award badges to yourself at this time" 
+        });
+      }
+      
+      // Validate badge data
+      const schema = z.object({
+        badgeId: z.number(),
+        metadata: z.any().optional()
+      });
+      
+      const { badgeId, metadata } = schema.parse(req.body);
+      
+      // Verify that the badge exists
+      const badge = await storage.getBadge(badgeId);
+      if (!badge) {
+        return res.status(404).json({ message: "Badge not found" });
+      }
+      
+      const userBadge = await storage.awardBadge({
+        userId,
+        badgeId,
+        metadata: metadata || null,
+        earnedAt: new Date()
+      });
+      
+      res.status(201).json(userBadge);
+    } catch (error) {
+      res.status(400).json({ message: (error as Error).message });
+    }
+  });
+  
+  apiRouter.delete("/users/:userId/badges/:badgeId", isAuthenticated, async (req: Request, res: Response) => {
+    try {
+      const userId = parseInt(req.params.userId);
+      const badgeId = parseInt(req.params.badgeId);
+      
+      // In a production app, this would be admin-only
+      // For now, allow any authenticated user to revoke their own badges
+      if (req.user.id !== userId) {
+        return res.status(403).json({ 
+          message: "Forbidden: You can only revoke badges from yourself at this time" 
+        });
+      }
+      
+      const success = await storage.revokeBadge(userId, badgeId);
+      
+      if (!success) {
+        return res.status(404).json({ message: "Badge not found or already revoked" });
+      }
+      
+      res.status(204).send();
+    } catch (error) {
+      res.status(400).json({ message: (error as Error).message });
+    }
+  });
+  
   // Add extended schema for job with payment method
   const jobWithPaymentSchema = insertJobSchema.extend({
     paymentMethodId: z.string().optional()
