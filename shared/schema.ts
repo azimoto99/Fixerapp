@@ -161,10 +161,12 @@ export const insertPaymentSchema = createInsertSchema(payments).omit({
 
 // Types
 export type User = typeof users.$inferSelect & {
-  requiresProfileCompletion?: boolean; // Adding this field to the type even though it's not in the DB yet
+  requiresProfileCompletion?: boolean | null; // Adding this field to the type even though it's not in the DB yet
+  needsAccountType?: boolean | null; // Flag to indicate account type selection is needed
 };
 export type InsertUser = z.infer<typeof insertUserSchema> & {
-  requiresProfileCompletion?: boolean; // Adding this field to the type even though it's not in the DB
+  requiresProfileCompletion?: boolean | null; // Adding this field to the type even though it's not in the DB
+  needsAccountType?: boolean | null; // Flag to indicate account type selection is needed
 };
 
 export type Job = typeof jobs.$inferSelect;
