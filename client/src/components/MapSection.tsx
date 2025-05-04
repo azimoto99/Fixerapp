@@ -209,6 +209,19 @@ const MapSection: React.FC<MapSectionProps> = ({ jobs, selectedJob, onSelectJob,
   const jobPositions = useMemo(() => {
     if (!position) return [];
     
+    // Extract latitude and longitude regardless of position format
+    let lat: number, lng: number;
+    
+    if (Array.isArray(position)) {
+      [lat, lng] = position;
+    } else if ('lat' in position && 'lng' in position) {
+      lat = position.lat;
+      lng = position.lng;
+    } else {
+      // Fallback for any other case - we shouldn't get here normally
+      return [];
+    }
+    
     // In a real app, the jobs would have actual lat/lng coordinates
     // For demo purposes, we'll generate positions within 2 miles of the user
     return jobs.map((job, index) => {
@@ -219,8 +232,8 @@ const MapSection: React.FC<MapSectionProps> = ({ jobs, selectedJob, onSelectJob,
       return {
         job,
         position: [
-          position[0] + latOffset,
-          position[1] + lngOffset
+          lat + latOffset,
+          lng + lngOffset
         ] as LatLngExpression
       };
     });

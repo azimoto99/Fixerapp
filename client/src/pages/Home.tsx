@@ -182,6 +182,7 @@ const WorkerDashboard = () => {
           jobs={jobs || []}
           selectedJob={selectedJob}
           onSelectJob={handleSelectJob}
+          searchCoordinates={searchParams.coordinates}
         />
         
         {/* Worker can view jobs they've posted */}
