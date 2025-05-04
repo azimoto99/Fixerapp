@@ -96,7 +96,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
   apiRouter.get("/categories", (_req: Request, res: Response) => {
     res.json(JOB_CATEGORIES);
   });
-
+  
+  // Get available skills
   apiRouter.get("/skills", (_req: Request, res: Response) => {
     res.json(SKILLS);
   });
@@ -450,8 +451,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const userBadge = await storage.awardBadge({
         userId,
         badgeId,
-        metadata: metadata || null,
-        earnedAt: new Date()
+        metadata: metadata || null
       });
       
       res.status(201).json(userBadge);
