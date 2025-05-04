@@ -80,72 +80,77 @@ const JobSearch: React.FC<JobSearchProps> = ({ onSearch }) => {
     <div className="w-full">
       <form onSubmit={handleSubmit}>
         <div className="flex flex-col">
-          {/* Ultra-compact DoorDash-style search bar */}
-          <div className="flex items-center">
-            <div className="relative flex-1">
-              <div className="absolute inset-y-0 left-3 flex items-center pointer-events-none">
-                {searchMode === 'location' ? (
-                  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-4 h-4 text-gray-400">
-                    <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path>
-                    <circle cx="12" cy="10" r="3"></circle>
-                  </svg>
-                ) : (
-                  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-4 h-4 text-gray-400">
-                    <circle cx="11" cy="11" r="8"></circle>
-                    <path d="m21 21-4.3-4.3"></path>
-                  </svg>
-                )}
-              </div>
-              <Input
-                type="text"
-                placeholder={searchMode === 'location' ? "Search by location..." : "Search by description..."}
-                className="pl-10 pr-2 py-2 rounded-full border-gray-200 shadow-none bg-gray-100 focus:bg-white focus:ring-2 focus:ring-primary/20 transition-all"
-                value={query}
-                onChange={(e) => setQuery(e.target.value)}
-                onKeyPress={(e) => {
-                  if (e.key === 'Enter') {
-                    e.preventDefault();
-                    const searchCategory = category === 'all' ? '' : category;
-                    onSearch({ query, category: searchCategory, searchMode });
-                  }
-                }}
-              />
-            </div>
-            <Button
-              type="button"
-              size="sm"
-              variant="outline"
-              className="ml-1 rounded-full w-8 h-8 p-0 flex items-center justify-center transition-transform hover:scale-105 active:scale-95"
-              onClick={toggleSearchMode}
-              title={searchMode === 'location' ? 'Switch to description search' : 'Switch to location search'}
-            >
+          {/* Redesigned search bar with consistent styling */}
+          <div className="flex items-center bg-gray-100 rounded-full p-1 border border-gray-200 hover:border-primary/40 transition-colors">
+            {/* Mode indicator icon with no magnifying glass */}
+            <div className="flex items-center justify-center h-8 w-8 ml-1">
               {searchMode === 'location' ? (
-                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-4 h-4">
-                  <circle cx="11" cy="11" r="8"></circle>
-                  <path d="m21 21-4.3-4.3"></path>
-                </svg>
-              ) : (
-                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-4 h-4">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-4 h-4 text-primary">
                   <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path>
                   <circle cx="12" cy="10" r="3"></circle>
                 </svg>
+              ) : (
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-4 h-4 text-primary">
+                  <path d="M21 16S8.3 20 3 16"></path>
+                  <path d="M21 8S8.3 4 3 8"></path>
+                  <path d="M3 8v8"></path>
+                  <path d="M21 8v8"></path>
+                </svg>
               )}
+            </div>
+
+            {/* Input field with no icon */}
+            <Input
+              type="text"
+              placeholder={searchMode === 'location' ? "Search by location..." : "Search by keywords..."}
+              className="flex-1 border-0 shadow-none bg-transparent focus:ring-0 h-8 px-1"
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              onKeyPress={(e) => {
+                if (e.key === 'Enter') {
+                  e.preventDefault();
+                  const searchCategory = category === 'all' ? '' : category;
+                  onSearch({ query, category: searchCategory, searchMode });
+                }
+              }}
+            />
+
+            {/* Toggle search mode button */}
+            <Button
+              type="button"
+              size="sm"
+              variant="ghost"
+              className="rounded-full w-8 h-8 p-0 flex items-center justify-center"
+              onClick={toggleSearchMode}
+              title={searchMode === 'location' ? 'Switch to keyword search' : 'Switch to location search'}
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-4 h-4 text-gray-500">
+                <path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h7"></path>
+                <line x1="16" y1="5" x2="22" y2="5"></line>
+                <line x1="19" y1="2" x2="19" y2="8"></line>
+                <circle cx="9" cy="9" r="2"></circle>
+                <path d="m16 11-2.51 2.51c-.42.42-.99.59-1.54.58-1.24-.03-2.46-.5-3.35-1.36-.89-.86-1.27-1.86-1.49-2.89-.32-1.77.7-3.76 2.16-4.81"></path>
+              </svg>
             </Button>
+
+            {/* Search button - single magnifying glass here */}
             <Button
               type="submit"
               size="sm"
-              className="ml-1 rounded-full w-8 h-8 p-0 flex items-center justify-center transition-transform hover:scale-105 active:scale-95"
+              className="rounded-full w-8 h-8 p-0 flex items-center justify-center bg-primary hover:bg-primary/90"
             >
               <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-4 h-4">
                 <circle cx="11" cy="11" r="8"></circle>
                 <path d="m21 21-4.3-4.3"></path>
               </svg>
             </Button>
+
+            {/* Filter button */}
             <Button
               type="button"
               size="sm"
-              variant={category ? "default" : "outline"}
-              className="ml-1 rounded-full w-8 h-8 p-0 flex items-center justify-center transition-transform hover:scale-105 active:scale-95"
+              variant={category ? "default" : "ghost"}
+              className={`rounded-full w-8 h-8 p-0 flex items-center justify-center ml-1 ${category ? 'bg-primary hover:bg-primary/90' : 'text-gray-500'}`}
               onClick={() => {
                 // Toggle current category filter
                 if (category) {
