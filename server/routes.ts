@@ -626,6 +626,39 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.status(400).json({ message: (error as Error).message });
     }
   });
+  
+  // Get individual payment details
+  apiRouter.get("/payments/:id", isAuthenticated, async (req: Request, res: Response) => {
+    try {
+      const id = parseInt(req.params.id);
+      const payment = await storage.getPayment(id);
+      
+      if (!payment) {
+        return res.status(404).json({ message: "Payment not found" });
+      }
+      
+      // Users can only view payments they've made or received
+      if (payment.userId !== req.user.id) {
+        // Check if the payment is for a job and the user is the worker for that job
+        if (payment.jobId) {
+          const job = await storage.getJob(payment.jobId);
+          if (!job || job.workerId !== req.user.id) {
+            return res.status(403).json({
+              message: "Forbidden: You can only view payments you made or received"
+            });
+          }
+        } else {
+          return res.status(403).json({
+            message: "Forbidden: You can only view payments you made or received"
+          });
+        }
+      }
+      
+      res.json(payment);
+    } catch (error) {
+      res.status(400).json({ message: (error as Error).message });
+    }
+  });
 
   apiRouter.post("/payments", isAuthenticated, async (req: Request, res: Response) => {
     try {

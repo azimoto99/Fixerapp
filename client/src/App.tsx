@@ -10,6 +10,8 @@ import Profile from "@/pages/Profile";
 import EarningsPage from "@/pages/EarningsPage";
 import AuthPage from "@/pages/auth-page";
 import NotFound from "@/pages/not-found";
+import TransactionHistory from "@/pages/TransactionHistory";
+import PaymentDashboard from "@/pages/PaymentDashboard";
 import { AuthProvider } from "@/hooks/use-auth";
 import { ProtectedRoute } from "@/lib/protected-route";
 import { AccountTypeRoute } from "@/lib/account-type-route";
@@ -47,6 +49,8 @@ function RouterWithAuth() {
       <ProtectedRoute path="/job/:id" component={JobDetails} />
       <ProtectedRoute path="/profile" component={Profile} />
       <AccountTypeRoute path="/earnings" component={EarningsPage} allowedType="worker" />
+      <ProtectedRoute path="/transactions" component={TransactionHistory} />
+      <AccountTypeRoute path="/payment-dashboard" component={PaymentDashboard} allowedType="poster" />
       <Route path="/auth" component={AuthPage} />
       <Route path="/login" component={RedirectToAuth} />
       <Route path="/register" component={RedirectToAuth} />

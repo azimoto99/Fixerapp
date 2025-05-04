@@ -5,8 +5,11 @@ import {
   LogOut, 
   Star as StarIcon, 
   BarChart2,
-  X
+  X,
+  CreditCard,
+  LayoutDashboard
 } from "lucide-react";
+import { useLocation } from "wouter";
 import { useAuth } from '@/hooks/use-auth';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';

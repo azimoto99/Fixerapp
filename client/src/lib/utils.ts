@@ -97,3 +97,13 @@ export function formatDateTime(date: Date | string): string {
     hour12: true
   });
 }
+
+export function formatDate(date: Date | string | null): string {
+  if (!date) return 'N/A';
+  
+  return new Date(date).toLocaleDateString('en-US', {
+    year: 'numeric',
+    month: 'short',
+    day: 'numeric'
+  });
+}
