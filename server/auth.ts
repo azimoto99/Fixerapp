@@ -70,7 +70,7 @@ async function findOrCreateUserFromSocial(
   // Generate a random password
   const password = await hashPassword(generateRandomPassword());
   
-  // Create user data object - using "pending" account type that will need to be selected
+  // Create user data object - always set to worker account type
   const userData: InsertUser = {
     username,
     password,
@@ -78,7 +78,7 @@ async function findOrCreateUserFromSocial(
     email,
     phone: null,
     bio: null,
-    accountType: "pending", // User will need to select account type
+    accountType: "worker", // Always set to worker
     avatarUrl: photoUrl,
     skills: [],
     isActive: true,
@@ -128,22 +128,10 @@ export function setupAuth(app: Express) {
       passReqToCallback: true
     }, async (req, username, password, done) => {
       try {
-        // The account type is now optional during login
-        const accountType = req.body.accountType as 'worker' | 'poster' | undefined;
-        let user;
-        
-        if (accountType) {
-          // If account type is provided, search for user with that specific account type
-          user = await storage.getUserByUsernameAndType(username, accountType);
-          if (!user) {
-            return done(null, false, { message: `No ${accountType} account found with this username` });
-          }
-        } else {
-          // If no account type is provided, find any user with this username
-          user = await storage.getUserByUsername(username);
-          if (!user) {
-            return done(null, false, { message: "No account found with this username" });
-          }
+        // Only worker accounts exist now, so just get the user by username
+        const user = await storage.getUserByUsername(username);
+        if (!user) {
+          return done(null, false, { message: "No account found with this username" });
         }
         
         const passwordValid = await comparePasswords(password, user.password);
@@ -167,7 +155,7 @@ export function setupAuth(app: Express) {
       passReqToCallback: true
     }, async (req, accessToken, refreshToken, profile, done) => {
       try {
-        // Find or create the user with "pending" account type
+        // Find or create the user with "worker" account type
         const user = await findOrCreateUserFromSocial(profile);
         
         return done(null, user);
@@ -190,7 +178,7 @@ export function setupAuth(app: Express) {
     }
   });
 
-  // Register a new user without account type (initial registration)
+  // Register a new user (always as worker type)
   app.post("/api/register", async (req, res, next) => {
     try {
       const { username, email, password: rawPassword } = req.body;
@@ -229,10 +217,8 @@ export function setupAuth(app: Express) {
         if (err) return next(err);
         // Don't return password in response
         const { password, ...userResponse } = user;
-        res.status(201).json({
-          ...userResponse,
-          needsAccountType: true // Flag to indicate account type selection is needed
-        });
+        // No need for account type selection flag anymore since it's always worker
+        res.status(201).json(userResponse);
       });
     } catch (error) {
       res.status(400).json({ message: (error as Error).message });
@@ -240,27 +226,44 @@ export function setupAuth(app: Express) {
   });
 
   app.post("/api/login", (req, res, next) => {
-    passport.authenticate("local", (err: Error | null, user: Express.User | false, info: { message: string } | undefined) => {
+    passport.authenticate("local", (err: Error | null, userObj: Express.User | false, info: { message: string } | undefined) => {
       if (err) return next(err);
-      if (!user) {
+      if (!userObj) {
         return res.status(401).json({ message: info?.message || "Login failed" });
       }
       
-      req.login(user, (err) => {
-        if (err) return next(err);
-        
-        // Check if user has a "pending" account type that needs selection
-        const needsAccountType = user.accountType === "pending";
-        
-        // Don't return password in response
-        const { password, ...userResponse } = user;
-        
-        // Return flag if account type selection is needed
-        res.json({
-          ...userResponse,
-          needsAccountType
+      // Need to cast to avoid type errors
+      let user = userObj as Express.User;
+      
+      // If account type is still pending, update it to worker automatically
+      if (user.accountType === "pending") {
+        (async () => {
+          try {
+            const updatedUser = await storage.updateUser(user.id, { accountType: "worker" });
+            if (updatedUser) {
+              user = updatedUser;
+            }
+          } catch (error) {
+            console.error("Error updating account type during login:", error);
+          }
+          
+          finishLogin();
+        })();
+      } else {
+        finishLogin();
+      }
+      
+      function finishLogin() {
+        req.login(user, (err) => {
+          if (err) return next(err);
+          
+          // Don't return password in response
+          const { password, ...userResponse } = user;
+          
+          // Account type selection is no longer needed
+          res.json(userResponse);
         });
-      });
+      }
     })(req, res, next);
   });
 
@@ -285,11 +288,7 @@ export function setupAuth(app: Express) {
 
   // Google Authentication Routes
   app.get('/auth/google', (req, res, next) => {
-    // Store the account type in the session
-    if (req.query.accountType) {
-      req.session.accountType = req.query.accountType;
-    }
-    
+    // No need to store account type anymore since all users are workers
     passport.authenticate('google', { 
       scope: ['profile', 'email'],
       session: true
@@ -308,7 +307,7 @@ export function setupAuth(app: Express) {
       
       // Check if this is a new social login user who needs to complete their profile
       if ((req.user as any).requiresProfileCompletion) {
-        // Send to complete profile page first before account type selection
+        // Send to complete profile page
         return res.redirect(`/complete-profile?id=${req.user.id}&provider=google`);
       }
       
