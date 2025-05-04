@@ -4,9 +4,12 @@ import { formatCurrency, formatDistance, formatDateTime, getCategoryIcon, getCat
 import { Job } from '@shared/schema';
 import { useAuth } from '@/hooks/use-auth';
 import { useState } from 'react';
-import { apiRequest } from '@/lib/queryClient';
+import { apiRequest, queryClient } from '@/lib/queryClient';
 import { useToast } from '@/hooks/use-toast';
 import TaskList from './TaskList';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
+import { Loader2, CheckCircle2 } from 'lucide-react';
+import { useMutation } from '@tanstack/react-query';
 
 interface JobDetailProps {
   job: Job;
@@ -20,6 +23,7 @@ const JobDetail: React.FC<JobDetailProps> = ({ job, distance = 0.5, onClose }) =
   const [isApplying, setIsApplying] = useState(false);
   
   const {
+    id: jobId,
     title,
     description,
     category,
@@ -31,12 +35,23 @@ const JobDetail: React.FC<JobDetailProps> = ({ job, distance = 0.5, onClose }) =
     dateNeeded,
     requiredSkills,
     equipmentProvided,
-    posterId
+    posterId,
+    status
   } = job;
 
   const categoryColor = getCategoryColor(category);
   const categoryIcon = getCategoryIcon(category);
   
+  // Determine if user is assigned worker
+  const isAssignedWorker = user?.id === job.workerId;
+  
+  // Determine if job is in progress (assigned to worker but not completed)
+  const isJobInProgress = status === 'in_progress' || status === 'assigned';
+  
+  // Determine if job is completed
+  const isJobCompleted = status === 'completed';
+  
+  // Apply for job mutation
   const handleApply = async () => {
     if (!user) {
       toast({
@@ -78,13 +93,82 @@ const JobDetail: React.FC<JobDetailProps> = ({ job, distance = 0.5, onClose }) =
       setIsApplying(false);
     }
   };
+  
+  // Complete job mutation
+  const completeJobMutation = useMutation({
+    mutationFn: async () => {
+      const res = await apiRequest('PATCH', `/api/jobs/${jobId}`, {
+        status: 'completed'
+      });
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: [`/api/jobs/${jobId}`] });
+      queryClient.invalidateQueries({ queryKey: ['/api/jobs'] });
+      
+      toast({
+        title: "Job Completed",
+        description: "The job has been marked as completed. Your payment will be processed soon.",
+      });
+      
+      // Create an earning record for this job
+      createEarningMutation.mutate();
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Error Completing Job",
+        description: error.message,
+        variant: "destructive",
+      });
+    }
+  });
+  
+  // Create earning mutation
+  const createEarningMutation = useMutation({
+    mutationFn: async () => {
+      const res = await apiRequest('POST', '/api/earnings', {
+        jobId: job.id,
+        workerId: user?.id,
+        amount: paymentAmount,
+        status: 'pending'
+      });
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/earnings/worker', user?.id] });
+    },
+    onError: (error: Error) => {
+      console.error("Error creating earning record:", error);
+      // We don't show this error to the user since the job was already marked complete
+    }
+  });
 
   return (
     <div className="bg-white">
       {/* Job details */}
       <div className="px-5 py-3">
         {/* Title and location */}
-        <h3 className="text-lg font-bold text-gray-900 mb-1">{title}</h3>
+        <div className="flex items-center justify-between mb-1">
+          <h3 className="text-lg font-bold text-gray-900">{title}</h3>
+          
+          {/* Status badge */}
+          <Badge 
+            className={`${
+              isJobCompleted 
+                ? 'bg-green-100 text-green-800' 
+                : isJobInProgress 
+                  ? 'bg-blue-100 text-blue-800' 
+                  : 'bg-yellow-100 text-yellow-800'
+            }`}
+          >
+            {isJobCompleted 
+              ? 'Completed' 
+              : isJobInProgress 
+                ? 'In Progress' 
+                : 'Open'}
+          </Badge>
+        </div>
+        
         <div className="flex items-center mb-3">
           <span 
             className="inline-flex items-center justify-center w-5 h-5 rounded-full mr-1 animate-bounce-in"
@@ -129,6 +213,48 @@ const JobDetail: React.FC<JobDetailProps> = ({ job, distance = 0.5, onClose }) =
             </div>
           </div>
         </div>
+        
+        {/* Complete Job button for assigned worker */}
+        {isAssignedWorker && isJobInProgress && (
+          <div className="mb-4">
+            <AlertDialog>
+              <AlertDialogTrigger asChild>
+                <Button 
+                  className="w-full"
+                  variant="default"
+                >
+                  <CheckCircle2 className="h-4 w-4 mr-2" />
+                  Mark Job as Complete
+                </Button>
+              </AlertDialogTrigger>
+              <AlertDialogContent>
+                <AlertDialogHeader>
+                  <AlertDialogTitle>Confirm Job Completion</AlertDialogTitle>
+                  <AlertDialogDescription>
+                    Are you sure you want to mark this job as complete? This will notify the job poster and process your payment.
+                    Make sure you have completed all required tasks.
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel>Cancel</AlertDialogCancel>
+                  <AlertDialogAction
+                    onClick={() => completeJobMutation.mutate()}
+                    disabled={completeJobMutation.isPending}
+                  >
+                    {completeJobMutation.isPending ? (
+                      <>
+                        <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                        Processing...
+                      </>
+                    ) : (
+                      "Yes, Mark Complete"
+                    )}
+                  </AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
+          </div>
+        )}
         
         {/* Date and time */}
         <div className="flex items-center mb-4">

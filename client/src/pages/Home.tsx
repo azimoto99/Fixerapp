@@ -68,18 +68,21 @@ const WorkerDashboard = () => {
           onSelectJob={handleSelectJob}
         />
         
-        {/* DoorDash-style floating search button */}
+        {/* DoorDash-style floating search and nearest job button */}
         <div className="absolute bottom-6 left-1/2 transform -translate-x-1/2 z-[1001]">
-          <div className="bg-white rounded-full shadow-lg" style={{ width: '90vw', maxWidth: '400px' }}>
-            <div className="p-1.5">
-              <JobSearch onSearch={handleSearch} />
+          <div className="flex flex-col gap-3 items-center">
+            {/* Find Nearest Job Button */}
+            <div>
+              <FindNearestJobButton />
+            </div>
+            
+            {/* Search box */}
+            <div className="bg-white rounded-full shadow-lg" style={{ width: '90vw', maxWidth: '400px' }}>
+              <div className="p-1.5">
+                <JobSearch onSearch={handleSearch} />
+              </div>
             </div>
           </div>
-        </div>
-        
-        {/* Find Nearest Job Button */}
-        <div className="absolute top-4 right-4 z-[1001]">
-          <FindNearestJobButton />
         </div>
       </div>
     </div>
