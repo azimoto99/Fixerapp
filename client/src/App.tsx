@@ -68,6 +68,7 @@ function App() {
         <AuthProvider>
           <StripeConnectCheck workersOnly={true} enforce={false}>
             <RouterWithAuth />
+            <WelcomeMessage />
             <Toaster />
           </StripeConnectCheck>
         </AuthProvider>

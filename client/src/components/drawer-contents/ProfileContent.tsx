@@ -10,7 +10,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { apiRequest, queryClient } from '@/lib/queryClient';
 import { useToast } from '@/hooks/use-toast';
 import { UserPlus, Phone, Mail, MapPin, Briefcase, Clock, Save } from 'lucide-react';
-import StripeConnectSetup from '@/components/stripe/StripeConnectSetup';
+import { StripeConnectSetup } from '@/components/stripe';
 
 interface ProfileContentProps {
   user: User;
