@@ -11,13 +11,9 @@ import EarningsPage from "@/pages/EarningsPage";
 import AuthPage from "@/pages/auth-page";
 import NotFound from "@/pages/not-found";
 import TransactionHistory from "@/pages/TransactionHistory";
-import PaymentDashboard from "@/pages/PaymentDashboard";
-import AccountTypeSelection from "@/pages/AccountTypeSelection";
 import CompleteProfile from "@/pages/CompleteProfile";
 import { AuthProvider } from "@/hooks/use-auth";
 import { ProtectedRoute } from "@/lib/protected-route";
-import { AccountTypeRoute } from "@/lib/account-type-route";
-import { MultiAccountTypeRoute } from "@/lib/multi-account-type-route";
 import { useAuth } from "@/hooks/use-auth";
 import { useEffect } from "react";
 
@@ -48,17 +44,17 @@ function RouterWithAuth() {
   return (
     <Switch>
       <ProtectedRoute path="/" component={Home} />
-      <MultiAccountTypeRoute path="/post-job" component={PostJob} allowedTypes={['worker', 'poster']} />
+      <ProtectedRoute path="/post-job" component={PostJob} />
       <ProtectedRoute path="/job/:id" component={JobDetails} />
       <ProtectedRoute path="/profile" component={Profile} />
-      <AccountTypeRoute path="/earnings" component={EarningsPage} allowedType="worker" />
+      <ProtectedRoute path="/earnings" component={EarningsPage} />
       <ProtectedRoute path="/transactions" component={TransactionHistory} />
-      <AccountTypeRoute path="/payment-dashboard" component={PaymentDashboard} allowedType="poster" />
+      {/* Payment dashboard is not accessible as there are no job posters */}
       <Route path="/auth" component={AuthPage} />
       <Route path="/login" component={RedirectToAuth} />
       <Route path="/register" component={RedirectToAuth} />
       <Route path="/auth/callback" component={() => <div>Processing authentication...</div>} />
-      <Route path="/account-type-selection" component={AccountTypeSelection} />
+      {/* Account type selection is no longer needed */}
       <Route path="/complete-profile" component={CompleteProfile} />
       <Route component={NotFound} />
     </Switch>

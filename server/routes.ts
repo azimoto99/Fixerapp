@@ -49,16 +49,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Create API router
   const apiRouter = express.Router();
 
-  // Handle account type selection
+  // Handle account type setting (always worker now)
   apiRouter.post("/set-account-type", async (req: Request, res: Response) => {
     const schema = z.object({
       userId: z.number(),
-      accountType: z.enum(["worker", "poster"]),
-      provider: z.string()
+      provider: z.string().optional()
     });
 
     try {
-      const { userId, accountType, provider } = schema.parse(req.body);
+      // Parse only userId (ignore accountType if provided, always use "worker")
+      const { userId } = schema.parse(req.body);
+      const accountType = "worker"; // Always set to worker
       
       // Get the user
       const user = await storage.getUser(userId);
@@ -69,15 +70,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       let accountUser = user;
       
-      // Check if the user already has this account type
+      // Check if the user already has worker account type
       if (user.accountType === accountType) {
-        // Already has this account type, just return the user
-        console.log(`User ${userId} already has account type ${accountType}`);
-      } 
-      // If user has pending account type, update it
-      else if (user.accountType === 'pending') {
+        // Already has worker account type, just return the user
+        console.log(`User ${userId} already has account type worker`);
+      }
+      // If user has any other account type (pending or poster), update it to worker
+      else {
         try {
-          // Update the user with the selected account type
+          // Update the user to worker account type
           const updatedUser = await storage.updateUser(userId, { accountType });
           
           if (!updatedUser) {
@@ -85,59 +86,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
           }
           
           accountUser = updatedUser;
+          console.log(`Updated user ${userId} to worker account type`);
         } catch (error) {
           console.error("Error updating account type:", error);
           return res.status(500).json({ message: "Failed to update account type" });
-        }
-      } 
-      // Otherwise, check if there's an existing account with the same email and desired account type
-      else {
-        try {
-          // Check if a user with the same email and the desired account type already exists
-          const existingUser = await storage.getUserByUsernameAndType(user.username, accountType);
-          let result = { rows: [] };
-          
-          if (existingUser) {
-            result = { rows: [existingUser] };
-          }
-          
-          if (result.rows.length > 0) {
-            // Found an existing account with the same email and desired account type
-            console.log(`Found existing ${accountType} account for email ${user.email}`);
-            accountUser = result.rows[0];
-          } else {
-            // No existing account found, try to create a new one
-            // Create a new user with the selected account type
-            const newUsername = `${user.username}_${accountType}`;
-            
-            // Check if username already exists
-            const existingUser = await storage.getUserByUsername(newUsername);
-            if (existingUser) {
-              // User already has both account types, use the existing one
-              accountUser = existingUser;
-            } else {
-              // Create a new user with the new account type
-              const newUser = await storage.createUser({
-                username: newUsername,
-                password: user.password, // Same password as original account
-                email: user.email,
-                fullName: user.fullName,
-                accountType,
-                phone: user.phone || undefined,
-                bio: user.bio || undefined,
-                avatarUrl: user.avatarUrl || undefined,
-                skills: user.skills || [],
-                googleId: user.googleId || undefined,
-                facebookId: user.facebookId || undefined,
-                isActive: true
-              });
-              
-              accountUser = newUser;
-            }
-          }
-        } catch (error) {
-          console.error("Error handling dual account:", error);
-          return res.status(500).json({ message: "Failed to handle account type selection" });
         }
       }
       
