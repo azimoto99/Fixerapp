@@ -6,6 +6,7 @@ import ViewToggle from '@/components/ViewToggle';
 import JobListSection from '@/components/JobListSection';
 import MapSection from '@/components/MapSection';
 import NewJobButton from '@/components/NewJobButton';
+import FindNearestJobButton from '@/components/FindNearestJobButton';
 import { useJobs } from '@/hooks/useJobs';
 import { Job } from '@shared/schema';
 import { useGeolocation } from '@/lib/geolocation';
@@ -74,6 +75,11 @@ const WorkerDashboard = () => {
               <JobSearch onSearch={handleSearch} />
             </div>
           </div>
+        </div>
+        
+        {/* Find Nearest Job Button */}
+        <div className="absolute top-4 right-4 z-[1001]">
+          <FindNearestJobButton />
         </div>
       </div>
     </div>
