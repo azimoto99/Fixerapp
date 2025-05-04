@@ -50,17 +50,37 @@ const StripeConnectSetup: React.FC<StripeConnectSetupProps> = ({ compact = false
   // Create account mutation
   const createAccountMutation = useMutation({
     mutationFn: async () => {
-      const res = await apiRequest('POST', '/api/stripe/connect/create-account', {});
-      return await res.json();
+      try {
+        const res = await apiRequest('POST', '/api/stripe/connect/create-account', {});
+        
+        // If response is not ok, throw with more details
+        if (!res.ok) {
+          const errorData = await res.json();
+          console.error('Stripe Connect account creation failed:', errorData);
+          throw new Error(errorData.message || `Server error: ${res.status}`);
+        }
+        
+        return await res.json();
+      } catch (error) {
+        console.error('Error in Stripe Connect account creation:', error);
+        throw error;
+      }
     },
     onSuccess: (data) => {
-      if (data.url) {
+      if (data.accountLinkUrl) {
         // Open the Stripe Connect onboarding link in a new tab
-        window.open(data.url, '_blank');
+        window.open(data.accountLinkUrl, '_blank');
         
         toast({
           title: 'Stripe Connect Setup Started',
           description: 'Please complete the setup in the new tab.',
+        });
+      } else {
+        console.error('Missing accountLinkUrl in response:', data);
+        toast({
+          title: 'Error',
+          description: 'Could not create account link. Please try again.',
+          variant: 'destructive',
         });
       }
     },
@@ -80,9 +100,16 @@ const StripeConnectSetup: React.FC<StripeConnectSetupProps> = ({ compact = false
       return await res.json();
     },
     onSuccess: (data) => {
-      if (data.url) {
+      if (data.url || data.accountLinkUrl) {
         // Open the Stripe Connect dashboard in a new tab
-        window.open(data.url, '_blank');
+        window.open(data.accountLinkUrl || data.url, '_blank');
+      } else {
+        console.error('Missing url in response:', data);
+        toast({
+          title: 'Error',
+          description: 'Could not create login link. Please try again.',
+          variant: 'destructive',
+        });
       }
     },
     onError: (error: any) => {

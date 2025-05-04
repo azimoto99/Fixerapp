@@ -1452,6 +1452,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
         },
         accountLinkUrl: accountLink.url
       });
+      
+      console.log("Successfully created Stripe Connect account:", {
+        accountId: account.id,
+        accountLinkUrl: accountLink.url
+      });
     } catch (error) {
       console.error("Error creating Stripe Connect account:", error);
       res.status(400).json({ message: (error as Error).message });
@@ -1522,7 +1527,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
         req.user.stripeConnectAccountId
       );
       
-      res.json({ url: loginLink.url });
+      res.json({ 
+        url: loginLink.url,
+        accountLinkUrl: loginLink.url  // For consistent field naming with other endpoints
+      });
     } catch (error) {
       console.error("Error creating Stripe Connect login link:", error);
       res.status(400).json({ message: (error as Error).message });
