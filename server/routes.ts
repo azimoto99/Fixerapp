@@ -1028,12 +1028,77 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       
       let datePaid = undefined;
+      let updatedEarning;
+      
       if (status === 'paid') {
         datePaid = new Date();
+        
+        // Check if the worker has a Stripe Connect account for direct payment
+        const worker = await storage.getUser(earning.workerId);
+        if (!worker) {
+          return res.status(404).json({ message: "Worker not found" });
+        }
+        
+        if (worker.stripeConnectAccountId) {
+          try {
+            // Create a transfer to the worker's connected account
+            const transfer = await stripe.transfers.create({
+              amount: Math.round(earning.netAmount * 100), // Convert to cents
+              currency: 'usd',
+              destination: worker.stripeConnectAccountId,
+              description: `Payment for job #${earning.jobId}: ${job.title}`,
+              metadata: {
+                earningId: earning.id.toString(),
+                workerId: earning.workerId.toString(),
+                jobId: earning.jobId.toString(),
+                platform: "The Job"
+              }
+            });
+            
+            // Create a payment record for the transfer
+            await storage.createPayment({
+              userId: earning.workerId,
+              amount: earning.netAmount,
+              type: "payout",
+              status: "completed",
+              paymentMethod: "stripe",
+              transactionId: transfer.id,
+              jobId: earning.jobId,
+              description: `Payment for job #${earning.jobId}: ${job.title}`,
+              metadata: { transferId: transfer.id }
+            });
+            
+            // Update the earning with the payment date
+            updatedEarning = await storage.updateEarningStatus(id, status, datePaid);
+            
+            return res.json({
+              earning: updatedEarning,
+              transfer: {
+                id: transfer.id,
+                amount: earning.netAmount,
+                status: 'paid'
+              },
+              message: "Payment successfully transferred to worker's account."
+            });
+          } catch (error) {
+            console.error("Error processing Stripe transfer:", error);
+            return res.status(400).json({ 
+              message: `Failed to process payment: ${(error as Error).message}` 
+            });
+          }
+        } else {
+          // If worker doesn't have a Connect account, just mark as paid but include a message
+          updatedEarning = await storage.updateEarningStatus(id, status, datePaid);
+          return res.json({
+            earning: updatedEarning,
+            message: "Payment marked as paid, but worker needs to set up a Stripe Connect account to receive funds automatically."
+          });
+        }
+      } else {
+        // For non-paid status updates, just update the status
+        updatedEarning = await storage.updateEarningStatus(id, status, datePaid);
+        return res.json(updatedEarning);
       }
-      
-      const updatedEarning = await storage.updateEarningStatus(id, status, datePaid);
-      res.json(updatedEarning);
     } catch (error) {
       res.status(400).json({ message: (error as Error).message });
     }
@@ -1277,6 +1342,156 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Stripe Connect endpoints for worker payouts
+  apiRouter.post("/stripe/connect/create-account", isAuthenticated, async (req: Request, res: Response) => {
+    try {
+      // Only workers should be able to create Connect accounts
+      if (req.user.accountType !== 'worker') {
+        return res.status(403).json({ 
+          message: "Forbidden: Only worker accounts can create Stripe Connect accounts" 
+        });
+      }
+      
+      // Check if the user already has a Connect account
+      if (req.user.stripeConnectAccountId) {
+        return res.status(400).json({ 
+          message: "User already has a Stripe Connect account" 
+        });
+      }
+      
+      // Create a Connect Express account
+      const account = await stripe.accounts.create({
+        type: 'express',
+        email: req.user.email,
+        metadata: {
+          userId: req.user.id.toString(),
+          platform: "The Job"
+        },
+        capabilities: {
+          transfers: { requested: true },
+          card_payments: { requested: true }
+        },
+        business_type: 'individual',
+        business_profile: {
+          url: `${process.env.APP_URL || 'https://thejob.replit.app'}/user/${req.user.id}`,
+          mcc: '7299', // Personal Services
+          product_description: 'Gig economy services provided through The Job platform'
+        }
+      });
+      
+      // Update the user with the Connect account ID
+      const updatedUser = await storage.updateUser(req.user.id, {
+        stripeConnectAccountId: account.id
+      });
+      
+      if (!updatedUser) {
+        return res.status(500).json({ message: "Failed to update user with Connect account ID" });
+      }
+      
+      // Create an account link for onboarding
+      const accountLink = await stripe.accountLinks.create({
+        account: account.id,
+        refresh_url: `${process.env.APP_URL || 'https://thejob.replit.app'}/profile?refresh=true`,
+        return_url: `${process.env.APP_URL || 'https://thejob.replit.app'}/profile?success=true`,
+        type: 'account_onboarding',
+      });
+      
+      // Don't return the user's password
+      const { password, ...userData } = updatedUser;
+      
+      // Return the account link URL and account details
+      res.json({
+        user: userData,
+        account: {
+          id: account.id,
+        },
+        accountLinkUrl: accountLink.url
+      });
+    } catch (error) {
+      console.error("Error creating Stripe Connect account:", error);
+      res.status(400).json({ message: (error as Error).message });
+    }
+  });
+  
+  apiRouter.get("/stripe/connect/account-status", isAuthenticated, async (req: Request, res: Response) => {
+    try {
+      // Only workers should be able to check Connect accounts
+      if (req.user.accountType !== 'worker') {
+        return res.status(403).json({ 
+          message: "Forbidden: Only worker accounts can access Connect account status" 
+        });
+      }
+      
+      // Check if the user has a Connect account
+      if (!req.user.stripeConnectAccountId) {
+        return res.status(404).json({ 
+          message: "User does not have a Stripe Connect account" 
+        });
+      }
+      
+      // Retrieve the account details
+      const account = await stripe.accounts.retrieve(req.user.stripeConnectAccountId);
+      
+      // Check if account needs more details for onboarding
+      let accountLinkUrl = null;
+      if (!account.details_submitted || !account.payouts_enabled) {
+        // Create a new account link
+        const accountLink = await stripe.accountLinks.create({
+          account: account.id,
+          refresh_url: `${process.env.APP_URL || 'https://thejob.replit.app'}/profile?refresh=true`,
+          return_url: `${process.env.APP_URL || 'https://thejob.replit.app'}/profile?success=true`,
+          type: 'account_onboarding',
+        });
+        accountLinkUrl = accountLink.url;
+      }
+      
+      // Return sanitized account details
+      res.json({
+        accountId: account.id,
+        detailsSubmitted: account.details_submitted,
+        payoutsEnabled: account.payouts_enabled,
+        chargesEnabled: account.charges_enabled,
+        accountLinkUrl: accountLinkUrl,
+        defaultCurrency: account.default_currency,
+        country: account.country,
+        accountStatus: account.details_submitted 
+          ? (account.payouts_enabled ? 'active' : 'restricted') 
+          : 'incomplete'
+      });
+    } catch (error) {
+      console.error("Error retrieving Stripe Connect account:", error);
+      res.status(400).json({ message: (error as Error).message });
+    }
+  });
+  
+  apiRouter.post("/stripe/connect/create-login-link", isAuthenticated, async (req: Request, res: Response) => {
+    try {
+      // Only workers should be able to access their Connect dashboard
+      if (req.user.accountType !== 'worker') {
+        return res.status(403).json({ 
+          message: "Forbidden: Only worker accounts can access Connect dashboard" 
+        });
+      }
+      
+      // Check if the user has a Connect account
+      if (!req.user.stripeConnectAccountId) {
+        return res.status(404).json({ 
+          message: "User does not have a Stripe Connect account" 
+        });
+      }
+      
+      // Create a login link to access the Connect dashboard
+      const loginLink = await stripe.accounts.createLoginLink(
+        req.user.stripeConnectAccountId
+      );
+      
+      res.json({ url: loginLink.url });
+    } catch (error) {
+      console.error("Error creating Stripe Connect login link:", error);
+      res.status(400).json({ message: (error as Error).message });
+    }
+  });
+  
   apiRouter.post("/stripe/confirm-payment", isAuthenticated, async (req: Request, res: Response) => {
     try {
       const { paymentId, paymentIntentId } = req.body;
