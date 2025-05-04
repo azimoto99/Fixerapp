@@ -39,7 +39,9 @@ const formSchema = insertJobSchema.extend({
   paymentAmount: z.coerce
     .number()
     .min(10, 'Minimum payment amount is $10')
-    .positive('Payment amount must be positive')
+    .positive('Payment amount must be positive'),
+  // Handle dateNeeded as string in the form and convert when needed
+  dateNeeded: z.string()
 });
 
 export default function PostJob() {
