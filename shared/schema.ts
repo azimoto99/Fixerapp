@@ -162,6 +162,10 @@ export const insertJobSchema = createInsertSchema(jobs).omit({
   totalAmount: true,
 }).extend({
   paymentAmount: z.number().min(10, "Minimum payment amount is $10"),
+  // Allow dateNeeded to be a string which will be converted to a Date on the server
+  dateNeeded: z.union([z.string(), z.date()]).transform(val => 
+    typeof val === 'string' ? new Date(val) : val
+  ),
 });
 
 export const insertApplicationSchema = createInsertSchema(applications).omit({
