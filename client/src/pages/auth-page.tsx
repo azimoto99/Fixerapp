@@ -4,6 +4,15 @@ import { useAuth } from '@/hooks/use-auth';
 import Login from './Login';
 import Register from './Register';
 
+// Define wrapper components to add onModeChange prop
+const LoginWithMode = (props: any) => {
+  return <Login onModeChange={props.onModeChange} />;
+};
+
+const RegisterWithMode = (props: any) => {
+  return <Register onModeChange={props.onModeChange} />;
+};
+
 export default function AuthPage() {
   const [_, navigate] = useLocation();
   const { user, isLoading } = useAuth();
@@ -26,9 +35,9 @@ export default function AuthPage() {
       {/* Left Side - Auth Form */}
       <div className="w-full lg:w-1/2 flex items-center justify-center p-6">
         {mode === 'login' ? (
-          <Login onModeChange={() => setMode('register')} />
+          <LoginWithMode onModeChange={() => setMode('register')} />
         ) : (
-          <Register onModeChange={() => setMode('login')} />
+          <RegisterWithMode onModeChange={() => setMode('login')} />
         )}
       </div>
       
