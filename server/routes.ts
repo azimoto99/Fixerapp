@@ -8,6 +8,8 @@ import {
   insertApplicationSchema, 
   insertReviewSchema,
   insertTaskSchema,
+  insertEarningSchema,
+  insertPaymentSchema,
   JOB_CATEGORIES,
   SKILLS
 } from "@shared/schema";
@@ -457,6 +459,211 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       const reorderedTasks = await storage.reorderTasks(jobId, taskIds);
       res.json(reorderedTasks);
+    } catch (error) {
+      res.status(400).json({ message: (error as Error).message });
+    }
+  });
+
+  // Earnings endpoints
+  apiRouter.get("/earnings/worker/:workerId", isAuthenticated, async (req: Request, res: Response) => {
+    try {
+      const workerId = parseInt(req.params.workerId);
+      
+      // Users can only access their own earnings
+      if (workerId !== req.user.id) {
+        return res.status(403).json({ 
+          message: "Forbidden: You can only view your own earnings" 
+        });
+      }
+      
+      const earnings = await storage.getEarningsForWorker(workerId);
+      res.json(earnings);
+    } catch (error) {
+      res.status(400).json({ message: (error as Error).message });
+    }
+  });
+
+  apiRouter.get("/earnings/job/:jobId", isAuthenticated, async (req: Request, res: Response) => {
+    try {
+      const jobId = parseInt(req.params.jobId);
+      
+      // Get the job to check if the user is related to this job
+      const job = await storage.getJob(jobId);
+      if (!job) {
+        return res.status(404).json({ message: "Job not found" });
+      }
+      
+      // Only job posters or the assigned worker can see job earnings
+      const isJobPoster = job.posterId === req.user.id;
+      const isWorker = job.workerId === req.user.id;
+      
+      if (!isJobPoster && !isWorker) {
+        return res.status(403).json({ 
+          message: "Forbidden: Only the job poster or assigned worker can view job earnings" 
+        });
+      }
+      
+      const earnings = await storage.getEarningsForJob(jobId);
+      res.json(earnings);
+    } catch (error) {
+      res.status(400).json({ message: (error as Error).message });
+    }
+  });
+
+  apiRouter.post("/earnings", isAuthenticated, async (req: Request, res: Response) => {
+    try {
+      const earningData = insertEarningSchema.parse(req.body);
+      
+      // Get the job to check permission
+      const job = await storage.getJob(earningData.jobId);
+      if (!job) {
+        return res.status(404).json({ message: "Job not found" });
+      }
+      
+      // Only the job poster can create an earning record
+      if (job.posterId !== req.user.id) {
+        return res.status(403).json({ 
+          message: "Forbidden: Only the job poster can create earnings" 
+        });
+      }
+      
+      // Ensure the correct worker ID is used
+      if (earningData.workerId !== job.workerId) {
+        return res.status(400).json({ 
+          message: "Worker ID does not match the worker assigned to this job" 
+        });
+      }
+      
+      const newEarning = await storage.createEarning(earningData);
+      res.status(201).json(newEarning);
+    } catch (error) {
+      res.status(400).json({ message: (error as Error).message });
+    }
+  });
+
+  apiRouter.patch("/earnings/:id/status", isAuthenticated, async (req: Request, res: Response) => {
+    try {
+      const id = parseInt(req.params.id);
+      const { status } = req.body;
+      
+      if (!status || !['pending', 'paid', 'cancelled'].includes(status)) {
+        return res.status(400).json({ 
+          message: "Invalid status. Must be 'pending', 'paid', or 'cancelled'." 
+        });
+      }
+      
+      // Only admin can update earning status (for future implementation)
+      // For now, assume job poster can update status
+      const earning = await storage.getEarning(id);
+      if (!earning) {
+        return res.status(404).json({ message: "Earning not found" });
+      }
+      
+      const job = await storage.getJob(earning.jobId);
+      if (!job) {
+        return res.status(404).json({ message: "Job not found" });
+      }
+      
+      // Only the job poster can update earning status
+      if (job.posterId !== req.user.id) {
+        return res.status(403).json({ 
+          message: "Forbidden: Only the job poster can update earning status" 
+        });
+      }
+      
+      let datePaid = undefined;
+      if (status === 'paid') {
+        datePaid = new Date();
+      }
+      
+      const updatedEarning = await storage.updateEarningStatus(id, status, datePaid);
+      res.json(updatedEarning);
+    } catch (error) {
+      res.status(400).json({ message: (error as Error).message });
+    }
+  });
+
+  // Payment endpoints
+  apiRouter.get("/payments/user/:userId", isAuthenticated, async (req: Request, res: Response) => {
+    try {
+      const userId = parseInt(req.params.userId);
+      
+      // Users can only view their own payments
+      if (userId !== req.user.id) {
+        return res.status(403).json({ 
+          message: "Forbidden: You can only view your own payments" 
+        });
+      }
+      
+      const payments = await storage.getPaymentsForUser(userId);
+      res.json(payments);
+    } catch (error) {
+      res.status(400).json({ message: (error as Error).message });
+    }
+  });
+
+  apiRouter.post("/payments", isAuthenticated, async (req: Request, res: Response) => {
+    try {
+      const paymentData = insertPaymentSchema.parse(req.body);
+      
+      // Ensure the user ID matches the authenticated user
+      if (paymentData.userId !== req.user.id) {
+        return res.status(403).json({ 
+          message: "Forbidden: You can only create payments with your own user ID" 
+        });
+      }
+      
+      // If job-related payment, validate permissions
+      if (paymentData.jobId) {
+        const job = await storage.getJob(paymentData.jobId);
+        if (!job) {
+          return res.status(404).json({ message: "Job not found" });
+        }
+        
+        // Check if user is related to the job
+        const isJobPoster = job.posterId === req.user.id;
+        const isWorker = job.workerId === req.user.id;
+        
+        if (!isJobPoster && !isWorker) {
+          return res.status(403).json({ 
+            message: "Forbidden: You must be related to the job to create this payment" 
+          });
+        }
+      }
+      
+      const newPayment = await storage.createPayment(paymentData);
+      res.status(201).json(newPayment);
+    } catch (error) {
+      res.status(400).json({ message: (error as Error).message });
+    }
+  });
+
+  apiRouter.patch("/payments/:id/status", isAuthenticated, async (req: Request, res: Response) => {
+    try {
+      const id = parseInt(req.params.id);
+      const { status, transactionId } = req.body;
+      
+      if (!status || !['pending', 'completed', 'failed'].includes(status)) {
+        return res.status(400).json({ 
+          message: "Invalid status. Must be 'pending', 'completed', or 'failed'." 
+        });
+      }
+      
+      // Get the payment to check ownership
+      const payment = await storage.getPayment(id);
+      if (!payment) {
+        return res.status(404).json({ message: "Payment not found" });
+      }
+      
+      // Users can only update their own payments
+      if (payment.userId !== req.user.id) {
+        return res.status(403).json({ 
+          message: "Forbidden: You can only update your own payments" 
+        });
+      }
+      
+      const updatedPayment = await storage.updatePaymentStatus(id, status, transactionId);
+      res.json(updatedPayment);
     } catch (error) {
       res.status(400).json({ message: (error as Error).message });
     }

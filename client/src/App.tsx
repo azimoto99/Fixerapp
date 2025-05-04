@@ -9,6 +9,7 @@ import JobDetails from "@/pages/JobDetails";
 import Profile from "@/pages/Profile";
 import Login from "@/pages/Login";
 import Register from "@/pages/Register";
+import EarningsPage from "@/pages/EarningsPage";
 import NotFound from "@/pages/not-found";
 import { AuthProvider } from "@/hooks/use-auth";
 import { ProtectedRoute } from "@/lib/protected-route";
@@ -21,6 +22,7 @@ function Router() {
       <AccountTypeRoute path="/post-job" component={PostJob} allowedType="poster" />
       <ProtectedRoute path="/job/:id" component={JobDetails} />
       <ProtectedRoute path="/profile" component={Profile} />
+      <AccountTypeRoute path="/earnings" component={EarningsPage} allowedType="worker" />
       <Route path="/login" component={Login} />
       <Route path="/register" component={Register} />
       <Route path="/auth/callback" component={() => <div>Processing authentication...</div>} />
