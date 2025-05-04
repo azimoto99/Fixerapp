@@ -123,83 +123,85 @@ const UserDrawer: React.FC<UserDrawerProps> = ({ children }) => {
         </SheetHeader>
         
         <div className="flex h-[calc(100vh-120px)]">
-          <div className="w-20 border-r bg-muted/30 py-4">
-            <div className="flex flex-col items-center space-y-4">
-              <TabsTrigger 
-                value="profile" 
-                onClick={() => setActiveTab("profile")}
-                className={cn(
-                  "flex flex-col items-center justify-center w-16 h-16 rounded-lg",
-                  activeTab === "profile" 
-                    ? "bg-primary/10 text-primary" 
-                    : "hover:bg-primary/5"
-                )}
-              >
-                <User className="h-5 w-5 mb-1" />
-                <span className="text-xs">Profile</span>
-              </TabsTrigger>
-              
-              {user.accountType === 'worker' && (
+          <Tabs value={activeTab} orientation="vertical" className="flex w-full">
+            <div className="w-20 border-r bg-muted/30 py-4">
+              <TabsList className="flex flex-col items-center space-y-4 bg-transparent h-auto">
                 <TabsTrigger 
-                  value="earnings" 
-                  onClick={() => setActiveTab("earnings")}
+                  value="profile" 
+                  onClick={() => setActiveTab("profile")}
                   className={cn(
                     "flex flex-col items-center justify-center w-16 h-16 rounded-lg",
-                    activeTab === "earnings" 
+                    activeTab === "profile" 
                       ? "bg-primary/10 text-primary" 
-                      : "hover:bg-primary/5"
+                      : "hover:bg-primary/5 data-[state=active]:bg-primary/10 data-[state=active]:text-primary"
                   )}
                 >
-                  <BarChart2 className="h-5 w-5 mb-1" />
-                  <span className="text-xs">Earnings</span>
+                  <User className="h-5 w-5 mb-1" />
+                  <span className="text-xs">Profile</span>
                 </TabsTrigger>
-              )}
-              
-              <TabsTrigger 
-                value="reviews" 
-                onClick={() => setActiveTab("reviews")}
-                className={cn(
-                  "flex flex-col items-center justify-center w-16 h-16 rounded-lg",
-                  activeTab === "reviews" 
-                    ? "bg-primary/10 text-primary" 
-                    : "hover:bg-primary/5"
+                
+                {user.accountType === 'worker' && (
+                  <TabsTrigger 
+                    value="earnings" 
+                    onClick={() => setActiveTab("earnings")}
+                    className={cn(
+                      "flex flex-col items-center justify-center w-16 h-16 rounded-lg",
+                      activeTab === "earnings" 
+                        ? "bg-primary/10 text-primary" 
+                        : "hover:bg-primary/5 data-[state=active]:bg-primary/10 data-[state=active]:text-primary"
+                    )}
+                  >
+                    <BarChart2 className="h-5 w-5 mb-1" />
+                    <span className="text-xs">Earnings</span>
+                  </TabsTrigger>
                 )}
-              >
-                <StarIcon className="h-5 w-5 mb-1" />
-                <span className="text-xs">Reviews</span>
-              </TabsTrigger>
-              
-              <TabsTrigger 
-                value="settings" 
-                onClick={() => setActiveTab("settings")}
-                className={cn(
-                  "flex flex-col items-center justify-center w-16 h-16 rounded-lg",
-                  activeTab === "settings" 
-                    ? "bg-primary/10 text-primary" 
-                    : "hover:bg-primary/5"
-                )}
-              >
-                <Settings className="h-5 w-5 mb-1" />
-                <span className="text-xs">Settings</span>
-              </TabsTrigger>
-              
-              <Button 
-                variant="ghost" 
-                className="flex flex-col items-center justify-center w-16 h-16 rounded-lg hover:bg-red-100 hover:text-red-600"
-                onClick={handleLogout}
-              >
-                <LogOut className="h-5 w-5 mb-1" />
-                <span className="text-xs">Logout</span>
-              </Button>
+                
+                <TabsTrigger 
+                  value="reviews" 
+                  onClick={() => setActiveTab("reviews")}
+                  className={cn(
+                    "flex flex-col items-center justify-center w-16 h-16 rounded-lg",
+                    activeTab === "reviews" 
+                      ? "bg-primary/10 text-primary" 
+                      : "hover:bg-primary/5 data-[state=active]:bg-primary/10 data-[state=active]:text-primary"
+                  )}
+                >
+                  <StarIcon className="h-5 w-5 mb-1" />
+                  <span className="text-xs">Reviews</span>
+                </TabsTrigger>
+                
+                <TabsTrigger 
+                  value="settings" 
+                  onClick={() => setActiveTab("settings")}
+                  className={cn(
+                    "flex flex-col items-center justify-center w-16 h-16 rounded-lg",
+                    activeTab === "settings" 
+                      ? "bg-primary/10 text-primary" 
+                      : "hover:bg-primary/5 data-[state=active]:bg-primary/10 data-[state=active]:text-primary"
+                  )}
+                >
+                  <Settings className="h-5 w-5 mb-1" />
+                  <span className="text-xs">Settings</span>
+                </TabsTrigger>
+                
+                <Button 
+                  variant="ghost" 
+                  className="flex flex-col items-center justify-center w-16 h-16 rounded-lg hover:bg-red-100 hover:text-red-600"
+                  onClick={handleLogout}
+                >
+                  <LogOut className="h-5 w-5 mb-1" />
+                  <span className="text-xs">Logout</span>
+                </Button>
+              </TabsList>
             </div>
-          </div>
-          
-          <div className="flex-1 p-4 overflow-y-auto">
-            {activeTab === "profile" && <ProfileContent user={user} />}
-            {activeTab === "earnings" && <EarningsContent userId={user.id} />}
-            {activeTab === "reviews" && <ReviewsContent userId={user.id} />}
-            {activeTab === "settings" && <SettingsContent user={user} />}
-          </div>
+            
+            <div className="flex-1 p-4 overflow-y-auto">
+              <TabsContent value="profile"><ProfileContent user={user} /></TabsContent>
+              <TabsContent value="earnings"><EarningsContent userId={user.id} /></TabsContent>
+              <TabsContent value="reviews"><ReviewsContent userId={user.id} /></TabsContent>
+              <TabsContent value="settings"><SettingsContent user={user} /></TabsContent>
+            </div>
+          </Tabs>
         </div>
       </SheetContent>
     </Sheet>
