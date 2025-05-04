@@ -10,7 +10,7 @@ import { apiRequest } from '@/lib/queryClient';
 import { useGeolocation } from '@/lib/geolocation';
 
 import Header from '@/components/Header';
-import MobileNav from '@/components/MobileNav';
+import MinimalMobileNav from '@/components/MinimalMobileNav';
 import PaymentDetailsForm from '@/components/PaymentDetailsForm';
 import { Button } from '@/components/ui/button';
 import {
@@ -481,7 +481,7 @@ export default function PostJob() {
         </div>
       </main>
       
-      <MobileNav />
+      <MinimalMobileNav />
     </div>
   );
 }
