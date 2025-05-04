@@ -168,11 +168,21 @@ function RedirectToAuth() {
   return null;
 }
 
-// Simple router with minimal components
+// Full router with all components
 function RouterWithAuth() {
   const { user, isLoading } = useAuth();
   const [, navigate] = useLocation();
   const [isRoot] = useRoute("/");
+  
+  // Add debug info to console
+  useEffect(() => {
+    console.log("Auth state:", { 
+      isLoading, 
+      userAuthenticated: !!user,
+      accountType: user?.accountType,
+      isRoot
+    });
+  }, [isLoading, user, isRoot]);
   
   // Redirect from root to /auth if not logged in
   useEffect(() => {
@@ -183,12 +193,172 @@ function RouterWithAuth() {
   
   return (
     <Switch>
-      <Route path="/" component={() => <ErrorBoundaryRoute component={DiagnosticPage} />} />
+      {/* Main routes */}
+      <Route 
+        path="/" 
+        component={() => {
+          // If the user is logged in, show a basic dashboard with links
+          if (user) {
+            return (
+              <div className="container mx-auto py-10 px-4">
+                <div className="flex flex-col gap-6">
+                  <div className="bg-white rounded-lg shadow-lg p-6">
+                    <h1 className="text-3xl font-bold mb-2">Welcome back, {user.fullName}</h1>
+                    <p className="text-gray-600 mb-6">Account type: {user.accountType}</p>
+                    
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                      <a href="/profile" className="block p-6 bg-blue-50 rounded-lg shadow hover:shadow-md transition">
+                        <h3 className="text-lg font-semibold mb-2">Profile</h3>
+                        <p className="text-gray-600">Manage your personal information</p>
+                      </a>
+                      
+                      {user.accountType === 'worker' && (
+                        <a href="/earnings" className="block p-6 bg-green-50 rounded-lg shadow hover:shadow-md transition">
+                          <h3 className="text-lg font-semibold mb-2">Earnings</h3>
+                          <p className="text-gray-600">View your earnings and payment history</p>
+                        </a>
+                      )}
+                      
+                      <a href="/post-job" className="block p-6 bg-purple-50 rounded-lg shadow hover:shadow-md transition">
+                        <h3 className="text-lg font-semibold mb-2">Post a Job</h3>
+                        <p className="text-gray-600">Create a new job opportunity</p>
+                      </a>
+                      
+                      {user.accountType === 'poster' && (
+                        <a href="/payment-dashboard" className="block p-6 bg-amber-50 rounded-lg shadow hover:shadow-md transition">
+                          <h3 className="text-lg font-semibold mb-2">Payment Dashboard</h3>
+                          <p className="text-gray-600">Manage your posted job payments</p>
+                        </a>
+                      )}
+                      
+                      <a href="/transactions" className="block p-6 bg-indigo-50 rounded-lg shadow hover:shadow-md transition">
+                        <h3 className="text-lg font-semibold mb-2">Transactions</h3>
+                        <p className="text-gray-600">View your transaction history</p>
+                      </a>
+                    </div>
+                  </div>
+                  
+                  <div className="bg-white rounded-lg shadow-lg p-6">
+                    <div className="flex items-center justify-between mb-4">
+                      <h2 className="text-xl font-bold">Diagnostics</h2>
+                    </div>
+                    <p className="text-gray-600 mb-4">Full application functionality is being restored. For now, use these links to navigate:</p>
+                    <div className="flex gap-2 flex-wrap">
+                      <a href="/diagnostic" className="px-4 py-2 bg-gray-100 hover:bg-gray-200 rounded">Diagnostic Page</a>
+                      <a href="/auth-test" className="px-4 py-2 bg-blue-100 hover:bg-blue-200 rounded">Google Auth Test</a>
+                      <a href="/register-test" className="px-4 py-2 bg-green-100 hover:bg-green-200 rounded">Registration Test</a>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            );
+          } else {
+            return <ErrorBoundaryRoute component={DiagnosticPage} />;
+          }
+        }} 
+      />
+      
+      {/* Job routes */}
+      <Route path="/post-job" component={() => {
+        try {
+          const PostJob = require('@/pages/PostJob').default;
+          return <ErrorBoundaryRoute component={PostJob} />;
+        } catch (e) {
+          console.error("Error loading PostJob component:", e);
+          return <ErrorBoundaryRoute component={DiagnosticPage} />;
+        }
+      }} />
+      
+      <Route path="/job/:id" component={(params) => {
+        try {
+          // The original JobDetails page expects to get the id from the path params
+          // We're not passing the id explicitly to avoid type errors
+          const JobDetails = require('@/pages/JobDetails').default;
+          return <ErrorBoundaryRoute component={JobDetails} />;
+        } catch (e) {
+          console.error("Error loading JobDetails component:", e);
+          return <ErrorBoundaryRoute component={DiagnosticPage} />;
+        }
+      }} />
+      
+      {/* User routes */}
+      <Route path="/profile" component={() => {
+        try {
+          const Profile = require('@/pages/Profile').default;
+          return <ErrorBoundaryRoute component={Profile} />;
+        } catch (e) {
+          console.error("Error loading Profile component:", e);
+          return <ErrorBoundaryRoute component={DiagnosticPage} />;
+        }
+      }} />
+      
+      <Route path="/earnings" component={() => {
+        try {
+          const EarningsPage = require('@/pages/EarningsPage').default;
+          return <ErrorBoundaryRoute component={EarningsPage} />;
+        } catch (e) {
+          console.error("Error loading EarningsPage component:", e);
+          return <ErrorBoundaryRoute component={DiagnosticPage} />;
+        }
+      }} />
+      
+      <Route path="/transactions" component={() => {
+        try {
+          const TransactionHistory = require('@/pages/TransactionHistory').default;
+          return <ErrorBoundaryRoute component={TransactionHistory} />;
+        } catch (e) {
+          console.error("Error loading TransactionHistory component:", e);
+          return <ErrorBoundaryRoute component={DiagnosticPage} />;
+        }
+      }} />
+      
+      <Route path="/payment-dashboard" component={() => {
+        try {
+          const PaymentDashboard = require('@/pages/PaymentDashboard').default;
+          return <ErrorBoundaryRoute component={PaymentDashboard} />;
+        } catch (e) {
+          console.error("Error loading PaymentDashboard component:", e);
+          return <ErrorBoundaryRoute component={DiagnosticPage} />;
+        }
+      }} />
+      
+      {/* Authentication routes */}
       <Route path="/auth" component={() => <ErrorBoundaryRoute component={AuthPage} />} />
       <Route path="/login" component={() => <ErrorBoundaryRoute component={RedirectToAuth} />} />
       <Route path="/register" component={() => <ErrorBoundaryRoute component={RedirectToAuth} />} />
       <Route path="/auth/callback" component={() => <div>Processing authentication...</div>} />
       <Route path="/diagnostic" component={() => <ErrorBoundaryRoute component={DiagnosticPage} />} />
+      
+      {/* User setup routes */}
+      <Route path="/account-type-selection" component={() => {
+        try {
+          const AccountTypeSelection = require('@/pages/AccountTypeSelection').default;
+          return <ErrorBoundaryRoute component={AccountTypeSelection} />;
+        } catch (e) {
+          console.error("Error loading AccountTypeSelection component:", e);
+          return <ErrorBoundaryRoute component={DiagnosticPage} />;
+        }
+      }} />
+      <Route path="/complete-profile" component={() => {
+        try {
+          const CompleteProfile = require('@/pages/CompleteProfile').default;
+          return <ErrorBoundaryRoute component={CompleteProfile} />;
+        } catch (e) {
+          console.error("Error loading CompleteProfile component:", e);
+          return <ErrorBoundaryRoute component={DiagnosticPage} />;
+        }
+      }} />
+      <Route path="/connect-setup" component={() => {
+        try {
+          const ConnectSetup = require('@/pages/ConnectSetup').default;
+          return <ErrorBoundaryRoute component={ConnectSetup} />;
+        } catch (e) {
+          console.error("Error loading ConnectSetup component:", e);
+          return <ErrorBoundaryRoute component={DiagnosticPage} />;
+        }
+      }} />
+      
+      {/* Fallback route */}
       <Route component={() => <ErrorBoundaryRoute component={NotFound} />} />
     </Switch>
   );
