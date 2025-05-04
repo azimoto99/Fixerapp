@@ -1,80 +1,90 @@
-import { Switch, Route, useLocation, useRoute } from "wouter";
+import { useState, useEffect } from "react";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { queryClient } from "./lib/queryClient";
 import { TooltipProvider } from "@/components/ui/tooltip";
-import { Toaster } from "@/components/ui/toaster";
-import Home from "@/pages/Home";
-import PostJob from "@/pages/PostJob";
-import JobDetails from "@/pages/JobDetails";
-import Profile from "@/pages/Profile";
-import EarningsPage from "@/pages/EarningsPage";
-import AuthPage from "@/pages/auth-page";
+import { Switch, Route } from "wouter";
 import NotFound from "@/pages/not-found";
-import TransactionHistory from "@/pages/TransactionHistory";
-import PaymentDashboard from "@/pages/PaymentDashboard";
-import AccountTypeSelection from "@/pages/AccountTypeSelection";
-import CompleteProfile from "@/pages/CompleteProfile";
-import ConnectSetup from "@/pages/ConnectSetup";
-import { AuthProvider } from "@/hooks/use-auth";
-import { ProtectedRoute } from "@/lib/protected-route";
-import { AccountTypeRoute } from "@/lib/account-type-route";
-import { MultiAccountTypeRoute } from "@/lib/multi-account-type-route";
-import { useAuth } from "@/hooks/use-auth";
-import { useEffect } from "react";
+import { Button } from "@/components/ui/button";
 
-// Redirect component for old routes
-function RedirectToAuth() {
-  const [_, navigate] = useLocation();
+// Simplified app for debugging
+function DiagnosticPage() {
+  const [serverStatus, setServerStatus] = useState<string>("Checking...");
+  const [authStatus, setAuthStatus] = useState<string>("Checking...");
   
   useEffect(() => {
-    navigate('/auth');
-  }, [navigate]);
-  
-  return null;
-}
-
-// Auth-aware router that redirects to auth page if not logged in
-function RouterWithAuth() {
-  const { user, isLoading } = useAuth();
-  const [, navigate] = useLocation();
-  const [isRoot] = useRoute("/");
-  
-  // Redirect from root to /auth if not logged in
-  useEffect(() => {
-    if (!isLoading && !user && isRoot) {
-      navigate('/auth');
-    }
-  }, [isLoading, user, isRoot, navigate]);
+    // Check server status
+    fetch("/api/categories")
+      .then(response => {
+        if (response.ok) {
+          setServerStatus("Server is running ✅");
+        } else {
+          setServerStatus(`Server error: ${response.status} ${response.statusText} ❌`);
+        }
+      })
+      .catch(error => {
+        setServerStatus(`Server connection error: ${error.message} ❌`);
+      });
+    
+    // Check auth status
+    fetch("/api/user")
+      .then(response => {
+        if (response.ok) {
+          return response.json().then(user => {
+            setAuthStatus(`Authenticated as ${user.username} ✅`);
+          });
+        } else if (response.status === 401) {
+          setAuthStatus("Not authenticated ℹ️");
+        } else {
+          setAuthStatus(`Auth error: ${response.status} ${response.statusText} ❌`);
+        }
+      })
+      .catch(error => {
+        setAuthStatus(`Auth check error: ${error.message} ❌`);
+      });
+  }, []);
   
   return (
-    <Switch>
-      <ProtectedRoute path="/" component={Home} />
-      <MultiAccountTypeRoute path="/post-job" component={PostJob} allowedTypes={['worker', 'poster']} />
-      <ProtectedRoute path="/job/:id" component={JobDetails} />
-      <ProtectedRoute path="/profile" component={Profile} />
-      <AccountTypeRoute path="/earnings" component={EarningsPage} allowedType="worker" />
-      <ProtectedRoute path="/transactions" component={TransactionHistory} />
-      <AccountTypeRoute path="/payment-dashboard" component={PaymentDashboard} allowedType="poster" />
-      <Route path="/auth" component={AuthPage} />
-      <Route path="/login" component={RedirectToAuth} />
-      <Route path="/register" component={RedirectToAuth} />
-      <Route path="/auth/callback" component={() => <div>Processing authentication...</div>} />
-      <Route path="/account-type-selection" component={AccountTypeSelection} />
-      <Route path="/complete-profile" component={CompleteProfile} />
-      <Route path="/connect-setup" component={ConnectSetup} />
-      <Route component={NotFound} />
-    </Switch>
+    <div className="container mx-auto p-6 max-w-3xl">
+      <div className="bg-white rounded-lg shadow-lg p-6 mb-6">
+        <h1 className="text-3xl font-bold mb-4">The Job - System Diagnostic</h1>
+        
+        <div className="mb-6">
+          <h2 className="text-xl font-semibold mb-2">System Status</h2>
+          <div className="space-y-2 mb-4">
+            <div className="p-3 bg-gray-100 rounded">
+              <p><strong>Server Status:</strong> {serverStatus}</p>
+            </div>
+            <div className="p-3 bg-gray-100 rounded">
+              <p><strong>Auth Status:</strong> {authStatus}</p>
+            </div>
+          </div>
+        </div>
+        
+        <div className="mb-6">
+          <h2 className="text-xl font-semibold mb-2">Authentication Tests</h2>
+          <div className="flex flex-wrap gap-4">
+            <a href="/auth-test">
+              <Button variant="outline">Google Auth Test</Button>
+            </a>
+            <a href="/register-test">
+              <Button variant="outline">Registration Test</Button>
+            </a>
+          </div>
+        </div>
+      </div>
+    </div>
   );
 }
 
+// Simplified router for diagnostic purposes
 function App() {
   return (
     <QueryClientProvider client={queryClient}>
       <TooltipProvider>
-        <AuthProvider>
-          <RouterWithAuth />
-          <Toaster />
-        </AuthProvider>
+        <Switch>
+          <Route path="/" component={DiagnosticPage} />
+          <Route component={NotFound} />
+        </Switch>
       </TooltipProvider>
     </QueryClientProvider>
   );
