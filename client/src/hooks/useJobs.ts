@@ -12,7 +12,12 @@ interface UseJobsOptions {
 
 export function useJobs(
   options?: UseJobsOptions,
-  searchParams?: { query?: string; category?: string; searchMode?: 'location' | 'description' }
+  searchParams?: { 
+    query?: string; 
+    category?: string; 
+    searchMode?: 'location' | 'description';
+    coordinates?: { latitude: number; longitude: number }
+  }
 ) {
   const { userLocation } = useGeolocation();
   const { user } = useAuth();
@@ -62,20 +67,21 @@ export function useJobs(
   
   // Build nearby jobs query
   const buildNearbyJobsQuery = () => {
-    if (!userLocation) return null;
+    // Use provided coordinates from search if available, otherwise fall back to user location
+    const searchCoordinates = searchParams?.coordinates;
+    const coordinates = searchCoordinates || userLocation;
+    
+    if (!coordinates) return null;
     
     const queryParams: string[] = [
-      `latitude=${userLocation.latitude}`,
-      `longitude=${userLocation.longitude}`,
+      `latitude=${coordinates.latitude}`,
+      `longitude=${coordinates.longitude}`,
       `radius=${radiusMiles}`
     ];
     
-    if (searchParams?.query) {
-      if (searchMode === 'location') {
-        queryParams.push(`location=${encodeURIComponent(searchParams.query)}`);
-      } else {
-        queryParams.push(`search=${encodeURIComponent(searchParams.query)}`);
-      }
+    if (searchParams?.query && searchMode === 'description') {
+      // Only add description search if in description mode
+      queryParams.push(`search=${encodeURIComponent(searchParams.query)}`);
     }
     
     if (searchParams?.category) {

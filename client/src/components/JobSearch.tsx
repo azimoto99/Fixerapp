@@ -3,21 +3,66 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { JOB_CATEGORIES } from '@shared/schema';
+import { useToast } from '@/hooks/use-toast';
+import { geocodeAddress } from '@/lib/geocoding';
 
 interface JobSearchProps {
-  onSearch: (params: { query: string; category: string; searchMode?: 'location' | 'description' }) => void;
+  onSearch: (params: { 
+    query: string; 
+    category: string; 
+    searchMode?: 'location' | 'description';
+    coordinates?: { latitude: number; longitude: number } 
+  }) => void;
 }
 
 const JobSearch: React.FC<JobSearchProps> = ({ onSearch }) => {
   const [query, setQuery] = useState('');
   const [category, setCategory] = useState('');
   const [searchMode, setSearchMode] = useState<'location' | 'description'>('location');
+  const [isSearching, setIsSearching] = useState(false);
+  const { toast } = useToast();
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     // If category is 'all', pass empty string to search all categories
     const searchCategory = category === 'all' ? '' : category;
-    onSearch({ query, category: searchCategory, searchMode });
+    
+    // If in location mode and there's a query, geocode the address
+    if (searchMode === 'location' && query.trim()) {
+      setIsSearching(true);
+      try {
+        const geocodeResult = await geocodeAddress(query);
+        
+        if (geocodeResult.success) {
+          onSearch({ 
+            query, 
+            category: searchCategory, 
+            searchMode,
+            coordinates: {
+              latitude: geocodeResult.latitude,
+              longitude: geocodeResult.longitude
+            }
+          });
+        } else {
+          toast({
+            title: "Location not found",
+            description: geocodeResult.error || "Couldn't find that location. Try a different address or postal code.",
+            variant: "destructive"
+          });
+        }
+      } catch (error) {
+        toast({
+          title: "Search error",
+          description: "There was a problem with your search. Please try again.",
+          variant: "destructive"
+        });
+      } finally {
+        setIsSearching(false);
+      }
+    } else {
+      // For description search, just pass the query directly
+      onSearch({ query, category: searchCategory, searchMode });
+    }
   };
 
   const toggleSearchMode = () => {
