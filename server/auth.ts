@@ -287,6 +287,53 @@ export function setupAuth(app: Express) {
     const { password, ...user } = req.user;
     res.json(user);
   });
+  
+  // Endpoint to set account type for users who signed in with social login
+  app.post("/api/set-account-type", async (req, res) => {
+    try {
+      const { userId, accountType, provider } = req.body;
+      
+      if (!userId || !accountType || !provider) {
+        return res.status(400).json({ message: "Missing required parameters" });
+      }
+      
+      if (accountType !== 'worker' && accountType !== 'poster') {
+        return res.status(400).json({ message: "Invalid account type" });
+      }
+      
+      // Get the user by ID
+      const user = await storage.getUser(parseInt(userId));
+      
+      if (!user) {
+        return res.status(404).json({ message: "User not found" });
+      }
+      
+      // Update the user's account type
+      const updatedUser = await storage.updateUser(user.id, { accountType });
+      
+      if (!updatedUser) {
+        return res.status(500).json({ message: "Failed to update account type" });
+      }
+      
+      // Set the account type in the session
+      if (req.session) {
+        req.session.accountType = accountType;
+      }
+      
+      // Login the user
+      req.login(updatedUser, (err) => {
+        if (err) {
+          return res.status(500).json({ message: "Failed to authenticate user" });
+        }
+        
+        // Don't return password in response
+        const { password, ...userResponse } = updatedUser;
+        return res.status(200).json(userResponse);
+      });
+    } catch (error) {
+      return res.status(500).json({ message: (error as Error).message });
+    }
+  });
 
   // Google Authentication Routes
   app.get('/auth/google', (req, res, next) => {
@@ -307,8 +354,14 @@ export function setupAuth(app: Express) {
       session: true
     }),
     (req, res) => {
-      // Successful authentication, redirect home
-      res.redirect('/');
+      // Check if the account type was already set or not
+      if (!req.session.accountType) {
+        // No account type set, redirect to selection page with user ID and provider
+        res.redirect(`/account-type-selection?id=${req.user.id}&provider=google`);
+      } else {
+        // Account type was already selected, redirect home
+        res.redirect('/');
+      }
     }
   );
 
@@ -331,8 +384,14 @@ export function setupAuth(app: Express) {
       session: true
     }),
     (req, res) => {
-      // Successful authentication, redirect home
-      res.redirect('/');
+      // Check if the account type was already set or not
+      if (!req.session.accountType) {
+        // No account type set, redirect to selection page with user ID and provider
+        res.redirect(`/account-type-selection?id=${req.user.id}&provider=facebook`);
+      } else {
+        // Account type was already selected, redirect home
+        res.redirect('/');
+      }
     }
   );
 }

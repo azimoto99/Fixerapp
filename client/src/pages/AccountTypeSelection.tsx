@@ -1,150 +1,276 @@
-import { useEffect, useState } from 'react';
-import { useLocation } from 'wouter';
+import { useState } from 'react';
+import { useLocation, useRoute } from 'wouter';
 import { useToast } from '@/hooks/use-toast';
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { BriefcaseIcon, UserIcon } from 'lucide-react';
+import { useAuth } from '@/hooks/use-auth';
 import { apiRequest } from '@/lib/queryClient';
 
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-
 export default function AccountTypeSelection() {
-  const [_, navigate] = useLocation();
+  const [_, setLocation] = useLocation();
+  const [isPending, setIsPending] = useState(false);
   const { toast } = useToast();
-  const [loading, setLoading] = useState<'worker' | 'poster' | null>(null);
-  const [userId, setUserId] = useState<string | null>(null);
-  const [providerType, setProviderType] = useState<string | null>(null);
-
-  // Get the user ID and provider type from the URL query parameters
-  useEffect(() => {
-    const searchParams = new URLSearchParams(window.location.search);
-    const id = searchParams.get('id');
-    const provider = searchParams.get('provider');
-    
-    if (id) {
-      setUserId(id);
-    }
-    
-    if (provider) {
-      setProviderType(provider);
-    }
-  }, []);
-
-  const handleTypeSelection = async (accountType: 'worker' | 'poster') => {
-    if (!userId || !providerType) {
-      toast({
-        title: 'Error',
-        description: 'Missing user information. Please try logging in again.',
-        variant: 'destructive',
-      });
-      return;
-    }
-
-    setLoading(accountType);
-
+  const { user, isLoading } = useAuth();
+  
+  // Get query parameters from URL
+  const location = typeof window !== 'undefined' ? window.location : { search: '' };
+  const params = new URLSearchParams(location.search);
+  const userId = params.get('id');
+  const provider = params.get('provider');
+  
+  // If user already has an account type, redirect to home
+  if (!isLoading && user?.accountType) {
+    setLocation('/');
+    return null;
+  }
+  
+  // If no userId or provider is provided, redirect to login
+  if (!userId || !provider) {
+    toast({
+      title: 'Error',
+      description: 'Missing required parameters for account type selection',
+      variant: 'destructive',
+    });
+    setLocation('/auth');
+    return null;
+  }
+  
+  const handleAccountTypeSelection = async (accountType: 'worker' | 'poster') => {
     try {
-      const res = await apiRequest('POST', '/api/set-account-type', {
-        userId,
+      setIsPending(true);
+      
+      const response = await apiRequest('POST', '/api/set-account-type', {
+        userId, 
         accountType,
-        provider: providerType,
+        provider
       });
-
-      if (res.ok) {
-        // Account type set successfully, redirect to home page
-        navigate('/');
-      } else {
-        const data = await res.json();
-        throw new Error(data.message || 'Failed to set account type');
+      
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.message || 'Failed to set account type');
       }
+      
+      toast({
+        title: 'Success',
+        description: `You are now signed in as a ${accountType}`,
+      });
+      
+      // Redirect to home page after success
+      setLocation('/');
+      
     } catch (error) {
       toast({
         title: 'Error',
-        description: error instanceof Error ? error.message : 'Failed to set account type',
+        description: (error as Error).message,
         variant: 'destructive',
       });
-      setLoading(null);
+    } finally {
+      setIsPending(false);
     }
   };
-
+  
   return (
-    <div className="min-h-screen flex items-center justify-center bg-slate-50">
-      <div className="w-full max-w-md p-4">
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-primary/10 to-secondary/10 p-4">
+      <div className="w-full max-w-3xl">
         <div className="text-center mb-8">
-          <div className="inline-flex items-center">
-            <svg className="h-8 w-8 text-primary-600" viewBox="0 0 24 24" fill="currentColor">
-              <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"></path>
-            </svg>
-            <span className="ml-2 text-2xl font-bold text-primary-600">The Job</span>
-          </div>
+          <h1 className="text-3xl md:text-4xl font-bold text-foreground mb-2">
+            Choose Your Account Type
+          </h1>
+          <p className="text-muted-foreground text-lg">
+            Select the account type you want to use with The Job
+          </p>
         </div>
         
-        <Card>
-          <CardHeader>
-            <CardTitle>Choose Account Type</CardTitle>
-            <CardDescription>
-              Select which type of account you want to use with your {providerType ? providerType.charAt(0).toUpperCase() + providerType.slice(1) : 'social'} login
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-6">
-            <div className="grid grid-cols-2 gap-4">
-              <Button
-                variant="outline"
-                size="lg"
-                className="h-24 flex flex-col items-center justify-center text-left p-4 hover:border-primary hover:bg-primary/5"
-                onClick={() => handleTypeSelection('worker')}
-                disabled={loading !== null}
-              >
-                <div className="flex items-center justify-center mb-2">
-                  <svg className="h-8 w-8" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                    <path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
-                    <circle cx="8.5" cy="7" r="4"></circle>
-                    <path d="M20 8v6"></path>
-                    <path d="M23 11h-6"></path>
-                  </svg>
-                </div>
-                <span className="font-semibold">Worker</span>
-                <span className="text-xs text-muted-foreground">Find jobs near you</span>
-                {loading === 'worker' && (
-                  <div className="absolute inset-0 flex items-center justify-center bg-background/80">
-                    <div className="h-5 w-5 animate-spin rounded-full border-2 border-primary border-t-transparent"></div>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <Card className="overflow-hidden border-2 hover:border-primary transition-all duration-300 cursor-pointer"
+                onClick={() => !isPending && handleAccountTypeSelection('worker')}>
+            <CardHeader className="space-y-1 bg-muted/50">
+              <CardTitle className="text-2xl flex items-center space-x-2">
+                <UserIcon className="h-6 w-6 text-primary" />
+                <span>Worker Account</span>
+              </CardTitle>
+              <CardDescription>
+                Find and complete jobs in your area
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="p-6">
+              <ul className="space-y-2 mb-6">
+                <li className="flex items-center">
+                  <div className="rounded-full bg-primary/20 p-1 mr-2">
+                    <svg
+                      width="16"
+                      height="16"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="2"
+                      className="text-primary"
+                    >
+                      <polyline points="20 6 9 17 4 12" />
+                    </svg>
                   </div>
-                )}
-              </Button>
-
-              <Button
-                variant="outline"
-                size="lg"
-                className="h-24 flex flex-col items-center justify-center text-left p-4 hover:border-primary hover:bg-primary/5"
-                onClick={() => handleTypeSelection('poster')}
-                disabled={loading !== null}
-              >
-                <div className="flex items-center justify-center mb-2">
-                  <svg className="h-8 w-8" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                    <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
-                    <line x1="3" y1="9" x2="21" y2="9"></line>
-                    <line x1="9" y1="21" x2="9" y2="9"></line>
-                    <line x1="15" y1="21" x2="15" y2="9"></line>
-                  </svg>
-                </div>
-                <span className="font-semibold">Job Poster</span>
-                <span className="text-xs text-muted-foreground">Post and manage jobs</span>
-                {loading === 'poster' && (
-                  <div className="absolute inset-0 flex items-center justify-center bg-background/80">
-                    <div className="h-5 w-5 animate-spin rounded-full border-2 border-primary border-t-transparent"></div>
+                  <span>Browse jobs on interactive map</span>
+                </li>
+                <li className="flex items-center">
+                  <div className="rounded-full bg-primary/20 p-1 mr-2">
+                    <svg
+                      width="16"
+                      height="16"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="2"
+                      className="text-primary"
+                    >
+                      <polyline points="20 6 9 17 4 12" />
+                    </svg>
                   </div>
-                )}
+                  <span>Apply for jobs that match your skills</span>
+                </li>
+                <li className="flex items-center">
+                  <div className="rounded-full bg-primary/20 p-1 mr-2">
+                    <svg
+                      width="16"
+                      height="16"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="2"
+                      className="text-primary"
+                    >
+                      <polyline points="20 6 9 17 4 12" />
+                    </svg>
+                  </div>
+                  <span>Get paid securely through the platform</span>
+                </li>
+                <li className="flex items-center">
+                  <div className="rounded-full bg-primary/20 p-1 mr-2">
+                    <svg
+                      width="16"
+                      height="16"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="2"
+                      className="text-primary"
+                    >
+                      <polyline points="20 6 9 17 4 12" />
+                    </svg>
+                  </div>
+                  <span>Build your reputation with reviews</span>
+                </li>
+              </ul>
+            </CardContent>
+            <CardFooter className="px-6 pb-6 pt-0">
+              <Button
+                disabled={isPending}
+                className="w-full h-12 text-md"
+                onClick={() => handleAccountTypeSelection('worker')}
+              >
+                {isPending ? 'Processing...' : 'Continue as Worker'}
               </Button>
-            </div>
-
-            <div className="text-center text-sm text-muted-foreground">
-              <p>You can always create another account with a different type later.</p>
-            </div>
-          </CardContent>
-        </Card>
+            </CardFooter>
+          </Card>
+          
+          <Card className="overflow-hidden border-2 hover:border-primary transition-all duration-300 cursor-pointer"
+                onClick={() => !isPending && handleAccountTypeSelection('poster')}>
+            <CardHeader className="space-y-1 bg-muted/50">
+              <CardTitle className="text-2xl flex items-center space-x-2">
+                <BriefcaseIcon className="h-6 w-6 text-primary" />
+                <span>Job Poster Account</span>
+              </CardTitle>
+              <CardDescription>
+                Post jobs and hire skilled workers
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="p-6">
+              <ul className="space-y-2 mb-6">
+                <li className="flex items-center">
+                  <div className="rounded-full bg-primary/20 p-1 mr-2">
+                    <svg
+                      width="16"
+                      height="16"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="2"
+                      className="text-primary"
+                    >
+                      <polyline points="20 6 9 17 4 12" />
+                    </svg>
+                  </div>
+                  <span>Post jobs and define requirements</span>
+                </li>
+                <li className="flex items-center">
+                  <div className="rounded-full bg-primary/20 p-1 mr-2">
+                    <svg
+                      width="16"
+                      height="16"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="2"
+                      className="text-primary"
+                    >
+                      <polyline points="20 6 9 17 4 12" />
+                    </svg>
+                  </div>
+                  <span>Review applications from skilled workers</span>
+                </li>
+                <li className="flex items-center">
+                  <div className="rounded-full bg-primary/20 p-1 mr-2">
+                    <svg
+                      width="16"
+                      height="16"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="2"
+                      className="text-primary"
+                    >
+                      <polyline points="20 6 9 17 4 12" />
+                    </svg>
+                  </div>
+                  <span>Track and manage the progress of your jobs</span>
+                </li>
+                <li className="flex items-center">
+                  <div className="rounded-full bg-primary/20 p-1 mr-2">
+                    <svg
+                      width="16"
+                      height="16"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="2"
+                      className="text-primary"
+                    >
+                      <polyline points="20 6 9 17 4 12" />
+                    </svg>
+                  </div>
+                  <span>Rate and review workers after completion</span>
+                </li>
+              </ul>
+            </CardContent>
+            <CardFooter className="px-6 pb-6 pt-0">
+              <Button
+                disabled={isPending}
+                className="w-full h-12 text-md"
+                onClick={() => handleAccountTypeSelection('poster')}
+              >
+                {isPending ? 'Processing...' : 'Continue as Job Poster'}
+              </Button>
+            </CardFooter>
+          </Card>
+        </div>
+        
+        <div className="mt-8 text-center text-muted-foreground">
+          <p>
+            You can create both account types with the same email address. 
+            <br />
+            Just log in again and select the other account type.
+          </p>
+        </div>
       </div>
     </div>
   );
