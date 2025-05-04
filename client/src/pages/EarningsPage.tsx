@@ -135,6 +135,19 @@ export default function EarningsPage() {
           </div>
         </div>
       
+        {/* Stripe Connect Setup */}
+        <Card className="mb-8">
+          <CardHeader>
+            <CardTitle>Payment Account Setup</CardTitle>
+            <CardDescription>
+              Connect your Stripe account to receive payments directly for completed jobs
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <StripeConnectSetup />
+          </CardContent>
+        </Card>
+
         {/* Stats Cards */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
           <Card>
