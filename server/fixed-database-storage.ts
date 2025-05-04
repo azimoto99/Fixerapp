@@ -37,13 +37,18 @@ export class DatabaseStorage implements IStorage {
     const hasMissingProfileFields = !user.bio || !user.phone;
     const needsProfileCompletion = hasSocialLogin && (hasPendingAccountType || hasMissingProfileFields);
     
+    // Check if user needs to complete Stripe Connect setup
+    const hasStripeConnect = Boolean(user.stripeConnectAccountId);
+    
     // Handle missing fields that are defined in the schema but may not exist in the DB yet
     const enhancedUser: User = {
       ...user,
       skillsVerified: user.skillsVerified || {},
       badgeIds: user.badgeIds || [],
       skills: user.skills || [],
-      requiresProfileCompletion: needsProfileCompletion === true ? true : null
+      requiresProfileCompletion: needsProfileCompletion === true ? true : null,
+      // Set stripeConnectSetupComplete to true if they have a Stripe Connect account
+      stripeConnectSetupComplete: hasStripeConnect === true ? true : null
     };
     
     return enhancedUser;
@@ -197,20 +202,20 @@ export class DatabaseStorage implements IStorage {
   }
 
   async createUser(user: InsertUser): Promise<User> {
-    // Extract the requiresProfileCompletion property (if it exists) and remove it from the user object
-    // since it doesn't exist in the database schema
-    const { requiresProfileCompletion, needsAccountType, ...dbUser } = user;
+    // Extract the virtual properties (if they exist) and remove them from the user object
+    // since they don't exist in the database schema
+    const { requiresProfileCompletion, needsAccountType, stripeConnectSetupComplete, ...dbUser } = user;
     
-    // Insert the user without the requiresProfileCompletion & needsAccountType fields
+    // Insert the user without the virtual fields
     const [createdUser] = await db.insert(users).values(dbUser).returning();
     
-    // Add the requiresProfileCompletion property back to the user object for the client
+    // Add the virtual properties back to the user object for the client
     return this.addProfileCompletionFlag(createdUser);
   }
 
   async updateUser(id: number, data: Partial<InsertUser> & { stripeConnectAccountId?: string }): Promise<User | undefined> {
     // Extract the fields that don't exist in the database schema
-    const { requiresProfileCompletion, needsAccountType, stripeConnectAccountId, ...dbData } = data;
+    const { requiresProfileCompletion, needsAccountType, stripeConnectSetupComplete, stripeConnectAccountId, ...dbData } = data;
     
     // Handle Stripe Connect Account ID separately
     let updatedUser;

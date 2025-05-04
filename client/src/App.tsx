@@ -14,6 +14,7 @@ import TransactionHistory from "@/pages/TransactionHistory";
 import PaymentDashboard from "@/pages/PaymentDashboard";
 import AccountTypeSelection from "@/pages/AccountTypeSelection";
 import CompleteProfile from "@/pages/CompleteProfile";
+import ConnectSetup from "@/pages/ConnectSetup";
 import { AuthProvider } from "@/hooks/use-auth";
 import { ProtectedRoute } from "@/lib/protected-route";
 import { AccountTypeRoute } from "@/lib/account-type-route";
