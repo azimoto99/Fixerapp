@@ -256,12 +256,33 @@ const MapSection: React.FC<MapSectionProps> = ({ jobs, selectedJob, onSelectJob 
           )}
         </div>
         
-        {/* My account button in top right */}
-        <div className="absolute top-4 right-4 z-[1000]">
-          <button className="bg-white shadow-lg rounded-full p-2">
-            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-5 w-5 text-gray-700">
-              <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
-              <circle cx="12" cy="7" r="4" />
+        {/* Actions menu in top right */}
+        <div className="absolute top-4 right-4 z-[1000] flex gap-2">
+          {user && (
+            <button 
+              onClick={() => toast({
+                title: 'Profile',
+                description: `Logged in as ${user.username} (${user.accountType})`,
+              })}
+              className="bg-white shadow-lg rounded-full p-2 flex items-center"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-5 w-5 text-gray-700">
+                <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
+                <circle cx="12" cy="7" r="4" />
+              </svg>
+            </button>
+          )}
+          
+          {/* Quick filter button */}
+          <button 
+            className="bg-white shadow-lg rounded-full p-2 flex items-center gap-1"
+            onClick={() => toast({
+              title: 'Nearby Jobs Filter',
+              description: 'Showing jobs within 2 miles of your location',
+            })}
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-5 w-5 text-primary">
+              <polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"></polygon>
             </svg>
           </button>
         </div>
