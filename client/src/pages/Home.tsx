@@ -129,7 +129,7 @@ const WorkerDashboard = () => {
   // My Posted Jobs button
   const PostedJobsButton = () => {
     return (
-      <div className="absolute top-4 right-4 z-[500]">
+      <div className="absolute top-4 right-[calc(4rem+8px)] z-[500]">
         <Button 
           onClick={togglePostedJobs}
           variant="circle" 
