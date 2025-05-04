@@ -1342,15 +1342,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Stripe Connect endpoints for worker payouts
+  // Stripe Connect endpoints for all users (both workers and job posters)
   apiRouter.post("/stripe/connect/create-account", isAuthenticated, async (req: Request, res: Response) => {
     try {
-      // Only workers should be able to create Connect accounts
-      if (req.user.accountType !== 'worker') {
-        return res.status(403).json({ 
-          message: "Forbidden: Only worker accounts can create Stripe Connect accounts" 
-        });
-      }
+      // Both workers and job posters can create Connect accounts
+      // This allows users to both pay and receive payments
       
       // Check if the user already has a Connect account
       if (req.user.stripeConnectAccountId) {
@@ -1415,12 +1411,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
   
   apiRouter.get("/stripe/connect/account-status", isAuthenticated, async (req: Request, res: Response) => {
     try {
-      // Only workers should be able to check Connect accounts
-      if (req.user.accountType !== 'worker') {
-        return res.status(403).json({ 
-          message: "Forbidden: Only worker accounts can access Connect account status" 
-        });
-      }
+      // Both workers and job posters can access Connect account status
+      // This allows all users to manage their Stripe Connect account
       
       // Check if the user has a Connect account
       if (!req.user.stripeConnectAccountId) {
@@ -1466,12 +1458,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
   
   apiRouter.post("/stripe/connect/create-login-link", isAuthenticated, async (req: Request, res: Response) => {
     try {
-      // Only workers should be able to access their Connect dashboard
-      if (req.user.accountType !== 'worker') {
-        return res.status(403).json({ 
-          message: "Forbidden: Only worker accounts can access Connect dashboard" 
-        });
-      }
+      // Both workers and job posters can access their Connect dashboard
+      // This provides a unified experience for all users
       
       // Check if the user has a Connect account
       if (!req.user.stripeConnectAccountId) {
