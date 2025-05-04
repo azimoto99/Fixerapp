@@ -412,16 +412,7 @@ const MapSection: React.FC<MapSectionProps> = ({ jobs, selectedJob, onSelectJob,
             {/* Recenter map component */}
             <RecenterMap position={position} />
 
-            {/* Map Controls - properly implemented inside the map context */}
-            <div className="leaflet-control-container">
-              <div className="leaflet-bottom leaflet-left">
-                <div className="leaflet-control leaflet-bar" style={{ margin: '0 0 70px 10px', background: 'none', border: 'none' }}>
-                  <ZoomInControl />
-                  <ZoomOutControl />
-                  <RecenterControl position={position} />
-                </div>
-              </div>
-            </div>
+            {/* Map Controls - removed as requested by user */}
           </MapContainer>
         )}
         
