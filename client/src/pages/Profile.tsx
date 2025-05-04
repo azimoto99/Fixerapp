@@ -4,7 +4,8 @@ import { useQuery } from '@tanstack/react-query';
 import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/hooks/use-toast';
 import { apiRequest } from '@/lib/queryClient';
-import { Award, Edit, Wallet } from 'lucide-react';
+import { Award, Edit, Wallet, DollarSign } from 'lucide-react';
+import StripeConnectSetup from '@/components/stripe/StripeConnectSetup';
 
 import Header from '@/components/Header';
 import MobileNav from '@/components/MobileNav';
@@ -28,9 +29,6 @@ import {
   BadgesDisplay,
   ProfileEditor
 } from '@/components/profile';
-
-// Import Stripe Connect component
-import StripeConnectSetup from '@/components/stripe/StripeConnectSetup';
 
 export default function Profile() {
   const { user, logoutMutation } = useAuth();
@@ -152,7 +150,7 @@ export default function Profile() {
           {/* Tabs */}
           {!editMode && (
             <Tabs defaultValue="info" onValueChange={setActiveTab} value={activeTab}>
-              <TabsList className="grid grid-cols-5 mb-6">
+              <TabsList className="grid grid-cols-6 mb-6">
                 <TabsTrigger value="info">Information</TabsTrigger>
                 <TabsTrigger value="jobs">
                   {user.accountType === 'poster' ? 'My Jobs' : 'Applications'}
@@ -163,6 +161,14 @@ export default function Profile() {
                     Payments
                   </span>
                 </TabsTrigger>
+                {user.accountType === 'worker' && (
+                  <TabsTrigger value="earnings">
+                    <span className="flex items-center gap-1">
+                      <DollarSign className="h-3.5 w-3.5" />
+                      Earnings
+                    </span>
+                  </TabsTrigger>
+                )}
                 <TabsTrigger value="reviews">Reviews</TabsTrigger>
                 <TabsTrigger value="badges">Badges</TabsTrigger>
               </TabsList>
@@ -371,6 +377,70 @@ export default function Profile() {
                   </Card>
                 </div>
               </TabsContent>
+              
+              {/* Earnings Tab */}
+              {user.accountType === 'worker' && (
+                <TabsContent value="earnings">
+                  <div className="space-y-6">
+                    {/* Stripe Connect Setup Card */}
+                    <Card>
+                      <CardHeader>
+                        <CardTitle>Stripe Connect Setup</CardTitle>
+                        <CardDescription>
+                          Connect your Stripe account to receive earnings directly
+                        </CardDescription>
+                      </CardHeader>
+                      <CardContent>
+                        <StripeConnectSetup />
+                      </CardContent>
+                    </Card>
+                    
+                    {/* Earnings Stats Card */}
+                    <Card>
+                      <CardHeader>
+                        <CardTitle>Earnings Overview</CardTitle>
+                        <CardDescription>
+                          Summary of your earnings and completed jobs
+                        </CardDescription>
+                      </CardHeader>
+                      <CardContent>
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                          <div className="bg-gray-50 p-4 rounded-md">
+                            <p className="text-sm text-gray-500">Total Earnings</p>
+                            <p className="text-2xl font-semibold">$0.00</p>
+                          </div>
+                          <div className="bg-gray-50 p-4 rounded-md">
+                            <p className="text-sm text-gray-500">Pending</p>
+                            <p className="text-2xl font-semibold">$0.00</p>
+                          </div>
+                          <div className="bg-gray-50 p-4 rounded-md">
+                            <p className="text-sm text-gray-500">Jobs Completed</p>
+                            <p className="text-2xl font-semibold">{user.completedJobs || 0}</p>
+                          </div>
+                        </div>
+                        
+                        <div className="mt-6">
+                          <h3 className="text-sm font-medium text-gray-500 mb-3">Recent Earnings</h3>
+                          <div className="text-center py-8 bg-gray-50 rounded-md">
+                            <p className="text-gray-500">No earnings history yet.</p>
+                            <p className="text-sm text-gray-400 mt-1">
+                              Complete jobs to start earning money.
+                            </p>
+                          </div>
+                        </div>
+                        
+                        <div className="mt-4 text-center">
+                          <Link href="/earnings">
+                            <Button variant="outline" size="sm">
+                              View Full Earnings Dashboard
+                            </Button>
+                          </Link>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  </div>
+                </TabsContent>
+              )}
               
               {/* Badges Tab */}
               <TabsContent value="badges">
