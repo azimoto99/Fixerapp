@@ -13,7 +13,6 @@ import { useLocation } from "wouter";
 interface UserWithFlags extends SelectUser {
   needsAccountType?: boolean;
   requiresProfileCompletion?: boolean;
-  stripeConnectSetupComplete?: boolean;
 }
 
 type AuthContextType = {
@@ -138,21 +137,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     },
     onSuccess: (userData: UserWithFlags) => {
       queryClient.setQueryData(["/api/user"], userData);
-      
-      // Check if user needs to setup Stripe Connect
-      if (!userData.stripeConnectSetupComplete) {
-        setLocation('/connect-setup');
-        toast({
-          title: "Account type set",
-          description: "Please set up your payment account to continue",
-        });
-      } else {
-        setLocation('/');
-        toast({
-          title: "Account type set",
-          description: `You are now signed in as a ${userData.accountType}`,
-        });
-      }
+      setLocation('/');
+      toast({
+        title: "Account type set",
+        description: `You are now signed in as a ${userData.accountType}`,
+      });
     },
     onError: (error: Error) => {
       toast({

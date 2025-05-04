@@ -148,20 +148,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
       }
       
-      // Parse the user data, but allow the requiresProfileCompletion and stripeConnectSetupComplete flags
-      const { requiresProfileCompletion, stripeConnectSetupComplete, ...standardFields } = req.body;
+      // Parse the user data, but allow the requiresProfileCompletion flag
+      const { requiresProfileCompletion, ...standardFields } = req.body;
       const userData = insertUserSchema.partial().parse(standardFields);
       
-      // Merge back the special flags if they exist
-      let dataToUpdate = userData;
-      
-      if (requiresProfileCompletion !== undefined) {
-        dataToUpdate = { ...dataToUpdate, requiresProfileCompletion };
-      }
-      
-      if (stripeConnectSetupComplete !== undefined) {
-        dataToUpdate = { ...dataToUpdate, stripeConnectSetupComplete };
-      }
+      // Merge back the profileCompletion flag if it exists
+      const dataToUpdate = requiresProfileCompletion !== undefined 
+        ? { ...userData, requiresProfileCompletion } 
+        : userData;
       
       const updatedUser = await storage.updateUser(id, dataToUpdate);
       

@@ -37,18 +37,13 @@ export class DatabaseStorage implements IStorage {
     const hasMissingProfileFields = !user.bio || !user.phone;
     const needsProfileCompletion = hasSocialLogin && (hasPendingAccountType || hasMissingProfileFields);
     
-    // Check if user needs to complete Stripe Connect setup
-    const hasStripeConnect = Boolean(user.stripeConnectAccountId);
-    
     // Handle missing fields that are defined in the schema but may not exist in the DB yet
     const enhancedUser: User = {
       ...user,
       skillsVerified: user.skillsVerified || {},
       badgeIds: user.badgeIds || [],
       skills: user.skills || [],
-      requiresProfileCompletion: needsProfileCompletion === true ? true : null,
-      // Set stripeConnectSetupComplete to true if they have a Stripe Connect account
-      stripeConnectSetupComplete: hasStripeConnect === true ? true : null
+      requiresProfileCompletion: needsProfileCompletion === true ? true : null
     };
     
     return enhancedUser;
@@ -202,67 +197,20 @@ export class DatabaseStorage implements IStorage {
   }
 
   async createUser(user: InsertUser): Promise<User> {
-    // Extract the virtual properties (if they exist) and remove them from the user object
-    // since they don't exist in the database schema
-    const { requiresProfileCompletion, needsAccountType, stripeConnectSetupComplete, skills, skillsVerified, badgeIds, ...dbUser } = user;
+    // Extract the requiresProfileCompletion property (if it exists) and remove it from the user object
+    // since it doesn't exist in the database schema
+    const { requiresProfileCompletion, needsAccountType, ...dbUser } = user;
     
-    try {
-      // Use raw SQL query to avoid ORM issues with missing columns
-      const query = `
-        INSERT INTO users (username, password, full_name, email, phone, bio, avatar_url, account_type, google_id, facebook_id)
-        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
-        RETURNING id, username, password, full_name, email, phone, bio, avatar_url, account_type, google_id, facebook_id
-      `;
-      
-      const values = [
-        dbUser.username,
-        dbUser.password,
-        dbUser.fullName,
-        dbUser.email,
-        dbUser.phone || null,
-        dbUser.bio || null,
-        dbUser.avatarUrl || null,
-        dbUser.accountType || 'pending',
-        dbUser.googleId || null,
-        dbUser.facebookId || null
-      ];
-      
-      const result = await db.execute(query, values);
-      
-      if (result.rows.length === 0) {
-        throw new Error("Failed to create user");
-      }
-      
-      const createdUser = result.rows[0];
-      
-      // Add the virtual properties back to the user object for the client
-      return this.addProfileCompletionFlag({
-        id: createdUser.id,
-        username: createdUser.username,
-        password: createdUser.password,
-        fullName: createdUser.full_name,
-        email: createdUser.email,
-        phone: createdUser.phone,
-        bio: createdUser.bio,
-        avatarUrl: createdUser.avatar_url,
-        accountType: createdUser.account_type,
-        googleId: createdUser.google_id,
-        facebookId: createdUser.facebook_id,
-        skills: [],
-        skillsVerified: {},
-        badgeIds: [],
-        lastActive: new Date(),
-        isActive: true
-      });
-    } catch (error) {
-      console.error("Error creating user:", error);
-      throw error;
-    }
+    // Insert the user without the requiresProfileCompletion & needsAccountType fields
+    const [createdUser] = await db.insert(users).values(dbUser).returning();
+    
+    // Add the requiresProfileCompletion property back to the user object for the client
+    return this.addProfileCompletionFlag(createdUser);
   }
 
   async updateUser(id: number, data: Partial<InsertUser> & { stripeConnectAccountId?: string }): Promise<User | undefined> {
     // Extract the fields that don't exist in the database schema
-    const { requiresProfileCompletion, needsAccountType, stripeConnectSetupComplete, stripeConnectAccountId, skills, skillsVerified, badgeIds, ...dbData } = data;
+    const { requiresProfileCompletion, needsAccountType, stripeConnectAccountId, ...dbData } = data;
     
     // Handle Stripe Connect Account ID separately
     let updatedUser;
@@ -291,84 +239,16 @@ export class DatabaseStorage implements IStorage {
         }
       }
       
-      // Build update query dynamically based on what fields were provided
-      const updateFields: string[] = [];
-      const updateValues: any[] = [];
-      let valueIndex = 1;
-      
-      // Map the TypeScript fields to database column names
-      const fieldMappings: Record<string, string> = {
-        'username': 'username',
-        'password': 'password', 
-        'fullName': 'full_name',
-        'email': 'email',
-        'phone': 'phone',
-        'bio': 'bio',
-        'avatarUrl': 'avatar_url',
-        'accountType': 'account_type',
-        'googleId': 'google_id',
-        'facebookId': 'facebook_id'
-      };
-      
-      // Add each field that was provided to the update query
-      for (const [key, value] of Object.entries(dbData)) {
-        const dbField = fieldMappings[key];
-        if (dbField) {
-          updateFields.push(`${dbField} = $${valueIndex}`);
-          updateValues.push(value);
-          valueIndex++;
-        }
-      }
-      
-      if (updateFields.length === 0 && !stripeConnectAccountId) {
-        // Nothing to update
-        const userQuery = `
-          SELECT * FROM users WHERE id = $1
-        `;
-        const result = await db.execute(userQuery, [id]);
-        if (result.rows.length === 0) {
-          return undefined;
-        }
-        updatedUser = result.rows[0];
-      } else if (updateFields.length > 0) {
-        // Execute the update query
-        const query = `
-          UPDATE users 
-          SET ${updateFields.join(', ')}
-          WHERE id = $${valueIndex}
-          RETURNING *
-        `;
-        updateValues.push(id);
-        
-        const result = await db.execute(query, updateValues);
-        if (result.rows.length === 0) {
-          return undefined;
-        }
-        updatedUser = result.rows[0];
-      }
+      // Update the other user fields using the ORM
+      [updatedUser] = await db.update(users)
+        .set(dbData)
+        .where(eq(users.id, id))
+        .returning();
       
       if (!updatedUser) return undefined;
       
-      // Add the virtual properties back to the user object for the client
-      return this.addProfileCompletionFlag({
-        id: updatedUser.id,
-        username: updatedUser.username,
-        password: updatedUser.password,
-        fullName: updatedUser.full_name,
-        email: updatedUser.email,
-        phone: updatedUser.phone,
-        bio: updatedUser.bio,
-        avatarUrl: updatedUser.avatar_url,
-        accountType: updatedUser.account_type,
-        googleId: updatedUser.google_id,
-        facebookId: updatedUser.facebook_id,
-        stripeConnectAccountId: updatedUser.stripe_connect_account_id,
-        skills: updatedUser.skills || [],
-        skillsVerified: {},
-        badgeIds: [],
-        lastActive: new Date(),
-        isActive: true
-      });
+      // Add the requiresProfileCompletion property back to the user object for the client
+      return this.addProfileCompletionFlag(updatedUser);
     } catch (error) {
       console.error("Error updating user:", error);
       return undefined;
