@@ -176,7 +176,7 @@ const SimpleUserDrawer: React.FC<SimpleUserDrawerProps> = ({
                       setIsOpen(false);
                       navigate('/transactions');
                     }}
-                    className="flex flex-col items-center justify-center w-16 h-16 rounded-lg hover:bg-primary/5 text-gray-600"
+                    className="flex flex-col items-center justify-center w-16 h-16 rounded-lg hover:bg-emerald-600/5 text-gray-600"
                   >
                     <CreditCard className="h-5 w-5 mb-1" />
                     <span className="text-xs">Payments</span>
@@ -189,7 +189,7 @@ const SimpleUserDrawer: React.FC<SimpleUserDrawerProps> = ({
                         setIsOpen(false);
                         navigate('/payment-dashboard');
                       }}
-                      className="flex flex-col items-center justify-center w-16 h-16 rounded-lg hover:bg-primary/5 text-gray-600"
+                      className="flex flex-col items-center justify-center w-16 h-16 rounded-lg hover:bg-emerald-600/5 text-gray-600"
                     >
                       <LayoutDashboard className="h-5 w-5 mb-1" />
                       <span className="text-xs">Dashboard</span>
