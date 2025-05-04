@@ -153,21 +153,32 @@ export function setupAuth(app: Express) {
   
   // Google Strategy
   if (process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET) {
+    console.log("Setting up Google authentication strategy");
+    
+    // For debugging the callback URL
+    const callbackURL = 'https://workspace.azimoto9.repl.co/auth/google/callback';
+    console.log("Google callback URL:", callbackURL);
+    
     passport.use(new GoogleStrategy({
       clientID: process.env.GOOGLE_CLIENT_ID,
       clientSecret: process.env.GOOGLE_CLIENT_SECRET,
-      callbackURL: `${process.env.REPLIT_DOMAINS ? 'https://' + process.env.REPLIT_DOMAINS.split(',')[0] : 'http://localhost:5000'}/auth/google/callback`,
-      passReqToCallback: true
+      callbackURL: callbackURL,
+      passReqToCallback: true,
+      proxy: true
     }, async (req, accessToken, refreshToken, profile, done) => {
       try {
+        console.log("Google auth callback received profile:", profile.id);
         // Find or create the user with "pending" account type
         const user = await findOrCreateUserFromSocial(profile);
         
         return done(null, user);
       } catch (err) {
+        console.error("Error in Google auth callback:", err);
         return done(err as Error);
       }
     }));
+  } else {
+    console.log("Google authentication not configured - missing client ID or secret");
   }
   
   // Only Google authentication is used
