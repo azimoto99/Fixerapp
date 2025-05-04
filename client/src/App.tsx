@@ -197,61 +197,59 @@ function RouterWithAuth() {
       <Route 
         path="/" 
         component={() => {
-          // If the user is logged in, show a basic dashboard with links
+          // If the user is logged in, try to load the real Home component 
           if (user) {
-            return (
-              <div className="container mx-auto py-10 px-4">
-                <div className="flex flex-col gap-6">
-                  <div className="bg-white rounded-lg shadow-lg p-6">
-                    <h1 className="text-3xl font-bold mb-2">Welcome back, {user.fullName}</h1>
-                    <p className="text-gray-600 mb-6">Account type: {user.accountType}</p>
-                    
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                      <a href="/profile" className="block p-6 bg-blue-50 rounded-lg shadow hover:shadow-md transition">
-                        <h3 className="text-lg font-semibold mb-2">Profile</h3>
-                        <p className="text-gray-600">Manage your personal information</p>
-                      </a>
+            try {
+              // Dynamically import the required components instead of loading them at the top level
+              // This way if one component fails, it won't cause the entire page to fail
+              const Home = require('@/pages/Home').default;
+              return <ErrorBoundaryRoute component={Home} />;
+            } catch (e) {
+              console.error("Error loading Home component:", e);
+              
+              // Fall back to a simple dashboard
+              return (
+                <div className="container mx-auto py-10 px-4">
+                  <div className="flex flex-col gap-6">
+                    <div className="bg-white rounded-lg shadow-lg p-6">
+                      <h1 className="text-3xl font-bold mb-2">Welcome back, {user.fullName}</h1>
+                      <p className="text-gray-600 mb-6">Account type: {user.accountType}</p>
                       
-                      {user.accountType === 'worker' && (
-                        <a href="/earnings" className="block p-6 bg-green-50 rounded-lg shadow hover:shadow-md transition">
-                          <h3 className="text-lg font-semibold mb-2">Earnings</h3>
-                          <p className="text-gray-600">View your earnings and payment history</p>
+                      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                        <a href="/profile" className="block p-6 bg-blue-50 rounded-lg shadow hover:shadow-md transition">
+                          <h3 className="text-lg font-semibold mb-2">Profile</h3>
+                          <p className="text-gray-600">Manage your personal information</p>
                         </a>
-                      )}
-                      
-                      <a href="/post-job" className="block p-6 bg-purple-50 rounded-lg shadow hover:shadow-md transition">
-                        <h3 className="text-lg font-semibold mb-2">Post a Job</h3>
-                        <p className="text-gray-600">Create a new job opportunity</p>
-                      </a>
-                      
-                      {user.accountType === 'poster' && (
-                        <a href="/payment-dashboard" className="block p-6 bg-amber-50 rounded-lg shadow hover:shadow-md transition">
-                          <h3 className="text-lg font-semibold mb-2">Payment Dashboard</h3>
-                          <p className="text-gray-600">Manage your posted job payments</p>
+                        
+                        {user.accountType === 'worker' && (
+                          <a href="/earnings" className="block p-6 bg-green-50 rounded-lg shadow hover:shadow-md transition">
+                            <h3 className="text-lg font-semibold mb-2">Earnings</h3>
+                            <p className="text-gray-600">View your earnings and payment history</p>
+                          </a>
+                        )}
+                        
+                        <a href="/post-job" className="block p-6 bg-purple-50 rounded-lg shadow hover:shadow-md transition">
+                          <h3 className="text-lg font-semibold mb-2">Post a Job</h3>
+                          <p className="text-gray-600">Create a new job opportunity</p>
                         </a>
-                      )}
-                      
-                      <a href="/transactions" className="block p-6 bg-indigo-50 rounded-lg shadow hover:shadow-md transition">
-                        <h3 className="text-lg font-semibold mb-2">Transactions</h3>
-                        <p className="text-gray-600">View your transaction history</p>
-                      </a>
-                    </div>
-                  </div>
-                  
-                  <div className="bg-white rounded-lg shadow-lg p-6">
-                    <div className="flex items-center justify-between mb-4">
-                      <h2 className="text-xl font-bold">Diagnostics</h2>
-                    </div>
-                    <p className="text-gray-600 mb-4">Full application functionality is being restored. For now, use these links to navigate:</p>
-                    <div className="flex gap-2 flex-wrap">
-                      <a href="/diagnostic" className="px-4 py-2 bg-gray-100 hover:bg-gray-200 rounded">Diagnostic Page</a>
-                      <a href="/auth-test" className="px-4 py-2 bg-blue-100 hover:bg-blue-200 rounded">Google Auth Test</a>
-                      <a href="/register-test" className="px-4 py-2 bg-green-100 hover:bg-green-200 rounded">Registration Test</a>
+                        
+                        {user.accountType === 'poster' && (
+                          <a href="/payment-dashboard" className="block p-6 bg-amber-50 rounded-lg shadow hover:shadow-md transition">
+                            <h3 className="text-lg font-semibold mb-2">Payment Dashboard</h3>
+                            <p className="text-gray-600">Manage your posted job payments</p>
+                          </a>
+                        )}
+                        
+                        <a href="/transactions" className="block p-6 bg-indigo-50 rounded-lg shadow hover:shadow-md transition">
+                          <h3 className="text-lg font-semibold mb-2">Transactions</h3>
+                          <p className="text-gray-600">View your transaction history</p>
+                        </a>
+                      </div>
                     </div>
                   </div>
                 </div>
-              </div>
-            );
+              );
+            }
           } else {
             return <ErrorBoundaryRoute component={DiagnosticPage} />;
           }
