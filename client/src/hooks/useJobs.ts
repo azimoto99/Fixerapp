@@ -1,15 +1,27 @@
 import { useQuery } from '@tanstack/react-query';
 import { Job } from '@shared/schema';
 import { useGeolocation } from '@/lib/geolocation';
+import { useAuth } from '@/hooks/use-auth';
 
 interface UseJobsOptions {
   nearbyOnly?: boolean;
   radiusMiles?: number;
+  poster?: boolean;
+  includeAll?: boolean;
 }
 
-export function useJobs(searchParams?: { query?: string; category?: string }, options?: UseJobsOptions) {
+export function useJobs(
+  options?: UseJobsOptions,
+  searchParams?: { query?: string; category?: string }
+) {
   const { userLocation } = useGeolocation();
-  const { nearbyOnly = false, radiusMiles = 2 } = options || {};
+  const { user } = useAuth();
+  const { 
+    nearbyOnly = false, 
+    radiusMiles = 2,
+    poster = false,
+    includeAll = false 
+  } = options || {};
   
   // Build query params
   let queryPath = '/api/jobs?';
@@ -23,8 +35,15 @@ export function useJobs(searchParams?: { query?: string; category?: string }, op
     queryParams.push(`category=${encodeURIComponent(searchParams.category)}`);
   }
   
-  // Always filter to "open" jobs by default
-  queryParams.push('status=open');
+  // For job poster view, filter by poster ID
+  if (poster && user) {
+    queryParams.push(`posterId=${user.id}`);
+  }
+  
+  // Default to open jobs unless we're viewing all jobs
+  if (!includeAll && !poster) {
+    queryParams.push('status=open');
+  }
   
   if (queryParams.length) {
     queryPath += queryParams.join('&');
@@ -35,7 +54,7 @@ export function useJobs(searchParams?: { query?: string; category?: string }, op
     queryKey: [queryPath],
   });
   
-  // For nearby jobs, we filter in the client
+  // For nearby jobs, filter in the client
   // In a real implementation, we would use the nearby API endpoint
   let jobs = allJobs;
   
