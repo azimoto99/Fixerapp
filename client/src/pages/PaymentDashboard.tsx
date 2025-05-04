@@ -532,6 +532,10 @@ const PaymentDashboard: React.FC = () => {
                             <Button 
                               size="sm"
                               className="bg-emerald-600 hover:bg-emerald-700 text-white"
+                              onClick={() => {
+                                // Navigate to checkout with job id and amount
+                                window.location.href = `/checkout?jobId=${job.id}&amount=${job.totalAmount || job.paymentAmount}`;
+                              }}
                             >
                               <DollarSign className="h-4 w-4 mr-1" />
                               Pay Now

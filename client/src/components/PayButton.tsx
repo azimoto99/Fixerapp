@@ -1,7 +1,7 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { Button } from '@/components/ui/button';
 import { CreditCard } from 'lucide-react';
-import PaymentModal from './PaymentModal';
+import { useLocation } from 'wouter';
 
 interface PayButtonProps {
   jobId: number;
@@ -20,36 +20,23 @@ const PayButton: React.FC<PayButtonProps> = ({
   variant = 'default',
   onPaymentComplete
 }) => {
-  const [isPaymentModalOpen, setIsPaymentModalOpen] = useState(false);
+  const [, navigate] = useLocation();
 
-  const handlePaymentComplete = () => {
-    setIsPaymentModalOpen(false);
-    if (onPaymentComplete) {
-      onPaymentComplete();
-    }
+  const handlePayClick = () => {
+    // Redirect to the new checkout page with job ID and amount as URL parameters
+    navigate(`/checkout?jobId=${jobId}&amount=${amount}`);
   };
 
   return (
-    <>
-      <Button
-        variant={variant}
-        disabled={disabled}
-        onClick={() => setIsPaymentModalOpen(true)}
-        className="flex items-center"
-      >
-        <CreditCard className="mr-2 h-4 w-4" />
-        Process Payment
-      </Button>
-
-      <PaymentModal
-        isOpen={isPaymentModalOpen}
-        onClose={() => setIsPaymentModalOpen(false)}
-        jobId={jobId}
-        jobTitle={jobTitle}
-        amount={amount}
-        onPaymentComplete={handlePaymentComplete}
-      />
-    </>
+    <Button
+      variant={variant}
+      disabled={disabled}
+      onClick={handlePayClick}
+      className="flex items-center"
+    >
+      <CreditCard className="mr-2 h-4 w-4" />
+      Process Payment
+    </Button>
   );
 };
 
