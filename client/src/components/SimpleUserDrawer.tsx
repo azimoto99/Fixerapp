@@ -17,12 +17,32 @@ import SettingsContent from './drawer-contents/SettingsContent';
 
 interface SimpleUserDrawerProps {
   children?: React.ReactNode;
+  onDrawerStateChange?: (isOpen: boolean) => void;
+  externalCloseState?: boolean;
 }
 
-const SimpleUserDrawer: React.FC<SimpleUserDrawerProps> = ({ children }) => {
+const SimpleUserDrawer: React.FC<SimpleUserDrawerProps> = ({ 
+  children, 
+  onDrawerStateChange,
+  externalCloseState 
+}) => {
   const { user, logoutMutation } = useAuth();
   const [activeTab, setActiveTab] = useState<string>("profile");
   const [isOpen, setIsOpen] = useState(false);
+  
+  // Listen for external close requests
+  useEffect(() => {
+    if (externalCloseState === false && isOpen) {
+      setIsOpen(false);
+    }
+  }, [externalCloseState]);
+  
+  // Notify parent when drawer state changes
+  useEffect(() => {
+    if (onDrawerStateChange) {
+      onDrawerStateChange(isOpen);
+    }
+  }, [isOpen, onDrawerStateChange]);
   const drawerRef = useRef<HTMLDivElement>(null);
 
   const handleClickOutside = (event: MouseEvent) => {

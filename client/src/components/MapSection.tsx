@@ -44,6 +44,8 @@ const MapSection: React.FC<MapSectionProps> = ({ jobs, selectedJob, onSelectJob 
   const [showJobDetail, setShowJobDetail] = useState<boolean>(false);
   const [mapReady, setMapReady] = useState(false);
   const [isApplying, setIsApplying] = useState(false);
+  const [isUserDrawerOpen, setIsUserDrawerOpen] = useState(false);
+  const [forceCloseDrawer, setForceCloseDrawer] = useState(false);
   const { user } = useAuth();
   const { toast } = useToast();
   
@@ -57,6 +59,23 @@ const MapSection: React.FC<MapSectionProps> = ({ jobs, selectedJob, onSelectJob 
     if (onSelectJob) {
       onSelectJob(job);
       setShowJobDetail(true);
+    }
+  };
+  
+  // Handle map click to close panels
+  const handleMapClick = () => {
+    // Close job details panel if open
+    if (showJobDetail) {
+      setShowJobDetail(false);
+    }
+    
+    // Close user drawer if open
+    if (isUserDrawerOpen) {
+      setForceCloseDrawer(true);
+      // Reset the force close state after a short delay
+      setTimeout(() => {
+        setForceCloseDrawer(false);
+      }, 100);
     }
   };
 
@@ -181,6 +200,9 @@ const MapSection: React.FC<MapSectionProps> = ({ jobs, selectedJob, onSelectJob 
             <TileLayer
               attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
               url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+              eventHandlers={{
+                click: handleMapClick,
+              }}
             />
             
             {/* 2-mile radius circle around user's location */}
@@ -257,7 +279,7 @@ const MapSection: React.FC<MapSectionProps> = ({ jobs, selectedJob, onSelectJob 
         
         {/* Bottom card for job details - DoorDash-style slide-up panel */}
         {showJobDetail && selectedJob && (
-          <div className="absolute bottom-0 left-0 right-0 z-[9999] max-h-[70%] overflow-y-auto 
+          <div className="absolute bottom-0 left-0 right-0 z-[9000] max-h-[70%] overflow-y-auto 
                           bg-white rounded-t-xl shadow-xl animate-slide-up"
               style={{ filter: 'drop-shadow(0 -10px 8px rgb(0 0 0 / 0.04))' }}>
             <div className="sticky top-0 bg-white pt-2 pb-1 px-4 border-b z-[9999]">
