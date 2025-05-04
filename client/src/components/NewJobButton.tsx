@@ -8,7 +8,7 @@ const NewJobButton: React.FC = () => {
   if (!user) return null;
   
   return (
-    <div className="fixed right-6 bottom-20 md:bottom-6 z-40">
+    <div className="fixed right-[calc(1.5rem)] bottom-20 md:bottom-6 z-40">
       <Link href="/post-job">
         <Button 
           variant="circle" 
