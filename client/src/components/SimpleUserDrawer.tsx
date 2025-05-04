@@ -1,8 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { useLocation } from 'wouter';
+import { useLocation, Link as WouterLink } from 'wouter';
 import { useAuth } from '@/hooks/use-auth';
 import { User as UserIcon, Star as StarIcon } from 'lucide-react';
-import { Link } from '@/components/ui/link';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
 
@@ -112,71 +111,76 @@ const SimpleUserDrawer: React.FC<SimpleUserDrawerProps> = ({
             <div className="p-4">
               {/* Quick Nav Links */}
               <nav className="space-y-2">
-                <Link 
-                  href="/profile"
-                  className="flex items-center space-x-2 p-2 rounded-md hover:bg-accent hover:text-accent-foreground transition-colors"
-                  onClick={() => setIsOpen(false)}
-                >
-                  <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                    <path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"></path>
-                    <circle cx="12" cy="7" r="4"></circle>
-                  </svg>
-                  <span>My Profile</span>
-                </Link>
-                
-                {user.accountType === 'worker' && (
-                  <Link 
-                    href="/earnings"
+                <WouterLink href="/profile">
+                  <a
                     className="flex items-center space-x-2 p-2 rounded-md hover:bg-accent hover:text-accent-foreground transition-colors"
                     onClick={() => setIsOpen(false)}
                   >
                     <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                      <circle cx="12" cy="12" r="10"></circle>
-                      <path d="M16 8h-6a2 2 0 1 0 0 4h4a2 2 0 1 1 0 4H8"></path>
-                      <path d="M12 18V6"></path>
+                      <path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"></path>
+                      <circle cx="12" cy="7" r="4"></circle>
                     </svg>
-                    <span>Earnings</span>
-                  </Link>
+                    <span>My Profile</span>
+                  </a>
+                </WouterLink>
+                
+                {user.accountType === 'worker' && (
+                  <WouterLink href="/earnings">
+                    <a
+                      className="flex items-center space-x-2 p-2 rounded-md hover:bg-accent hover:text-accent-foreground transition-colors"
+                      onClick={() => setIsOpen(false)}
+                    >
+                      <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <circle cx="12" cy="12" r="10"></circle>
+                        <path d="M16 8h-6a2 2 0 1 0 0 4h4a2 2 0 1 1 0 4H8"></path>
+                        <path d="M12 18V6"></path>
+                      </svg>
+                      <span>Earnings</span>
+                    </a>
+                  </WouterLink>
                 )}
                 
-                <Link 
-                  href={user.accountType === 'worker' ? '/saved-jobs' : '/my-jobs'}
-                  className="flex items-center space-x-2 p-2 rounded-md hover:bg-accent hover:text-accent-foreground transition-colors"
-                  onClick={() => setIsOpen(false)}
-                >
-                  <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                    <path d="M20 12V8H6a2 2 0 0 1-2-2c0-1.1.9-2 2-2h12v4"></path>
-                    <path d="M4 6v12c0 1.1.9 2 2 2h14v-4"></path>
-                    <path d="M18 12a2 2 0 0 0-2 2c0 1.1.9 2 2 2h4v-4h-4z"></path>
-                  </svg>
-                  <span>{user.accountType === 'worker' ? 'Saved Jobs' : 'My Jobs'}</span>
-                </Link>
+                <WouterLink href={user.accountType === 'worker' ? '/saved-jobs' : '/my-jobs'}>
+                  <a 
+                    className="flex items-center space-x-2 p-2 rounded-md hover:bg-accent hover:text-accent-foreground transition-colors"
+                    onClick={() => setIsOpen(false)}
+                  >
+                    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M20 12V8H6a2 2 0 0 1-2-2c0-1.1.9-2 2-2h12v4"></path>
+                      <path d="M4 6v12c0 1.1.9 2 2 2h14v-4"></path>
+                      <path d="M18 12a2 2 0 0 0-2 2c0 1.1.9 2 2 2h4v-4h-4z"></path>
+                    </svg>
+                    <span>{user.accountType === 'worker' ? 'Saved Jobs' : 'My Jobs'}</span>
+                  </a>
+                </WouterLink>
                 
-                <Link 
-                  href="/messages"
-                  className="flex items-center space-x-2 p-2 rounded-md hover:bg-accent hover:text-accent-foreground transition-colors"
-                  onClick={() => setIsOpen(false)}
-                >
-                  <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                    <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
-                  </svg>
-                  <span>Messages</span>
-                </Link>
+                <WouterLink href="/messages">
+                  <a
+                    className="flex items-center space-x-2 p-2 rounded-md hover:bg-accent hover:text-accent-foreground transition-colors"
+                    onClick={() => setIsOpen(false)}
+                  >
+                    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
+                    </svg>
+                    <span>Messages</span>
+                  </a>
+                </WouterLink>
                 
-                <Link 
-                  href="/connect-setup"
-                  className="flex items-center space-x-2 p-2 rounded-md hover:bg-accent hover:text-accent-foreground transition-colors"
-                  onClick={() => setIsOpen(false)}
-                >
-                  <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                    <rect x="2" y="4" width="20" height="16" rx="2"></rect>
-                    <path d="M7 15h0.01"></path>
-                    <path d="M11 15h2"></path>
-                    <path d="M16 15h0.01"></path>
-                    <path d="M2 9.5h20"></path>
-                  </svg>
-                  <span>Stripe Connect</span>
-                </Link>
+                <WouterLink href="/connect-setup">
+                  <a
+                    className="flex items-center space-x-2 p-2 rounded-md hover:bg-accent hover:text-accent-foreground transition-colors"
+                    onClick={() => setIsOpen(false)}
+                  >
+                    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <rect x="2" y="4" width="20" height="16" rx="2"></rect>
+                      <path d="M7 15h0.01"></path>
+                      <path d="M11 15h2"></path>
+                      <path d="M16 15h0.01"></path>
+                      <path d="M2 9.5h20"></path>
+                    </svg>
+                    <span>Stripe Connect</span>
+                  </a>
+                </WouterLink>
               </nav>
               
               <Separator className="my-4" />
