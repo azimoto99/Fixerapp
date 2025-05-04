@@ -32,6 +32,7 @@ const SimpleUserDrawer: React.FC<SimpleUserDrawerProps> = ({
   const { user, logoutMutation } = useAuth();
   const [activeTab, setActiveTab] = useState<string>("profile");
   const [isOpen, setIsOpen] = useState(false);
+  const [, navigate] = useLocation();
   
   // Listen for external close requests
   useEffect(() => {
@@ -166,6 +167,32 @@ const SimpleUserDrawer: React.FC<SimpleUserDrawerProps> = ({
                     >
                       <BarChart2 className="h-5 w-5 mb-1" />
                       <span className="text-xs">Earnings</span>
+                    </button>
+                  )}
+                  
+                  {/* Transaction History button - available for all users */}
+                  <button 
+                    onClick={() => {
+                      setIsOpen(false);
+                      navigate('/transactions');
+                    }}
+                    className="flex flex-col items-center justify-center w-16 h-16 rounded-lg hover:bg-primary/5 text-gray-600"
+                  >
+                    <CreditCard className="h-5 w-5 mb-1" />
+                    <span className="text-xs">Payments</span>
+                  </button>
+                  
+                  {/* Payment Dashboard - only for job posters */}
+                  {user.accountType === 'poster' && (
+                    <button 
+                      onClick={() => {
+                        setIsOpen(false);
+                        navigate('/payment-dashboard');
+                      }}
+                      className="flex flex-col items-center justify-center w-16 h-16 rounded-lg hover:bg-primary/5 text-gray-600"
+                    >
+                      <LayoutDashboard className="h-5 w-5 mb-1" />
+                      <span className="text-xs">Dashboard</span>
                     </button>
                   )}
                   
