@@ -96,6 +96,9 @@ async function findOrCreateUserFromSocial(
 export function setupAuth(app: Express) {
   const MemoryStoreSession = MemoryStore(session);
   
+  const isProduction = process.env.NODE_ENV === 'production';
+  const domain = process.env.REPLIT_DOMAINS ? process.env.REPLIT_DOMAINS.split(',')[0] : undefined;
+  
   const sessionSettings: session.SessionOptions = {
     secret: process.env.SESSION_SECRET || "gig-connect-secret-key",
     resave: false,
@@ -105,6 +108,10 @@ export function setupAuth(app: Express) {
     }),
     cookie: {
       maxAge: 24 * 60 * 60 * 1000, // 24 hours
+      secure: isProduction, // Use secure cookies in production
+      sameSite: isProduction ? 'none' : 'lax', // Allow cross-site cookies in production
+      domain: domain ? domain.replace('https://', '').replace('http://', '') : undefined, // Set domain in production
+      httpOnly: true,
     }
   };
 
