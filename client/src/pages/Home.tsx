@@ -132,11 +132,14 @@ const WorkerDashboard = () => {
       <div className="absolute top-4 right-4 z-[500]">
         <Button 
           onClick={togglePostedJobs}
+          variant="circle" 
+          size="circle"
           className="bg-white text-primary hover:bg-primary hover:text-white transition-colors shadow-md"
+          aria-label="My Posted Jobs"
         >
-          My Posted Jobs
+          <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M20 5H4a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2Z"></path><path d="M14 2v6"></path><path d="M10 2v6"></path><path d="M3 10h18"></path></svg>
           {(postedJobs && postedJobs.length > 0) ? (
-            <span className="ml-2 bg-primary text-white rounded-full w-5 h-5 flex items-center justify-center text-xs">
+            <span className="absolute -top-1 -right-1 bg-primary text-white rounded-full w-5 h-5 flex items-center justify-center text-xs">
               {postedJobs.length}
             </span>
           ) : null}
