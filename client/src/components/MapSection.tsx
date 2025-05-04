@@ -261,9 +261,10 @@ const MapSection: React.FC<MapSectionProps> = ({ jobs, selectedJob, onSelectJob 
           {user && (
             <button 
               onClick={() => window.location.href = '/profile'}
-              className="bg-white shadow-lg rounded-full p-2 flex items-center"
+              className="bg-white shadow-lg rounded-full p-2 flex items-center transform transition-all duration-300 hover:scale-110 hover:bg-primary hover:text-white hover:shadow-xl group relative"
             >
-              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-5 w-5 text-gray-700">
+              <div className="absolute -top-1 -right-1 w-3 h-3 bg-green-500 rounded-full animate-pulse-marker"></div>
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-5 w-5 text-gray-700 group-hover:text-white transition-colors">
                 <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
                 <circle cx="12" cy="7" r="4" />
               </svg>
@@ -272,13 +273,13 @@ const MapSection: React.FC<MapSectionProps> = ({ jobs, selectedJob, onSelectJob 
           
           {/* Quick filter button */}
           <button 
-            className="bg-white shadow-lg rounded-full p-2 flex items-center gap-1"
+            className="bg-white shadow-lg rounded-full p-2 flex items-center gap-1 transform transition-all duration-300 hover:scale-110 hover:rotate-6 hover:bg-blue-50 hover:shadow-xl"
             onClick={() => toast({
               title: 'Nearby Jobs Filter',
               description: 'Showing jobs within 2 miles of your location',
             })}
           >
-            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-5 w-5 text-primary">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-5 w-5 text-primary animate-bounce-in">
               <polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"></polygon>
             </svg>
           </button>

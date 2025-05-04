@@ -105,22 +105,32 @@ export default function FindNearestJobButton() {
   };
 
   return (
-    <Button 
-      onClick={handleFindNearestJob} 
-      disabled={isLoading}
-      className="bg-gradient-to-r from-blue-500 to-purple-500 hover:from-blue-600 hover:to-purple-600 text-white font-medium px-4 py-2 rounded-full shadow-md hover:shadow-lg transition-all duration-200"
-    >
-      {isLoading ? (
+    <div className="relative">
+      {/* Animated pulse rings */}
+      {!isLoading && (
         <>
-          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-          Finding...
-        </>
-      ) : (
-        <>
-          <MapPin className="mr-2 h-4 w-4" />
-          Find Nearest Job
+          <div className="absolute inset-0 rounded-full animate-ping opacity-30 bg-gradient-to-r from-blue-400 to-purple-400"></div>
+          <div className="absolute inset-0 rounded-full animate-pulse opacity-40 bg-gradient-to-r from-blue-500 to-purple-500" style={{ animationDelay: '0.5s' }}></div>
         </>
       )}
-    </Button>
+      
+      <Button 
+        onClick={handleFindNearestJob} 
+        disabled={isLoading}
+        className="relative bg-gradient-to-r from-blue-500 to-purple-500 hover:from-blue-600 hover:to-purple-600 text-white font-medium px-4 py-2 rounded-full shadow-md hover:shadow-lg transition-all duration-300 hover:scale-105 z-10"
+      >
+        {isLoading ? (
+          <>
+            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+            Finding...
+          </>
+        ) : (
+          <>
+            <MapPin className="mr-2 h-4 w-4 animate-bounce-in" />
+            Find Nearest Job
+          </>
+        )}
+      </Button>
+    </div>
   );
 }
