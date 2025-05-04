@@ -23,69 +23,83 @@ export function useJobs(
     includeAll = false 
   } = options || {};
   
-  // Build query params
-  let queryPath = '/api/jobs?';
-  const queryParams: string[] = [];
+  // Create a function to build the query path
+  const buildQueryString = (params: string[]) => {
+    return params.length ? `?${params.join('&')}` : '';
+  };
   
-  if (searchParams?.query) {
-    queryParams.push(`search=${encodeURIComponent(searchParams.query)}`);
-  }
-  
-  if (searchParams?.category) {
-    queryParams.push(`category=${encodeURIComponent(searchParams.category)}`);
-  }
-  
-  // For job poster view, filter by poster ID
-  if (poster && user) {
-    queryParams.push(`posterId=${user.id}`);
-  }
-  
-  // Default to open jobs unless we're viewing all jobs
-  if (!includeAll && !poster) {
-    queryParams.push('status=open');
-  }
-  
-  if (queryParams.length) {
-    queryPath += queryParams.join('&');
-  }
-  
-  // Get all jobs query
-  const { data: allJobs, isLoading, error } = useQuery<Job[]>({
-    queryKey: [queryPath],
-  });
-  
-  // If we need nearby jobs and have location, use the specialized endpoint
-  if (nearbyOnly && userLocation) {
-    let nearbyPath = `/api/jobs/nearby/location?latitude=${userLocation.latitude}&longitude=${userLocation.longitude}&radius=${radiusMiles}`;
+  // Build normal jobs query
+  const buildStandardJobsQuery = () => {
+    const queryParams: string[] = [];
     
-    // Apply any other search params to the nearby path
     if (searchParams?.query) {
-      nearbyPath += `&search=${encodeURIComponent(searchParams.query)}`;
+      queryParams.push(`search=${encodeURIComponent(searchParams.query)}`);
     }
     
     if (searchParams?.category) {
-      nearbyPath += `&category=${encodeURIComponent(searchParams.category)}`;
+      queryParams.push(`category=${encodeURIComponent(searchParams.category)}`);
+    }
+    
+    // For job poster view, filter by poster ID
+    if (poster && user) {
+      queryParams.push(`posterId=${user.id}`);
+    }
+    
+    // Default to open jobs unless we're viewing all jobs
+    if (!includeAll && !poster) {
+      queryParams.push('status=open');
+    }
+    
+    return `/api/jobs${buildQueryString(queryParams)}`;
+  };
+  
+  // Build nearby jobs query
+  const buildNearbyJobsQuery = () => {
+    if (!userLocation) return null;
+    
+    const queryParams: string[] = [
+      `latitude=${userLocation.latitude}`,
+      `longitude=${userLocation.longitude}`,
+      `radius=${radiusMiles}`
+    ];
+    
+    if (searchParams?.query) {
+      queryParams.push(`search=${encodeURIComponent(searchParams.query)}`);
+    }
+    
+    if (searchParams?.category) {
+      queryParams.push(`category=${encodeURIComponent(searchParams.category)}`);
     }
     
     // Always limit to open jobs for nearby view unless explicitly showing all
     if (!includeAll) {
-      nearbyPath += '&status=open';
+      queryParams.push('status=open');
     }
-
-    const { data: nearbyJobs, isLoading: nearbyLoading, error: nearbyError } = useQuery<Job[]>({
-      queryKey: [nearbyPath],
-    });
     
+    return `/api/jobs/nearby/location${buildQueryString(queryParams)}`;
+  };
+  
+  // Decide which query to use
+  const queryPath = nearbyOnly && userLocation 
+    ? buildNearbyJobsQuery() 
+    : buildStandardJobsQuery();
+  
+  // If we couldn't build a query (shouldn't happen, but type safety)
+  if (!queryPath) {
     return {
-      jobs: nearbyJobs,
-      isLoading: nearbyLoading,
-      error: nearbyError
+      jobs: undefined,
+      isLoading: false,
+      error: new Error('Could not build query path')
     };
   }
   
-  // Otherwise just return all jobs from the standard endpoint
+  // Get jobs query
+  const { data: jobs, isLoading, error } = useQuery<Job[]>({
+    queryKey: [queryPath],
+  });
+  
   return {
-    jobs: allJobs,
+    jobs,
     isLoading,
     error
   };
