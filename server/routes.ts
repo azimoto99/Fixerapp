@@ -91,6 +91,57 @@ function isAuthenticated(req: Request, res: Response, next: Function) {
   return res.status(401).json({ message: "Unauthorized - Please login again" });
 }
 
+// Special middleware for Stripe Connect routes
+// Ensures user is fully authenticated and session is properly established
+async function isStripeAuthenticated(req: Request, res: Response, next: Function) {
+  // First check regular authentication with backup method
+  if (!req.session) {
+    console.error("No session object found on request for Stripe route");
+    return res.status(401).json({ message: "Session unavailable" });
+  }
+  
+  // Standard passport authentication - fast path
+  if (req.isAuthenticated() && req.user) {
+    console.log(`Stripe route: User authenticated via Passport: ${req.user.id}`);
+    return next();
+  }
+  
+  // If we have a userId in the session, try to restore the session
+  if (req.session.userId) {
+    const userId = req.session.userId;
+    console.log(`Stripe route: Attempting to restore session from userId: ${userId}`);
+    
+    try {
+      // Get the user from the database
+      const user = await storage.getUser(userId);
+      
+      if (!user) {
+        console.error(`User not found for backup userId: ${userId}`);
+        return res.status(401).json({ message: "Authentication failed - User not found" });
+      }
+      
+      // Restore the session
+      req.login(user, (err) => {
+        if (err) {
+          console.error(`Failed to restore session for Stripe route: ${err}`);
+          return res.status(401).json({ message: "Authentication failed - Session restoration error" });
+        }
+        
+        console.log(`Stripe route: Session restored for user: ${user.id}`);
+        return next();
+      });
+      return;
+    } catch (err) {
+      console.error(`Error restoring session for Stripe route: ${err}`);
+      return res.status(401).json({ message: "Authentication failed - Database error" });
+    }
+  }
+  
+  // If we get here, authentication failed
+  console.log(`Stripe route: Authentication failed: isAuthenticated=${req.isAuthenticated()}, has userId in session=${!!req.session.userId}`);
+  return res.status(401).json({ message: "Unauthorized - Please login again" });
+}
+
 export async function registerRoutes(app: Express): Promise<Server> {
   // Set up authentication
   setupAuth(app);
@@ -1715,7 +1766,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Stripe Connect endpoints for all users (both workers and job posters)
-  apiRouter.post("/stripe/connect/create-account", isAuthenticated, async (req: Request, res: Response) => {
+  apiRouter.post("/stripe/connect/create-account", isStripeAuthenticated, async (req: Request, res: Response) => {
     try {
       // Verify the user has a valid session - this is a safety fallback as isAuthenticated should already check
       if (!req.isAuthenticated() || !req.user) {
@@ -1826,7 +1877,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
   
-  apiRouter.get("/stripe/connect/account-status", isAuthenticated, async (req: Request, res: Response) => {
+  apiRouter.get("/stripe/connect/account-status", isStripeAuthenticated, async (req: Request, res: Response) => {
     try {
       // Both workers and job posters can access Connect account status
       // This allows all users to manage their Stripe Connect account
@@ -1873,7 +1924,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
   
-  apiRouter.post("/stripe/connect/create-login-link", isAuthenticated, async (req: Request, res: Response) => {
+  apiRouter.post("/stripe/connect/create-login-link", isStripeAuthenticated, async (req: Request, res: Response) => {
     try {
       // Both workers and job posters can access their Connect dashboard
       // This provides a unified experience for all users
@@ -1900,7 +1951,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
   
-  apiRouter.post("/stripe/confirm-payment", isAuthenticated, async (req: Request, res: Response) => {
+  apiRouter.post("/stripe/confirm-payment", isStripeAuthenticated, async (req: Request, res: Response) => {
     try {
       const { paymentId, paymentIntentId } = req.body;
       
