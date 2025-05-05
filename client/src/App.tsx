@@ -16,7 +16,7 @@ import PaymentConfirmation from "@/pages/PaymentConfirmation";
 import { AuthProvider } from "@/hooks/use-auth";
 import { ProtectedRoute } from "@/lib/protected-route";
 import { useAuth } from "@/hooks/use-auth";
-import { StripeConnectCheck } from "@/components/stripe";
+import { StripeConnectCheck, StripeRequirementsCheck } from "@/components/stripe";
 import WelcomeMessage from "@/components/WelcomeMessage";
 import { useEffect } from "react";
 
@@ -65,16 +65,26 @@ function RouterWithAuth() {
   );
 }
 
+function AppContent() {
+  const { user } = useAuth();
+  
+  return (
+    <StripeConnectCheck workersOnly={true} enforce={false}>
+      <StripeRequirementsCheck user={user}>
+        <RouterWithAuth />
+        <WelcomeMessage />
+        <Toaster />
+      </StripeRequirementsCheck>
+    </StripeConnectCheck>
+  );
+}
+
 function App() {
   return (
     <QueryClientProvider client={queryClient}>
       <TooltipProvider>
         <AuthProvider>
-          <StripeConnectCheck workersOnly={true} enforce={false}>
-            <RouterWithAuth />
-            <WelcomeMessage />
-            <Toaster />
-          </StripeConnectCheck>
+          <AppContent />
         </AuthProvider>
       </TooltipProvider>
     </QueryClientProvider>
