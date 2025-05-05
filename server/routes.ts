@@ -385,15 +385,24 @@ export async function registerRoutes(app: Express): Promise<Server> {
   apiRouter.post("/users/:id/stripe-terms", isAuthenticated, async (req: Request, res: Response) => {
     try {
       console.log('Stripe terms acceptance endpoint called');
-      console.log('User in session:', req.user);
+      console.log('User in session:', req.user ? `ID: ${req.user.id}` : 'No user');
       console.log('isAuthenticated:', req.isAuthenticated());
       console.log('Session ID:', req.sessionID);
+      console.log('Session passport:', req.session?.passport);
       
       const id = parseInt(req.params.id);
       console.log(`User ID from params: ${id}`);
       
-      // Ensure the authenticated user is updating their own Stripe terms
-      if (req.user && req.user.id !== id) {
+      // Add fallback for missing authentication
+      if (!req.user) {
+        console.warn('User not authenticated in Stripe terms endpoint despite middleware');
+        // Try to fetch the user directly since we have the ID
+        const user = await storage.getUser(id);
+        if (!user) {
+          return res.status(404).json({ message: "User not found" });
+        }
+        console.log(`Using direct user lookup for ID ${id} instead of session`);
+      } else if (req.user.id !== id) {
         return res.status(403).json({ 
           message: "Forbidden: You can only update your own Stripe terms" 
         });

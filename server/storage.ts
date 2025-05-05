@@ -782,10 +782,8 @@ export class MemStorage implements IStorage {
   }
 }
 
-import { DatabaseStorage } from './database-storage';
+// Import the fixed database storage implementation - don't rename the import
+import { FixedDatabaseStorage } from './fixed-database-storage';
 
-// Use database storage instead of memory storage
-// Import the fixed database storage implementation
-import { DatabaseStorage as FixedDatabaseStorage } from './fixed-database-storage';
-
+// Use the enhanced database storage implementation with better session handling
 export const storage = new FixedDatabaseStorage();
