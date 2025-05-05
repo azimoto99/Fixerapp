@@ -87,14 +87,14 @@ export default function Register({ onModeChange }: RegisterProps) {
           <svg className="h-8 w-8 text-primary-600" viewBox="0 0 24 24" fill="currentColor">
             <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"></path>
           </svg>
-          <span className="ml-2 text-2xl font-bold text-primary-600">The Job</span>
+          <span className="ml-2 text-2xl font-bold text-primary-600">Fixer</span>
         </div>
       </div>
       
       <Card>
         <CardHeader>
           <CardTitle>Create an Account</CardTitle>
-          <CardDescription>Sign up for The Job to start finding or posting gigs</CardDescription>
+          <CardDescription>Sign up for Fixer to start finding or posting gigs</CardDescription>
         </CardHeader>
         <CardContent>
           <Form {...form}>

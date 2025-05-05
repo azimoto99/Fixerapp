@@ -11,7 +11,7 @@ import { HelpCircle, Link } from 'lucide-react';
 const FAQContent: React.FC = () => {
   const faqs = [
     {
-      question: "How does payment work on The Job?",
+      question: "How does payment work on Fixer?",
       answer: "Payments are securely processed through Stripe Connect. When you complete a job, the payment is automatically processed from the job poster to your connected Stripe account. Workers need to set up a Stripe Connect account to receive payments, which ensures your banking details are kept secure and private."
     },
     {
@@ -91,7 +91,7 @@ const FAQContent: React.FC = () => {
           </p>
           <div className="flex items-center text-sm text-primary hover:underline">
             <Link className="h-4 w-4 mr-2" />
-            <a href="mailto:support@thejob.com">Contact Support</a>
+            <a href="mailto:support@fixer.com">Contact Support</a>
           </div>
         </CardContent>
       </Card>

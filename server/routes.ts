@@ -1741,7 +1741,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         },
         business_type: 'individual',
         business_profile: {
-          url: `${process.env.APP_URL || 'https://thejob.replit.app'}/user/${storedUser.id}`,
+          url: `${process.env.APP_URL || 'https://fixer.replit.app'}/user/${storedUser.id}`,
           mcc: '7299', // Personal Services
           product_description: 'Gig economy services provided through Fixer platform'
         }
@@ -1763,8 +1763,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Create an account link for onboarding
       const accountLink = await stripe.accountLinks.create({
         account: account.id,
-        refresh_url: `${process.env.APP_URL || 'https://thejob.replit.app'}/profile?refresh=true`,
-        return_url: `${process.env.APP_URL || 'https://thejob.replit.app'}/profile?success=true`,
+        refresh_url: `${process.env.APP_URL || 'https://fixer.replit.app'}/profile?refresh=true`,
+        return_url: `${process.env.APP_URL || 'https://fixer.replit.app'}/profile?success=true`,
         type: 'account_onboarding',
       });
       
@@ -1811,8 +1811,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         // Create a new account link
         const accountLink = await stripe.accountLinks.create({
           account: account.id,
-          refresh_url: `${process.env.APP_URL || 'https://thejob.replit.app'}/profile?refresh=true`,
-          return_url: `${process.env.APP_URL || 'https://thejob.replit.app'}/profile?success=true`,
+          refresh_url: `${process.env.APP_URL || 'https://fixer.replit.app'}/profile?refresh=true`,
+          return_url: `${process.env.APP_URL || 'https://fixer.replit.app'}/profile?success=true`,
           type: 'account_onboarding',
         });
         accountLinkUrl = accountLink.url;
