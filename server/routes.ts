@@ -842,7 +842,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
               jobTitle: newJob.title,
               paymentAmount: newJob.paymentAmount.toString(),
               serviceFee: newJob.serviceFee.toString(),
-              platform: "The Job"
+              platform: "Fixer"
             },
             receipt_email: req.user.email,
             description: `Upfront payment for job: ${newJob.title}`
@@ -1462,7 +1462,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
                 earningId: earning.id.toString(),
                 workerId: earning.workerId.toString(),
                 jobId: earning.jobId.toString(),
-                platform: "The Job"
+                platform: "Fixer"
               }
             });
             
@@ -1733,7 +1733,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         email: storedUser.email,
         metadata: {
           userId: storedUser.id.toString(),
-          platform: "The Job"
+          platform: "Fixer"
         },
         capabilities: {
           transfers: { requested: true },
@@ -1743,7 +1743,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         business_profile: {
           url: `${process.env.APP_URL || 'https://thejob.replit.app'}/user/${storedUser.id}`,
           mcc: '7299', // Personal Services
-          product_description: 'Gig economy services provided through The Job platform'
+          product_description: 'Gig economy services provided through Fixer platform'
         }
       });
       
