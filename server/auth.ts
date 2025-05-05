@@ -44,16 +44,29 @@ export function setupAuth(app: Express) {
   const isProduction = process.env.NODE_ENV === 'production';
   const domain = process.env.REPLIT_DOMAINS ? process.env.REPLIT_DOMAINS.split(',')[0] : undefined;
   
+  console.log('Setting up authentication with session store');
+  console.log('Database URL available:', !!process.env.DATABASE_URL);
+  
+  // Create the session store
+  let sessionStore;
+  if (storage.sessionStore) {
+    console.log('Using database session store');
+    sessionStore = storage.sessionStore;
+  } else {
+    console.log('Using memory session store');
+    sessionStore = new MemoryStoreSession({
+      checkPeriod: 86400000, // prune expired entries every 24h
+    });
+  }
+  
   const sessionSettings: session.SessionOptions = {
     secret: process.env.SESSION_SECRET || "gig-connect-secret-key",
-    resave: false, // Changed to false after fixing session store
-    saveUninitialized: false, // Changed to false to prevent storing empty sessions
-    store: storage.sessionStore || new MemoryStoreSession({
-      checkPeriod: 86400000, // prune expired entries every 24h
-    }),
+    resave: false,
+    saveUninitialized: false,
+    store: sessionStore,
     cookie: {
-      maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
-      secure: isProduction, // Set to true in production, false in dev
+      maxAge: 30 * 24 * 60 * 60 * 1000, // 30 days for better persistence
+      secure: isProduction,
       sameSite: 'lax',
       httpOnly: true,
       path: '/',

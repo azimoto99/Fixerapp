@@ -28,8 +28,13 @@ import {
   type InsertUserBadge
 } from "@shared/schema";
 
+import session from "express-session";
+
 // Storage interface for all CRUD operations
 export interface IStorage {
+  // Session store for authentication
+  sessionStore?: session.Store;
+  
   // User operations
   getAllUsers(): Promise<User[]>;
   getUser(id: number): Promise<User | undefined>;
