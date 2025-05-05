@@ -72,7 +72,7 @@ const WelcomeMessage: React.FC = () => {
             <DialogHeader>
               <DialogTitle className="text-2xl flex items-center">
                 <span className="bg-primary text-white w-8 h-8 rounded-full flex items-center justify-center mr-2 text-sm">1</span>
-                Welcome to The Job!
+                Welcome to Fixer!
               </DialogTitle>
               <DialogDescription className="text-base pt-2">
                 Your one-stop platform for finding and posting local gigs. Let's take a quick tour to help you get started.
@@ -231,7 +231,7 @@ const WelcomeMessage: React.FC = () => {
               </div>
               
               <p className="text-center text-muted-foreground mb-6">
-                Thank you for joining The Job community. We're excited to help you find opportunities and grow your career.
+                Thank you for joining the Fixer community. We're excited to help you find opportunities and grow your career.
               </p>
               
               <div className="grid grid-cols-2 gap-4 w-full max-w-md">

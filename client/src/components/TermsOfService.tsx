@@ -23,12 +23,12 @@ export function TermsOfService({ open, onClose }: TermsOfServiceProps) {
           <div className="space-y-6 text-sm">
             <section>
               <h2 className="text-lg font-semibold mb-2">1. Introduction</h2>
-              <p>Welcome to The Job platform. These Terms of Service govern your use of our website, applications, and services. By accessing or using The Job, you agree to be bound by these Terms.</p>
+              <p>Welcome to Fixer platform. These Terms of Service govern your use of our website, applications, and services. By accessing or using Fixer, you agree to be bound by these Terms.</p>
             </section>
             
             <section>
               <h2 className="text-lg font-semibold mb-2">2. Account Creation</h2>
-              <p>When you create an account on The Job, you must provide accurate and complete information. You are responsible for maintaining the security of your account and password. The platform cannot and will not be liable for any loss or damage from your failure to comply with this security obligation.</p>
+              <p>When you create an account on Fixer, you must provide accurate and complete information. You are responsible for maintaining the security of your account and password. The platform cannot and will not be liable for any loss or damage from your failure to comply with this security obligation.</p>
             </section>
             
             <section>
@@ -46,23 +46,23 @@ export function TermsOfService({ open, onClose }: TermsOfServiceProps) {
             
             <section>
               <h2 className="text-lg font-semibold mb-2">4. Job Listings and Applications</h2>
-              <p>Job posters must provide accurate information about the jobs they post, including fair compensation and realistic job requirements. Workers must provide accurate information about their skills and qualifications. The Job platform is not responsible for verifying the accuracy of job listings or worker qualifications.</p>
+              <p>Job posters must provide accurate information about the jobs they post, including fair compensation and realistic job requirements. Workers must provide accurate information about their skills and qualifications. Fixer platform is not responsible for verifying the accuracy of job listings or worker qualifications.</p>
             </section>
             
             <section>
               <h2 className="text-lg font-semibold mb-2">5. Payments and Fees</h2>
-              <p>The Job collects a small service fee for facilitating transactions between job posters and workers. All payments are processed through Stripe. Users must comply with Stripe's terms of service when using the payment processing features.</p>
+              <p>Fixer collects a small service fee for facilitating transactions between job posters and workers. All payments are processed through Stripe. Users must comply with Stripe's terms of service when using the payment processing features.</p>
               <p className="mt-2">By using our platform, you agree to pay all applicable fees as they become due. Fees are non-refundable except as required by law or as explicitly stated in our refund policy.</p>
             </section>
             
             <section>
               <h2 className="text-lg font-semibold mb-2">6. Content Filtering</h2>
-              <p>The Job uses automated content filtering to detect and block inappropriate or prohibited content. We reserve the right to remove any content that violates these Terms of Service or that we determine, in our sole discretion, to be harmful or objectionable.</p>
+              <p>Fixer uses automated content filtering to detect and block inappropriate or prohibited content. We reserve the right to remove any content that violates these Terms of Service or that we determine, in our sole discretion, to be harmful or objectionable.</p>
             </section>
             
             <section>
               <h2 className="text-lg font-semibold mb-2">7. Intellectual Property</h2>
-              <p>The Job and its original content, features, and functionality are owned by The Job and are protected by international copyright, trademark, patent, trade secret, and other intellectual property or proprietary rights laws.</p>
+              <p>Fixer and its original content, features, and functionality are owned by Fixer and are protected by international copyright, trademark, patent, trade secret, and other intellectual property or proprietary rights laws.</p>
             </section>
             
             <section>
@@ -72,7 +72,7 @@ export function TermsOfService({ open, onClose }: TermsOfServiceProps) {
             
             <section>
               <h2 className="text-lg font-semibold mb-2">9. Limitation of Liability</h2>
-              <p>In no event shall The Job, nor its directors, employees, partners, agents, suppliers, or affiliates, be liable for any indirect, incidental, special, consequential or punitive damages, including without limitation, loss of profits, data, use, goodwill, or other intangible losses, resulting from your access to or use of or inability to access or use the service.</p>
+              <p>In no event shall Fixer, nor its directors, employees, partners, agents, suppliers, or affiliates, be liable for any indirect, incidental, special, consequential or punitive damages, including without limitation, loss of profits, data, use, goodwill, or other intangible losses, resulting from your access to or use of or inability to access or use the service.</p>
             </section>
             
             <section>
@@ -82,7 +82,7 @@ export function TermsOfService({ open, onClose }: TermsOfServiceProps) {
             
             <section>
               <h2 className="text-lg font-semibold mb-2">11. Contact Us</h2>
-              <p>If you have any questions about these Terms, please contact us at support@thejob.com.</p>
+              <p>If you have any questions about these Terms, please contact us at support@fixer.com.</p>
             </section>
           </div>
         </ScrollArea>
