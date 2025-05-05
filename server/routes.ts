@@ -3,6 +3,7 @@ import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { z } from "zod";
 import Stripe from "stripe";
+import { filterJobContent, validatePaymentAmount } from "./content-filter";
 import { 
   insertUserSchema, 
   insertJobSchema, 
@@ -793,6 +794,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (jobData.posterId !== req.user.id) {
         return res.status(403).json({ 
           message: "Forbidden: You can only create jobs with your own user ID" 
+        });
+      }
+      
+      // Filter for prohibited or spammy content
+      const contentFilterResult = filterJobContent(jobData.title, jobData.description);
+      if (!contentFilterResult.isApproved) {
+        return res.status(400).json({ 
+          message: contentFilterResult.reason || "Your job post contains prohibited content."
+        });
+      }
+      
+      // Validate payment amount
+      const paymentValidation = validatePaymentAmount(jobData.paymentAmount);
+      if (!paymentValidation.isApproved) {
+        return res.status(400).json({ 
+          message: paymentValidation.reason || "The payment amount is invalid."
         });
       }
       
