@@ -132,13 +132,20 @@ const StripeConnectSetup: React.FC<StripeConnectSetupProps> = ({ compact = false
   const createLoginLinkMutation = useMutation({
     mutationFn: async () => {
       try {
-        // Request to check if user is authenticated before proceeding
-        const userCheck = await apiRequest('GET', '/api/user');
-        if (!userCheck.ok) {
+        // Request to check if user is authenticated before proceeding using our special endpoint
+        const authCheck = await apiRequest('GET', '/api/stripe/check-auth');
+        if (!authCheck.ok) {
           console.log('User authentication check failed before creating login link');
           // Invalidate user query to trigger auth redirect if needed
           await queryClient.invalidateQueries({ queryKey: ['/api/user'] });
           throw new Error('Please login to continue');
+        }
+        
+        // Parse the auth check response
+        const authData = await authCheck.json();
+        if (!authData.authenticated) {
+          console.log('Auth check returned not authenticated:', authData);
+          throw new Error('Session expired. Please login again.');
         }
         
         const res = await apiRequest('POST', '/api/stripe/connect/create-login-link', {});
