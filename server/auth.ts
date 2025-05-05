@@ -218,15 +218,44 @@ export function setupAuth(app: Express) {
             return next(err);
           }
           
-          console.log('Login successful - session established');
-          console.log('Session ID after login:', req.sessionID);
-          console.log('isAuthenticated after login:', req.isAuthenticated());
-          
-          // Don't return password in response
-          const { password, ...userResponse } = user;
-          
-          // Account type selection is no longer needed
-          res.json(userResponse);
+          // Save the session explicitly before sending response
+          req.session.save((saveErr) => {
+            if (saveErr) {
+              console.error('Session save error:', saveErr);
+              return next(saveErr);
+            }
+            
+            console.log('Login successful - session established and saved');
+            console.log('Session ID after login:', req.sessionID);
+            console.log('Session expiration:', req.session.cookie.maxAge ? 
+              new Date(Date.now() + req.session.cookie.maxAge).toISOString() : 'No expiration');
+            console.log('isAuthenticated after login:', req.isAuthenticated());
+            console.log('User in session:', req.user ? `ID: ${req.user.id}` : 'No user');
+            
+            // Enhanced session verification after login
+            // This helps identify session serialization/deserialization issues
+            if (!req.isAuthenticated() || !req.user) {
+              console.error('WARNING: User authenticated but session verification failed!');
+              // Try to recover by retrying login
+              req.login(user, (retryErr) => {
+                if (retryErr) {
+                  console.error('Login retry error:', retryErr);
+                  return next(retryErr);
+                }
+                
+                console.log('Login retry successful');
+                const { password, ...userResponse } = user;
+                res.json(userResponse);
+              });
+              return;
+            }
+            
+            // Don't return password in response
+            const { password, ...userResponse } = user;
+            
+            // Account type selection is no longer needed
+            res.json(userResponse);
+          });
         });
       }
     })(req, res, next);

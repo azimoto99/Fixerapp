@@ -388,7 +388,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
       console.log('User in session:', req.user ? `ID: ${req.user.id}` : 'No user');
       console.log('isAuthenticated:', req.isAuthenticated());
       console.log('Session ID:', req.sessionID);
-      console.log('Session passport:', req.session?.passport);
+      
+      // Safely check if the passport property exists in the session
+      const passportObj = req.session && typeof req.session === 'object' ? (req.session as any).passport : undefined;
+      console.log('Session passport:', passportObj);
       
       const id = parseInt(req.params.id);
       console.log(`User ID from params: ${id}`);
