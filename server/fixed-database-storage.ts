@@ -20,7 +20,7 @@ export class FixedDatabaseStorage implements IStorage {
     this.sessionStore = new PostgresStore({
       pool,
       tableName: 'sessions', // Default is "session"
-      createTableIfMissing: false, // Avoid creating the table since it already exists
+      createTableIfMissing: true, // Create the table if it doesn't exist
       pruneSessionInterval: 60 * 15 // Prune every 15 minutes
     });
     

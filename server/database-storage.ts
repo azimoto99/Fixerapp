@@ -25,10 +25,10 @@ export class DatabaseStorage implements IStorage {
   constructor() {
     this.sessionStore = new PostgresSessionStore({ 
       pool,
-      // Don't try to create the table since it already exists
-      createTableIfMissing: false,
-      // Don't try to enable the keep-alive logic
-      pruneSessionInterval: false
+      // Attempt to create the table if it doesn't exist
+      createTableIfMissing: true,
+      // Use a 60-minute interval for pruning expired sessions
+      pruneSessionInterval: 60 * 60
     });
   }
   
