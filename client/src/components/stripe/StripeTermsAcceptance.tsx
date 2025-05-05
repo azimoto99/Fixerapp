@@ -507,7 +507,7 @@ const StripeTermsAcceptance: React.FC<StripeTermsAcceptanceProps> = ({
                             <FormItem>
                               <FormLabel>Country *</FormLabel>
                               <FormControl>
-                                <Input value="US" disabled {...field} />
+                                <Input disabled value={field.value || "US"} onChange={field.onChange} name={field.name} onBlur={field.onBlur} ref={field.ref} />
                               </FormControl>
                               <FormMessage />
                             </FormItem>

@@ -66,7 +66,7 @@ const DownloadReceipt: React.FC<DownloadReceiptProps> = ({ paymentId, isOpen, on
       // Add logo/branding
       doc.setFontSize(12);
       doc.setTextColor(255, 255, 255);
-      doc.text("The Job", 105, 30, { align: 'center' });
+      doc.text("Fixer", 105, 30, { align: 'center' });
       doc.text("Your Local Gig Work Platform", 105, 35, { align: 'center' });
       
       // Add receipt details
@@ -81,7 +81,7 @@ const DownloadReceipt: React.FC<DownloadReceiptProps> = ({ paymentId, isOpen, on
       doc.setFont('helvetica', 'bold');
       doc.text("Receipt Number:", 20, currentY);
       doc.setFont('helvetica', 'normal');
-      doc.text(`TJ-${payment.id.toString().padStart(5, '0')}`, 70, currentY);
+      doc.text(`FXR-${payment.id.toString().padStart(5, '0')}`, 70, currentY);
       currentY += lineHeight;
       
       doc.setFont('helvetica', 'bold');
@@ -182,7 +182,7 @@ const DownloadReceipt: React.FC<DownloadReceiptProps> = ({ paymentId, isOpen, on
       doc.setFont('helvetica', 'italic');
       doc.setFontSize(10);
       doc.setTextColor(100, 100, 100);
-      doc.text("This receipt is proof of payment for services rendered through The Job platform.", 105, currentY, { align: 'center' });
+      doc.text("This receipt is proof of payment for services rendered through Fixer platform.", 105, currentY, { align: 'center' });
       currentY += lineHeight;
       
       // Footer with bottom border
@@ -197,12 +197,12 @@ const DownloadReceipt: React.FC<DownloadReceiptProps> = ({ paymentId, isOpen, on
       doc.setFontSize(10);
       doc.setTextColor(60, 60, 60);
       doc.setFont('helvetica', 'normal');
-      doc.text("Thank you for using The Job!", 105, footerY - 12, { align: 'center' });
+      doc.text("Thank you for using Fixer!", 105, footerY - 12, { align: 'center' });
       doc.text("This is an official receipt for your payment.", 105, footerY - 7, { align: 'center' });
       doc.text(`Generated on ${new Date().toLocaleString()}`, 105, footerY - 2, { align: 'center' });
       
       // Save the PDF
-      doc.save(`Receipt-TJ${payment.id.toString().padStart(5, '0')}.pdf`);
+      doc.save(`Receipt-FXR${payment.id.toString().padStart(5, '0')}.pdf`);
     } catch (error) {
       console.error("Error generating receipt:", error);
     } finally {
