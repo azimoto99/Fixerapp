@@ -1,6 +1,5 @@
 import passport from "passport";
 import { Strategy as LocalStrategy } from "passport-local";
-import { Strategy as GoogleStrategy } from "passport-google-oauth20";
 import { Express, Request } from "express";
 import session from "express-session";
 import { scrypt, randomBytes, timingSafeEqual } from "crypto";
@@ -37,61 +36,7 @@ async function comparePasswords(supplied: string, stored: string) {
   return timingSafeEqual(hashedBuf, suppliedBuf);
 }
 
-// Helper function to generate random string for password
-function generateRandomPassword() {
-  return randomBytes(16).toString('hex');
-}
 
-// Function to find or create a user from social login
-async function findOrCreateUserFromSocial(
-  profile: any
-): Promise<SelectUser> {
-  // Check if a user with this social profile ID already exists
-  // Get all users and find one with matching Google ID
-  const allUsers = await storage.getAllUsers();
-  const existingUser = allUsers.find((u: SelectUser) => u.googleId === profile.id);
-  
-  if (existingUser) {
-    return existingUser;
-  }
-  
-  // No existing user, create a new one
-  const email = profile.emails && profile.emails[0] ? profile.emails[0].value : '';
-  const name = profile.displayName || (profile.name ? `${profile.name.givenName} ${profile.name.familyName}` : '');
-  const photoUrl = 
-    profile.photos && profile.photos[0] ? profile.photos[0].value : 
-    profile._json && profile._json.picture ? profile._json.picture : 
-    null;
-  
-  // Create a username based on provider ID and a random number to avoid collisions
-  const randomSuffix = Math.floor(Math.random() * 10000); // Add a random number to avoid collisions
-  const username = `${profile.provider}_${profile.id}_${randomSuffix}`;
-  
-  // Generate a random password
-  const password = await hashPassword(generateRandomPassword());
-  
-  // Create user data object - always set to worker account type
-  const userData: InsertUser = {
-    username,
-    password,
-    fullName: name,
-    email,
-    phone: null,
-    bio: null,
-    accountType: "worker", // Always set to worker
-    avatarUrl: photoUrl,
-    skills: [],
-    isActive: true,
-    requiresProfileCompletion: true, // Flag to indicate profile needs completion
-    googleId: profile.id,
-    facebookId: null,
-  };
-  
-  // Create the user
-  const newUser = await storage.createUser(userData);
-  
-  return newUser;
-}
 
 export function setupAuth(app: Express) {
   const MemoryStoreSession = MemoryStore(session);
@@ -146,26 +91,7 @@ export function setupAuth(app: Express) {
     }),
   );
   
-  // Google Strategy
-  if (process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET) {
-    passport.use(new GoogleStrategy({
-      clientID: process.env.GOOGLE_CLIENT_ID,
-      clientSecret: process.env.GOOGLE_CLIENT_SECRET,
-      callbackURL: `${process.env.REPLIT_DOMAINS ? 'https://' + process.env.REPLIT_DOMAINS.split(',')[0] : 'http://localhost:5000'}/auth/google/callback`,
-      passReqToCallback: true
-    }, async (req, accessToken, refreshToken, profile, done) => {
-      try {
-        // Find or create the user with "worker" account type
-        const user = await findOrCreateUserFromSocial(profile);
-        
-        return done(null, user);
-      } catch (err) {
-        return done(err as Error);
-      }
-    }));
-  }
-  
-  // Only Google authentication is used
+
 
   passport.serializeUser((user, done) => done(null, user.id));
   
@@ -286,58 +212,5 @@ export function setupAuth(app: Express) {
   // Removing this endpoint as it's been moved to routes.ts
   // app.post("/api/set-account-type", async (req, res) => { ... });
 
-  // Google Authentication Routes
-  app.get('/auth/google', (req, res, next) => {
-    // No need to store account type anymore since all users are workers
-    passport.authenticate('google', { 
-      scope: ['profile', 'email'],
-      session: true
-    })(req, res, next);
-  });
 
-  app.get('/auth/google/callback', 
-    passport.authenticate('google', { 
-      failureRedirect: '/login',
-      session: true
-    }),
-    async (req, res) => {
-      if (!req.user) {
-        return res.redirect('/login');
-      }
-      
-      // Check if this is a new social login user who needs to complete their profile
-      if ((req.user as any).requiresProfileCompletion) {
-        // Send to complete profile page
-        return res.redirect(`/complete-profile?id=${req.user.id}&provider=google`);
-      }
-      
-      // Always set to worker and redirect home
-      if (req.user.accountType === "pending") {
-        try {
-          // Update the account type directly to "worker"
-          const updatedUser = await storage.updateUser(req.user.id, { accountType: "worker" });
-          if (updatedUser) {
-            // Re-login with updated user
-            req.login(updatedUser, (err) => {
-              if (err) {
-                console.error("Failed to re-login after setting account type:", err);
-              }
-              return res.redirect('/');
-            });
-          } else {
-            // Failed to update, still redirect home
-            return res.redirect('/');
-          }
-        } catch (error) {
-          console.error("Error updating account type:", error);
-          return res.redirect('/');
-        }
-      } else {
-        // Account type already set, redirect home
-        return res.redirect('/');
-      }
-    }
-  );
-
-  // No Facebook integration
 }
