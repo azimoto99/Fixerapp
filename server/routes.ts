@@ -1410,6 +1410,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Stripe Connect endpoints for all users (both workers and job posters)
   apiRouter.post("/stripe/connect/create-account", isAuthenticated, async (req: Request, res: Response) => {
     try {
+      // Verify the user has a valid session
+      if (!req.isAuthenticated() || !req.user) {
+        console.error("User not authenticated in stripe/connect/create-account");
+        return res.status(401).json({ message: "Authentication required" });
+      }
+      
+      console.log("Creating Stripe Connect account for user ID:", req.user.id);
+      
       // Both workers and job posters can create Connect accounts
       // This allows users to both pay and receive payments
       
@@ -1417,6 +1425,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (req.user.stripeConnectAccountId) {
         return res.status(400).json({ 
           message: "User already has a Stripe Connect account" 
+        });
+      }
+      
+      if (!req.user.email) {
+        return res.status(400).json({
+          message: "User must have an email address to create a Stripe Connect account"
         });
       }
       
@@ -1440,12 +1454,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
       });
       
+      console.log("Stripe Connect account created:", account.id);
+      
       // Update the user with the Connect account ID
       const updatedUser = await storage.updateUser(req.user.id, {
-        stripeConnectAccountId: account.id
+        stripeConnectAccountId: account.id,
+        stripeConnectAccountStatus: 'pending'
       });
       
       if (!updatedUser) {
+        console.error("Failed to update user with Stripe Connect account ID");
         return res.status(500).json({ message: "Failed to update user with Connect account ID" });
       }
       

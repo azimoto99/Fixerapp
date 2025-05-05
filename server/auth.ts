@@ -101,17 +101,17 @@ export function setupAuth(app: Express) {
   
   const sessionSettings: session.SessionOptions = {
     secret: process.env.SESSION_SECRET || "gig-connect-secret-key",
-    resave: true, // Changed to true to ensure session is saved on each request
-    saveUninitialized: true, // Changed to true to save new but unmodified sessions
-    store: new MemoryStoreSession({
+    resave: false, // Changed to false after fixing session store
+    saveUninitialized: false, // Changed to false to prevent storing empty sessions
+    store: storage.sessionStore || new MemoryStoreSession({
       checkPeriod: 86400000, // prune expired entries every 24h
     }),
     cookie: {
-      maxAge: 7 * 24 * 60 * 60 * 1000, // Extended to 7 days
-      secure: false, // Set to false to work in all environments
-      sameSite: 'lax', // Use lax for better compatibility
+      maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
+      secure: isProduction, // Set to true in production, false in dev
+      sameSite: 'lax',
       httpOnly: true,
-      path: '/', // Ensure cookie is available for all paths
+      path: '/',
     }
   };
 
