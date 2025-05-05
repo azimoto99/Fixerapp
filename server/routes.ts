@@ -35,7 +35,7 @@ const locationParamsSchema = z.object({
   radius: z.coerce.number().default(2)
 });
 
-// Check if user is authenticated middleware
+// Check if user is authenticated middleware - with backup authentication
 function isAuthenticated(req: Request, res: Response, next: Function) {
   // First, ensure session is properly loaded
   if (!req.session) {
@@ -46,9 +46,20 @@ function isAuthenticated(req: Request, res: Response, next: Function) {
   // Enhanced session/cookie check
   const hasCookieExpired = req.session.cookie && req.session.cookie.maxAge <= 0;
   
-  // Then check authentication status
+  // Method 1: Standard Passport authentication
   if (req.isAuthenticated() && req.user && !hasCookieExpired) {
-    console.log(`User authenticated: ${req.user.id} (${req.user.username})`);
+    console.log(`User authenticated via Passport: ${req.user.id} (${req.user.username})`);
+    return next();
+  }
+  
+  // Method 2: Backup authentication via userId stored in session
+  if (req.session.userId && !hasCookieExpired) {
+    console.log(`User authenticated via backup userId: ${req.session.userId}`);
+    
+    // Set flags for routes that need to know we're using backup auth
+    (req as any).usingBackupAuth = true;
+    (req as any).backupUserId = req.session.userId;
+    
     return next();
   }
   
@@ -67,7 +78,9 @@ function isAuthenticated(req: Request, res: Response, next: Function) {
         httpOnly: req.session.cookie.httpOnly,
         path: req.session.cookie.path
       } : null,
-      passport: (req.session as any).passport || 'not set'
+      passport: (req.session as any).passport || 'not set',
+      userId: req.session.userId || 'not set',
+      loginTime: req.session.loginTime || 'not set'
     });
   }
   

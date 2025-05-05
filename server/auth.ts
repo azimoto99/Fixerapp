@@ -324,20 +324,53 @@ export function setupAuth(app: Express) {
     });
   });
 
-  app.get("/api/user", (req, res) => {
+  app.get("/api/user", async (req, res) => {
     console.log('User info requested - session ID:', req.sessionID);
     console.log('isAuthenticated:', req.isAuthenticated());
+    console.log('Session data:', req.session);
     
-    if (!req.isAuthenticated()) {
-      console.log('User not authenticated');
-      return res.status(401).json({ message: "Not authenticated" });
+    // Primary check: Use passport's isAuthenticated
+    if (req.isAuthenticated() && req.user) {
+      console.log('User authenticated via Passport:', req.user.id);
+      
+      // Don't return password in response
+      const { password, ...user } = req.user;
+      return res.json(user);
     }
     
-    console.log('User authenticated:', req.user.id);
+    // Backup check: If passport auth fails but we have userId in session
+    if (req.session.userId) {
+      console.log('Trying backup authentication via session.userId:', req.session.userId);
+      
+      try {
+        // Try to get the user from the database
+        const user = await storage.getUser(req.session.userId);
+        
+        if (user) {
+          console.log('User authenticated via backup userId:', user.id);
+          
+          // Restore passport session
+          req.login(user, (err) => {
+            if (err) {
+              console.error('Failed to restore passport session:', err);
+            } else {
+              console.log('Passport session restored from backup userId');
+            }
+            
+            // Don't return password in response
+            const { password, ...userResponse } = user;
+            return res.json(userResponse);
+          });
+          return;
+        }
+      } catch (err) {
+        console.error('Error fetching user from backup userId:', err);
+      }
+    }
     
-    // Don't return password in response
-    const { password, ...user } = req.user;
-    res.json(user);
+    // If we get here, authentication failed by all methods
+    console.log('User not authenticated by any method');
+    return res.status(401).json({ message: "Not authenticated" });
   });
   
   // Removing this endpoint as it's been moved to routes.ts
