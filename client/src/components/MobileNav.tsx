@@ -1,5 +1,6 @@
 import { Link, useLocation } from 'wouter';
 import { useAuth } from '@/hooks/use-auth';
+import { ThemeToggle } from '@/components/theme';
 
 const MobileNav: React.FC = () => {
   const [location] = useLocation();
