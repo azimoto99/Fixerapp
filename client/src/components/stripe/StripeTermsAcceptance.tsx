@@ -527,22 +527,26 @@ const StripeTermsAcceptance: React.FC<StripeTermsAcceptanceProps> = ({
               </div>
             </div>
 
-            <DialogFooter>
+            <div className="sticky bottom-0 left-0 right-0 pb-2 pt-4 bg-background/90 backdrop-blur-sm border-t shadow-md">
               <Button 
                 type="submit"
                 disabled={isSubmitting}
                 className="w-full"
+                size="lg"
               >
                 {isSubmitting ? (
                   <>
-                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    <Loader2 className="h-5 w-5 mr-2 animate-spin" />
                     Submitting...
                   </>
                 ) : (
                   'Accept Terms and Continue'
                 )}
               </Button>
-            </DialogFooter>
+              <p className="text-xs text-center mt-2 text-muted-foreground">
+                You must accept the terms to use payment features
+              </p>
+            </div>
           </form>
         </Form>
       </DialogContent>
