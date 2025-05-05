@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { memo } from 'react';
 import { Badge } from "@/components/ui/badge";
 import { getCategoryIcon, getCategoryColor, formatCurrency, formatDistance, getTimeAgo } from "@/lib/utils";
 import { Job } from '@shared/schema';
@@ -10,24 +10,26 @@ interface JobCardProps {
   onSelect?: (job: Job) => void;
 }
 
-const JobCard: React.FC<JobCardProps> = ({ job, isSelected, onSelect }) => {
+// Use React.memo to prevent unnecessary re-renders when job data hasn't changed
+const JobCard: React.FC<JobCardProps> = memo(({ job, isSelected, onSelect }) => {
   const {
     id,
     title,
     category,
     paymentType,
     paymentAmount,
-    serviceFee = 2.50, // Default service fee if not provided
+    serviceFee = 2.50,
     totalAmount = paymentAmount + serviceFee,
     latitude,
     longitude,
     datePosted
   } = job;
+  
+  // Calculate distance (would be provided by the server in a real app)
+  const distance = Math.random() * 2; // Temporary random distance until we calculate it properly
 
-  // Calculate distance to job (mock for now)
-  const distance = Math.random() * 2; // Random distance between 0-2 miles for demo
-
-  const handleClick = () => {
+  const handleClick = (e: React.MouseEvent) => {
+    e.preventDefault(); // Prevent navigation when clicking to select
     if (onSelect) onSelect(job);
   };
   
@@ -37,25 +39,26 @@ const JobCard: React.FC<JobCardProps> = ({ job, isSelected, onSelect }) => {
   return (
     <Link href={`/job/${id}`}>
       <div 
-        className={`border-b border-gray-200 hover:bg-gray-50 cursor-pointer ${isSelected ? 'bg-blue-50' : ''}`}
+        className={`border-b border-border hover:bg-secondary/40 cursor-pointer transition-colors duration-150 ease-in-out 
+          ${isSelected ? 'bg-primary/10 border-l-4 border-l-primary' : ''}`}
         onClick={handleClick}
       >
         <div className="px-4 py-4 sm:px-6">
           <div className="flex items-center justify-between">
             <div className="flex items-center">
-              <div className={`flex-shrink-0 bg-${categoryColor}-100 rounded-md p-2`}>
-                <i className={`ri-${categoryIcon} text-${categoryColor}-600 text-xl`}></i>
+              <div className="flex-shrink-0 bg-primary/10 rounded-md p-2 text-primary">
+                <i className={`ri-${categoryIcon} text-xl`}></i>
               </div>
               <div className="ml-3">
-                <p className={`text-sm font-medium text-${categoryColor}-600`}>{category}</p>
-                <p className="text-sm font-medium text-gray-900">{title}</p>
+                <p className="text-sm font-medium text-primary">{category}</p>
+                <p className="text-sm font-medium text-foreground line-clamp-1">{title}</p>
               </div>
             </div>
             <div className="ml-2 flex-shrink-0 flex flex-col items-end">
-              <Badge variant="price">
+              <Badge variant="outline" className="bg-primary/10 text-primary border-primary/30 font-medium">
                 {paymentType === 'hourly' ? `${formatCurrency(paymentAmount)}/hr` : formatCurrency(paymentAmount)}
               </Badge>
-              <div className="text-xs text-gray-500 mt-1">
+              <div className="text-xs text-muted-foreground mt-1">
                 {paymentType === 'fixed' 
                   ? `Total: ${formatCurrency(totalAmount)}` 
                   : `+${formatCurrency(serviceFee)} fee`}
@@ -64,13 +67,13 @@ const JobCard: React.FC<JobCardProps> = ({ job, isSelected, onSelect }) => {
           </div>
           <div className="mt-2 sm:flex sm:justify-between">
             <div className="sm:flex">
-              <p className="flex items-center text-sm text-gray-500">
-                <i className="ri-map-pin-line text-gray-400 mr-1"></i>
+              <p className="flex items-center text-sm text-muted-foreground">
+                <i className="ri-map-pin-line mr-1"></i>
                 {formatDistance(distance)}
               </p>
             </div>
-            <div className="mt-2 flex items-center text-sm text-gray-500 sm:mt-0">
-              <i className="ri-time-line text-gray-400 mr-1"></i>
+            <div className="mt-2 flex items-center text-sm text-muted-foreground sm:mt-0">
+              <i className="ri-time-line mr-1"></i>
               <p>
                 Posted {getTimeAgo(datePosted || new Date())}
               </p>
@@ -80,6 +83,10 @@ const JobCard: React.FC<JobCardProps> = ({ job, isSelected, onSelect }) => {
       </div>
     </Link>
   );
-};
+}, (prevProps, nextProps) => {
+  // Custom comparison for memo - only re-render if these props change
+  return prevProps.job.id === nextProps.job.id && 
+         prevProps.isSelected === nextProps.isSelected;
+});
 
 export default JobCard;

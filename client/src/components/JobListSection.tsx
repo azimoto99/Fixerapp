@@ -1,7 +1,9 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo, useCallback } from 'react';
 import JobCard from './JobCard';
 import { Job } from '@shared/schema';
 import { useJobs } from '@/hooks/useJobs';
+import { Skeleton } from '@/components/ui/skeleton';
+import { ScrollArea } from '@/components/ui/scroll-area';
 
 interface JobListSectionProps {
   onSelectJob?: (job: Job) => void;
@@ -18,36 +20,42 @@ const JobListSection: React.FC<JobListSectionProps> = ({
   searchParams
 }) => {
   const { jobs, isLoading } = useJobs(searchParams);
-  const [filteredJobs, setFilteredJobs] = useState<Job[]>([]);
-
-  useEffect(() => {
-    setFilteredJobs(jobs || []);
+  
+  // Use useMemo to avoid unnecessary filtering on each render
+  const filteredJobs = useMemo(() => {
+    return jobs || [];
   }, [jobs]);
 
-  const handleSelectJob = (job: Job) => {
+  // Use useCallback to avoid recreating this function on each render
+  const handleSelectJob = useCallback((job: Job) => {
     if (onSelectJob) {
       onSelectJob(job);
     }
-  };
+  }, [onSelectJob]);
 
+  // Loading skeleton that better matches the final UI
   if (isLoading) {
     return (
-      <div className="md:col-span-1 bg-white shadow rounded-lg overflow-hidden">
+      <div className="md:col-span-1 bg-card shadow-md rounded-lg overflow-hidden border border-border">
         <div className="h-full flex flex-col">
-          <div className="flex-shrink-0 px-4 py-3 border-b border-gray-200 bg-gray-50">
-            <h3 className="text-sm font-medium text-gray-900">Loading jobs...</h3>
+          <div className="flex-shrink-0 px-4 py-3 border-b border-border bg-secondary">
+            <h3 className="text-sm font-medium text-foreground">Finding local jobs...</h3>
           </div>
-          <div className="flex-1 overflow-auto p-4">
-            <div className="animate-pulse space-y-4">
+          <div className="flex-1 overflow-auto p-2">
+            <div className="animate-pulse space-y-2">
               {[...Array(5)].map((_, i) => (
-                <div key={i} className="border-b border-gray-200 pb-4">
+                <div key={i} className="border-b border-border p-3">
                   <div className="flex items-center space-x-3">
-                    <div className="h-10 w-10 bg-gray-200 rounded"></div>
+                    <Skeleton className="h-10 w-10 rounded-md" />
                     <div className="flex-1 space-y-2">
-                      <div className="h-4 bg-gray-200 rounded w-3/4"></div>
-                      <div className="h-4 bg-gray-200 rounded w-1/2"></div>
+                      <Skeleton className="h-4 w-24" />
+                      <Skeleton className="h-4 w-48" />
                     </div>
-                    <div className="h-6 w-16 bg-gray-200 rounded"></div>
+                    <Skeleton className="h-6 w-16 rounded-full" />
+                  </div>
+                  <div className="mt-2 flex justify-between">
+                    <Skeleton className="h-4 w-20" />
+                    <Skeleton className="h-4 w-24" />
                   </div>
                 </div>
               ))}
@@ -59,29 +67,38 @@ const JobListSection: React.FC<JobListSectionProps> = ({
   }
 
   return (
-    <div className="md:col-span-1 bg-white shadow rounded-lg overflow-hidden">
+    <div className="md:col-span-1 bg-card shadow-md rounded-lg overflow-hidden border border-border">
       <div className="h-full flex flex-col">
-        <div className="flex-shrink-0 px-4 py-3 border-b border-gray-200 bg-gray-50">
-          <h3 className="text-sm font-medium text-gray-900">
-            Jobs ({filteredJobs.length})
+        <div className="flex-shrink-0 px-4 py-3 border-b border-border bg-secondary">
+          <h3 className="text-sm font-medium text-foreground flex items-center">
+            <span>Available Jobs</span>
+            <span className="ml-2 px-2 py-0.5 text-xs bg-primary/10 text-primary rounded-full">
+              {filteredJobs.length}
+            </span>
           </h3>
         </div>
-        <div className="flex-1 overflow-auto" style={{ maxHeight: '70vh' }}>
-          {filteredJobs.length > 0 ? (
-            filteredJobs.map((job) => (
-              <JobCard
-                key={job.id}
-                job={job}
-                isSelected={job.id === selectedJobId}
-                onSelect={handleSelectJob}
-              />
-            ))
-          ) : (
-            <div className="p-4 text-center text-gray-500">
-              No jobs found matching your search criteria.
-            </div>
-          )}
-        </div>
+        
+        {/* Use ScrollArea component for smoother scrolling with thin scrollbar */}
+        <ScrollArea className="flex-1" style={{ height: 'calc(100vh - 160px)' }}>
+          <div className="p-0.5">
+            {filteredJobs.length > 0 ? (
+              filteredJobs.map((job) => (
+                <JobCard
+                  key={job.id}
+                  job={job}
+                  isSelected={job.id === selectedJobId}
+                  onSelect={handleSelectJob}
+                />
+              ))
+            ) : (
+              <div className="p-8 text-center text-muted-foreground">
+                <div className="mb-2 text-4xl">🔍</div>
+                <p>No jobs found matching your search criteria.</p>
+                <p className="text-sm mt-2">Try adjusting your search or check back later.</p>
+              </div>
+            )}
+          </div>
+        </ScrollArea>
       </div>
     </div>
   );
