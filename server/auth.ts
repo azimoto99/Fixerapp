@@ -12,6 +12,12 @@ import MemoryStore from "memorystore";
 declare module 'express-session' {
   interface SessionData {
     accountType?: 'worker' | 'poster';
+    loggingIn?: boolean;
+    userId?: number;
+    loginTime?: string;
+    passport?: {
+      user: number;
+    };
   }
 }
 
@@ -59,22 +65,30 @@ export function setupAuth(app: Express) {
     });
   }
   
+  // Configure session with better security and longer duration
   const sessionSettings: session.SessionOptions = {
-    secret: process.env.SESSION_SECRET || "gig-connect-secret-key",
+    secret: process.env.SESSION_SECRET || "gig-connect-secret-key-improve-security",
     resave: false,
     saveUninitialized: false,
+    rolling: true, // Reset expiration on each response
     store: sessionStore,
     cookie: {
       maxAge: 30 * 24 * 60 * 60 * 1000, // 30 days for better persistence
-      secure: isProduction,
+      secure: isProduction, // Only use secure cookies in production
       sameSite: 'lax',
       httpOnly: true,
       path: '/',
-    }
+    },
+    name: 'fixer.sid' // Custom name for the session cookie
   };
 
+  // Trust the first proxy to handle X-Forwarded-* headers correctly
   app.set("trust proxy", 1);
+  
+  // Add session middleware
   app.use(session(sessionSettings));
+  
+  // Initialize Passport and restore authentication state from session
   app.use(passport.initialize());
   app.use(passport.session());
 
@@ -174,117 +188,133 @@ export function setupAuth(app: Express) {
     console.log('Login attempt with username:', req.body.username);
     console.log('Current session ID:', req.sessionID);
     
-    passport.authenticate("local", (err: Error | null, userObj: Express.User | false, info: { message: string } | undefined) => {
-      if (err) {
-        console.error('Login authentication error:', err);
-        return next(err);
+    // Make sure to regenerate session on login to prevent session fixation attacks
+    req.session.regenerate((regenerateErr) => {
+      if (regenerateErr) {
+        console.error('Session regeneration error:', regenerateErr);
+        return next(regenerateErr);
       }
       
-      if (!userObj) {
-        console.log('Login failed for username:', req.body.username);
-        return res.status(401).json({ message: info?.message || "Login failed" });
-      }
+      console.log('Session regenerated with new ID:', req.sessionID);
       
-      console.log('User authenticated successfully:', userObj.id);
-      
-      // Need to cast to avoid type errors
-      let user = userObj as Express.User;
-      
-      // If account type is still pending, update it to worker automatically
-      if (user.accountType === "pending") {
-        (async () => {
-          try {
-            console.log('Updating account type from pending to worker');
-            const updatedUser = await storage.updateUser(user.id, { accountType: "worker" });
-            if (updatedUser) {
-              user = updatedUser;
+      passport.authenticate("local", (err: Error | null, userObj: Express.User | false, info: { message: string } | undefined) => {
+        if (err) {
+          console.error('Login authentication error:', err);
+          return next(err);
+        }
+        
+        if (!userObj) {
+          console.log('Login failed for username:', req.body.username);
+          return res.status(401).json({ message: info?.message || "Login failed" });
+        }
+        
+        console.log('User authenticated successfully:', userObj.id);
+        
+        // Need to cast to avoid type errors
+        let user = userObj as Express.User;
+        
+        // If account type is still pending, update it to worker automatically
+        if (user.accountType === "pending") {
+          (async () => {
+            try {
+              console.log('Updating account type from pending to worker');
+              const updatedUser = await storage.updateUser(user.id, { accountType: "worker" });
+              if (updatedUser) {
+                user = updatedUser;
+              }
+            } catch (error) {
+              console.error("Error updating account type during login:", error);
             }
-          } catch (error) {
-            console.error("Error updating account type during login:", error);
-          }
-          
+            
+            finishLogin();
+          })();
+        } else {
           finishLogin();
-        })();
-      } else {
-        finishLogin();
-      }
-      
-      function finishLogin() {
-        console.log('Logging in user:', user.id);
+        }
         
-        // Set a key in session to indicate we're in the login process
-        // This helps track if there are any session storage issues
-        req.session.loggingIn = true;
-        
-        req.login(user, (err) => {
-          if (err) {
-            console.error('Login session error:', err);
-            return next(err);
-          }
+        function finishLogin() {
+          console.log('Logging in user:', user.id);
           
-          // Store a timestamp for debugging session issues
-          req.session.loginTime = new Date().toISOString();
+          // Set a key in session to indicate we're in the login process
+          // This helps track if there are any session storage issues
+          req.session.loggingIn = true;
+          req.session.userId = user.id; // Store user ID directly in session as a backup
           
-          // Save the session explicitly before sending response
-          req.session.save((saveErr) => {
-            if (saveErr) {
-              console.error('Session save error:', saveErr);
-              return next(saveErr);
+          req.login(user, (err) => {
+            if (err) {
+              console.error('Login session error:', err);
+              return next(err);
             }
             
-            console.log('Login successful - session established and saved');
-            console.log('Session ID after login:', req.sessionID);
-            console.log('Session expiration:', req.session.cookie.maxAge ? 
-              new Date(Date.now() + req.session.cookie.maxAge).toISOString() : 'No expiration');
-            console.log('isAuthenticated after login:', req.isAuthenticated());
-            console.log('User in session:', req.user ? `ID: ${req.user.id}` : 'No user');
-            console.log('Session data:', req.session);
+            // Store a timestamp for debugging session issues
+            req.session.loginTime = new Date().toISOString();
             
-            // Enhanced session verification after login
-            // This helps identify session serialization/deserialization issues
-            if (!req.isAuthenticated() || !req.user) {
-              console.error('WARNING: User authenticated but session verification failed!');
+            // Make sure cookie maxAge is set correctly
+            if (req.session.cookie) {
+              req.session.cookie.maxAge = 30 * 24 * 60 * 60 * 1000; // 30 days
+            }
+            
+            // Save the session explicitly before sending response
+            req.session.save((saveErr) => {
+              if (saveErr) {
+                console.error('Session save error:', saveErr);
+                return next(saveErr);
+              }
               
-              // Try to recover by retrying login
-              req.login(user, (retryErr) => {
-                if (retryErr) {
-                  console.error('Login retry error:', retryErr);
-                  return next(retryErr);
-                }
+              console.log('Login successful - session established and saved');
+              console.log('Session ID after login:', req.sessionID);
+              console.log('Session expiration:', req.session.cookie.maxAge ? 
+                new Date(Date.now() + req.session.cookie.maxAge).toISOString() : 'No expiration');
+              console.log('isAuthenticated after login:', req.isAuthenticated());
+              console.log('User in session:', req.user ? `ID: ${req.user.id}` : 'No user');
+              console.log('Session data:', req.session);
+              
+              // Enhanced session verification after login
+              if (!req.isAuthenticated() || !req.user) {
+                console.error('WARNING: User authenticated but session verification failed!');
+                console.log('Attempting retry login with session ID:', req.sessionID);
                 
-                // Save the session again after retry
-                req.session.save((retrySaveErr) => {
-                  if (retrySaveErr) {
-                    console.error('Retry session save error:', retrySaveErr);
-                    return next(retrySaveErr);
+                // Try to recover by retrying login
+                req.login(user, (retryErr) => {
+                  if (retryErr) {
+                    console.error('Login retry error:', retryErr);
+                    return next(retryErr);
                   }
                   
-                  console.log('Login retry successful');
-                  console.log('isAuthenticated after retry:', req.isAuthenticated());
-                  
-                  // Don't return password in response
-                  const { password, ...userResponse } = user;
-                  res.json(userResponse);
+                  // Save the session again after retry
+                  req.session.save((retrySaveErr) => {
+                    if (retrySaveErr) {
+                      console.error('Retry session save error:', retrySaveErr);
+                      return next(retrySaveErr);
+                    }
+                    
+                    console.log('Login retry successful');
+                    console.log('isAuthenticated after retry:', req.isAuthenticated());
+                    
+                    // Don't return password in response
+                    const { password, ...userResponse } = user;
+                    res.json(userResponse);
+                  });
                 });
-              });
-              return;
-            }
-            
-            // Check if passport data is properly stored in session
-            if (!req.session.passport || !req.session.passport.user) {
-              console.warn('WARNING: Session passport data not found after login!');
-              console.log('Session contents:', req.session);
-            }
-            
-            // Don't return password in response
-            const { password, ...userResponse } = user;
-            
-            // Account type selection is no longer needed
-            res.json(userResponse);
+                return;
+              }
+              
+              // Check if passport data is properly stored in session
+              if (!req.session.passport || !req.session.passport.user) {
+                console.warn('WARNING: Session passport data not found after login!');
+                console.log('Session contents:', req.session);
+              }
+              
+              // Don't return password in response
+              const { password, ...userResponse } = user;
+              
+              // Account type selection is no longer needed
+              res.json(userResponse);
+            });
           });
-        });
-      }
-    })(req, res, next);
+        }
+      })(req, res, next);
+    });
   });
 
   app.post("/api/logout", (req, res, next) => {
