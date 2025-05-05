@@ -415,34 +415,42 @@ const MapSection: React.FC<MapSectionProps> = ({ jobs, selectedJob, onSelectJob,
           >
             <TileLayer
               attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>'
-              url="https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png"
+              url="https://{s}.basemaps.cartocdn.com/dark_nolabels/{z}/{x}/{y}{r}.png"
               eventHandlers={{
                 click: handleMapClick,
               }}
+            />
+            {/* Add a more vibrant street layer on top */}
+            <TileLayer
+              url="https://{s}.basemaps.cartocdn.com/dark_only_labels/{z}/{x}/{y}{r}.png"
+              className="map-labels-layer"
             />
             
             {/* 2-mile radius circle around user's location */}
             <Circle 
               center={position}
               pathOptions={{ 
-                fillColor: 'hsl(160, 84%, 50%)', // Brighter primary color for dark background
+                fillColor: 'hsl(160, 84%, 65%)', // Even brighter primary color for dark background
                 fillOpacity: 0.15, 
-                color: 'hsl(160, 84%, 50%)',
-                weight: 2
+                color: 'hsl(160, 84%, 70%)',
+                weight: 2,
+                dashArray: '5, 10', // Dashed line for better visibility
               }}
               radius={3218} // 2 miles in meters
+              className="map-radius-circle"
             />
             
             {/* User's location marker */}
             <CircleMarker 
               center={position}
               pathOptions={{ 
-                fillColor: 'hsl(160, 84%, 60%)', // Brighter primary color for dark background
-                fillOpacity: 0.8, 
+                fillColor: 'hsl(160, 84%, 75%)', // Even brighter primary color for dark background
+                fillOpacity: 0.9, 
                 color: 'white',
                 weight: 3
               }}
               radius={8}
+              className="user-location-marker"
             >
               <Popup className="leaflet-popup-dark">Your location</Popup>
             </CircleMarker>
