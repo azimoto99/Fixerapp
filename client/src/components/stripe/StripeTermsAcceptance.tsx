@@ -87,6 +87,15 @@ const StripeTermsAcceptance: React.FC<StripeTermsAcceptanceProps> = ({
   const onSubmit = async (values: FormValues) => {
     try {
       setIsSubmitting(true);
+      
+      // First attempt to get the current user to ensure the session is active
+      const userRes = await apiRequest('GET', '/api/user');
+      if (!userRes.ok) {
+        // If the user session is not valid, show an error
+        throw new Error('User session expired. Please login again before submitting this form.');
+      }
+      
+      // Now submit the actual form data with the refreshed session
       const res = await apiRequest('POST', `/api/users/${userId}/stripe-terms`, {
         // Send all form values to the API
         acceptTerms: values.acceptTerms,
