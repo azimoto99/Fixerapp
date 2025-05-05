@@ -22,6 +22,7 @@ type AccountStatus = {
   detailsSubmitted: boolean;
   payoutsEnabled: boolean;
   chargesEnabled: boolean;
+  accountLinkUrl?: string;  // URL for the account onboarding flow
 };
 
 const StripeConnectSetup: React.FC<StripeConnectSetupProps> = ({ compact = false }) => {
@@ -213,6 +214,12 @@ const StripeConnectSetup: React.FC<StripeConnectSetupProps> = ({ compact = false
     }
   };
   
+  // Determine if we should use account link instead of login link
+  const needsOnboarding = accountStatus && 
+    (accountStatus.accountStatus === 'incomplete' || 
+     !accountStatus.detailsSubmitted || 
+     !accountStatus.payoutsEnabled);
+  
   // If in compact mode, just show a simple card with status and action button
   if (compact) {
     const statusBadge = getStatusBadge();
@@ -242,7 +249,18 @@ const StripeConnectSetup: React.FC<StripeConnectSetupProps> = ({ compact = false
             </Button>
           ) : hasAccount ? (
             <Button 
-              onClick={() => createLoginLinkMutation.mutate()}
+              onClick={() => {
+                // For incomplete accounts, use account link instead of login link
+                if (needsOnboarding && accountStatus.accountLinkUrl) {
+                  window.open(accountStatus.accountLinkUrl, '_blank');
+                  toast({
+                    title: 'Stripe Connect Setup',
+                    description: 'Please complete your account setup in the new tab.',
+                  });
+                } else {
+                  createLoginLinkMutation.mutate();
+                }
+              }}
               disabled={createLoginLinkMutation.isPending}
               className="w-full"
             >
@@ -254,7 +272,7 @@ const StripeConnectSetup: React.FC<StripeConnectSetupProps> = ({ compact = false
               ) : (
                 <>
                   <ExternalLink className="h-4 w-4 mr-2" />
-                  Manage Account
+                  {needsOnboarding ? 'Complete Setup' : 'Manage Account'}
                 </>
               )}
             </Button>
@@ -451,7 +469,18 @@ const StripeConnectSetup: React.FC<StripeConnectSetupProps> = ({ compact = false
         
         {accountStatus && (
           <Button 
-            onClick={() => createLoginLinkMutation.mutate()}
+            onClick={() => {
+              // For incomplete accounts, use account link instead of login link
+              if (needsOnboarding && accountStatus.accountLinkUrl) {
+                window.open(accountStatus.accountLinkUrl, '_blank');
+                toast({
+                  title: 'Stripe Connect Setup',
+                  description: 'Please complete your account setup in the new tab.',
+                });
+              } else {
+                createLoginLinkMutation.mutate();
+              }
+            }}
             disabled={createLoginLinkMutation.isPending || isLoading}
           >
             {createLoginLinkMutation.isPending ? (
@@ -462,7 +491,7 @@ const StripeConnectSetup: React.FC<StripeConnectSetupProps> = ({ compact = false
             ) : (
               <>
                 <ExternalLink className="h-4 w-4 mr-2" />
-                Manage Account
+                {needsOnboarding ? 'Complete Setup' : 'Manage Account'}
               </>
             )}
           </Button>

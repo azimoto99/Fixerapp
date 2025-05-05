@@ -1929,15 +1929,35 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       // Check if account needs more details for onboarding
       let accountLinkUrl = null;
-      if (!account.details_submitted || !account.payouts_enabled) {
-        // Create a new account link
-        const accountLink = await stripe.accountLinks.create({
-          account: account.id,
-          refresh_url: `${process.env.APP_URL || 'https://fixer.replit.app'}/profile?refresh=true`,
-          return_url: `${process.env.APP_URL || 'https://fixer.replit.app'}/profile?success=true`,
-          type: 'account_onboarding',
-        });
-        accountLinkUrl = accountLink.url;
+      let needsOnboarding = !account.details_submitted || !account.payouts_enabled;
+      
+      if (needsOnboarding) {
+        try {
+          // Create a new account link for onboarding
+          const accountLink = await stripe.accountLinks.create({
+            account: account.id,
+            refresh_url: `${process.env.APP_URL || 'https://fixer.replit.app'}/profile?refresh=true`,
+            return_url: `${process.env.APP_URL || 'https://fixer.replit.app'}/profile?success=true`,
+            type: 'account_onboarding',
+          });
+          accountLinkUrl = accountLink.url;
+          console.log("Created account link for incomplete account:", accountLinkUrl);
+        } catch (linkError) {
+          console.error("Error creating account link:", linkError);
+          // Continue even if we can't create a link - we'll just show the status
+        }
+      }
+      
+      // Determine account status
+      let accountStatus = 'unknown';
+      if (account.details_submitted) {
+        if (account.payouts_enabled) {
+          accountStatus = 'active';
+        } else {
+          accountStatus = 'restricted';
+        }
+      } else {
+        accountStatus = 'incomplete';
       }
       
       // Return sanitized account details
@@ -1949,9 +1969,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
         accountLinkUrl: accountLinkUrl,
         defaultCurrency: account.default_currency,
         country: account.country,
-        accountStatus: account.details_submitted 
-          ? (account.payouts_enabled ? 'active' : 'restricted') 
-          : 'incomplete'
+        accountStatus: accountStatus,
+        // Include requirements information for UI display
+        requirements: {
+          currentlyDue: account.requirements?.currently_due || [],
+          eventuallyDue: account.requirements?.eventually_due || [],
+          pendingVerification: account.requirements?.pending_verification || []
+        }
       });
     } catch (error) {
       console.error("Error retrieving Stripe Connect account:", error);
@@ -1971,6 +1995,35 @@ export async function registerRoutes(app: Express): Promise<Server> {
         });
       }
       
+      // First check the account to see if it has completed onboarding
+      try {
+        const account = await stripe.accounts.retrieve(req.user.stripeConnectAccountId);
+        const needsOnboarding = !account.details_submitted || !account.payouts_enabled;
+        
+        if (needsOnboarding) {
+          // The account hasn't completed onboarding, so create an account link instead
+          const accountLink = await stripe.accountLinks.create({
+            account: account.id,
+            refresh_url: `${process.env.APP_URL || 'https://fixer.replit.app'}/profile?refresh=true`,
+            return_url: `${process.env.APP_URL || 'https://fixer.replit.app'}/profile?success=true`,
+            type: 'account_onboarding',
+          });
+          
+          console.log("Created account link for incomplete account instead of login link");
+          
+          return res.json({ 
+            accountLinkUrl: accountLink.url,
+            needsOnboarding: true,
+            accountStatus: account.details_submitted 
+              ? (account.payouts_enabled ? 'active' : 'restricted') 
+              : 'incomplete'
+          });
+        }
+      } catch (accountError) {
+        console.error("Error checking account status before creating login link:", accountError);
+        // Continue with login link creation attempt even if account retrieval fails
+      }
+      
       // Create a login link to access the Connect dashboard
       const loginLink = await stripe.accounts.createLoginLink(
         req.user.stripeConnectAccountId
@@ -1981,6 +2034,32 @@ export async function registerRoutes(app: Express): Promise<Server> {
         accountLinkUrl: loginLink.url  // For consistent field naming with other endpoints
       });
     } catch (error) {
+      // If we get the specific error about incomplete onboarding, handle it specially
+      if ((error as any).message && (error as any).message.includes('not completed onboarding')) {
+        console.log("Handling specific onboarding error case");
+        
+        try {
+          // Create an account link instead of a login link
+          const accountLink = await stripe.accountLinks.create({
+            account: req.user.stripeConnectAccountId,
+            refresh_url: `${process.env.APP_URL || 'https://fixer.replit.app'}/profile?refresh=true`,
+            return_url: `${process.env.APP_URL || 'https://fixer.replit.app'}/profile?success=true`,
+            type: 'account_onboarding',
+          });
+          
+          return res.json({ 
+            accountLinkUrl: accountLink.url,
+            needsOnboarding: true,
+            message: "Account needs to complete onboarding"
+          });
+        } catch (linkError) {
+          console.error("Failed to create account link after login link failed:", linkError);
+          return res.status(400).json({ 
+            message: "Account needs to complete onboarding, but could not create onboarding link." 
+          });
+        }
+      }
+      
       console.error("Error creating Stripe Connect login link:", error);
       res.status(400).json({ message: (error as Error).message });
     }
