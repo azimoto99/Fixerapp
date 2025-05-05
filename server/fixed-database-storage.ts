@@ -58,7 +58,8 @@ export class DatabaseStorage implements IStorage {
       stripeConnectAccountStatus: (user as any).stripe_connect_account_status || null,
       requiresProfileCompletion: needsProfileCompletion === true ? true : null,
       requiresStripeTerms: needsStripeTerms,
-      requiresStripeRepresentative: needsStripeRepresentative
+      requiresStripeRepresentative: needsStripeRepresentative,
+      requiresStripeBankingDetails: needsStripeBankingDetails
     };
     
     return enhancedUser;
@@ -148,7 +149,10 @@ export class DatabaseStorage implements IStorage {
       // Use LOWER() function to make username comparison case-insensitive
       const query = `SELECT id, username, password, full_name, email, 
                     phone, bio, avatar_url, account_type, 
-                    google_id, facebook_id, stripe_customer_id, stripe_connect_account_id, stripe_connect_account_status 
+                    google_id, facebook_id, stripe_customer_id, stripe_connect_account_id, stripe_connect_account_status,
+                    stripe_terms_accepted, stripe_terms_accepted_at, stripe_representative_name, 
+                    stripe_representative_title, stripe_representative_requirements_complete, 
+                    stripe_banking_details_complete
                     FROM users WHERE LOWER(username) = LOWER('${username}')`;
       
       const result = await db.execute(query);
@@ -174,7 +178,13 @@ export class DatabaseStorage implements IStorage {
         isActive: true,
         stripeCustomerId: user.stripe_customer_id,
         stripeConnectAccountId: user.stripe_connect_account_id,
-        stripeConnectAccountStatus: user.stripe_connect_account_status
+        stripeConnectAccountStatus: user.stripe_connect_account_status,
+        stripeTermsAccepted: user.stripe_terms_accepted,
+        stripeTermsAcceptedAt: user.stripe_terms_accepted_at,
+        stripeRepresentativeName: user.stripe_representative_name,
+        stripeRepresentativeTitle: user.stripe_representative_title,
+        stripeRepresentativeRequirementsComplete: user.stripe_representative_requirements_complete,
+        stripeBankingDetailsComplete: user.stripe_banking_details_complete
       });
     } catch (error) {
       console.error("Error getting user by username:", error);
@@ -188,7 +198,10 @@ export class DatabaseStorage implements IStorage {
       // Use LOWER() function to make username comparison case-insensitive
       const query = `SELECT id, username, password, full_name, email, 
                     phone, bio, avatar_url, account_type, 
-                    google_id, facebook_id, stripe_customer_id, stripe_connect_account_id, stripe_connect_account_status
+                    google_id, facebook_id, stripe_customer_id, stripe_connect_account_id, stripe_connect_account_status,
+                    stripe_terms_accepted, stripe_terms_accepted_at, stripe_representative_name, 
+                    stripe_representative_title, stripe_representative_requirements_complete, 
+                    stripe_banking_details_complete
                     FROM users 
                     WHERE LOWER(username) = LOWER('${username}') AND account_type = '${accountType}'`;
       const result = await db.execute(query);
@@ -214,7 +227,13 @@ export class DatabaseStorage implements IStorage {
         isActive: true,
         stripeCustomerId: user.stripe_customer_id,
         stripeConnectAccountId: user.stripe_connect_account_id,
-        stripeConnectAccountStatus: user.stripe_connect_account_status
+        stripeConnectAccountStatus: user.stripe_connect_account_status,
+        stripeTermsAccepted: user.stripe_terms_accepted,
+        stripeTermsAcceptedAt: user.stripe_terms_accepted_at,
+        stripeRepresentativeName: user.stripe_representative_name,
+        stripeRepresentativeTitle: user.stripe_representative_title,
+        stripeRepresentativeRequirementsComplete: user.stripe_representative_requirements_complete,
+        stripeBankingDetailsComplete: user.stripe_banking_details_complete
       });
     } catch (error) {
       console.error("Error getting user by username and type:", error);
