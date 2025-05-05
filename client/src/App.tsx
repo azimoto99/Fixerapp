@@ -13,6 +13,7 @@ import TransactionHistory from "@/pages/TransactionHistory";
 import CompleteProfile from "@/pages/CompleteProfile";
 import Checkout from "@/pages/Checkout";
 import PaymentConfirmation from "@/pages/PaymentConfirmation";
+import StripeTest from "@/pages/StripeTest";
 import { AuthProvider } from "@/hooks/use-auth";
 import { ProtectedRoute } from "@/lib/protected-route";
 import { useAuth } from "@/hooks/use-auth";
@@ -53,6 +54,7 @@ function RouterWithAuth() {
       <ProtectedRoute path="/transactions" component={TransactionHistory} />
       <ProtectedRoute path="/checkout" component={Checkout} />
       <ProtectedRoute path="/payment-confirmation" component={PaymentConfirmation} />
+      <ProtectedRoute path="/stripe-test" component={StripeTest} />
       {/* Payment dashboard is not accessible as there are no job posters */}
       <Route path="/auth" component={AuthPage} />
       <Route path="/login" component={RedirectToAuth} />
