@@ -29,6 +29,8 @@ export const users = pgTable("users", {
   stripeTermsAcceptedAt: timestamp("stripe_terms_accepted_at"), // When the user accepted Stripe's TOS
   stripeRepresentativeName: text("stripe_representative_name"), // Name of the representative for Stripe verification
   stripeRepresentativeTitle: text("stripe_representative_title"), // Title of the representative for Stripe
+  stripeRepresentativeRequirementsComplete: boolean("stripe_representative_requirements_complete").default(false), // Whether all representative details have been provided
+  stripeBankingDetailsComplete: boolean("stripe_banking_details_complete").default(false), // Whether banking details have been provided
 }, (table) => {
   // Create a unique constraint on the combination of email and accountType
   // This allows the same email to have multiple accounts with different types
@@ -212,6 +214,7 @@ export type User = typeof users.$inferSelect & {
   badgeIds?: string[]; // Virtual field, not in DB
   requiresStripeTerms?: boolean; // Virtual field to check if user needs to accept Stripe TOS
   requiresStripeRepresentative?: boolean; // Virtual field to check if user needs to provide representative info
+  requiresStripeBankingDetails?: boolean; // Virtual field to check if user needs to provide banking details
 };
 export type InsertUser = z.infer<typeof insertUserSchema> & {
   requiresProfileCompletion?: boolean | null; // Virtual field, not in DB
@@ -219,6 +222,7 @@ export type InsertUser = z.infer<typeof insertUserSchema> & {
   skillsVerified?: Record<string, boolean>; // Virtual field, not in DB
   requiresStripeTerms?: boolean; // Virtual field for Stripe TOS
   requiresStripeRepresentative?: boolean; // Virtual field for Stripe representative
+  requiresStripeBankingDetails?: boolean; // Virtual field for Stripe banking details
 };
 
 export type Job = typeof jobs.$inferSelect;

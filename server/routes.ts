@@ -397,6 +397,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
         state: z.string().min(2).optional(),
         zip: z.string().min(5).optional(),
         country: z.string().min(2).optional(),
+        // Bank account information
+        accountType: z.enum(["checking", "savings"]).optional(),
+        accountNumber: z.string().min(4).optional(),
+        routingNumber: z.string().length(9).optional(),
+        accountHolderName: z.string().min(2).optional(),
       });
       
       const { 
@@ -412,7 +417,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
         city,
         state,
         zip,
-        country
+        country,
+        // Bank account information
+        accountType,
+        accountNumber,
+        routingNumber,
+        accountHolderName
       } = schema.parse(req.body);
       
       // Build the update object
@@ -455,6 +465,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
         };
       }
       
+      // Create bank account metadata if we have the required information
+      const bankAccountMetadata: any = {};
+      
+      if (accountType && accountNumber && routingNumber && accountHolderName) {
+        bankAccountMetadata.accountType = accountType;
+        bankAccountMetadata.accountNumber = accountNumber;
+        bankAccountMetadata.routingNumber = routingNumber;
+        bankAccountMetadata.accountHolderName = accountHolderName;
+        
+        // Mark banking details as complete in our system
+        updateData.stripeBankingDetailsComplete = true;
+      }
+      
       // If we collected representative metadata, store it and mark requirements as complete
       if (Object.keys(representativeMetadata).length > 0) {
         // This would be sent to Stripe in a real implementation
@@ -476,6 +499,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
           // Continue with local updates even if Stripe update fails
           // In production, you might want to handle this differently
         }
+      }
+      
+      // If we collected bank account information, log it and mark requirements as complete
+      if (Object.keys(bankAccountMetadata).length > 0) {
+        // This would be sent to Stripe in a real implementation
+        console.log('Bank account information to send to Stripe:', {
+          ...bankAccountMetadata,
+          accountNumber: '******' + bankAccountMetadata.accountNumber.slice(-4) // Hide full account number in logs
+        });
       }
       
       // Only proceed if we have something to update
@@ -520,6 +552,46 @@ export async function registerRoutes(app: Express): Promise<Server> {
                 },
               }
             });
+          }
+          
+          // Add bank account if the information was provided
+          if (Object.keys(bankAccountMetadata).length > 0) {
+            try {
+              // In a real implementation, this would call the Stripe API to create an external account
+              // This is a simplification for educational purposes
+              console.log(`Adding bank account to Stripe Connect account ${updatedUser.stripeConnectAccountId}`);
+              
+              // Create bank account token
+              // NOTE: In production, you'd use Stripe.js to securely collect and tokenize bank account details
+              // This is a server-side example for demonstration only
+              const bankAccount = await stripe.tokens.create({
+                bank_account: {
+                  country: 'US',
+                  currency: 'usd',
+                  account_holder_name: bankAccountMetadata.accountHolderName,
+                  account_holder_type: 'individual',
+                  routing_number: bankAccountMetadata.routingNumber,
+                  account_number: bankAccountMetadata.accountNumber,
+                  account_type: bankAccountMetadata.accountType,
+                },
+              });
+              
+              // Attach the bank account to the Connect account
+              if (bankAccount && bankAccount.id) {
+                await stripe.accounts.createExternalAccount(
+                  updatedUser.stripeConnectAccountId,
+                  {
+                    external_account: bankAccount.id,
+                    default_for_currency: true,
+                  }
+                );
+                console.log(`Bank account added successfully to Connect account ${updatedUser.stripeConnectAccountId}`);
+              }
+            } catch (bankError) {
+              console.error('Error adding bank account to Stripe:', bankError);
+              // Continue with response even if bank account creation fails
+              // In production, you would want to handle this differently
+            }
           }
         } catch (stripeError) {
           console.error('Error updating Stripe account:', stripeError);
