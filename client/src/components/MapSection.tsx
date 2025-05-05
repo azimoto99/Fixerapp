@@ -418,9 +418,10 @@ const MapSection: React.FC<MapSectionProps> = ({ jobs, selectedJob, onSelectJob,
             zoom={15} 
             zoomControl={false}
             attributionControl={false}
-            doubleClickZoom={false}
+            doubleClickZoom={true}
             dragging={true}
-            scrollWheelZoom={true}
+            scrollWheelZoom={false}
+            touchZoom={true}
             className="mobile-optimized-map"
           >
             <TileLayer
@@ -499,13 +500,9 @@ const MapSection: React.FC<MapSectionProps> = ({ jobs, selectedJob, onSelectJob,
                 </div>
               </div>
               
-              {/* Zoom Controls - placed at bottom right */}
+              {/* Recenter Control - placed at bottom right */}
               <div className="leaflet-bottom leaflet-right">
                 <div className="leaflet-control leaflet-bar flex flex-col items-center mb-32 mr-3">
-                  <ZoomInControl />
-                  <div className="mt-1 mb-1"></div>
-                  <ZoomOutControl />
-                  <div className="mt-3"></div>
                   <RecenterControl position={position} />
                 </div>
               </div>
