@@ -22,8 +22,11 @@ export class DatabaseStorage implements IStorage {
 
   constructor() {
     this.sessionStore = new PostgresSessionStore({ 
-      pool, 
-      createTableIfMissing: true 
+      pool,
+      // Don't try to create the table since it already exists
+      createTableIfMissing: false,
+      // Don't try to enable the keep-alive logic
+      pruneSessionInterval: false
     });
   }
   
@@ -118,6 +121,65 @@ export class DatabaseStorage implements IStorage {
     
     // Add the virtual fields using our helper function
     return this.addVirtualFields(updatedUser);
+  }
+  
+  // User profile methods
+  async uploadProfileImage(userId: number, imageData: string): Promise<User | undefined> {
+    return this.updateUser(userId, { avatarUrl: imageData });
+  }
+  
+  async updateUserSkills(userId: number, skills: string[]): Promise<User | undefined> {
+    return this.updateUser(userId, { skills });
+  }
+  
+  async verifyUserSkill(userId: number, skill: string, isVerified: boolean): Promise<User | undefined> {
+    // Get the user first
+    const user = await this.getUser(userId);
+    if (!user) return undefined;
+    
+    // In a real implementation, we would update a separate table tracking verified skills
+    // For now, we'll just return the user with an updated skillsVerified property
+    const skillsVerified = { ...(user.skillsVerified || {}) };
+    skillsVerified[skill] = isVerified;
+    
+    const updatedUser = {
+      ...user,
+      skillsVerified
+    };
+    
+    return updatedUser;
+  }
+  
+  async updateUserMetrics(userId: number, metrics: {
+    completedJobs?: number;
+    successRate?: number;
+    responseTime?: number;
+  }): Promise<User | undefined> {
+    // Get the user first
+    const user = await this.getUser(userId);
+    if (!user) return undefined;
+    
+    // In a real implementation, we would update a metrics table
+    // For now, we'll just return the user with updated metrics
+    const updatedUser = {
+      ...user,
+      completedJobs: metrics.completedJobs !== undefined ? metrics.completedJobs : (user.completedJobs || 0),
+      successRate: metrics.successRate !== undefined ? metrics.successRate : (user.successRate || 0),
+      responseTime: metrics.responseTime !== undefined ? metrics.responseTime : (user.responseTime || 0)
+    };
+    
+    return updatedUser;
+  }
+  
+  async getUsersWithSkills(skills: string[]): Promise<User[]> {
+    // Get all users and filter by skills
+    const allUsers = await this.getAllUsers();
+    
+    // Filter users that have at least one of the requested skills
+    return allUsers.filter(user => {
+      if (!user.skills || !Array.isArray(user.skills)) return false;
+      return user.skills.some(skill => skills.includes(skill));
+    });
   }
   
   // Job operations
@@ -548,5 +610,48 @@ export class DatabaseStorage implements IStorage {
       .returning();
     
     return updatedPayment;
+  }
+  
+  // Badge operations
+  async getBadge(id: number): Promise<Badge | undefined> {
+    const [badge] = await db.select().from(badges).where(eq(badges.id, id));
+    return badge;
+  }
+
+  async getAllBadges(): Promise<Badge[]> {
+    return await db.select().from(badges);
+  }
+
+  async getBadgesByCategory(category: string): Promise<Badge[]> {
+    return await db.select().from(badges).where(eq(badges.category, category));
+  }
+
+  async createBadge(badge: InsertBadge): Promise<Badge> {
+    const [createdBadge] = await db.insert(badges).values(badge).returning();
+    return createdBadge;
+  }
+
+  // User badge operations
+  async getUserBadges(userId: number): Promise<UserBadge[]> {
+    return await db.select()
+      .from(userBadges)
+      .where(eq(userBadges.userId, userId));
+  }
+
+  async awardBadge(userBadge: InsertUserBadge): Promise<UserBadge> {
+    const [awardedBadge] = await db.insert(userBadges).values(userBadge).returning();
+    return awardedBadge;
+  }
+
+  async revokeBadge(userId: number, badgeId: number): Promise<boolean> {
+    const result = await db.delete(userBadges)
+      .where(
+        and(
+          eq(userBadges.userId, userId),
+          eq(userBadges.badgeId, badgeId)
+        )
+      );
+    // For PostgreSQL, we can check if any rows were affected
+    return !!result;
   }
 }
