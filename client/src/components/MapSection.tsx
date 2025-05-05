@@ -5,6 +5,7 @@ import { JobMarker } from './JobMarker';
 import SimpleUserDrawer from './SimpleUserDrawer';
 import HeatmapLayer from './HeatmapLayer';
 import MapViewToggle from './MapViewToggle';
+import HeatmapLegend from './HeatmapLegend';
 import { Job } from '@shared/schema';
 import { 
   MapContainer, 
@@ -464,8 +465,8 @@ const MapSection: React.FC<MapSectionProps> = ({ jobs, selectedJob, onSelectJob,
               <Popup className="leaflet-popup-dark">Your location</Popup>
             </CircleMarker>
             
-            {/* Job markers */}
-            {jobPositions.map(({ job, position }) => (
+            {/* Job markers - only show them in standard view */}
+            {mapView === 'standard' && jobPositions.map(({ job, position }) => (
               <JobMarker 
                 key={job.id}
                 job={job}
@@ -475,10 +476,43 @@ const MapSection: React.FC<MapSectionProps> = ({ jobs, selectedJob, onSelectJob,
               />
             ))}
             
+            {/* Heat map layer - only show in heatmap view */}
+            <HeatmapLayer 
+              jobs={jobPositions}
+              visible={mapView === 'heatmap'}
+              radius={25} 
+              blur={15}
+              intensity={0.7}
+            />
+            
             {/* Recenter map component */}
             <RecenterMap position={position} />
 
-            {/* Map Controls - removed as requested by user */}
+            {/* Map Controls */}
+            <div className="leaflet-control-container">
+              <div className="leaflet-top leaflet-right">
+                <div className="leaflet-control leaflet-bar flex flex-col items-center mt-3 mr-3">
+                  <div className="mb-3">
+                    <MapViewToggle 
+                      view={mapView} 
+                      onChange={setMapView}
+                    />
+                  </div>
+                  <ZoomInControl />
+                  <div className="mt-1 mb-1"></div>
+                  <ZoomOutControl />
+                  <div className="mt-3 mb-1"></div>
+                  <RecenterControl position={position} />
+                </div>
+              </div>
+              
+              {/* Heat map legend - only show in heatmap view */}
+              <div className="leaflet-bottom leaflet-left">
+                <div className="leaflet-control leaflet-bar ml-3 mb-10">
+                  <HeatmapLegend visible={mapView === 'heatmap'} />
+                </div>
+              </div>
+            </div>
           </MapContainer>
         )}
         
