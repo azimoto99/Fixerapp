@@ -89,10 +89,10 @@ const RecenterControl = memo(({ position }: { position: LatLngExpression | null 
   return (
     <button 
       onClick={handleRecenter}
-      className="bg-primary text-white shadow-lg rounded-full w-10 h-10 flex items-center justify-center transform transition-all hover:scale-105 active:scale-95 hover:bg-primary/90"
+      className="bg-white text-primary border border-gray-200 shadow-md rounded-full w-12 h-12 flex items-center justify-center transform transition-all hover:scale-105 active:scale-95 hover:bg-gray-50"
       aria-label="Return to my location"
     >
-      <Target className="h-5 w-5" />
+      <Target className="h-6 w-6" />
     </button>
   );
 });

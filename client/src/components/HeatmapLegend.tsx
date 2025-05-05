@@ -9,14 +9,14 @@ const HeatmapLegend = memo(({ visible }: HeatmapLegendProps) => {
   if (!visible) return null;
 
   return (
-    <div className="bg-white bg-opacity-90 backdrop-blur-sm rounded-lg shadow-md p-3 text-sm">
-      <h4 className="font-medium text-xs uppercase tracking-wider mb-1 text-gray-500">Job Density</h4>
-      <div className="flex flex-col gap-1.5">
+    <div className="bg-white border border-gray-200 rounded-lg shadow-md p-3 text-sm">
+      <h4 className="font-medium text-xs uppercase tracking-wider mb-2 text-gray-600">Job Density</h4>
+      <div className="flex flex-col gap-2">
         <div className="flex items-center">
-          <div className="w-12 h-3 rounded-full mr-2" style={{ 
+          <div className="w-16 h-3 rounded-full mr-2" style={{ 
             background: 'linear-gradient(to right, hsl(220, 80%, 70%), hsl(180, 80%, 60%), hsl(160, 80%, 55%), hsl(140, 80%, 55%), hsl(120, 80%, 60%))' 
           }}></div>
-          <span className="text-xs text-gray-700">Low to High</span>
+          <span className="text-xs text-gray-700 font-medium">Low to High</span>
         </div>
         <div className="text-xs text-gray-500 leading-tight">
           Areas with higher job concentrations appear brighter on the heat map.
