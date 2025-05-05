@@ -1765,8 +1765,43 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Stripe Connect endpoints for all users (both workers and job posters)
-  apiRouter.post("/stripe/connect/create-account", isStripeAuthenticated, async (req: Request, res: Response) => {
+  // Simple auth check for Stripe actions
+  apiRouter.get("/stripe/check-auth", async (req: Request, res: Response) => {
+    if (!req.session) {
+      return res.status(500).json({ message: "No session found" });
+    }
+    
+    // Check if user is authenticated via passport
+    if (req.isAuthenticated() && req.user) {
+      return res.status(200).json({ authenticated: true, user: req.user.id });
+    }
+    
+    // Check backup user ID in session
+    if (req.session.userId) {
+      try {
+        const user = await storage.getUser(req.session.userId);
+        if (user) {
+          // Restore session if we found a user
+          req.login(user, (err) => {
+            if (err) {
+              console.error("Error restoring session from userId:", err);
+              return res.status(500).json({ message: "Session restoration failed" });
+            }
+            return res.status(200).json({ authenticated: true, user: user.id, restored: true });
+          });
+          return;
+        }
+      } catch (err) {
+        console.error("Error checking backup userId:", err);
+      }
+    }
+    
+    // Not authenticated by any method
+    return res.status(401).json({ authenticated: false, message: "Not authenticated" });
+  });
+  
+  // Stripe Connect endpoints for all users (both workers and job posters) - now with regular auth
+  apiRouter.post("/stripe/connect/create-account", isAuthenticated, async (req: Request, res: Response) => {
     try {
       // Verify the user has a valid session - this is a safety fallback as isAuthenticated should already check
       if (!req.isAuthenticated() || !req.user) {
