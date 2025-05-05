@@ -416,9 +416,25 @@ const StripeConnectSetup: React.FC<StripeConnectSetupProps> = ({ compact = false
                     <div className="mb-3">
                       <div className="text-xs font-medium text-amber-600 mb-1">Currently Due:</div>
                       <ul className="text-xs list-disc list-inside space-y-1 text-muted-foreground">
-                        {accountStatus.requirements.currentlyDue.map((item, index) => (
-                          <li key={index}>{item}</li>
-                        ))}
+                        {accountStatus.requirements.currentlyDue.map((item, index) => {
+                          // Check if this is an ID verification requirement
+                          const isIdVerification = item.includes('verification') || 
+                                                item.includes('document') || 
+                                                item.includes('identity') ||
+                                                item.includes('id_number') ||
+                                                item.includes('ssn_last_4');
+                          
+                          return (
+                            <li key={index} className={isIdVerification ? "font-medium text-orange-700" : ""}>
+                              {item}
+                              {isIdVerification && (
+                                <span className="block pl-4 mt-1 text-xs font-normal">
+                                  ID verification required. Please complete Stripe onboarding.
+                                </span>
+                              )}
+                            </li>
+                          );
+                        })}
                       </ul>
                     </div>
                   )}
@@ -427,9 +443,25 @@ const StripeConnectSetup: React.FC<StripeConnectSetupProps> = ({ compact = false
                     <div className="mb-3">
                       <div className="text-xs font-medium text-blue-600 mb-1">Eventually Due:</div>
                       <ul className="text-xs list-disc list-inside space-y-1 text-muted-foreground">
-                        {accountStatus.requirements.eventuallyDue.map((item, index) => (
-                          <li key={index}>{item}</li>
-                        ))}
+                        {accountStatus.requirements.eventuallyDue.map((item, index) => {
+                          // Check if this is an ID verification requirement
+                          const isIdVerification = item.includes('verification') || 
+                                                item.includes('document') || 
+                                                item.includes('identity') ||
+                                                item.includes('id_number') ||
+                                                item.includes('ssn_last_4');
+                          
+                          return (
+                            <li key={index} className={isIdVerification ? "font-medium text-blue-700" : ""}>
+                              {item}
+                              {isIdVerification && (
+                                <span className="block pl-4 mt-1 text-xs font-normal">
+                                  Additional ID verification will be needed later.
+                                </span>
+                              )}
+                            </li>
+                          );
+                        })}
                       </ul>
                     </div>
                   )}
@@ -438,10 +470,40 @@ const StripeConnectSetup: React.FC<StripeConnectSetupProps> = ({ compact = false
                     <div>
                       <div className="text-xs font-medium text-orange-600 mb-1">Pending Verification:</div>
                       <ul className="text-xs list-disc list-inside space-y-1 text-muted-foreground">
-                        {accountStatus.requirements.pendingVerification.map((item, index) => (
-                          <li key={index}>{item}</li>
-                        ))}
+                        {accountStatus.requirements.pendingVerification.map((item, index) => {
+                          // Check if this is an ID verification requirement
+                          const isIdVerification = item.includes('verification') || 
+                                                item.includes('document') || 
+                                                item.includes('identity') ||
+                                                item.includes('id_number') ||
+                                                item.includes('ssn_last_4');
+                                                
+                          return (
+                            <li key={index} className={isIdVerification ? "font-medium text-orange-700" : ""}>
+                              {item}
+                              {isIdVerification && (
+                                <span className="block pl-4 mt-1 text-xs font-normal">
+                                  ID document awaiting verification by Stripe.
+                                </span>
+                              )}
+                            </li>
+                          );
+                        })}
                       </ul>
+                    </div>
+                  )}
+                  
+                  {/* Add a note about ID verification if account is incomplete */}
+                  {!accountStatus.detailsSubmitted && (
+                    <div className="mt-4 p-3 border border-orange-200 bg-orange-50 rounded text-sm">
+                      <h5 className="font-medium text-orange-800 flex items-center">
+                        <AlertCircle className="h-4 w-4 mr-2" />
+                        ID Verification Required
+                      </h5>
+                      <p className="mt-1 text-orange-700 text-xs">
+                        Stripe Connect requires identity verification including government ID documents and proof of address.
+                        Click "Complete Setup" to proceed with the verification process in Stripe's secure portal.
+                      </p>
                     </div>
                   )}
                 </div>
