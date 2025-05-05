@@ -36,6 +36,13 @@ const locationParamsSchema = z.object({
 
 // Check if user is authenticated middleware
 function isAuthenticated(req: Request, res: Response, next: Function) {
+  // First, ensure session is properly loaded
+  if (!req.session) {
+    console.error("No session object found on request");
+    return res.status(401).json({ message: "Session unavailable" });
+  }
+  
+  // Then check authentication status
   if (req.isAuthenticated() && req.user) {
     console.log(`User authenticated: ${req.user.id} (${req.user.username})`);
     return next();
@@ -51,11 +58,12 @@ function isAuthenticated(req: Request, res: Response, next: Function) {
       cookie: req.session.cookie ? {
         maxAge: req.session.cookie.maxAge,
         originalMaxAge: req.session.cookie.originalMaxAge,
-      } : null
+      } : null,
+      passport: (req.session as any).passport || 'not set'
     });
   }
   
-  res.status(401).json({ message: "Unauthorized" });
+  return res.status(401).json({ message: "Unauthorized - Please login again" });
 }
 
 export async function registerRoutes(app: Express): Promise<Server> {
@@ -1410,7 +1418,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Stripe Connect endpoints for all users (both workers and job posters)
   apiRouter.post("/stripe/connect/create-account", isAuthenticated, async (req: Request, res: Response) => {
     try {
-      // Verify the user has a valid session
+      // Verify the user has a valid session - this is a safety fallback as isAuthenticated should already check
       if (!req.isAuthenticated() || !req.user) {
         console.error("User not authenticated in stripe/connect/create-account");
         return res.status(401).json({ message: "Authentication required" });
@@ -1418,28 +1426,50 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       console.log("Creating Stripe Connect account for user ID:", req.user.id);
       
+      // Fetch user directly from storage to ensure we have the latest data
+      const storedUser = await storage.getUser(req.user.id);
+      if (!storedUser) {
+        console.error(`User ${req.user.id} not found in database`);
+        return res.status(404).json({ message: "User not found in database" });
+      }
+      
       // Both workers and job posters can create Connect accounts
       // This allows users to both pay and receive payments
       
       // Check if the user already has a Connect account
-      if (req.user.stripeConnectAccountId) {
+      if (storedUser.stripeConnectAccountId) {
+        console.log(`User ${req.user.id} already has Connect account: ${storedUser.stripeConnectAccountId}`);
         return res.status(400).json({ 
           message: "User already has a Stripe Connect account" 
         });
       }
       
-      if (!req.user.email) {
+      if (!storedUser.email) {
+        console.error(`User ${req.user.id} has no email address`);
         return res.status(400).json({
           message: "User must have an email address to create a Stripe Connect account"
+        });
+      }
+      
+      console.log(`Creating Connect account for user ${req.user.id} with email: ${storedUser.email}`);
+      
+      // Test Stripe API connectivity before proceeding
+      try {
+        await stripe.balance.retrieve();
+        console.log("Successfully connected to Stripe API");
+      } catch (stripeError) {
+        console.error("Stripe API connection test failed:", stripeError);
+        return res.status(500).json({ 
+          message: "Could not connect to Stripe API. Please check your credentials." 
         });
       }
       
       // Create a Connect Express account
       const account = await stripe.accounts.create({
         type: 'express',
-        email: req.user.email,
+        email: storedUser.email,
         metadata: {
-          userId: req.user.id.toString(),
+          userId: storedUser.id.toString(),
           platform: "The Job"
         },
         capabilities: {
@@ -1448,7 +1478,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         },
         business_type: 'individual',
         business_profile: {
-          url: `${process.env.APP_URL || 'https://thejob.replit.app'}/user/${req.user.id}`,
+          url: `${process.env.APP_URL || 'https://thejob.replit.app'}/user/${storedUser.id}`,
           mcc: '7299', // Personal Services
           product_description: 'Gig economy services provided through The Job platform'
         }
@@ -1457,7 +1487,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       console.log("Stripe Connect account created:", account.id);
       
       // Update the user with the Connect account ID
-      const updatedUser = await storage.updateUser(req.user.id, {
+      const updatedUser = await storage.updateUser(storedUser.id, {
         stripeConnectAccountId: account.id,
         stripeConnectAccountStatus: 'pending'
       });
