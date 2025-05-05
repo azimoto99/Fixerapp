@@ -122,13 +122,26 @@ const StripeTermsAcceptance: React.FC<StripeTermsAcceptanceProps> = ({
       setIsSubmitting(true);
       
       // First attempt to get the current user to ensure the session is active
-      const userRes = await apiRequest('GET', '/api/user');
-      if (!userRes.ok) {
-        throw new Error('User session expired. Please login again before submitting this form.');
+      console.log('Verifying user session before form submission');
+      try {
+        const userRes = await apiRequest('GET', '/api/user');
+        if (!userRes.ok) {
+          console.error('User session check failed:', await userRes.text());
+          throw new Error('User session expired. Please login again before submitting this form.');
+        }
+        
+        // Log the user data from the session
+        const userData = await userRes.clone().json();
+        console.log('User session verified:', userData.id);
+      } catch (sessionError) {
+        console.error('Error checking user session:', sessionError);
+        throw new Error('Session verification failed. Please refresh the page and try again.');
       }
       
       // Now submit the actual form data
-      const res = await apiRequest('POST', `/api/users/${userId}/stripe-terms`, {
+      console.log(`Submitting form data to /api/users/${userId}/stripe-terms`);
+      
+      const formData = {
         // Send all form values to the API
         acceptTerms: values.acceptTerms,
         representativeName: values.representativeName,
@@ -148,29 +161,57 @@ const StripeTermsAcceptance: React.FC<StripeTermsAcceptanceProps> = ({
         accountNumber: values.accountNumber,
         routingNumber: values.routingNumber,
         accountHolderName: values.accountHolderName,
+      };
+      
+      // Log form data (excluding sensitive fields)
+      console.log('Form data being submitted:', {
+        ...formData,
+        accountNumber: '****',
+        routingNumber: '****',
+        ssnLast4: '****'
       });
       
-      if (res.ok) {
-        // Invalidate user queries to refresh user data
-        queryClient.invalidateQueries({ queryKey: ['/api/user'] });
+      try {
+        const res = await apiRequest('POST', `/api/users/${userId}/stripe-terms`, formData);
         
-        toast({
-          title: 'Setup Complete',
-          description: 'Your payment account has been successfully configured.',
-        });
+        console.log('Form submission response status:', res.status);
         
-        // Log the completion for debugging
-        console.log('Stripe terms accepted successfully, calling onComplete callback');
-        
-        // Use setTimeout to ensure the UI has time to update before closing the dialog
-        setTimeout(() => {
-          if (onComplete) {
-            onComplete();
+        if (res.ok) {
+          // Invalidate user queries to refresh user data
+          queryClient.invalidateQueries({ queryKey: ['/api/user'] });
+          
+          toast({
+            title: 'Setup Complete',
+            description: 'Your payment account has been successfully configured.',
+          });
+          
+          // Log the completion for debugging
+          console.log('Stripe terms accepted successfully, calling onComplete callback');
+          
+          // Use setTimeout to ensure the UI has time to update before closing the dialog
+          setTimeout(() => {
+            if (onComplete) {
+              onComplete();
+            }
+          }, 100);
+        } else {
+          // Attempt to read response body
+          const responseText = await res.text();
+          console.error('Form submission failed:', res.status, responseText);
+          
+          let errorMessage = 'Failed to submit form';
+          try {
+            const errorData = JSON.parse(responseText);
+            errorMessage = errorData.message || errorMessage;
+          } catch (e) {
+            console.error('Could not parse error response as JSON:', e);
           }
-        }, 100);
-      } else {
-        const errorData = await res.json();
-        throw new Error(errorData.message || 'Failed to submit form');
+          
+          throw new Error(errorMessage);
+        }
+      } catch (submitError) {
+        console.error('Error during form submission:', submitError);
+        throw submitError;
       }
     } catch (error) {
       console.error('Error setting up payment account:', error);
