@@ -488,27 +488,31 @@ const MapSection: React.FC<MapSectionProps> = ({ jobs, selectedJob, onSelectJob,
             {/* Recenter map component */}
             <RecenterMap position={position} />
 
-            {/* Map Controls */}
+            {/* Map View Toggle Control - placed at top left for better visibility */}
             <div className="leaflet-control-container">
-              <div className="leaflet-top leaflet-right">
-                <div className="leaflet-control leaflet-bar flex flex-col items-center mt-16 mr-3">
-                  <div className="mb-3">
-                    <MapViewToggle 
-                      view={mapView} 
-                      onChange={setMapView}
-                    />
-                  </div>
+              <div className="leaflet-top leaflet-left">
+                <div className="leaflet-control leaflet-bar ml-3 mt-16">
+                  <MapViewToggle 
+                    view={mapView} 
+                    onChange={setMapView}
+                  />
+                </div>
+              </div>
+              
+              {/* Zoom Controls - placed at bottom right */}
+              <div className="leaflet-bottom leaflet-right">
+                <div className="leaflet-control leaflet-bar flex flex-col items-center mb-32 mr-3">
                   <ZoomInControl />
                   <div className="mt-1 mb-1"></div>
                   <ZoomOutControl />
-                  <div className="mt-3 mb-1"></div>
+                  <div className="mt-3"></div>
                   <RecenterControl position={position} />
                 </div>
               </div>
               
-              {/* Heat map legend - only show in heatmap view */}
+              {/* Heat map legend - only show in heatmap view, placed at bottom left */}
               <div className="leaflet-bottom leaflet-left">
-                <div className="leaflet-control leaflet-bar ml-3 mb-20">
+                <div className="leaflet-control leaflet-bar ml-3 mb-32">
                   <HeatmapLegend visible={mapView === 'heatmap'} />
                 </div>
               </div>
@@ -518,7 +522,7 @@ const MapSection: React.FC<MapSectionProps> = ({ jobs, selectedJob, onSelectJob,
         
         {/* Fallback location notice */}
         {isUsingFallback && (
-          <div className="absolute top-4 left-4 z-[1000]">
+          <div className="absolute top-4 left-1/2 -translate-x-1/2 z-[1000]">
             <div className="bg-primary/10 border border-primary/20 rounded-full shadow px-3 py-1 text-primary text-xs">
               <p className="flex items-center">
                 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" className="w-3 h-3 mr-1">
