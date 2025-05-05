@@ -373,7 +373,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Stripe terms of service and representative endpoint
   apiRouter.post("/users/:id/stripe-terms", isAuthenticated, async (req: Request, res: Response) => {
     try {
+      console.log('Stripe terms acceptance endpoint called');
+      console.log('User in session:', req.user);
+      console.log('isAuthenticated:', req.isAuthenticated());
+      console.log('Session ID:', req.sessionID);
+      
       const id = parseInt(req.params.id);
+      console.log(`User ID from params: ${id}`);
       
       // Ensure the authenticated user is updating their own Stripe terms
       if (req.user && req.user.id !== id) {
