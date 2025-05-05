@@ -212,11 +212,18 @@ export function setupAuth(app: Express) {
       function finishLogin() {
         console.log('Logging in user:', user.id);
         
+        // Set a key in session to indicate we're in the login process
+        // This helps track if there are any session storage issues
+        req.session.loggingIn = true;
+        
         req.login(user, (err) => {
           if (err) {
             console.error('Login session error:', err);
             return next(err);
           }
+          
+          // Store a timestamp for debugging session issues
+          req.session.loginTime = new Date().toISOString();
           
           // Save the session explicitly before sending response
           req.session.save((saveErr) => {
@@ -231,11 +238,13 @@ export function setupAuth(app: Express) {
               new Date(Date.now() + req.session.cookie.maxAge).toISOString() : 'No expiration');
             console.log('isAuthenticated after login:', req.isAuthenticated());
             console.log('User in session:', req.user ? `ID: ${req.user.id}` : 'No user');
+            console.log('Session data:', req.session);
             
             // Enhanced session verification after login
             // This helps identify session serialization/deserialization issues
             if (!req.isAuthenticated() || !req.user) {
               console.error('WARNING: User authenticated but session verification failed!');
+              
               // Try to recover by retrying login
               req.login(user, (retryErr) => {
                 if (retryErr) {
@@ -243,11 +252,28 @@ export function setupAuth(app: Express) {
                   return next(retryErr);
                 }
                 
-                console.log('Login retry successful');
-                const { password, ...userResponse } = user;
-                res.json(userResponse);
+                // Save the session again after retry
+                req.session.save((retrySaveErr) => {
+                  if (retrySaveErr) {
+                    console.error('Retry session save error:', retrySaveErr);
+                    return next(retrySaveErr);
+                  }
+                  
+                  console.log('Login retry successful');
+                  console.log('isAuthenticated after retry:', req.isAuthenticated());
+                  
+                  // Don't return password in response
+                  const { password, ...userResponse } = user;
+                  res.json(userResponse);
+                });
               });
               return;
+            }
+            
+            // Check if passport data is properly stored in session
+            if (!req.session.passport || !req.session.passport.user) {
+              console.warn('WARNING: Session passport data not found after login!');
+              console.log('Session contents:', req.session);
             }
             
             // Don't return password in response
