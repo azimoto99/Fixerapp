@@ -20,9 +20,13 @@ const StripeRequirementsCheck: React.FC<StripeRequirementsCheckProps> = ({
 }) => {
   const [showTermsAcceptance, setShowTermsAcceptance] = React.useState(false);
   
-  // Check if the user needs to accept Stripe terms or provide representative info
+  // Check if the user needs to accept Stripe terms, provide representative info, or banking details
   React.useEffect(() => {
-    if (user && (user.requiresStripeTerms || user.requiresStripeRepresentative)) {
+    if (user && (
+      user.requiresStripeTerms || 
+      user.requiresStripeRepresentative || 
+      user.requiresStripeBankingDetails
+    )) {
       setShowTermsAcceptance(true);
     } else {
       setShowTermsAcceptance(false);
