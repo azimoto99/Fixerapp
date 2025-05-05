@@ -43,27 +43,38 @@ function isAuthenticated(req: Request, res: Response, next: Function) {
     return res.status(401).json({ message: "Session unavailable" });
   }
   
+  // Enhanced session/cookie check
+  const hasCookieExpired = req.session.cookie && req.session.cookie.maxAge <= 0;
+  
   // Then check authentication status
-  if (req.isAuthenticated() && req.user) {
+  if (req.isAuthenticated() && req.user && !hasCookieExpired) {
     console.log(`User authenticated: ${req.user.id} (${req.user.username})`);
     return next();
   }
   
-  // Log the authentication failure with more details
+  // Log the authentication failure with detailed info
   console.log(`Authentication failed: isAuthenticated=${req.isAuthenticated()}, has session=${!!req.session}, has user=${!!req.user}, sessionID=${req.sessionID}`);
   
-  // Add some debugging code for the session
+  // Add comprehensive debugging information
   if (req.session) {
     console.log(`Session data:`, {
       id: req.sessionID,
       cookie: req.session.cookie ? {
         maxAge: req.session.cookie.maxAge,
         originalMaxAge: req.session.cookie.originalMaxAge,
+        expired: hasCookieExpired,
+        secure: req.session.cookie.secure,
+        httpOnly: req.session.cookie.httpOnly,
+        path: req.session.cookie.path
       } : null,
       passport: (req.session as any).passport || 'not set'
     });
   }
   
+  // Always return a clear error message for authentication failures
+  if (hasCookieExpired) {
+    return res.status(401).json({ message: "Session expired, please login again" });
+  }
   return res.status(401).json({ message: "Unauthorized - Please login again" });
 }
 
