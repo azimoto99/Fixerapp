@@ -50,8 +50,36 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const loginMutation = useMutation({
     mutationFn: async (credentials: LoginData) => {
-      const res = await apiRequest("POST", "/api/login", credentials);
-      return await res.json();
+      try {
+        console.log('Attempting login with username:', credentials.username);
+        
+        // First, get CSRF token by making a simple GET request
+        await fetch('/api/csrf-token', { credentials: 'include' }).catch(e => {
+          console.log('CSRF fetch optional - continuing with login');
+        });
+        
+        const res = await apiRequest("POST", "/api/login", credentials);
+        
+        if (!res.ok) {
+          const errorText = await res.text();
+          console.error('Login response not OK:', res.status, errorText);
+          throw new Error(errorText || 'Login failed');
+        }
+        
+        console.log('Login response status:', res.status);
+        
+        try {
+          const userData = await res.json();
+          console.log('Login successful, user data retrieved:', userData.id);
+          return userData;
+        } catch (parseError) {
+          console.error('Failed to parse login response:', parseError);
+          throw new Error('Failed to parse server response');
+        }
+      } catch (error) {
+        console.error('Login error:', error);
+        throw error;
+      }
     },
     onSuccess: (userData: UserWithFlags) => {
       // Check if user needs to complete their profile first (for social logins)
@@ -65,6 +93,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       } else {
         // Normal login flow - no need to check account type as all users are workers
         queryClient.setQueryData(["/api/user"], userData);
+        
+        // Verify the session is established by making a call to /api/user
+        fetch('/api/user', { credentials: 'include' })
+          .then(res => {
+            if (res.ok) {
+              console.log('Session verified after login');
+            } else {
+              console.warn('Session verification failed after login:', res.status);
+            }
+          })
+          .catch(err => {
+            console.error('Error verifying session after login:', err);
+          });
+        
         toast({
           title: "Login successful",
           description: "Welcome back!",
@@ -72,6 +114,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
     },
     onError: (error: Error) => {
+      console.error('Login mutation error:', error);
       toast({
         title: "Login failed",
         description: error.message,
@@ -82,8 +125,36 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const registerMutation = useMutation({
     mutationFn: async (credentials: InsertUser) => {
-      const res = await apiRequest("POST", "/api/register", credentials);
-      return await res.json();
+      try {
+        console.log('Attempting registration with username:', credentials.username);
+        
+        // First, get CSRF token by making a simple GET request
+        await fetch('/api/csrf-token', { credentials: 'include' }).catch(e => {
+          console.log('CSRF fetch optional - continuing with registration');
+        });
+        
+        const res = await apiRequest("POST", "/api/register", credentials);
+        
+        if (!res.ok) {
+          const errorText = await res.text();
+          console.error('Registration response not OK:', res.status, errorText);
+          throw new Error(errorText || 'Registration failed');
+        }
+        
+        console.log('Registration response status:', res.status);
+        
+        try {
+          const userData = await res.json();
+          console.log('Registration successful, user data retrieved:', userData.id);
+          return userData;
+        } catch (parseError) {
+          console.error('Failed to parse registration response:', parseError);
+          throw new Error('Failed to parse server response');
+        }
+      } catch (error) {
+        console.error('Registration error:', error);
+        throw error;
+      }
     },
     onSuccess: (userData: UserWithFlags) => {
       // Check if user needs to complete their profile first (for social logins)
@@ -97,6 +168,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       } else {
         // Normal registration flow - no need to check account type as all users are workers
         queryClient.setQueryData(["/api/user"], userData);
+        
+        // Verify the session is established by making a call to /api/user
+        fetch('/api/user', { credentials: 'include' })
+          .then(res => {
+            if (res.ok) {
+              console.log('Session verified after registration');
+            } else {
+              console.warn('Session verification failed after registration:', res.status);
+            }
+          })
+          .catch(err => {
+            console.error('Error verifying session after registration:', err);
+          });
+        
         toast({
           title: "Registration successful", 
           description: "Your account has been created!",
@@ -104,6 +189,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
     },
     onError: (error: Error) => {
+      console.error('Registration mutation error:', error);
       toast({
         title: "Registration failed",
         description: error.message,

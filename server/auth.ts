@@ -164,12 +164,28 @@ export function setupAuth(app: Express) {
     }
   });
 
+  // Add a simple CSRF token endpoint (doesn't need to do anything)
+  app.get("/api/csrf-token", (req, res) => {
+    console.log('CSRF token requested - session ID:', req.sessionID);
+    res.status(200).json({ message: "CSRF token request received" });
+  });
+
   app.post("/api/login", (req, res, next) => {
+    console.log('Login attempt with username:', req.body.username);
+    console.log('Current session ID:', req.sessionID);
+    
     passport.authenticate("local", (err: Error | null, userObj: Express.User | false, info: { message: string } | undefined) => {
-      if (err) return next(err);
+      if (err) {
+        console.error('Login authentication error:', err);
+        return next(err);
+      }
+      
       if (!userObj) {
+        console.log('Login failed for username:', req.body.username);
         return res.status(401).json({ message: info?.message || "Login failed" });
       }
+      
+      console.log('User authenticated successfully:', userObj.id);
       
       // Need to cast to avoid type errors
       let user = userObj as Express.User;
@@ -178,6 +194,7 @@ export function setupAuth(app: Express) {
       if (user.accountType === "pending") {
         (async () => {
           try {
+            console.log('Updating account type from pending to worker');
             const updatedUser = await storage.updateUser(user.id, { accountType: "worker" });
             if (updatedUser) {
               user = updatedUser;
@@ -193,8 +210,17 @@ export function setupAuth(app: Express) {
       }
       
       function finishLogin() {
+        console.log('Logging in user:', user.id);
+        
         req.login(user, (err) => {
-          if (err) return next(err);
+          if (err) {
+            console.error('Login session error:', err);
+            return next(err);
+          }
+          
+          console.log('Login successful - session established');
+          console.log('Session ID after login:', req.sessionID);
+          console.log('isAuthenticated after login:', req.isAuthenticated());
           
           // Don't return password in response
           const { password, ...userResponse } = user;
@@ -214,9 +240,16 @@ export function setupAuth(app: Express) {
   });
 
   app.get("/api/user", (req, res) => {
+    console.log('User info requested - session ID:', req.sessionID);
+    console.log('isAuthenticated:', req.isAuthenticated());
+    
     if (!req.isAuthenticated()) {
+      console.log('User not authenticated');
       return res.status(401).json({ message: "Not authenticated" });
     }
+    
+    console.log('User authenticated:', req.user.id);
+    
     // Don't return password in response
     const { password, ...user } = req.user;
     res.json(user);
