@@ -33,9 +33,39 @@ const StripeRequirementsCheck: React.FC<StripeRequirementsCheckProps> = ({
     }
   }, [user]);
 
-  // Handle completion of terms acceptance
+  // Handle completion of terms acceptance with additional checks and logging
   const handleTermsAcceptanceComplete = () => {
-    setShowTermsAcceptance(false);
+    console.log('Terms acceptance complete callback triggered');
+    
+    // Force invalidate user query to ensure we have the latest user data
+    if (user) {
+      console.log('Invalidating user data after Stripe terms completion');
+      // Directly query the API to re-fetch the latest user data before hiding the form
+      fetch('/api/user', {
+        credentials: 'include' // Important: includes cookies in the request
+      })
+      .then(response => {
+        if (response.ok) {
+          console.log('User data refreshed successfully');
+          return response.json();
+        } else {
+          console.error('Failed to refresh user data after Stripe terms completion');
+          throw new Error('Failed to refresh user data');
+        }
+      })
+      .then(() => {
+        console.log('Setting showTermsAcceptance to false');
+        setShowTermsAcceptance(false);
+      })
+      .catch(error => {
+        console.error('Error fetching user data:', error);
+        // Still hide the form even if refresh fails, as the form was already submitted successfully
+        setShowTermsAcceptance(false);
+      });
+    } else {
+      // If no user for some reason, just hide the form
+      setShowTermsAcceptance(false);
+    }
   };
 
   return (

@@ -159,9 +159,15 @@ const StripeTermsAcceptance: React.FC<StripeTermsAcceptanceProps> = ({
           description: 'Your payment account has been successfully configured.',
         });
         
-        if (onComplete) {
-          onComplete();
-        }
+        // Log the completion for debugging
+        console.log('Stripe terms accepted successfully, calling onComplete callback');
+        
+        // Use setTimeout to ensure the UI has time to update before closing the dialog
+        setTimeout(() => {
+          if (onComplete) {
+            onComplete();
+          }
+        }, 100);
       } else {
         const errorData = await res.json();
         throw new Error(errorData.message || 'Failed to submit form');
