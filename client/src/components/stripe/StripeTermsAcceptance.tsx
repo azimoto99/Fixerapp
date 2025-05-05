@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import {
   Dialog,
@@ -8,15 +8,31 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
-import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { Checkbox } from '@/components/ui/checkbox';
-import { Loader2 } from 'lucide-react';
+import { Loader2, Info, CreditCard, Map, User } from 'lucide-react';
 import { apiRequest, queryClient } from '@/lib/queryClient';
 import { useToast } from '@/hooks/use-toast';
 import { useForm } from 'react-hook-form';
-import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { 
+  Form, 
+  FormControl, 
+  FormDescription, 
+  FormField, 
+  FormItem, 
+  FormLabel, 
+  FormMessage 
+} from '@/components/ui/form';
+import { 
+  Select, 
+  SelectContent, 
+  SelectItem, 
+  SelectTrigger, 
+  SelectValue 
+} from '@/components/ui/select';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { ScrollArea } from '@/components/ui/scroll-area';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 
@@ -58,7 +74,8 @@ const StripeTermsAcceptance: React.FC<StripeTermsAcceptanceProps> = ({
   onComplete
 }) => {
   const { toast } = useToast();
-  const [isSubmitting, setIsSubmitting] = React.useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [activeTab, setActiveTab] = useState('terms');
 
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
@@ -84,6 +101,22 @@ const StripeTermsAcceptance: React.FC<StripeTermsAcceptanceProps> = ({
     },
   });
 
+  // Monitor form completion status for each section
+  const termsAccepted = form.watch('acceptTerms');
+  const personalInfoFilled = form.watch(['representativeName', 'representativeTitle', 'dateOfBirth', 'email', 'phone', 'ssnLast4'])
+    .every(value => value && value.length > 0);
+  const addressInfoFilled = form.watch(['streetAddress', 'city', 'state', 'zip'])
+    .every(value => value && value.length > 0);
+  const bankingInfoFilled = form.watch(['accountType', 'accountNumber', 'routingNumber', 'accountHolderName'])
+    .every(value => value && value.length > 0);
+
+  // Handle form section navigation
+  const goToNextSection = () => {
+    if (activeTab === 'terms') setActiveTab('personal');
+    else if (activeTab === 'personal') setActiveTab('address');
+    else if (activeTab === 'address') setActiveTab('banking');
+  };
+
   const onSubmit = async (values: FormValues) => {
     try {
       setIsSubmitting(true);
@@ -91,11 +124,10 @@ const StripeTermsAcceptance: React.FC<StripeTermsAcceptanceProps> = ({
       // First attempt to get the current user to ensure the session is active
       const userRes = await apiRequest('GET', '/api/user');
       if (!userRes.ok) {
-        // If the user session is not valid, show an error
         throw new Error('User session expired. Please login again before submitting this form.');
       }
       
-      // Now submit the actual form data with the refreshed session
+      // Now submit the actual form data
       const res = await apiRequest('POST', `/api/users/${userId}/stripe-terms`, {
         // Send all form values to the API
         acceptTerms: values.acceptTerms,
@@ -123,8 +155,8 @@ const StripeTermsAcceptance: React.FC<StripeTermsAcceptanceProps> = ({
         queryClient.invalidateQueries({ queryKey: ['/api/user'] });
         
         toast({
-          title: 'Terms Accepted',
-          description: 'You have successfully accepted Stripe\'s terms of service.',
+          title: 'Setup Complete',
+          description: 'Your payment account has been successfully configured.',
         });
         
         if (onComplete) {
@@ -132,13 +164,13 @@ const StripeTermsAcceptance: React.FC<StripeTermsAcceptanceProps> = ({
         }
       } else {
         const errorData = await res.json();
-        throw new Error(errorData.message || 'Failed to accept terms');
+        throw new Error(errorData.message || 'Failed to submit form');
       }
     } catch (error) {
-      console.error('Error accepting Stripe terms:', error);
+      console.error('Error setting up payment account:', error);
       toast({
         title: 'Error',
-        description: error instanceof Error ? error.message : 'Failed to accept Stripe terms. Please try again.',
+        description: error instanceof Error ? error.message : 'Failed to set up payment account. Please try again.',
         variant: 'destructive',
       });
     } finally {
@@ -148,416 +180,479 @@ const StripeTermsAcceptance: React.FC<StripeTermsAcceptanceProps> = ({
 
   return (
     <Dialog open={true}>
-      <DialogContent className="sm:max-w-[525px]">
-        <DialogHeader>
-          <DialogTitle>Accept Stripe Terms of Service</DialogTitle>
+      <DialogContent className="sm:max-w-[600px] p-0 gap-0 overflow-hidden">
+        <DialogHeader className="p-6 pb-2">
+          <DialogTitle className="text-xl flex items-center">
+            <CreditCard className="mr-2 h-5 w-5 text-primary" />
+            Payment Account Setup
+          </DialogTitle>
           <DialogDescription>
-            Before you can receive or make payments through our platform, you need to accept Stripe's terms of service
-            and provide representative information for your account.
+            Complete this form to set up your payment account and start earning.
           </DialogDescription>
         </DialogHeader>
         
-        <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-            <div className="bg-gray-50 p-4 rounded-md border text-sm max-h-40 overflow-y-auto">
-              <p className="font-medium">Stripe Services Agreement</p>
-              <p className="mt-2">
-                By accepting these terms, you agree to the 
-                <a 
-                  href="https://stripe.com/legal/connect-account" 
-                  target="_blank" 
-                  rel="noreferrer"
-                  className="text-primary hover:underline mx-1"
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+          <TabsList className="grid grid-cols-4 px-6">
+            <TabsTrigger value="terms" className="text-xs sm:text-sm">
+              Terms
+              {termsAccepted && <span className="ml-1 text-green-500">✓</span>}
+            </TabsTrigger>
+            <TabsTrigger value="personal" disabled={!termsAccepted} className="text-xs sm:text-sm">
+              Personal
+              {personalInfoFilled && <span className="ml-1 text-green-500">✓</span>}
+            </TabsTrigger>
+            <TabsTrigger value="address" disabled={!termsAccepted || !personalInfoFilled} className="text-xs sm:text-sm">
+              Address
+              {addressInfoFilled && <span className="ml-1 text-green-500">✓</span>}
+            </TabsTrigger>
+            <TabsTrigger value="banking" disabled={!termsAccepted || !personalInfoFilled || !addressInfoFilled} className="text-xs sm:text-sm">
+              Banking
+              {bankingInfoFilled && <span className="ml-1 text-green-500">✓</span>}
+            </TabsTrigger>
+          </TabsList>
+          
+          <Form {...form}>
+            <form onSubmit={form.handleSubmit(onSubmit)}>
+              <ScrollArea className="h-[400px] px-6 py-4">
+                <TabsContent value="terms" className="mt-0">
+                  <Card>
+                    <CardHeader className="p-4">
+                      <CardTitle className="text-base flex items-center">
+                        <Info className="h-4 w-4 mr-2" />
+                        Terms of Service
+                      </CardTitle>
+                      <CardDescription>
+                        Review and accept the payment processing terms
+                      </CardDescription>
+                    </CardHeader>
+                    <CardContent className="p-4 space-y-4">
+                      <div className="bg-secondary/50 p-4 rounded-md text-sm max-h-40 overflow-y-auto">
+                        <p className="font-medium">Stripe Services Agreement</p>
+                        <p className="mt-2">
+                          By accepting these terms, you agree to the 
+                          <a 
+                            href="https://stripe.com/legal/connect-account" 
+                            target="_blank" 
+                            rel="noreferrer"
+                            className="text-primary hover:underline mx-1"
+                          >
+                            Stripe Connected Account Agreement
+                          </a> 
+                          which includes the 
+                          <a 
+                            href="https://stripe.com/legal/ssa" 
+                            target="_blank" 
+                            rel="noreferrer"
+                            className="text-primary hover:underline mx-1"
+                          >
+                            Stripe Services Agreement
+                          </a>.
+                        </p>
+                        <p className="mt-2">
+                          This enables us to process payments and transfer funds to your account if you apply for and complete jobs through our platform.
+                        </p>
+                      </div>
+
+                      <FormField
+                        control={form.control}
+                        name="acceptTerms"
+                        render={({ field }) => (
+                          <FormItem className="flex flex-row items-start space-x-3 space-y-0 rounded-md border p-4">
+                            <FormControl>
+                              <Checkbox
+                                checked={field.value}
+                                onCheckedChange={field.onChange}
+                              />
+                            </FormControl>
+                            <div className="space-y-1 leading-none">
+                              <FormLabel>I accept Stripe's terms of service</FormLabel>
+                              <FormDescription className="text-xs">
+                                By checking this box, you acknowledge that you have read and agree to Stripe's Connected Account Agreement.
+                              </FormDescription>
+                            </div>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                      
+                      <div className="pt-4">
+                        <Button 
+                          type="button" 
+                          onClick={goToNextSection}
+                          disabled={!termsAccepted}
+                          className="w-full"
+                        >
+                          Next: Personal Information
+                        </Button>
+                      </div>
+                    </CardContent>
+                  </Card>
+                </TabsContent>
+                
+                <TabsContent value="personal" className="mt-0">
+                  <Card>
+                    <CardHeader className="p-4">
+                      <CardTitle className="text-base flex items-center">
+                        <User className="h-4 w-4 mr-2" />
+                        Personal Information
+                      </CardTitle>
+                      <CardDescription>
+                        Information about you for payment processing
+                      </CardDescription>
+                    </CardHeader>
+                    <CardContent className="p-4 space-y-4">
+                      <div className="grid grid-cols-2 gap-4">
+                        <FormField
+                          control={form.control}
+                          name="representativeName"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>Full Name *</FormLabel>
+                              <FormControl>
+                                <Input placeholder="Full Name" {...field} />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                        
+                        <FormField
+                          control={form.control}
+                          name="representativeTitle"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>Title *</FormLabel>
+                              <FormControl>
+                                <Input placeholder="e.g. Individual" {...field} />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                      </div>
+                      
+                      <div className="grid grid-cols-2 gap-4">
+                        <FormField
+                          control={form.control}
+                          name="dateOfBirth"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>Date of Birth *</FormLabel>
+                              <FormControl>
+                                <Input type="date" {...field} />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                        
+                        <FormField
+                          control={form.control}
+                          name="ssnLast4"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>Last 4 of SSN *</FormLabel>
+                              <FormControl>
+                                <Input 
+                                  maxLength={4} 
+                                  placeholder="1234" 
+                                  {...field} 
+                                  onChange={(e) => {
+                                    const value = e.target.value.replace(/[^0-9]/g, '');
+                                    if (value.length <= 4) {
+                                      field.onChange(value);
+                                    }
+                                  }}
+                                />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                      </div>
+                      
+                      <div className="grid grid-cols-2 gap-4">
+                        <FormField
+                          control={form.control}
+                          name="email"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>Email *</FormLabel>
+                              <FormControl>
+                                <Input placeholder="email@example.com" {...field} />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                        
+                        <FormField
+                          control={form.control}
+                          name="phone"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>Phone *</FormLabel>
+                              <FormControl>
+                                <Input placeholder="(123) 456-7890" {...field} />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                      </div>
+                      
+                      <div className="pt-4">
+                        <Button 
+                          type="button" 
+                          onClick={goToNextSection}
+                          disabled={!personalInfoFilled}
+                          className="w-full"
+                        >
+                          Next: Address Information
+                        </Button>
+                      </div>
+                    </CardContent>
+                  </Card>
+                </TabsContent>
+                
+                <TabsContent value="address" className="mt-0">
+                  <Card>
+                    <CardHeader className="p-4">
+                      <CardTitle className="text-base flex items-center">
+                        <Map className="h-4 w-4 mr-2" />
+                        Address Information
+                      </CardTitle>
+                      <CardDescription>
+                        Your mailing address for payment verification
+                      </CardDescription>
+                    </CardHeader>
+                    <CardContent className="p-4 space-y-4">
+                      <FormField
+                        control={form.control}
+                        name="streetAddress"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Street Address *</FormLabel>
+                            <FormControl>
+                              <Input placeholder="123 Main St" {...field} />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                      
+                      <FormField
+                        control={form.control}
+                        name="aptUnit"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Apartment/Unit (Optional)</FormLabel>
+                            <FormControl>
+                              <Input placeholder="Apt 4B" {...field} />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                      
+                      <div className="grid grid-cols-2 gap-4">
+                        <FormField
+                          control={form.control}
+                          name="city"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>City *</FormLabel>
+                              <FormControl>
+                                <Input placeholder="New York" {...field} />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                        
+                        <FormField
+                          control={form.control}
+                          name="state"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>State *</FormLabel>
+                              <FormControl>
+                                <Input placeholder="NY" {...field} />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                      </div>
+                      
+                      <div className="grid grid-cols-2 gap-4">
+                        <FormField
+                          control={form.control}
+                          name="zip"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>ZIP Code *</FormLabel>
+                              <FormControl>
+                                <Input placeholder="10001" {...field} />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                        
+                        <FormField
+                          control={form.control}
+                          name="country"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>Country *</FormLabel>
+                              <FormControl>
+                                <Input value="US" disabled {...field} />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                      </div>
+                      
+                      <div className="pt-4">
+                        <Button 
+                          type="button" 
+                          onClick={goToNextSection}
+                          disabled={!addressInfoFilled}
+                          className="w-full"
+                        >
+                          Next: Banking Information
+                        </Button>
+                      </div>
+                    </CardContent>
+                  </Card>
+                </TabsContent>
+                
+                <TabsContent value="banking" className="mt-0">
+                  <Card>
+                    <CardHeader className="p-4">
+                      <CardTitle className="text-base flex items-center">
+                        <CreditCard className="h-4 w-4 mr-2" />
+                        Banking Information
+                      </CardTitle>
+                      <CardDescription>
+                        Your bank details for receiving payments
+                      </CardDescription>
+                    </CardHeader>
+                    <CardContent className="p-4 space-y-4">
+                      <FormField
+                        control={form.control}
+                        name="accountType"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Account Type *</FormLabel>
+                            <Select onValueChange={field.onChange} defaultValue={field.value}>
+                              <FormControl>
+                                <SelectTrigger>
+                                  <SelectValue placeholder="Select account type" />
+                                </SelectTrigger>
+                              </FormControl>
+                              <SelectContent>
+                                <SelectItem value="checking">Checking</SelectItem>
+                                <SelectItem value="savings">Savings</SelectItem>
+                              </SelectContent>
+                            </Select>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                      
+                      <FormField
+                        control={form.control}
+                        name="accountHolderName"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Account Holder Name *</FormLabel>
+                            <FormControl>
+                              <Input placeholder="John Doe" {...field} />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                      
+                      <div className="grid grid-cols-2 gap-4">
+                        <FormField
+                          control={form.control}
+                          name="accountNumber"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>Account Number *</FormLabel>
+                              <FormControl>
+                                <Input 
+                                  placeholder="12345678" 
+                                  {...field} 
+                                  onChange={(e) => {
+                                    const value = e.target.value.replace(/[^0-9]/g, '');
+                                    field.onChange(value);
+                                  }}
+                                />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                        
+                        <FormField
+                          control={form.control}
+                          name="routingNumber"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>Routing Number *</FormLabel>
+                              <FormControl>
+                                <Input 
+                                  placeholder="123456789" 
+                                  {...field} 
+                                  onChange={(e) => {
+                                    const value = e.target.value.replace(/[^0-9]/g, '');
+                                    if (value.length <= 9) {
+                                      field.onChange(value);
+                                    }
+                                  }}
+                                />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                      </div>
+                      
+                      <div className="bg-amber-50 border border-amber-200 p-3 rounded-md text-amber-800 text-xs">
+                        <p className="flex items-center">
+                          <Info className="h-4 w-4 mr-1 text-amber-600" />
+                          Your banking information is securely processed by Stripe and never stored directly on our servers.
+                        </p>
+                      </div>
+                    </CardContent>
+                  </Card>
+                </TabsContent>
+              </ScrollArea>
+              
+              <DialogFooter className="px-6 py-4 border-t">
+                <Button 
+                  type="submit" 
+                  disabled={isSubmitting || !termsAccepted || !personalInfoFilled || !addressInfoFilled || !bankingInfoFilled}
+                  className="w-full sm:w-auto"
                 >
-                  Stripe Connected Account Agreement
-                </a> 
-                which includes the 
-                <a 
-                  href="https://stripe.com/legal/ssa" 
-                  target="_blank" 
-                  rel="noreferrer"
-                  className="text-primary hover:underline mx-1"
-                >
-                  Stripe Services Agreement
-                </a>.
-              </p>
-              <p className="mt-2">
-                This enables us to process payments and transfer funds to your account if you apply for and complete jobs through our platform.
-              </p>
-            </div>
-
-            <FormField
-              control={form.control}
-              name="acceptTerms"
-              render={({ field }) => (
-                <FormItem className="flex flex-row items-start space-x-3 space-y-0 rounded-md border p-4">
-                  <FormControl>
-                    <Checkbox
-                      checked={field.value}
-                      onCheckedChange={field.onChange}
-                    />
-                  </FormControl>
-                  <div className="space-y-1 leading-none">
-                    <FormLabel>I accept Stripe's terms of service</FormLabel>
-                    <FormDescription>
-                      By checking this box, you acknowledge that you have read and agree to Stripe's Connected Account Agreement.
-                    </FormDescription>
-                  </div>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-
-            <div className="space-y-4 overflow-y-auto max-h-96 pr-2">
-              <h3 className="text-md font-medium">Representative Information</h3>
-              <p className="text-sm text-gray-500">
-                Please provide all the required information to process payments and receive payouts.
-              </p>
-              
-              {/* Basic Information */}
-              <div className="grid grid-cols-1 gap-4">
-                <FormField
-                  control={form.control}
-                  name="representativeName"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Representative Name *</FormLabel>
-                      <FormControl>
-                        <Input placeholder="Full Name" {...field} />
-                      </FormControl>
-                      <FormDescription>
-                        Your full legal name
-                      </FormDescription>
-                      <FormMessage />
-                    </FormItem>
+                  {isSubmitting ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      Setting up account...
+                    </>
+                  ) : (
+                    'Complete Setup'
                   )}
-                />
-                
-                <FormField
-                  control={form.control}
-                  name="representativeTitle"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Representative Title *</FormLabel>
-                      <FormControl>
-                        <Input placeholder="Title or Position" {...field} />
-                      </FormControl>
-                      <FormDescription>
-                        Your title or position (e.g., Individual, Owner, CEO)
-                      </FormDescription>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                
-                <FormField
-                  control={form.control}
-                  name="dateOfBirth"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Date of Birth *</FormLabel>
-                      <FormControl>
-                        <Input type="date" placeholder="MM/DD/YYYY" {...field} />
-                      </FormControl>
-                      <FormDescription>
-                        Your date of birth
-                      </FormDescription>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                
-                <FormField
-                  control={form.control}
-                  name="email"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Email *</FormLabel>
-                      <FormControl>
-                        <Input type="email" placeholder="email@example.com" {...field} />
-                      </FormControl>
-                      <FormDescription>
-                        Your email address for payment notifications
-                      </FormDescription>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                
-                <FormField
-                  control={form.control}
-                  name="phone"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Phone Number *</FormLabel>
-                      <FormControl>
-                        <Input type="tel" placeholder="(123) 456-7890" {...field} />
-                      </FormControl>
-                      <FormDescription>
-                        Your contact phone number
-                      </FormDescription>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                
-                <FormField
-                  control={form.control}
-                  name="ssnLast4"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Last 4 digits of SSN *</FormLabel>
-                      <FormControl>
-                        <Input 
-                          maxLength={4} 
-                          placeholder="1234" 
-                          {...field} 
-                          onChange={(e) => {
-                            // Only allow numbers
-                            const value = e.target.value.replace(/[^0-9]/g, '');
-                            if (value.length <= 4) {
-                              field.onChange(value);
-                            }
-                          }}
-                        />
-                      </FormControl>
-                      <FormDescription>
-                        Last 4 digits of your Social Security Number
-                      </FormDescription>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-              </div>
-              
-              {/* Address Information */}
-              <h3 className="text-md font-medium mt-6">Address Information</h3>
-              
-              <div className="grid grid-cols-1 gap-4">
-                <FormField
-                  control={form.control}
-                  name="streetAddress"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Street Address *</FormLabel>
-                      <FormControl>
-                        <Input placeholder="123 Main St" {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                
-                <FormField
-                  control={form.control}
-                  name="aptUnit"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Apartment, Suite, Unit (Optional)</FormLabel>
-                      <FormControl>
-                        <Input placeholder="Apt 4B" {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                
-                <div className="grid grid-cols-2 gap-4">
-                  <FormField
-                    control={form.control}
-                    name="city"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>City *</FormLabel>
-                        <FormControl>
-                          <Input placeholder="New York" {...field} />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  
-                  <FormField
-                    control={form.control}
-                    name="state"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>State *</FormLabel>
-                        <FormControl>
-                          <Input placeholder="NY" {...field} />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                </div>
-                
-                <div className="grid grid-cols-2 gap-4">
-                  <FormField
-                    control={form.control}
-                    name="zip"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>ZIP Code *</FormLabel>
-                        <FormControl>
-                          <Input placeholder="10001" {...field} />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  
-                  <FormField
-                    control={form.control}
-                    name="country"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Country *</FormLabel>
-                        <FormControl>
-                          <Input placeholder="US" value="US" disabled {...field} />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                </div>
-              </div>
-              
-              <div className="mt-4 bg-amber-50 border border-amber-200 p-3 rounded-md">
-                <p className="text-sm text-amber-800">
-                  <span className="font-medium">Privacy Note:</span> Your information is securely transmitted to Stripe and is required for identity verification, fraud prevention, and regulatory compliance.
-                </p>
-              </div>
-              
-              {/* Bank Account Information */}
-              <h3 className="text-md font-medium mt-6">Bank Account Information</h3>
-              <p className="text-sm text-gray-500 mb-4">
-                Please provide your bank account information to receive payments.
-              </p>
-              
-              <div className="grid grid-cols-1 gap-4">
-                <FormField
-                  control={form.control}
-                  name="accountHolderName"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Account Holder Name *</FormLabel>
-                      <FormControl>
-                        <Input placeholder="John Doe" {...field} />
-                      </FormControl>
-                      <FormDescription>
-                        Name on the bank account
-                      </FormDescription>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                
-                <FormField
-                  control={form.control}
-                  name="accountType"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Account Type *</FormLabel>
-                      <Select 
-                        onValueChange={field.onChange} 
-                        defaultValue={field.value}
-                      >
-                        <FormControl>
-                          <SelectTrigger>
-                            <SelectValue placeholder="Select account type" />
-                          </SelectTrigger>
-                        </FormControl>
-                        <SelectContent>
-                          <SelectItem value="checking">Checking</SelectItem>
-                          <SelectItem value="savings">Savings</SelectItem>
-                        </SelectContent>
-                      </Select>
-                      <FormDescription>
-                        Type of bank account
-                      </FormDescription>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                
-                <FormField
-                  control={form.control}
-                  name="routingNumber"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Routing Number *</FormLabel>
-                      <FormControl>
-                        <Input 
-                          placeholder="123456789" 
-                          maxLength={9}
-                          {...field} 
-                          onChange={(e) => {
-                            // Only allow numbers
-                            const value = e.target.value.replace(/[^0-9]/g, '');
-                            if (value.length <= 9) {
-                              field.onChange(value);
-                            }
-                          }}
-                        />
-                      </FormControl>
-                      <FormDescription>
-                        9-digit bank routing number
-                      </FormDescription>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                
-                <FormField
-                  control={form.control}
-                  name="accountNumber"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Account Number *</FormLabel>
-                      <FormControl>
-                        <Input 
-                          placeholder="Account number" 
-                          {...field} 
-                          onChange={(e) => {
-                            // Only allow numbers
-                            const value = e.target.value.replace(/[^0-9]/g, '');
-                            field.onChange(value);
-                          }}
-                        />
-                      </FormControl>
-                      <FormDescription>
-                        Your bank account number
-                      </FormDescription>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-              </div>
-            </div>
-
-            <div className="sticky bottom-0 left-0 right-0 pb-2 pt-4 bg-background/90 backdrop-blur-sm border-t shadow-md">
-              <Button 
-                type="submit"
-                disabled={isSubmitting}
-                className="w-full"
-                size="lg"
-              >
-                {isSubmitting ? (
-                  <>
-                    <Loader2 className="h-5 w-5 mr-2 animate-spin" />
-                    Submitting...
-                  </>
-                ) : (
-                  'Accept Terms and Continue'
-                )}
-              </Button>
-              <p className="text-xs text-center mt-2 text-muted-foreground">
-                You must accept the terms to use payment features
-              </p>
-            </div>
-          </form>
-        </Form>
+                </Button>
+              </DialogFooter>
+            </form>
+          </Form>
+        </Tabs>
       </DialogContent>
     </Dialog>
   );
