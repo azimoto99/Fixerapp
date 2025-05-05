@@ -17,11 +17,14 @@ export class FixedDatabaseStorage implements IStorage {
     
     // Create PostgreSQL session store with better configuration
     const PostgresStore = connectPg(session);
+    
+    // Use a custom table name to avoid conflicts with other session tables
     this.sessionStore = new PostgresStore({
       pool,
       tableName: 'sessions', // Default is "session"
       createTableIfMissing: true, // Create the table if it doesn't exist
-      pruneSessionInterval: 60 * 15 // Prune every 15 minutes
+      pruneSessionInterval: 60 * 15, // Prune every 15 minutes
+      errorLog: console.error // Log errors for easier debugging
     });
     
     console.log("PostgreSQL session store initialized");
