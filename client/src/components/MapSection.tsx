@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useCallback, memo } from 'react';
 import { useGeolocation } from '@/lib/geolocation';
 import JobDetail from './JobDetail';
 import { JobMarker } from './JobMarker';
@@ -14,7 +14,7 @@ import {
 } from 'react-leaflet';
 import 'leaflet/dist/leaflet.css';
 import { LatLngExpression } from 'leaflet';
-import { Loader2 } from 'lucide-react';
+import { Loader2, PlusCircle, MinusCircle, Target } from 'lucide-react';
 import { useAuth } from '@/hooks/use-auth';
 import { useToast } from '@/hooks/use-toast';
 import { apiRequest, queryClient } from '@/lib/queryClient';
@@ -27,8 +27,8 @@ interface MapSectionProps {
   searchCoordinates?: { latitude: number; longitude: number };
 }
 
-// Component to recenter map when user location changes
-function RecenterMap({ position }: { position: LatLngExpression | null }) {
+// Component to recenter map when user location changes - memoized for performance
+const RecenterMap = memo(({ position }: { position: LatLngExpression | null }) => {
   const map = useMap();
   
   useEffect(() => {
@@ -38,55 +38,61 @@ function RecenterMap({ position }: { position: LatLngExpression | null }) {
   }, [position, map]);
   
   return null;
-}
+});
 
-// Custom control components for mobile
-function ZoomInControl() {
+// Custom map control components that are memoized for better performance
+const ZoomInControl = memo(() => {
   const map = useMap();
+  const handleZoomIn = useCallback(() => {
+    map.zoomIn();
+  }, [map]);
+  
   return (
     <button 
-      onClick={() => map.zoomIn()}
+      onClick={handleZoomIn}
       className="bg-primary text-white shadow-lg rounded-full w-10 h-10 flex items-center justify-center transform transition-all hover:scale-105 active:scale-95 hover:bg-primary/90"
       aria-label="Zoom in"
     >
-      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-5 w-5">
-        <line x1="12" y1="5" x2="12" y2="19"></line>
-        <line x1="5" y1="12" x2="19" y2="12"></line>
-      </svg>
+      <PlusCircle className="h-5 w-5" />
     </button>
   );
-}
+});
 
-function ZoomOutControl() {
+const ZoomOutControl = memo(() => {
   const map = useMap();
+  const handleZoomOut = useCallback(() => {
+    map.zoomOut();
+  }, [map]);
+  
   return (
     <button 
-      onClick={() => map.zoomOut()}
+      onClick={handleZoomOut}
       className="bg-primary text-white shadow-lg rounded-full w-10 h-10 flex items-center justify-center transform transition-all hover:scale-105 active:scale-95 hover:bg-primary/90"
       aria-label="Zoom out"
     >
-      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-5 w-5">
-        <line x1="5" y1="12" x2="19" y2="12"></line>
-      </svg>
+      <MinusCircle className="h-5 w-5" />
     </button>
   );
-}
+});
 
-function RecenterControl({ position }: { position: LatLngExpression | null }) {
+const RecenterControl = memo(({ position }: { position: LatLngExpression | null }) => {
   const map = useMap();
+  const handleRecenter = useCallback(() => {
+    if (position) {
+      map.setView(position, 15);
+    }
+  }, [map, position]);
+  
   return (
     <button 
-      onClick={() => position && map.setView(position, 15)}
+      onClick={handleRecenter}
       className="bg-primary text-white shadow-lg rounded-full w-10 h-10 flex items-center justify-center transform transition-all hover:scale-105 active:scale-95 hover:bg-primary/90"
       aria-label="Return to my location"
     >
-      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-5 w-5">
-        <circle cx="12" cy="12" r="10"></circle>
-        <circle cx="12" cy="12" r="3"></circle>
-      </svg>
+      <Target className="h-5 w-5" />
     </button>
   );
-}
+});
 
 // DoorDash-style interactive map component for showing nearby gigs
 const MapSection: React.FC<MapSectionProps> = ({ jobs, selectedJob, onSelectJob, searchCoordinates }) => {

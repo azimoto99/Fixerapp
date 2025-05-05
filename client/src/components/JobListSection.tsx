@@ -9,8 +9,10 @@ interface JobListSectionProps {
   onSelectJob?: (job: Job) => void;
   selectedJobId?: number;
   searchParams?: {
-    query: string;
-    category: string;
+    query?: string;
+    category?: string;
+    searchMode?: 'location' | 'description';
+    coordinates?: { latitude: number; longitude: number };
   };
 }
 
@@ -19,7 +21,7 @@ const JobListSection: React.FC<JobListSectionProps> = ({
   selectedJobId,
   searchParams
 }) => {
-  const { jobs, isLoading } = useJobs(searchParams);
+  const { jobs, isLoading } = useJobs({}, searchParams);
   
   // Use useMemo to avoid unnecessary filtering on each render
   const filteredJobs = useMemo(() => {
