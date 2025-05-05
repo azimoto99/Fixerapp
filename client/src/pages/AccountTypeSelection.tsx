@@ -65,7 +65,7 @@ export default function AccountTypeSelection() {
             Choose Your Account Type
           </h1>
           <p className="text-muted-foreground text-lg">
-            Select the account type you want to use with The Job
+            Select the account type you want to use with Fixer
           </p>
         </div>
         
