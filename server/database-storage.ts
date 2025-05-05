@@ -31,63 +31,46 @@ export class DatabaseStorage implements IStorage {
   async getAllUsers(): Promise<User[]> {
     const allUsers = await db.select().from(users);
     
-    // Add the requiresProfileCompletion property to each user
-    return allUsers.map(user => {
-      // Check if user has social login and either has 'pending' account type or missing profile fields
-      const hasSocialLogin = Boolean(user.googleId || user.facebookId);
-      const hasPendingAccountType = user.accountType === 'pending';
-      const hasMissingProfileFields = !user.bio || !user.phone;
-      const needsProfileCompletion = hasSocialLogin && (hasPendingAccountType || hasMissingProfileFields);
-      
-      return {
-        ...user,
-        requiresProfileCompletion: needsProfileCompletion === true ? true : null
-      };
-    });
+    // Add the virtual fields to each user
+    return allUsers.map(user => this.addVirtualFields(user));
   }
 
+  // Helper function to add virtual fields to user objects
+  private addVirtualFields(user: typeof users.$inferSelect): User {
+    if (!user) return user;
+    
+    // Check if user needs to complete profile
+    const hasSocialLogin = Boolean(user.googleId || user.facebookId);
+    const hasPendingAccountType = user.accountType === 'pending';
+    const hasMissingProfileFields = !user.bio || !user.phone;
+    const needsProfileCompletion = hasSocialLogin && (hasPendingAccountType || hasMissingProfileFields);
+    
+    // Check if user needs to accept Stripe terms
+    // User needs to accept terms if they have a Stripe Connect account but haven't accepted terms
+    const hasStripeAccount = Boolean(user.stripeConnectAccountId);
+    const needsStripeTerms = hasStripeAccount && !user.stripeTermsAccepted;
+    
+    // Check if user needs to provide representative information
+    // User needs to provide representative info if they have accepted terms but haven't provided representative info
+    const needsRepresentative = user.stripeTermsAccepted && 
+      (!user.stripeRepresentativeName || !user.stripeRepresentativeTitle);
+    
+    return {
+      ...user,
+      requiresProfileCompletion: needsProfileCompletion,
+      requiresStripeTerms: needsStripeTerms,
+      requiresStripeRepresentative: needsRepresentative
+    };
+  }
+  
   async getUser(id: number): Promise<User | undefined> {
     const [user] = await db.select().from(users).where(eq(users.id, id));
-    
-    // If user is found and is a social login user (has googleId or facebookId), 
-    // we may need to mark it as requiring profile completion
-    if (user) {
-      // Add the requiresProfileCompletion property for social login users
-      // who have pending account type or have just registered
-      // Check if user has social login and either has 'pending' account type or missing profile fields
-      const hasSocialLogin = Boolean(user.googleId || user.facebookId);
-      const hasPendingAccountType = user.accountType === 'pending';
-      const hasMissingProfileFields = !user.bio || !user.phone;
-      const needsProfileCompletion = hasSocialLogin && (hasPendingAccountType || hasMissingProfileFields);
-      
-      return {
-        ...user,
-        requiresProfileCompletion: needsProfileCompletion
-      };
-    }
-    
-    return user;
+    return this.addVirtualFields(user);
   }
 
   async getUserByUsername(username: string): Promise<User | undefined> {
     const [user] = await db.select().from(users).where(eq(users.username, username));
-    
-    // If user is found, add the requiresProfileCompletion property
-    if (user) {
-      // Same logic as in getUser
-      // Check if user has social login and either has 'pending' account type or missing profile fields
-      const hasSocialLogin = Boolean(user.googleId || user.facebookId);
-      const hasPendingAccountType = user.accountType === 'pending';
-      const hasMissingProfileFields = !user.bio || !user.phone;
-      const needsProfileCompletion = hasSocialLogin && (hasPendingAccountType || hasMissingProfileFields);
-      
-      return {
-        ...user,
-        requiresProfileCompletion: needsProfileCompletion
-      };
-    }
-    
-    return user;
+    return this.addVirtualFields(user);
   }
   
   async getUserByUsernameAndType(username: string, accountType: string): Promise<User | undefined> {
@@ -97,46 +80,35 @@ export class DatabaseStorage implements IStorage {
         eq(users.accountType, accountType)
       )
     );
-    
-    // If user is found, add the requiresProfileCompletion property
-    if (user) {
-      // Same logic as in getUser
-      // Check if user has social login and either has 'pending' account type or missing profile fields
-      const hasSocialLogin = Boolean(user.googleId || user.facebookId);
-      const hasPendingAccountType = user.accountType === 'pending';
-      const hasMissingProfileFields = !user.bio || !user.phone;
-      const needsProfileCompletion = hasSocialLogin && (hasPendingAccountType || hasMissingProfileFields);
-      
-      return {
-        ...user,
-        requiresProfileCompletion: needsProfileCompletion
-      };
-    }
-    
-    return user;
+    return this.addVirtualFields(user);
   }
 
   async createUser(user: InsertUser): Promise<User> {
-    // Extract the requiresProfileCompletion property (if it exists) and remove it from the user object
-    // since it doesn't exist in the database schema
-    const { requiresProfileCompletion, ...dbUser } = user;
+    // Extract virtual properties that don't exist in the database schema
+    const { 
+      requiresProfileCompletion, 
+      requiresStripeTerms, 
+      requiresStripeRepresentative, 
+      ...dbUser 
+    } = user;
     
-    // Insert the user without the requiresProfileCompletion field
+    // Insert the user without the virtual fields
     const [createdUser] = await db.insert(users).values(dbUser).returning();
     
-    // Add the requiresProfileCompletion property back to the user object for the client
-    return {
-      ...createdUser,
-      requiresProfileCompletion: requiresProfileCompletion === true ? true : null
-    };
+    // Add the virtual fields using our helper function
+    return this.addVirtualFields(createdUser);
   }
 
   async updateUser(id: number, data: Partial<InsertUser>): Promise<User | undefined> {
-    // Extract the requiresProfileCompletion property (if it exists) and remove it from the data object
-    // since it doesn't exist in the database schema
-    const { requiresProfileCompletion, ...dbData } = data;
+    // Extract virtual properties that don't exist in the database schema
+    const { 
+      requiresProfileCompletion, 
+      requiresStripeTerms, 
+      requiresStripeRepresentative, 
+      ...dbData 
+    } = data;
     
-    // Update the user without the requiresProfileCompletion field
+    // Update the user without the virtual fields
     const [updatedUser] = await db.update(users)
       .set(dbData)
       .where(eq(users.id, id))
@@ -144,11 +116,8 @@ export class DatabaseStorage implements IStorage {
       
     if (!updatedUser) return undefined;
     
-    // Add the requiresProfileCompletion property back to the user object for the client
-    return {
-      ...updatedUser,
-      requiresProfileCompletion: requiresProfileCompletion === true ? true : null
-    };
+    // Add the virtual fields using our helper function
+    return this.addVirtualFields(updatedUser);
   }
   
   // Job operations
