@@ -27,7 +27,7 @@ type AccountStatus = {
 const StripeConnectSetup: React.FC<StripeConnectSetupProps> = ({ compact = false }) => {
   const { toast } = useToast();
   
-  // Query account status
+  // Query account status with enhanced error handling
   const { data: accountStatus, isLoading, error, refetch } = useQuery({
     queryKey: ['/api/stripe/connect/account-status'],
     queryFn: async () => {
@@ -39,22 +39,50 @@ const StripeConnectSetup: React.FC<StripeConnectSetupProps> = ({ compact = false
         if (error.status === 404) {
           return null;
         }
+        
+        // If we get a 401, the user might need to log in again
+        if (error.status === 401) {
+          console.log('Session may have expired, attempting to refresh user data');
+          // Try to refresh user data (this will redirect to login if needed)
+          await queryClient.invalidateQueries({ queryKey: ['/api/user'] });
+          // Still throw the error to be caught by the UI
+          throw new Error('Authentication needed. Please try again or refresh the page.');
+        }
+        
         throw error;
       }
     },
     retry: (failureCount, error: any) => {
-      return failureCount < 3 && error.status !== 404;
+      // Don't retry 401 or 404 errors
+      if (error.status === 401 || error.status === 404) return false;
+      return failureCount < 3;
     }
   });
   
-  // Create account mutation
+  // Create account mutation with enhanced error handling
   const createAccountMutation = useMutation({
     mutationFn: async () => {
       try {
+        // Request to check if user is authenticated before proceeding
+        const userCheck = await apiRequest('GET', '/api/user');
+        if (!userCheck.ok) {
+          console.log('User authentication check failed before creating Stripe account');
+          // Invalidate user query to trigger auth redirect if needed
+          await queryClient.invalidateQueries({ queryKey: ['/api/user'] });
+          throw new Error('Please login to continue');
+        }
+        
         const res = await apiRequest('POST', '/api/stripe/connect/create-account', {});
         
         // If response is not ok, throw with more details
         if (!res.ok) {
+          if (res.status === 401) {
+            console.log('Authentication failed during Stripe account creation');
+            // Try to refresh user data (this will redirect to login if needed)
+            await queryClient.invalidateQueries({ queryKey: ['/api/user'] });
+            throw new Error('Authentication error. Please login again.');
+          }
+          
           const errorData = await res.json();
           console.error('Stripe Connect account creation failed:', errorData);
           throw new Error(errorData.message || `Server error: ${res.status}`);
@@ -93,11 +121,39 @@ const StripeConnectSetup: React.FC<StripeConnectSetupProps> = ({ compact = false
     }
   });
   
-  // Create login link mutation
+  // Create login link mutation with enhanced error handling
   const createLoginLinkMutation = useMutation({
     mutationFn: async () => {
-      const res = await apiRequest('POST', '/api/stripe/connect/create-login-link', {});
-      return await res.json();
+      try {
+        // Request to check if user is authenticated before proceeding
+        const userCheck = await apiRequest('GET', '/api/user');
+        if (!userCheck.ok) {
+          console.log('User authentication check failed before creating login link');
+          // Invalidate user query to trigger auth redirect if needed
+          await queryClient.invalidateQueries({ queryKey: ['/api/user'] });
+          throw new Error('Please login to continue');
+        }
+        
+        const res = await apiRequest('POST', '/api/stripe/connect/create-login-link', {});
+        
+        // If response is not ok, handle different error cases
+        if (!res.ok) {
+          if (res.status === 401) {
+            console.log('Authentication failed during login link creation');
+            // Try to refresh user data (this will redirect to login if needed)
+            await queryClient.invalidateQueries({ queryKey: ['/api/user'] });
+            throw new Error('Authentication error. Please login again.');
+          }
+          
+          const errorData = await res.json();
+          throw new Error(errorData.message || `Server error: ${res.status}`);
+        }
+        
+        return await res.json();
+      } catch (error) {
+        console.error('Error creating Stripe Connect login link:', error);
+        throw error;
+      }
     },
     onSuccess: (data) => {
       if (data.url || data.accountLinkUrl) {
