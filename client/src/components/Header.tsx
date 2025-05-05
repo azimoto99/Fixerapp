@@ -74,9 +74,6 @@ const Header = () => {
           </nav>
         </div>
         <div className="flex items-center space-x-4">
-          <div className="hidden md:block">
-            <ThemeToggle />
-          </div>
           <button type="button" className="hidden md:block bg-gray-100 p-1.5 rounded-full text-gray-500 hover:text-gray-600">
             <i className="ri-notification-3-line text-xl"></i>
           </button>
