@@ -6,9 +6,13 @@ import {
   DropdownMenuContent, 
   DropdownMenuItem,
   DropdownMenuSeparator,
-  DropdownMenuTrigger 
+  DropdownMenuTrigger,
+  DropdownMenuSub,
+  DropdownMenuSubContent,
+  DropdownMenuSubTrigger,
+  DropdownMenuLabel
 } from '@/components/ui/dropdown-menu';
-import { ThemeToggle } from '@/components/theme';
+import { DropdownThemeToggle } from '@/components/theme';
 
 const Header = () => {
   const { user, logoutMutation } = useAuth();
@@ -94,11 +98,23 @@ const Header = () => {
                     <span className="cursor-pointer w-full">Profile</span>
                   </Link>
                 </DropdownMenuItem>
-                <DropdownMenuItem>
-                  <Link href="/settings">
-                    <span className="cursor-pointer w-full">Settings</span>
-                  </Link>
-                </DropdownMenuItem>
+                <DropdownMenuSub>
+                  <DropdownMenuSubTrigger>
+                    <span>Settings</span>
+                  </DropdownMenuSubTrigger>
+                  <DropdownMenuSubContent>
+                    <DropdownMenuLabel>Appearance</DropdownMenuLabel>
+                    <div className="p-2 w-56">
+                      <DropdownThemeToggle />
+                    </div>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem>
+                      <Link href="/settings">
+                        <span className="cursor-pointer w-full">All Settings</span>
+                      </Link>
+                    </DropdownMenuItem>
+                  </DropdownMenuSubContent>
+                </DropdownMenuSub>
                 <DropdownMenuSeparator />
                 <DropdownMenuItem onClick={handleLogout} className="cursor-pointer">
                   Logout
