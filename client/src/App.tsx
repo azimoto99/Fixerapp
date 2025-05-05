@@ -19,6 +19,7 @@ import { ProtectedRoute } from "@/lib/protected-route";
 import { useAuth } from "@/hooks/use-auth";
 import { StripeConnectCheck, StripeRequirementsCheck } from "@/components/stripe";
 import WelcomeMessage from "@/components/WelcomeMessage";
+import { ThemeProvider } from "@/components/theme";
 import { useEffect } from "react";
 
 // Redirect component for old routes
@@ -89,11 +90,13 @@ function AuthenticatedContent() {
 function App() {
   return (
     <QueryClientProvider client={queryClient}>
-      <TooltipProvider>
-        <AuthProvider>
-          <AuthenticatedContent />
-        </AuthProvider>
-      </TooltipProvider>
+      <ThemeProvider defaultTheme="system" storageKey="fixer-theme">
+        <TooltipProvider>
+          <AuthProvider>
+            <AuthenticatedContent />
+          </AuthProvider>
+        </TooltipProvider>
+      </ThemeProvider>
     </QueryClientProvider>
   );
 }
