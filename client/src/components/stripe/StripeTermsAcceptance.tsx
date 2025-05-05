@@ -30,6 +30,17 @@ const formSchema = z.object({
   }),
   representativeName: z.string().min(2, "Name must be at least 2 characters"),
   representativeTitle: z.string().min(2, "Title must be at least 2 characters"),
+  // Additional fields required by Stripe
+  dateOfBirth: z.string().min(10, "Date of birth is required"),
+  email: z.string().email("Valid email is required"),
+  phone: z.string().min(10, "Valid phone number is required"),
+  ssnLast4: z.string().length(4, "Last 4 digits of SSN required"),
+  streetAddress: z.string().min(3, "Street address is required"),
+  aptUnit: z.string().optional(),
+  city: z.string().min(2, "City is required"),
+  state: z.string().min(2, "State is required"),
+  zip: z.string().min(5, "ZIP code is required"),
+  country: z.string().min(2, "Country is required").default("US"),
 });
 
 type FormValues = z.infer<typeof formSchema>;
@@ -47,6 +58,16 @@ const StripeTermsAcceptance: React.FC<StripeTermsAcceptanceProps> = ({
       acceptTerms: false,
       representativeName: '',
       representativeTitle: '',
+      dateOfBirth: '',
+      email: '',
+      phone: '',
+      ssnLast4: '',
+      streetAddress: '',
+      aptUnit: '',
+      city: '',
+      state: '',
+      zip: '',
+      country: 'US',
     },
   });
 
@@ -54,9 +75,20 @@ const StripeTermsAcceptance: React.FC<StripeTermsAcceptanceProps> = ({
     try {
       setIsSubmitting(true);
       const res = await apiRequest('POST', `/api/users/${userId}/stripe-terms`, {
+        // Send all form values to the API
         acceptTerms: values.acceptTerms,
         representativeName: values.representativeName,
         representativeTitle: values.representativeTitle,
+        dateOfBirth: values.dateOfBirth,
+        email: values.email,
+        phone: values.phone,
+        ssnLast4: values.ssnLast4,
+        streetAddress: values.streetAddress,
+        aptUnit: values.aptUnit || '',
+        city: values.city,
+        state: values.state,
+        zip: values.zip,
+        country: values.country,
       });
       
       if (res.ok) {
@@ -149,45 +181,226 @@ const StripeTermsAcceptance: React.FC<StripeTermsAcceptanceProps> = ({
               )}
             />
 
-            <div className="space-y-4">
+            <div className="space-y-4 overflow-y-auto max-h-96 pr-2">
               <h3 className="text-md font-medium">Representative Information</h3>
               <p className="text-sm text-gray-500">
-                Please provide the name and title of the person who is authorized to accept these terms on behalf of your account.
+                Please provide all the required information to process payments and receive payouts.
               </p>
               
-              <FormField
-                control={form.control}
-                name="representativeName"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Representative Name</FormLabel>
-                    <FormControl>
-                      <Input placeholder="Full Name" {...field} />
-                    </FormControl>
-                    <FormDescription>
-                      Your full legal name
-                    </FormDescription>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
+              {/* Basic Information */}
+              <div className="grid grid-cols-1 gap-4">
+                <FormField
+                  control={form.control}
+                  name="representativeName"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Representative Name *</FormLabel>
+                      <FormControl>
+                        <Input placeholder="Full Name" {...field} />
+                      </FormControl>
+                      <FormDescription>
+                        Your full legal name
+                      </FormDescription>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                
+                <FormField
+                  control={form.control}
+                  name="representativeTitle"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Representative Title *</FormLabel>
+                      <FormControl>
+                        <Input placeholder="Title or Position" {...field} />
+                      </FormControl>
+                      <FormDescription>
+                        Your title or position (e.g., Individual, Owner, CEO)
+                      </FormDescription>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                
+                <FormField
+                  control={form.control}
+                  name="dateOfBirth"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Date of Birth *</FormLabel>
+                      <FormControl>
+                        <Input type="date" placeholder="MM/DD/YYYY" {...field} />
+                      </FormControl>
+                      <FormDescription>
+                        Your date of birth
+                      </FormDescription>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                
+                <FormField
+                  control={form.control}
+                  name="email"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Email *</FormLabel>
+                      <FormControl>
+                        <Input type="email" placeholder="email@example.com" {...field} />
+                      </FormControl>
+                      <FormDescription>
+                        Your email address for payment notifications
+                      </FormDescription>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                
+                <FormField
+                  control={form.control}
+                  name="phone"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Phone Number *</FormLabel>
+                      <FormControl>
+                        <Input type="tel" placeholder="(123) 456-7890" {...field} />
+                      </FormControl>
+                      <FormDescription>
+                        Your contact phone number
+                      </FormDescription>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                
+                <FormField
+                  control={form.control}
+                  name="ssnLast4"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Last 4 digits of SSN *</FormLabel>
+                      <FormControl>
+                        <Input 
+                          maxLength={4} 
+                          placeholder="1234" 
+                          {...field} 
+                          onChange={(e) => {
+                            // Only allow numbers
+                            const value = e.target.value.replace(/[^0-9]/g, '');
+                            if (value.length <= 4) {
+                              field.onChange(value);
+                            }
+                          }}
+                        />
+                      </FormControl>
+                      <FormDescription>
+                        Last 4 digits of your Social Security Number
+                      </FormDescription>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </div>
               
-              <FormField
-                control={form.control}
-                name="representativeTitle"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Representative Title</FormLabel>
-                    <FormControl>
-                      <Input placeholder="Title or Position" {...field} />
-                    </FormControl>
-                    <FormDescription>
-                      Your title or position (e.g., Individual, Owner, CEO)
-                    </FormDescription>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
+              {/* Address Information */}
+              <h3 className="text-md font-medium mt-6">Address Information</h3>
+              
+              <div className="grid grid-cols-1 gap-4">
+                <FormField
+                  control={form.control}
+                  name="streetAddress"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Street Address *</FormLabel>
+                      <FormControl>
+                        <Input placeholder="123 Main St" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                
+                <FormField
+                  control={form.control}
+                  name="aptUnit"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Apartment, Suite, Unit (Optional)</FormLabel>
+                      <FormControl>
+                        <Input placeholder="Apt 4B" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                
+                <div className="grid grid-cols-2 gap-4">
+                  <FormField
+                    control={form.control}
+                    name="city"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>City *</FormLabel>
+                        <FormControl>
+                          <Input placeholder="New York" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  
+                  <FormField
+                    control={form.control}
+                    name="state"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>State *</FormLabel>
+                        <FormControl>
+                          <Input placeholder="NY" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </div>
+                
+                <div className="grid grid-cols-2 gap-4">
+                  <FormField
+                    control={form.control}
+                    name="zip"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>ZIP Code *</FormLabel>
+                        <FormControl>
+                          <Input placeholder="10001" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  
+                  <FormField
+                    control={form.control}
+                    name="country"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Country *</FormLabel>
+                        <FormControl>
+                          <Input placeholder="US" value="US" disabled {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </div>
+              </div>
+              
+              <div className="mt-4 bg-amber-50 border border-amber-200 p-3 rounded-md">
+                <p className="text-sm text-amber-800">
+                  <span className="font-medium">Privacy Note:</span> Your information is securely transmitted to Stripe and is required for identity verification, fraud prevention, and regulatory compliance.
+                </p>
+              </div>
             </div>
 
             <DialogFooter>

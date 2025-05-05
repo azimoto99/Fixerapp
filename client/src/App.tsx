@@ -65,17 +65,22 @@ function RouterWithAuth() {
   );
 }
 
-function AppContent() {
+// This component uses auth context, so it must be inside the AuthProvider
+function AuthenticatedContent() {
   const { user } = useAuth();
   
   return (
-    <StripeConnectCheck workersOnly={true} enforce={false}>
-      <StripeRequirementsCheck user={user}>
-        <RouterWithAuth />
-        <WelcomeMessage />
-        <Toaster />
-      </StripeRequirementsCheck>
-    </StripeConnectCheck>
+    <>
+      <RouterWithAuth />
+      {user && (
+        <StripeConnectCheck workersOnly={true} enforce={false}>
+          <StripeRequirementsCheck user={user}>
+            <WelcomeMessage />
+          </StripeRequirementsCheck>
+        </StripeConnectCheck>
+      )}
+      <Toaster />
+    </>
   );
 }
 
@@ -84,7 +89,7 @@ function App() {
     <QueryClientProvider client={queryClient}>
       <TooltipProvider>
         <AuthProvider>
-          <AppContent />
+          <AuthenticatedContent />
         </AuthProvider>
       </TooltipProvider>
     </QueryClientProvider>
