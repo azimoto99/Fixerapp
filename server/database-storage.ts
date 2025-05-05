@@ -2,14 +2,16 @@ import { eq, and, like, desc, or, asc } from 'drizzle-orm';
 import { db } from './db';
 import { IStorage } from './storage';
 import {
-  users, jobs, applications, reviews, tasks, earnings, payments,
+  users, jobs, applications, reviews, tasks, earnings, payments, badges, userBadges,
   User, InsertUser,
   Job, InsertJob,
   Application, InsertApplication,
   Review, InsertReview,
   Task, InsertTask,
   Earning, InsertEarning,
-  Payment, InsertPayment
+  Payment, InsertPayment,
+  Badge, InsertBadge, 
+  UserBadge, InsertUserBadge
 } from '@shared/schema';
 import connectPg from "connect-pg-simple";
 import session from "express-session";
