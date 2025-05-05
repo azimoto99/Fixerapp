@@ -9,7 +9,7 @@ const Footer: React.FC = () => {
     <>
       <footer className="fixed bottom-0 left-0 right-0 bg-background/80 backdrop-blur-sm border-t z-[9000] py-2 px-4 text-xs text-muted-foreground">
         <div className="flex justify-center items-center">
-          <span>© {new Date().getFullYear()} The Job</span>
+          <span>© {new Date().getFullYear()} Fixer</span>
           <span className="mx-2">•</span>
           <Button 
             variant="link" 

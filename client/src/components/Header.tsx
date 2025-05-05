@@ -26,7 +26,7 @@ const Header = () => {
               <svg className="h-8 w-8 text-emerald-600" viewBox="0 0 24 24" fill="currentColor">
                 <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"></path>
               </svg>
-              <span className="ml-2 text-xl font-bold text-emerald-600">The Job</span>
+              <span className="ml-2 text-xl font-bold text-emerald-600">Fixer</span>
             </div>
           </Link>
           <nav className="hidden md:ml-8 md:flex md:space-x-8">
