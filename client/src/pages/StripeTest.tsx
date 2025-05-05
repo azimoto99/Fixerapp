@@ -3,22 +3,16 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/hooks/use-auth';
 import { StripeTermsAcceptance } from '@/components/stripe';
+import { withAuth } from '@/lib/with-auth';
 
-export default function StripeTest() {
+// Create the base component
+function StripeTestComponent() {
   const { user } = useAuth();
   const [showTermsForm, setShowTermsForm] = React.useState(false);
 
+  // WithAuth HOC ensures user is always defined, but add a check for TypeScript
   if (!user) {
-    return (
-      <div className="container mx-auto py-8">
-        <Card>
-          <CardHeader>
-            <CardTitle>Authentication Required</CardTitle>
-            <CardDescription>Please log in to access the Stripe test page.</CardDescription>
-          </CardHeader>
-        </Card>
-      </div>
-    );
+    return null;
   }
 
   return (
@@ -56,3 +50,7 @@ export default function StripeTest() {
     </div>
   );
 }
+
+// Export the wrapped component
+const StripeTest = withAuth(StripeTestComponent, { redirectTo: '/auth' });
+export default StripeTest;
