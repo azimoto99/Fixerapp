@@ -3,6 +3,8 @@ import { useGeolocation } from '@/lib/geolocation';
 import JobDetail from './JobDetail';
 import { JobMarker } from './JobMarker';
 import SimpleUserDrawer from './SimpleUserDrawer';
+import HeatmapLayer from './HeatmapLayer';
+import MapViewToggle from './MapViewToggle';
 import { Job } from '@shared/schema';
 import { 
   MapContainer, 
@@ -14,7 +16,7 @@ import {
 } from 'react-leaflet';
 import 'leaflet/dist/leaflet.css';
 import { LatLngExpression } from 'leaflet';
-import { Loader2, PlusCircle, MinusCircle, Target } from 'lucide-react';
+import { Loader2, PlusCircle, MinusCircle, Target, Layers } from 'lucide-react';
 import { useAuth } from '@/hooks/use-auth';
 import { useToast } from '@/hooks/use-toast';
 import { apiRequest, queryClient } from '@/lib/queryClient';
@@ -104,6 +106,7 @@ const MapSection: React.FC<MapSectionProps> = ({ jobs, selectedJob, onSelectJob,
   const [forceCloseDrawer, setForceCloseDrawer] = useState(false);
   const [lastSearchLocation, setLastSearchLocation] = useState<LatLngExpression | null>(null);
   const [showStripeConnectRequired, setShowStripeConnectRequired] = useState(false);
+  const [mapView, setMapView] = useState<'standard' | 'heatmap'>('standard');
   const { user } = useAuth();
   const { toast } = useToast();
   
