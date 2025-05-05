@@ -47,9 +47,9 @@ async function findOrCreateUserFromSocial(
   profile: any
 ): Promise<SelectUser> {
   // Check if a user with this social profile ID already exists
-  // We'll handle all users regardless of account type
-  const allUsers = Array.from((storage as any).users.values());
-  const existingUser = allUsers.find(u => u.googleId === profile.id);
+  // Get all users and find one with matching Google ID
+  const allUsers = await storage.getAllUsers();
+  const existingUser = allUsers.find((u: SelectUser) => u.googleId === profile.id);
   
   if (existingUser) {
     return existingUser;
