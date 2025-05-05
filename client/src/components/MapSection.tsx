@@ -491,7 +491,7 @@ const MapSection: React.FC<MapSectionProps> = ({ jobs, selectedJob, onSelectJob,
             {/* Map Controls */}
             <div className="leaflet-control-container">
               <div className="leaflet-top leaflet-right">
-                <div className="leaflet-control leaflet-bar flex flex-col items-center mt-3 mr-3">
+                <div className="leaflet-control leaflet-bar flex flex-col items-center mt-16 mr-3">
                   <div className="mb-3">
                     <MapViewToggle 
                       view={mapView} 
@@ -508,7 +508,7 @@ const MapSection: React.FC<MapSectionProps> = ({ jobs, selectedJob, onSelectJob,
               
               {/* Heat map legend - only show in heatmap view */}
               <div className="leaflet-bottom leaflet-left">
-                <div className="leaflet-control leaflet-bar ml-3 mb-10">
+                <div className="leaflet-control leaflet-bar ml-3 mb-20">
                   <HeatmapLegend visible={mapView === 'heatmap'} />
                 </div>
               </div>
