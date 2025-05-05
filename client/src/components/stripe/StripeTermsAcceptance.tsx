@@ -41,6 +41,13 @@ const formSchema = z.object({
   state: z.string().min(2, "State is required"),
   zip: z.string().min(5, "ZIP code is required"),
   country: z.string().min(2, "Country is required").default("US"),
+  // Bank account information
+  accountType: z.enum(["checking", "savings"], {
+    required_error: "Account type is required",
+  }),
+  accountNumber: z.string().min(4, "Valid account number is required"),
+  routingNumber: z.string().length(9, "Routing number must be 9 digits"),
+  accountHolderName: z.string().min(2, "Account holder name is required"),
 });
 
 type FormValues = z.infer<typeof formSchema>;
@@ -68,6 +75,11 @@ const StripeTermsAcceptance: React.FC<StripeTermsAcceptanceProps> = ({
       state: '',
       zip: '',
       country: 'US',
+      // Bank account defaults
+      accountType: 'checking',
+      accountNumber: '',
+      routingNumber: '',
+      accountHolderName: '',
     },
   });
 
@@ -89,6 +101,11 @@ const StripeTermsAcceptance: React.FC<StripeTermsAcceptanceProps> = ({
         state: values.state,
         zip: values.zip,
         country: values.country,
+        // Bank account information
+        accountType: values.accountType,
+        accountNumber: values.accountNumber,
+        routingNumber: values.routingNumber,
+        accountHolderName: values.accountHolderName,
       });
       
       if (res.ok) {
@@ -400,6 +417,112 @@ const StripeTermsAcceptance: React.FC<StripeTermsAcceptanceProps> = ({
                 <p className="text-sm text-amber-800">
                   <span className="font-medium">Privacy Note:</span> Your information is securely transmitted to Stripe and is required for identity verification, fraud prevention, and regulatory compliance.
                 </p>
+              </div>
+              
+              {/* Bank Account Information */}
+              <h3 className="text-md font-medium mt-6">Bank Account Information</h3>
+              <p className="text-sm text-gray-500 mb-4">
+                Please provide your bank account information to receive payments.
+              </p>
+              
+              <div className="grid grid-cols-1 gap-4">
+                <FormField
+                  control={form.control}
+                  name="accountHolderName"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Account Holder Name *</FormLabel>
+                      <FormControl>
+                        <Input placeholder="John Doe" {...field} />
+                      </FormControl>
+                      <FormDescription>
+                        Name on the bank account
+                      </FormDescription>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                
+                <FormField
+                  control={form.control}
+                  name="accountType"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Account Type *</FormLabel>
+                      <Select 
+                        onValueChange={field.onChange} 
+                        defaultValue={field.value}
+                      >
+                        <FormControl>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Select account type" />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          <SelectItem value="checking">Checking</SelectItem>
+                          <SelectItem value="savings">Savings</SelectItem>
+                        </SelectContent>
+                      </Select>
+                      <FormDescription>
+                        Type of bank account
+                      </FormDescription>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                
+                <FormField
+                  control={form.control}
+                  name="routingNumber"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Routing Number *</FormLabel>
+                      <FormControl>
+                        <Input 
+                          placeholder="123456789" 
+                          maxLength={9}
+                          {...field} 
+                          onChange={(e) => {
+                            // Only allow numbers
+                            const value = e.target.value.replace(/[^0-9]/g, '');
+                            if (value.length <= 9) {
+                              field.onChange(value);
+                            }
+                          }}
+                        />
+                      </FormControl>
+                      <FormDescription>
+                        9-digit bank routing number
+                      </FormDescription>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                
+                <FormField
+                  control={form.control}
+                  name="accountNumber"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Account Number *</FormLabel>
+                      <FormControl>
+                        <Input 
+                          placeholder="Account number" 
+                          {...field} 
+                          onChange={(e) => {
+                            // Only allow numbers
+                            const value = e.target.value.replace(/[^0-9]/g, '');
+                            field.onChange(value);
+                          }}
+                        />
+                      </FormControl>
+                      <FormDescription>
+                        Your bank account number
+                      </FormDescription>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
               </div>
             </div>
 
