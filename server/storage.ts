@@ -39,7 +39,11 @@ export interface IStorage {
   updateUser(id: number, data: Partial<InsertUser> & { 
     stripeConnectAccountId?: string, 
     stripeConnectAccountStatus?: string,
-    stripeCustomerId?: string 
+    stripeCustomerId?: string,
+    stripeTermsAccepted?: boolean,
+    stripeTermsAcceptedAt?: Date,
+    stripeRepresentativeName?: string,
+    stripeRepresentativeTitle?: string
   }): Promise<User | undefined>;
   uploadProfileImage(userId: number, imageData: string): Promise<User | undefined>;
   updateUserSkills(userId: number, skills: string[]): Promise<User | undefined>;

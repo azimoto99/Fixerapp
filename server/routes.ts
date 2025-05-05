@@ -369,6 +369,64 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
   
+  // Stripe terms of service and representative endpoint
+  apiRouter.post("/users/:id/stripe-terms", isAuthenticated, async (req: Request, res: Response) => {
+    try {
+      const id = parseInt(req.params.id);
+      
+      // Ensure the authenticated user is updating their own Stripe terms
+      if (req.user && req.user.id !== id) {
+        return res.status(403).json({ 
+          message: "Forbidden: You can only update your own Stripe terms" 
+        });
+      }
+      
+      // Validate request
+      const schema = z.object({
+        acceptTerms: z.boolean().optional(),
+        representativeName: z.string().min(2).optional(),
+        representativeTitle: z.string().min(2).optional()
+      });
+      
+      const { acceptTerms, representativeName, representativeTitle } = schema.parse(req.body);
+      
+      // Build the update object
+      const updateData: any = {};
+      
+      if (acceptTerms) {
+        updateData.stripeTermsAccepted = true;
+        updateData.stripeTermsAcceptedAt = new Date();
+      }
+      
+      if (representativeName) {
+        updateData.stripeRepresentativeName = representativeName;
+      }
+      
+      if (representativeTitle) {
+        updateData.stripeRepresentativeTitle = representativeTitle;
+      }
+      
+      // Only proceed if we have something to update
+      if (Object.keys(updateData).length === 0) {
+        return res.status(400).json({ message: "No valid data provided to update" });
+      }
+      
+      // Update the user
+      const updatedUser = await storage.updateUser(id, updateData);
+      
+      if (!updatedUser) {
+        return res.status(404).json({ message: "User not found" });
+      }
+      
+      // Don't return password in response
+      const { password, ...updatedUserData } = updatedUser;
+      res.json(updatedUserData);
+    } catch (error) {
+      console.error("Error updating Stripe terms:", error);
+      res.status(400).json({ message: (error as Error).message });
+    }
+  });
+  
   // Update user metrics endpoint
   apiRouter.patch("/users/:id/metrics", isAuthenticated, async (req: Request, res: Response) => {
     try {

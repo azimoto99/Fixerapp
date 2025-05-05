@@ -37,6 +37,14 @@ export class DatabaseStorage implements IStorage {
     const hasMissingProfileFields = !user.bio || !user.phone;
     const needsProfileCompletion = hasSocialLogin && (hasPendingAccountType || hasMissingProfileFields);
     
+    // Check if the user needs to accept Stripe terms or provide representative info
+    const hasAcceptedStripeTerms = Boolean(user.stripeTermsAccepted);
+    const hasStripeRepresentative = Boolean(user.stripeRepresentativeName && user.stripeRepresentativeTitle);
+    
+    // Determine if user needs to complete Stripe-related steps
+    const needsStripeTerms = !hasAcceptedStripeTerms;
+    const needsStripeRepresentative = hasAcceptedStripeTerms && !hasStripeRepresentative;
+    
     // Handle missing fields that are defined in the schema but may not exist in the DB yet
     const enhancedUser: User = {
       ...user,
@@ -46,7 +54,9 @@ export class DatabaseStorage implements IStorage {
       stripeCustomerId: (user as any).stripe_customer_id || null,
       stripeConnectAccountId: (user as any).stripe_connect_account_id || null,
       stripeConnectAccountStatus: (user as any).stripe_connect_account_status || null,
-      requiresProfileCompletion: needsProfileCompletion === true ? true : null
+      requiresProfileCompletion: needsProfileCompletion === true ? true : null,
+      requiresStripeTerms: needsStripeTerms,
+      requiresStripeRepresentative: needsStripeRepresentative
     };
     
     return enhancedUser;
