@@ -6,6 +6,7 @@ import { Toaster } from "@/components/ui/toaster";
 import Home from "@/pages/Home";
 import PostJob from "@/pages/PostJob";
 import JobDetails from "@/pages/JobDetails";
+import JobDetailPage from "@/pages/job-detail-page";
 import EarningsPage from "@/pages/EarningsPage";
 import AuthPage from "@/pages/auth-page";
 import NotFound from "@/pages/not-found";
