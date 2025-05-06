@@ -1,120 +1,178 @@
 import { useState } from 'react';
-import { NotificationList } from "@/components/notifications/NotificationList";
-import { useNotifications } from "@/hooks/use-notifications";
-import { Button } from "@/components/ui/button";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Loader2 } from 'lucide-react';
+import { Filter } from 'lucide-react';
+import { useNotifications } from '@/hooks/use-notifications';
+import { NotificationList } from '@/components/notifications';
+import Header from '@/components/Header';
+import { Button } from '@/components/ui/button';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuGroup,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+
+type NotificationFilter = 'all' | 'unread' | 'job' | 'payment' | 'review' | 'application' | 'system';
 
 export default function NotificationsPage() {
-  const { notifications, isLoading } = useNotifications();
-  const [filter, setFilter] = useState<'all' | 'unread' | 'read'>('all');
+  const { notifications, unreadCount } = useNotifications();
+  const [activeFilter, setActiveFilter] = useState<NotificationFilter>('all');
   
+  // Filter notifications based on the selected filter
   const filteredNotifications = notifications.filter(notification => {
-    if (filter === 'all') return true;
-    if (filter === 'unread') return !notification.isRead;
-    if (filter === 'read') return notification.isRead;
+    if (activeFilter === 'all') return true;
+    if (activeFilter === 'unread') return !notification.isRead;
+    
+    // Filter by notification source type
+    if (activeFilter === 'job') {
+      return notification.sourceType === 'job' || 
+             notification.type.includes('job_');
+    }
+    if (activeFilter === 'payment') {
+      return notification.sourceType === 'payment' || 
+             notification.type.includes('payment_');
+    }
+    if (activeFilter === 'review') {
+      return notification.sourceType === 'review' || 
+             notification.type.includes('review_');
+    }
+    if (activeFilter === 'application') {
+      return notification.sourceType === 'application' || 
+             notification.type.includes('application_');
+    }
+    if (activeFilter === 'system') {
+      return notification.type === 'system_message';
+    }
+    
     return true;
   });
-
+  
+  // Get filter label with count
+  const getFilterLabel = (filter: NotificationFilter) => {
+    const count = filter === 'unread' 
+      ? unreadCount 
+      : notifications.filter(n => {
+          if (filter === 'job') return n.sourceType === 'job' || n.type.includes('job_');
+          if (filter === 'payment') return n.sourceType === 'payment' || n.type.includes('payment_');
+          if (filter === 'review') return n.sourceType === 'review' || n.type.includes('review_');
+          if (filter === 'application') return n.sourceType === 'application' || n.type.includes('application_');
+          if (filter === 'system') return n.type === 'system_message';
+          return false;
+        }).length;
+      
+    const labels: Record<NotificationFilter, string> = {
+      all: 'All',
+      unread: 'Unread',
+      job: 'Jobs',
+      payment: 'Payments',
+      review: 'Reviews',
+      application: 'Applications',
+      system: 'System'
+    };
+    
+    return `${labels[filter]}${count > 0 ? ` (${count})` : ''}`;
+  };
+  
   return (
-    <div className="container max-w-4xl py-10 space-y-6">
-      <div>
-        <h1 className="text-3xl font-bold tracking-tight mb-2">Notifications</h1>
-        <p className="text-muted-foreground">
-          Manage your notifications and stay updated on activities related to your account.
-        </p>
-      </div>
-
-      <Tabs defaultValue="all" className="w-full" onValueChange={(value) => setFilter(value as any)}>
-        <div className="flex items-center justify-between mb-4">
-          <TabsList>
-            <TabsTrigger value="all">All</TabsTrigger>
-            <TabsTrigger value="unread">Unread</TabsTrigger>
-            <TabsTrigger value="read">Read</TabsTrigger>
-          </TabsList>
+    <div className="min-h-screen bg-background">
+      <Header />
+      
+      <main className="max-w-4xl mx-auto px-4 py-8">
+        <div className="flex justify-between items-center mb-6">
+          <h1 className="text-2xl font-bold">Notifications</h1>
           
-          {!isLoading && (
-            <div className="text-sm text-muted-foreground">
-              {filteredNotifications.length} notification{filteredNotifications.length !== 1 ? 's' : ''}
-            </div>
-          )}
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="outline" size="sm" className="flex items-center">
+                <Filter className="h-4 w-4 mr-2" />
+                <span>{getFilterLabel(activeFilter)}</span>
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="w-56">
+              <DropdownMenuLabel>Filter Notifications</DropdownMenuLabel>
+              <DropdownMenuSeparator />
+              <DropdownMenuGroup>
+                <DropdownMenuItem 
+                  onClick={() => setActiveFilter('all')}
+                  className={activeFilter === 'all' ? 'bg-muted' : ''}
+                >
+                  {getFilterLabel('all')}
+                </DropdownMenuItem>
+                <DropdownMenuItem 
+                  onClick={() => setActiveFilter('unread')}
+                  className={activeFilter === 'unread' ? 'bg-muted' : ''}
+                >
+                  {getFilterLabel('unread')}
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem 
+                  onClick={() => setActiveFilter('job')}
+                  className={activeFilter === 'job' ? 'bg-muted' : ''}
+                >
+                  {getFilterLabel('job')}
+                </DropdownMenuItem>
+                <DropdownMenuItem 
+                  onClick={() => setActiveFilter('application')}
+                  className={activeFilter === 'application' ? 'bg-muted' : ''}
+                >
+                  {getFilterLabel('application')}
+                </DropdownMenuItem>
+                <DropdownMenuItem 
+                  onClick={() => setActiveFilter('payment')}
+                  className={activeFilter === 'payment' ? 'bg-muted' : ''}
+                >
+                  {getFilterLabel('payment')}
+                </DropdownMenuItem>
+                <DropdownMenuItem 
+                  onClick={() => setActiveFilter('review')}
+                  className={activeFilter === 'review' ? 'bg-muted' : ''}
+                >
+                  {getFilterLabel('review')}
+                </DropdownMenuItem>
+                <DropdownMenuItem 
+                  onClick={() => setActiveFilter('system')}
+                  className={activeFilter === 'system' ? 'bg-muted' : ''}
+                >
+                  {getFilterLabel('system')}
+                </DropdownMenuItem>
+              </DropdownMenuGroup>
+            </DropdownMenuContent>
+          </DropdownMenu>
         </div>
-
-        <TabsContent value="all" className="mt-0">
-          <div className="border rounded-lg overflow-hidden">
-            {isLoading ? (
-              <div className="flex justify-center items-center py-20">
-                <Loader2 className="h-8 w-8 animate-spin text-primary" />
-              </div>
-            ) : filteredNotifications.length === 0 ? (
-              <div className="py-20 text-center">
+        
+        <div className="bg-card rounded-lg border shadow-sm">
+          {/* Custom list to handle the filtered notifications */}
+          <div className="divide-y">
+            {filteredNotifications.length === 0 ? (
+              <div className="text-center py-12 px-4">
                 <h3 className="text-lg font-medium mb-2">No notifications</h3>
-                <p className="text-muted-foreground mb-4">
-                  You don't have any notifications at the moment.
+                <p className="text-sm text-muted-foreground mb-4">
+                  {activeFilter !== 'all' 
+                    ? `You don't have any ${activeFilter} notifications.`
+                    : "You don't have any notifications yet."}
                 </p>
-                <Button variant="outline" asChild>
-                  <a href="/">Go to home page</a>
-                </Button>
-              </div>
-            ) : (
-              <NotificationList 
-                showAll={true} 
-                maxHeight="none" 
-              />
-            )}
-          </div>
-        </TabsContent>
-        
-        <TabsContent value="unread" className="mt-0">
-          <div className="border rounded-lg overflow-hidden">
-            {isLoading ? (
-              <div className="flex justify-center items-center py-20">
-                <Loader2 className="h-8 w-8 animate-spin text-primary" />
-              </div>
-            ) : filteredNotifications.length === 0 ? (
-              <div className="py-20 text-center">
-                <h3 className="text-lg font-medium mb-2">No unread notifications</h3>
-                <p className="text-muted-foreground mb-4">
-                  You've read all your notifications.
-                </p>
-                <Button variant="outline" onClick={() => setFilter('all')}>
+                <Button 
+                  variant="outline"
+                  onClick={() => setActiveFilter('all')}
+                  className={activeFilter === 'all' ? 'hidden' : ''}
+                >
                   View all notifications
                 </Button>
               </div>
             ) : (
-              <NotificationList 
-                showAll={true} 
-                maxHeight="none" 
-              />
+              filteredNotifications.map(notification => (
+                <div key={notification.id} className="notification-item">
+                  <NotificationItem 
+                    notification={notification} 
+                  />
+                </div>
+              ))
             )}
           </div>
-        </TabsContent>
-        
-        <TabsContent value="read" className="mt-0">
-          <div className="border rounded-lg overflow-hidden">
-            {isLoading ? (
-              <div className="flex justify-center items-center py-20">
-                <Loader2 className="h-8 w-8 animate-spin text-primary" />
-              </div>
-            ) : filteredNotifications.length === 0 ? (
-              <div className="py-20 text-center">
-                <h3 className="text-lg font-medium mb-2">No read notifications</h3>
-                <p className="text-muted-foreground mb-4">
-                  You don't have any previously read notifications.
-                </p>
-                <Button variant="outline" onClick={() => setFilter('all')}>
-                  View all notifications
-                </Button>
-              </div>
-            ) : (
-              <NotificationList 
-                showAll={true} 
-                maxHeight="none" 
-              />
-            )}
-          </div>
-        </TabsContent>
-      </Tabs>
+        </div>
+      </main>
     </div>
   );
 }
