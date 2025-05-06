@@ -584,4 +584,104 @@ export class FixedDatabaseStorage implements IStorage {
       return false;
     }
   }
+
+  // Notification operations
+  async getNotifications(userId: number, options?: { isRead?: boolean, limit?: number }) {
+    try {
+      // Check if the method exists in the underlying storage
+      if (typeof this.storage.getNotifications === 'function') {
+        return await this.storage.getNotifications(userId, options);
+      }
+      console.warn(`getNotifications not implemented in storage, returning empty array`);
+      return [];
+    } catch (error) {
+      console.error(`Error in getNotifications(${userId}):`, error);
+      return [];
+    }
+  }
+
+  async getNotification(id: number) {
+    try {
+      // Check if the method exists in the underlying storage
+      if (typeof this.storage.getNotification === 'function') {
+        return await this.storage.getNotification(id);
+      }
+      console.warn(`getNotification not implemented in storage, returning undefined`);
+      return undefined;
+    } catch (error) {
+      console.error(`Error in getNotification(${id}):`, error);
+      return undefined;
+    }
+  }
+
+  async createNotification(notification: any) {
+    try {
+      // Check if the method exists in the underlying storage
+      if (typeof this.storage.createNotification === 'function') {
+        return await this.storage.createNotification(notification);
+      }
+      console.warn(`createNotification not implemented in storage, throwing error`);
+      throw new Error("createNotification not implemented");
+    } catch (error) {
+      console.error(`Error in createNotification:`, error);
+      throw error; // Rethrow as this is critical
+    }
+  }
+
+  async markNotificationAsRead(id: number) {
+    try {
+      // Check if the method exists in the underlying storage
+      if (typeof this.storage.markNotificationAsRead === 'function') {
+        return await this.storage.markNotificationAsRead(id);
+      }
+      console.warn(`markNotificationAsRead not implemented in storage, returning undefined`);
+      return undefined;
+    } catch (error) {
+      console.error(`Error in markNotificationAsRead(${id}):`, error);
+      return undefined;
+    }
+  }
+
+  async markAllNotificationsAsRead(userId: number) {
+    try {
+      // Check if the method exists in the underlying storage
+      if (typeof this.storage.markAllNotificationsAsRead === 'function') {
+        return await this.storage.markAllNotificationsAsRead(userId);
+      }
+      console.warn(`markAllNotificationsAsRead not implemented in storage, returning 0`);
+      return 0;
+    } catch (error) {
+      console.error(`Error in markAllNotificationsAsRead(${userId}):`, error);
+      return 0;
+    }
+  }
+
+  async deleteNotification(id: number) {
+    try {
+      // Check if the method exists in the underlying storage
+      if (typeof this.storage.deleteNotification === 'function') {
+        return await this.storage.deleteNotification(id);
+      }
+      console.warn(`deleteNotification not implemented in storage, returning false`);
+      return false;
+    } catch (error) {
+      console.error(`Error in deleteNotification(${id}):`, error);
+      return false;
+    }
+  }
+
+  // Specialized notification methods
+  async notifyNearbyWorkers(jobId: number, radiusMiles: number) {
+    try {
+      // Check if the method exists in the underlying storage
+      if (typeof this.storage.notifyNearbyWorkers === 'function') {
+        return await this.storage.notifyNearbyWorkers(jobId, radiusMiles);
+      }
+      console.warn(`notifyNearbyWorkers not implemented in storage, returning 0`);
+      return 0;
+    } catch (error) {
+      console.error(`Error in notifyNearbyWorkers(${jobId}, ${radiusMiles}):`, error);
+      return 0;
+    }
+  }
 }

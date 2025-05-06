@@ -798,6 +798,122 @@ export class MemStorage implements IStorage {
     
     return removed;
   }
+
+  // Notification operations
+  async getNotifications(userId: number, options?: { isRead?: boolean, limit?: number }): Promise<Notification[]> {
+    let notifications = Array.from(this.notifications.values())
+      .filter(notification => notification.userId === userId);
+    
+    // Filter by read status if specified
+    if (options && options.isRead !== undefined) {
+      notifications = notifications.filter(notification => notification.isRead === options.isRead);
+    }
+    
+    // Sort by createdAt (newest first)
+    notifications = notifications.sort((a, b) => 
+      new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+    );
+    
+    // Apply limit if specified
+    if (options && options.limit) {
+      notifications = notifications.slice(0, options.limit);
+    }
+    
+    return notifications;
+  }
+  
+  async getNotification(id: number): Promise<Notification | undefined> {
+    return this.notifications.get(id);
+  }
+  
+  async createNotification(notification: InsertNotification): Promise<Notification> {
+    const id = this.notificationIdCounter++;
+    const createdAt = new Date();
+    const isRead = false;
+    
+    const newNotification: Notification = {
+      ...notification,
+      id,
+      createdAt,
+      isRead
+    };
+    
+    this.notifications.set(id, newNotification);
+    return newNotification;
+  }
+  
+  async markNotificationAsRead(id: number): Promise<Notification | undefined> {
+    const notification = this.notifications.get(id);
+    if (!notification) return undefined;
+    
+    const updatedNotification = { ...notification, isRead: true };
+    this.notifications.set(id, updatedNotification);
+    return updatedNotification;
+  }
+  
+  async markAllNotificationsAsRead(userId: number): Promise<number> {
+    const notifications = Array.from(this.notifications.values())
+      .filter(notification => notification.userId === userId && !notification.isRead);
+    
+    let count = 0;
+    for (const notification of notifications) {
+      const updatedNotification = { ...notification, isRead: true };
+      this.notifications.set(notification.id, updatedNotification);
+      count++;
+    }
+    
+    return count;
+  }
+  
+  async deleteNotification(id: number): Promise<boolean> {
+    return this.notifications.delete(id);
+  }
+  
+  // Specialized notification methods
+  async notifyNearbyWorkers(jobId: number, radiusMiles: number): Promise<number> {
+    const job = this.jobs.get(jobId);
+    if (!job) return 0;
+    
+    // Get all users with worker account type or those who haven't selected an account type yet
+    const workers = Array.from(this.users.values())
+      .filter(user => user.accountType === 'worker' || !user.accountType);
+    
+    // Find workers within the radius
+    const nearbyWorkers = workers.filter(worker => {
+      if (!worker.latitude || !worker.longitude) return false;
+      
+      const distance = this.calculateDistance(
+        job.latitude,
+        job.longitude,
+        worker.latitude,
+        worker.longitude
+      );
+      
+      return distance <= radiusMiles;
+    });
+    
+    // Create notifications for each nearby worker
+    let notificationCount = 0;
+    for (const worker of nearbyWorkers) {
+      // Skip job's poster (don't notify poster about their own job)
+      if (worker.id === job.posterId) continue;
+      
+      // Create notification
+      const notification: InsertNotification = {
+        userId: worker.id,
+        type: 'job_posted',
+        title: 'New job nearby!',
+        content: `"${job.title}" was just posted ${radiusMiles} miles from you.`,
+        link: `/job/${job.id}`,
+        metadata: { jobId: job.id }
+      };
+      
+      await this.createNotification(notification);
+      notificationCount++;
+    }
+    
+    return notificationCount;
+  }
 }
 
 // Import the fixed database storage implementation - don't rename the import
