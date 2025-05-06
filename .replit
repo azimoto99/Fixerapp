@@ -34,3 +34,20 @@ author = "agent"
 task = "shell.exec"
 args = "npm run dev"
 waitForPort = 5000
+
+[[workflows.workflow]]
+name = "Build Android"
+author = 42224656
+mode = "sequential"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "npm run build"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "npx cap sync"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "npx cap open android"
