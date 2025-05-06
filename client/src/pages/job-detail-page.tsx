@@ -106,18 +106,11 @@ const JobDetailPage: React.FC = () => {
       return res.json();
     },
     onSuccess: () => {
-      toast({
-        title: 'Job Completed',
-        description: 'The job has been marked as completed successfully.',
-      });
+      toast.success('The job has been marked as completed successfully.');
       queryClient.invalidateQueries({ queryKey: ['/api/jobs', jobId] });
     },
     onError: (error: Error) => {
-      toast({
-        title: 'Error',
-        description: `Failed to complete job: ${error.message}`,
-        variant: 'destructive',
-      });
+      toast.error(`Failed to complete job: ${error.message}`);
     },
   });
 
@@ -125,20 +118,14 @@ const JobDetailPage: React.FC = () => {
   const handleApplySuccess = () => {
     setApplyDialogOpen(false);
     queryClient.invalidateQueries({ queryKey: ['/api/applications/worker', user?.id] });
-    toast({
-      title: 'Application Submitted',
-      description: 'Your application has been submitted successfully.',
-    });
+    toast.success('Your application has been submitted successfully.');
   };
   
   // Handle payment success
   const handlePaymentSuccess = () => {
     setPayDialogOpen(false);
     queryClient.invalidateQueries({ queryKey: ['/api/jobs', jobId] });
-    toast({
-      title: 'Payment Successful',
-      description: 'Payment has been processed successfully.',
-    });
+    toast.success('Payment has been processed successfully.');
   };
   
   // Handle job completion
