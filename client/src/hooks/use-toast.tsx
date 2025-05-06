@@ -60,7 +60,7 @@ function dismissToast(id?: string) {
 }
 
 // Main toast function with helper methods
-export const toast = (props: ToastProps) => createToastEvent(props);
+export const toast = ((props: ToastProps) => createToastEvent(props)) as ToastFunction;
 
 // Add helper methods to the toast function
 toast.dismiss = dismissToast;
