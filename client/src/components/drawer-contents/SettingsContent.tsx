@@ -277,12 +277,25 @@ const SettingsContent: React.FC<SettingsContentProps> = ({ user }) => {
               <CardTitle className="text-base">Theme Settings</CardTitle>
               <CardDescription>Customize the appearance of the application</CardDescription>
             </CardHeader>
-            <CardContent className="space-y-4">
+            <CardContent className="space-y-6">
               <div className="flex flex-col space-y-4">
-                <Label className="mb-2">
+                <Label className="text-base font-medium mb-2">
                   Choose Theme
                 </Label>
                 <ThemeToggle variant="radio" />
+              </div>
+              
+              <div className="pt-2">
+                <h4 className="text-sm font-medium mb-4">Preview Themes</h4>
+                <div className="flex gap-4">
+                  <div className="flex-1 border rounded-lg overflow-hidden relative bg-background">
+                    <div className="absolute inset-0 bg-gradient-to-br from-primary/10 via-transparent to-primary/5 pointer-events-none"></div>
+                    <div className="h-3 w-full bg-primary"></div>
+                    <div className="p-2 text-center">
+                      <div className="text-xs text-foreground">Current Theme</div>
+                    </div>
+                  </div>
+                </div>
               </div>
             </CardContent>
           </Card>

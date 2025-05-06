@@ -68,13 +68,13 @@ const UserDrawer: React.FC<UserDrawerProps> = ({ children }) => {
         )}
       </SheetTrigger>
       <SheetContent side="right" className="p-0 overflow-hidden">
-        <SheetHeader className="p-4 border-b">
+        <SheetHeader className="p-4 pb-3 mb-0 border-b">
           <SheetTitle className="flex items-center">
-            <div className="w-10 h-10 bg-primary/10 text-primary rounded-full flex items-center justify-center mr-3">
-              <User className="h-5 w-5" />
+            <div className="w-12 h-12 bg-primary/10 text-primary rounded-full flex items-center justify-center mr-3">
+              <User className="h-6 w-6" />
             </div>
             <div>
-              <div className="font-bold text-lg">{user.fullName}</div>
+              <div className="font-bold text-xl">{user.fullName}</div>
               <div className="text-sm text-muted-foreground flex items-center">
                 <span className="capitalize">{user.accountType}</span>
                 {user.rating && user.rating > 0 && (
@@ -87,93 +87,92 @@ const UserDrawer: React.FC<UserDrawerProps> = ({ children }) => {
               </div>
             </div>
           </SheetTitle>
-          <SheetDescription>
-            Your account dashboard
-          </SheetDescription>
         </SheetHeader>
         
-        <div className="flex h-[calc(100vh-120px)]">
-          <div className="w-20 border-r bg-muted/30 py-4">
-            <div className="flex flex-col items-center space-y-4">
+        <div className="flex h-[calc(100vh-90px)]">
+          <div className="w-24 border-r bg-muted/20 py-6">
+            <div className="flex flex-col items-center space-y-6">
               <button 
                 onClick={() => setActiveTab("profile")}
                 className={cn(
-                  "flex flex-col items-center justify-center w-16 h-16 rounded-lg",
+                  "flex flex-col items-center justify-center w-20 h-16 rounded-lg transition-colors duration-200",
                   activeTab === "profile" 
                     ? "bg-primary/10 text-primary" 
-                    : "hover:bg-primary/5 text-gray-600"
+                    : "hover:bg-primary/5 text-foreground/80 hover:text-primary"
                 )}
               >
-                <User className="h-5 w-5 mb-1" />
-                <span className="text-xs">Profile</span>
+                <User className="h-5 w-5 mb-1.5" />
+                <span className="text-xs font-medium">Profile</span>
               </button>
               
               {user.accountType === 'worker' && (
                 <button 
                   onClick={() => setActiveTab("earnings")}
                   className={cn(
-                    "flex flex-col items-center justify-center w-16 h-16 rounded-lg",
+                    "flex flex-col items-center justify-center w-20 h-16 rounded-lg transition-colors duration-200",
                     activeTab === "earnings" 
                       ? "bg-primary/10 text-primary" 
-                      : "hover:bg-primary/5 text-gray-600"
+                      : "hover:bg-primary/5 text-foreground/80 hover:text-primary"
                   )}
                 >
-                  <BarChart2 className="h-5 w-5 mb-1" />
-                  <span className="text-xs">Earnings</span>
+                  <BarChart2 className="h-5 w-5 mb-1.5" />
+                  <span className="text-xs font-medium">Earnings</span>
                 </button>
               )}
               
               <button 
                 onClick={() => setActiveTab("reviews")}
                 className={cn(
-                  "flex flex-col items-center justify-center w-16 h-16 rounded-lg",
+                  "flex flex-col items-center justify-center w-20 h-16 rounded-lg transition-colors duration-200",
                   activeTab === "reviews" 
                     ? "bg-primary/10 text-primary" 
-                    : "hover:bg-primary/5 text-gray-600"
+                    : "hover:bg-primary/5 text-foreground/80 hover:text-primary"
                 )}
               >
-                <StarIcon className="h-5 w-5 mb-1" />
-                <span className="text-xs">Reviews</span>
+                <StarIcon className="h-5 w-5 mb-1.5" />
+                <span className="text-xs font-medium">Reviews</span>
               </button>
               
               <button 
                 onClick={() => setActiveTab("settings")}
                 className={cn(
-                  "flex flex-col items-center justify-center w-16 h-16 rounded-lg",
+                  "flex flex-col items-center justify-center w-20 h-16 rounded-lg transition-colors duration-200",
                   activeTab === "settings" 
                     ? "bg-primary/10 text-primary" 
-                    : "hover:bg-primary/5 text-gray-600"
+                    : "hover:bg-primary/5 text-foreground/80 hover:text-primary"
                 )}
               >
-                <Settings className="h-5 w-5 mb-1" />
-                <span className="text-xs">Settings</span>
+                <Settings className="h-5 w-5 mb-1.5" />
+                <span className="text-xs font-medium">Settings</span>
               </button>
               
               <button 
                 onClick={() => setActiveTab("faq")}
                 className={cn(
-                  "flex flex-col items-center justify-center w-16 h-16 rounded-lg",
+                  "flex flex-col items-center justify-center w-20 h-16 rounded-lg transition-colors duration-200",
                   activeTab === "faq" 
                     ? "bg-primary/10 text-primary" 
-                    : "hover:bg-primary/5 text-gray-600"
+                    : "hover:bg-primary/5 text-foreground/80 hover:text-primary"
                 )}
               >
-                <HelpCircle className="h-5 w-5 mb-1" />
-                <span className="text-xs">FAQ</span>
+                <HelpCircle className="h-5 w-5 mb-1.5" />
+                <span className="text-xs font-medium">FAQ</span>
               </button>
               
-              <Button 
-                variant="ghost" 
-                className="flex flex-col items-center justify-center w-16 h-16 rounded-lg hover:bg-red-100 hover:text-red-600"
-                onClick={handleLogout}
-              >
-                <LogOut className="h-5 w-5 mb-1" />
-                <span className="text-xs">Logout</span>
-              </Button>
+              <div className="pt-4 w-full px-2">
+                <Button 
+                  variant="ghost" 
+                  className="flex flex-col items-center justify-center w-full py-3 rounded-lg hover:bg-red-100 hover:text-red-600 transition-colors duration-200"
+                  onClick={handleLogout}
+                >
+                  <LogOut className="h-5 w-5 mb-1.5" />
+                  <span className="text-xs font-medium">Logout</span>
+                </Button>
+              </div>
             </div>
           </div>
           
-          <div className="flex-1 p-4 overflow-y-auto">
+          <div className="flex-1 p-5 overflow-y-auto">
             {renderTabContent()}
           </div>
         </div>
