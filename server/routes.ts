@@ -2741,6 +2741,144 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Notification API endpoints
+  apiRouter.get("/notifications", isAuthenticated, async (req: Request, res: Response) => {
+    try {
+      const userId = req.user!.id;
+      const isRead = req.query.isRead === 'true' ? true : 
+                   req.query.isRead === 'false' ? false : 
+                   undefined;
+      const limit = req.query.limit ? parseInt(req.query.limit as string) : undefined;
+      
+      const notifications = await storage.getNotifications(userId, { 
+        isRead, 
+        limit 
+      });
+      
+      res.json(notifications);
+    } catch (error) {
+      console.error('Error fetching notifications:', error);
+      res.status(500).json({ message: "Failed to fetch notifications" });
+    }
+  });
+
+  apiRouter.get("/notifications/:id", isAuthenticated, async (req: Request, res: Response) => {
+    try {
+      const notificationId = parseInt(req.params.id);
+      const notification = await storage.getNotification(notificationId);
+      
+      if (!notification) {
+        return res.status(404).json({ message: "Notification not found" });
+      }
+      
+      // Check if notification belongs to requesting user
+      if (notification.userId !== req.user!.id) {
+        return res.status(403).json({ message: "Not authorized to access this notification" });
+      }
+      
+      res.json(notification);
+    } catch (error) {
+      console.error('Error fetching notification:', error);
+      res.status(500).json({ message: "Failed to fetch notification" });
+    }
+  });
+
+  apiRouter.post("/notifications/mark-read/:id", isAuthenticated, async (req: Request, res: Response) => {
+    try {
+      const notificationId = parseInt(req.params.id);
+      const notification = await storage.getNotification(notificationId);
+      
+      if (!notification) {
+        return res.status(404).json({ message: "Notification not found" });
+      }
+      
+      // Check if notification belongs to requesting user
+      if (notification.userId !== req.user!.id) {
+        return res.status(403).json({ message: "Not authorized to update this notification" });
+      }
+      
+      const updatedNotification = await storage.markNotificationAsRead(notificationId);
+      res.json(updatedNotification);
+    } catch (error) {
+      console.error('Error marking notification as read:', error);
+      res.status(500).json({ message: "Failed to update notification" });
+    }
+  });
+
+  apiRouter.post("/notifications/mark-all-read", isAuthenticated, async (req: Request, res: Response) => {
+    try {
+      const userId = req.user!.id;
+      const count = await storage.markAllNotificationsAsRead(userId);
+      
+      res.json({ 
+        count, 
+        message: `Marked ${count} notifications as read` 
+      });
+    } catch (error) {
+      console.error('Error marking all notifications as read:', error);
+      res.status(500).json({ message: "Failed to update notifications" });
+    }
+  });
+
+  apiRouter.delete("/notifications/:id", isAuthenticated, async (req: Request, res: Response) => {
+    try {
+      const notificationId = parseInt(req.params.id);
+      const notification = await storage.getNotification(notificationId);
+      
+      if (!notification) {
+        return res.status(404).json({ message: "Notification not found" });
+      }
+      
+      // Check if notification belongs to requesting user
+      if (notification.userId !== req.user!.id) {
+        return res.status(403).json({ message: "Not authorized to delete this notification" });
+      }
+      
+      const success = await storage.deleteNotification(notificationId);
+      
+      if (success) {
+        res.json({ message: "Notification deleted successfully" });
+      } else {
+        res.status(500).json({ message: "Failed to delete notification" });
+      }
+    } catch (error) {
+      console.error('Error deleting notification:', error);
+      res.status(500).json({ message: "Failed to delete notification" });
+    }
+  });
+  
+  // Create notification endpoint for direct creation (admin/system only)
+  apiRouter.post("/notifications", isAuthenticated, async (req: Request, res: Response) => {
+    try {
+      // Validate the notification data
+      const schema = z.object({
+        userId: z.number(),
+        title: z.string(),
+        message: z.string(),
+        type: z.string(),
+        sourceId: z.number().optional(),
+        sourceType: z.string().optional(),
+        metadata: z.any().optional()
+      });
+      
+      const validatedData = schema.parse(req.body);
+      
+      // Only allow users to create notifications for themselves unless admin
+      // This can be expanded later with proper admin roles
+      if (validatedData.userId !== req.user!.id) {
+        return res.status(403).json({ 
+          message: "Not authorized to create notifications for other users" 
+        });
+      }
+      
+      const notification = await storage.createNotification(validatedData);
+      res.status(201).json(notification);
+    } catch (error) {
+      console.error('Error creating notification:', error);
+      res.status(500).json({ message: "Failed to create notification" });
+    }
+  });
+
   // Mount the API router under /api prefix
   app.use("/api", apiRouter);
 
