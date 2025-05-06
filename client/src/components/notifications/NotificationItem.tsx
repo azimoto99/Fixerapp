@@ -1,134 +1,150 @@
-import { Notification } from "@shared/schema";
-import { 
-  Bell, 
-  Calendar, 
-  Check, 
-  Briefcase, 
-  UserCheck, 
-  MessageCircle, 
-  Star,
-  Trash2,
-  ExternalLink
-} from "lucide-react";
-import { cn } from "@/lib/utils";
-import { useMemo } from "react";
-import { useLocation } from "wouter";
-import { formatDistanceToNow } from "date-fns";
-import { Button } from "@/components/ui/button";
-import { useNotifications } from "@/hooks/use-notifications";
+import { useState } from 'react';
+import { format, formatDistanceToNow } from 'date-fns';
+import { CheckCheck, Trash2, MapPin, BriefcaseBusiness, Bell, Mail, ExternalLink } from 'lucide-react';
+import { cn } from '@/lib/utils';
+import { Button } from '@/components/ui/button';
+import { Notification } from '@shared/schema';
+import { useNotifications } from '@/hooks/use-notifications';
+import { useLocation } from 'wouter';
 
 interface NotificationItemProps {
   notification: Notification;
+  hideControls?: boolean;
 }
 
-export function NotificationItem({ notification }: NotificationItemProps) {
+export function NotificationItem({ notification, hideControls = false }: NotificationItemProps) {
+  const [isDeleting, setIsDeleting] = useState(false);
+  const [isMarkingRead, setIsMarkingRead] = useState(false);
   const { markAsRead, deleteNotification } = useNotifications();
-  const [, navigate] = useLocation();
+  const [_, navigate] = useLocation();
 
-  // Function to handle clicking on a notification
-  const handleClick = () => {
-    // If there's a link, navigate to that page
-    if (notification.sourceType === 'job' && notification.sourceId) {
-      navigate(`/job/${notification.sourceId}`);
-    }
-    
-    // Mark notification as read
-    if (!notification.isRead) {
-      markAsRead(notification.id);
+  const getNotificationIcon = () => {
+    switch (notification.type) {
+      case 'job_nearby':
+        return <MapPin className="h-4 w-4 text-emerald-500" />;
+      case 'job_application':
+        return <BriefcaseBusiness className="h-4 w-4 text-blue-500" />;
+      case 'message':
+        return <Mail className="h-4 w-4 text-indigo-500" />;
+      case 'alert':
+        return <Bell className="h-4 w-4 text-orange-500" />;
+      default:
+        return <Bell className="h-4 w-4 text-gray-500" />;
     }
   };
 
-  // Format the time to be displayed
-  const formattedTime = useMemo(() => {
-    if (!notification.createdAt) return '';
-    const date = new Date(notification.createdAt);
-    return formatDistanceToNow(date, { addSuffix: true });
-  }, [notification.createdAt]);
-
-  // Get appropriate icon based on notification type
-  const Icon = useMemo(() => {
-    switch (notification.type) {
-      case 'job_posted':
-        return Briefcase;
-      case 'application_received':
-        return UserCheck;
-      case 'job_completed':
-        return Check;
-      case 'payment_processed':
-        return Calendar;
-      case 'review_received':
-        return Star;
-      case 'message_received':
-        return MessageCircle;
-      default:
-        return Bell;
+  const handleMarkAsRead = async () => {
+    try {
+      setIsMarkingRead(true);
+      await markAsRead(notification.id);
+    } catch (error) {
+      console.error('Error marking notification as read:', error);
+    } finally {
+      setIsMarkingRead(false);
     }
-  }, [notification.type]);
+  };
+
+  const handleDelete = async () => {
+    try {
+      setIsDeleting(true);
+      await deleteNotification(notification.id);
+    } catch (error) {
+      console.error('Error deleting notification:', error);
+    } finally {
+      setIsDeleting(false);
+    }
+  };
+
+  const handleClick = () => {
+    // If the notification has a sourceId and sourceType, navigate to the source
+    if (notification.sourceId && notification.sourceType) {
+      switch (notification.sourceType) {
+        case 'job':
+          navigate(`/job/${notification.sourceId}`);
+          break;
+        case 'application':
+          navigate(`/applications/${notification.sourceId}`);
+          break;
+        // Add more source types as needed
+        default:
+          break;
+      }
+    }
+
+    // If the notification is not read, mark it as read
+    if (!notification.isRead) {
+      handleMarkAsRead();
+    }
+  };
+
+  // Format the notification date
+  const formattedDate = notification.createdAt ? 
+    formatDistanceToNow(new Date(notification.createdAt), { addSuffix: true }) : 
+    'Unknown date';
 
   return (
     <div 
       className={cn(
-        "p-4 mb-2 rounded-lg border transition-colors",
-        notification.isRead ? "bg-background" : "bg-muted border-primary/20"
+        "flex justify-between p-4 cursor-pointer hover:bg-muted/40 transition-colors group relative",
+        !notification.isRead && "bg-muted/20 border-l-4 border-primary"
       )}
+      onClick={handleClick}
     >
-      <div className="flex items-start gap-3">
-        <div className={cn(
-          "p-2 rounded-full",
-          notification.isRead ? "text-muted-foreground bg-muted" : "text-primary bg-primary/10"
-        )}>
-          <Icon className="h-5 w-5" />
+      <div className="flex gap-3 items-start">
+        <div className="mt-0.5">
+          {getNotificationIcon()}
         </div>
-        
-        <div className="flex-1 min-w-0">
-          <div className="flex justify-between items-start">
-            <h4 className="font-medium text-sm mb-1">{notification.title}</h4>
-            <span className="text-xs text-muted-foreground whitespace-nowrap ml-2">
-              {formattedTime}
-            </span>
-          </div>
-          
-          <p className="text-sm text-muted-foreground mb-2 line-clamp-2">
-            {notification.message}
-          </p>
-          
-          <div className="flex gap-2 mt-2">
-            {notification.sourceType === 'job' && notification.sourceId && (
-              <Button 
-                variant="outline" 
-                size="sm" 
-                className="h-8 px-2 text-xs"
-                onClick={handleClick}
-              >
-                <ExternalLink className="h-3.5 w-3.5 mr-1" />
-                View Job
-              </Button>
-            )}
+        <div className="space-y-1">
+          <div className="font-medium">{notification.title}</div>
+          <div className="text-sm text-muted-foreground">{notification.message}</div>
+          <div className="text-xs text-muted-foreground/80 flex items-center gap-1">
+            {formattedDate}
             
-            {!notification.isRead && (
-              <Button 
-                variant="ghost" 
-                size="sm" 
-                className="h-8 px-2 text-xs"
-                onClick={() => markAsRead(notification.id)}
+            {notification.sourceId && notification.sourceType && (
+              <button 
+                className="ml-1 inline-flex items-center text-xs text-primary hover:underline" 
+                onClick={(e) => e.stopPropagation()}
               >
-                <Check className="h-3.5 w-3.5 mr-1" />
-                Mark as Read
-              </Button>
+                <ExternalLink className="h-3 w-3 ml-1" />
+                View details
+              </button>
             )}
-            
-            <Button 
-              variant="ghost" 
-              size="sm" 
-              className="h-8 px-2 text-xs text-destructive hover:text-destructive"
-              onClick={() => deleteNotification(notification.id)}
-            >
-              <Trash2 className="h-3.5 w-3.5 mr-1" />
-              Delete
-            </Button>
           </div>
         </div>
       </div>
+      
+      {!hideControls && (
+        <div className="flex items-start gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+          {!notification.isRead && (
+            <Button 
+              variant="ghost" 
+              size="icon" 
+              className="h-8 w-8"
+              onClick={(e) => {
+                e.stopPropagation();
+                handleMarkAsRead();
+              }}
+              disabled={isMarkingRead}
+            >
+              <CheckCheck className="h-4 w-4 text-primary" />
+              <span className="sr-only">Mark as read</span>
+            </Button>
+          )}
+          <Button 
+            variant="ghost" 
+            size="icon" 
+            className="h-8 w-8"
+            onClick={(e) => {
+              e.stopPropagation();
+              handleDelete();
+            }}
+            disabled={isDeleting}
+          >
+            <Trash2 className="h-4 w-4 text-muted-foreground" />
+            <span className="sr-only">Delete</span>
+          </Button>
+        </div>
+      )}
     </div>
   );
 }

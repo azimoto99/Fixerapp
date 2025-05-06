@@ -1,10 +1,8 @@
-import { createContext, ReactNode, useContext, useMemo } from "react";
+import { createContext, ReactNode, useContext } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
-import { apiRequest, queryClient } from "@/lib/queryClient";
 import { Notification } from "@shared/schema";
-import { useAuth } from "@/hooks/use-auth";
+import { getQueryFn, apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
-import { toastSuccess, toastError } from "@/lib/toast-utils";
 
 type NotificationsContextType = {
   notifications: Notification[];
@@ -18,76 +16,65 @@ type NotificationsContextType = {
 export const NotificationsContext = createContext<NotificationsContextType | null>(null);
 
 export function NotificationProvider({ children }: { children: ReactNode }) {
-  const { user } = useAuth();
-  const { toast } = useToast();
-
-  // Fetch notifications
+  const { success, error } = useToast();
+  
+  // Fetch all notifications
   const {
     data: notifications = [],
     isLoading,
-    refetch,
   } = useQuery<Notification[]>({
     queryKey: ['/api/notifications'],
-    enabled: !!user, // Only fetch if user is logged in
+    queryFn: getQueryFn({ on401: "returnEmptyArray" }),
+    staleTime: 1000 * 60, // 1 minute
   });
 
   // Count unread notifications
-  const unreadCount = useMemo(() => {
-    return notifications.filter(notification => !notification.isRead).length;
-  }, [notifications]);
+  const unreadCount = notifications.filter(notification => !notification.isRead).length;
 
-  // Mark notification as read
+  // Mark a single notification as read
   const markAsReadMutation = useMutation({
     mutationFn: async (id: number) => {
-      await apiRequest("PATCH", `/api/notifications/${id}/read`);
+      await apiRequest('PATCH', `/api/notifications/${id}/read`);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/notifications'] });
+      success("Notification marked as read");
     },
-    onError: (error: Error) => {
-      toastError(toast, "Error", "Failed to mark notification as read");
+    onError: (err: Error) => {
+      error("Failed to mark notification as read");
+      console.error(err);
     },
   });
 
   // Mark all notifications as read
   const markAllAsReadMutation = useMutation({
     mutationFn: async () => {
-      await apiRequest("POST", "/api/notifications/mark-all-read");
+      await apiRequest('POST', '/api/notifications/mark-all-read');
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/notifications'] });
-      toastSuccess(toast, "Notifications marked as read");
+      success("All notifications marked as read");
     },
-    onError: (error: Error) => {
-      toastError(toast, "Error", "Failed to mark all notifications as read");
+    onError: (err: Error) => {
+      error("Failed to mark all notifications as read");
+      console.error(err);
     },
   });
 
-  // Delete notification
+  // Delete a notification
   const deleteNotificationMutation = useMutation({
     mutationFn: async (id: number) => {
-      await apiRequest("DELETE", `/api/notifications/${id}`);
+      await apiRequest('DELETE', `/api/notifications/${id}`);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/notifications'] });
-      toastSuccess(toast, "Notification deleted");
+      success("Notification deleted");
     },
-    onError: (error: Error) => {
-      toastError(toast, "Error", "Failed to delete notification");
+    onError: (err: Error) => {
+      error("Failed to delete notification");
+      console.error(err);
     },
   });
-
-  const markAsRead = async (id: number) => {
-    await markAsReadMutation.mutateAsync(id);
-  };
-
-  const markAllAsRead = async () => {
-    await markAllAsReadMutation.mutateAsync();
-  };
-
-  const deleteNotification = async (id: number) => {
-    await deleteNotificationMutation.mutateAsync(id);
-  };
 
   return (
     <NotificationsContext.Provider
@@ -95,9 +82,9 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
         notifications,
         unreadCount,
         isLoading,
-        markAsRead,
-        markAllAsRead,
-        deleteNotification,
+        markAsRead: markAsReadMutation.mutateAsync,
+        markAllAsRead: markAllAsReadMutation.mutateAsync,
+        deleteNotification: deleteNotificationMutation.mutateAsync,
       }}
     >
       {children}

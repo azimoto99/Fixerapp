@@ -1,41 +1,28 @@
 import { useToast } from "@/hooks/use-toast";
-import { ToastProps } from "@/components/ui/toast";
 
-// Success toast helper
-export const toastSuccess = (
-  toast: (props: ToastProps) => void, 
-  title: string, 
-  description?: string
-) => {
-  toast({
-    title,
-    description,
-    variant: "default",
-  });
+/**
+ * Show a success toast notification
+ * @param message The message to show in the toast
+ */
+export const toastSuccess = (message: string) => {
+  const { success } = useToast();
+  success(message);
 };
 
-// Error toast helper
-export const toastError = (
-  toast: (props: ToastProps) => void, 
-  title: string, 
-  description?: string
-) => {
-  toast({
-    title,
-    description,
-    variant: "destructive",
-  });
+/**
+ * Show an error toast notification
+ * @param message The message to show in the toast
+ */
+export const toastError = (message: string) => {
+  const { error } = useToast();
+  error(message);
 };
 
-// Info toast helper
-export const toastInfo = (
-  toast: (props: ToastProps) => void, 
-  title: string, 
-  description?: string
-) => {
-  toast({
-    title,
-    description,
-    variant: "default",
-  });
+/**
+ * Show an info toast notification
+ * @param message The message to show in the toast
+ */
+export const toastInfo = (message: string) => {
+  const { info } = useToast();
+  info(message);
 };

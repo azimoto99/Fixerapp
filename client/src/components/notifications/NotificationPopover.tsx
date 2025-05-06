@@ -1,51 +1,45 @@
-import { Bell } from "lucide-react";
+import { useState } from 'react';
+import { Bell } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { cn } from '@/lib/utils';
+import { NotificationList } from './NotificationList';
+import { useNotifications } from '@/hooks/use-notifications';
 import {
   Popover,
   PopoverContent,
   PopoverTrigger,
-} from "@/components/ui/popover";
-import { Button } from "@/components/ui/button";
-import { NotificationList } from "./NotificationList";
-import { useNotifications } from "@/hooks/use-notifications";
-import { cn } from "@/lib/utils";
-import { Link } from "wouter";
+} from '@/components/ui/popover';
 
-export function NotificationPopover() {
+interface NotificationPopoverProps {
+  className?: string;
+}
+
+export function NotificationPopover({ className }: NotificationPopoverProps) {
+  const [open, setOpen] = useState(false);
   const { unreadCount } = useNotifications();
 
   return (
-    <Popover>
+    <Popover open={open} onOpenChange={setOpen}>
       <PopoverTrigger asChild>
         <Button 
-          variant="outline" 
-          size="icon" 
-          className="relative"
-          aria-label="Notifications"
+          variant="ghost" 
+          size="icon"
+          aria-label="Open notifications"
+          className={cn(
+            "relative h-9 w-9 rounded-full",
+            className
+          )}
         >
           <Bell className="h-5 w-5" />
           {unreadCount > 0 && (
-            <span 
-              className={cn(
-                "absolute top-0 right-0 -mt-1 -mr-1 flex h-4 w-4 items-center justify-center rounded-full bg-primary text-[10px] font-medium text-primary-foreground",
-                unreadCount > 9 && "w-5" // Make the badge wider when there are double-digit notifications
-              )}
-            >
-              {unreadCount > 99 ? '99+' : unreadCount}
+            <span className="absolute -right-1 -top-1 h-5 w-5 rounded-full bg-red-500 text-[11px] font-medium flex items-center justify-center text-white">
+              {unreadCount > 9 ? '9+' : unreadCount}
             </span>
           )}
         </Button>
       </PopoverTrigger>
-      <PopoverContent 
-        className="w-[350px] p-0 md:w-[400px]" 
-        align="end"
-        sideOffset={5}
-      >
-        <NotificationList compact={true} maxHeight="400px" />
-        <div className="border-t p-2 flex justify-center">
-          <Link to="/notifications" className="text-xs text-primary hover:underline">
-            See all notifications
-          </Link>
-        </div>
+      <PopoverContent className="w-[400px] p-0" align="end">
+        <NotificationList />
       </PopoverContent>
     </Popover>
   );
