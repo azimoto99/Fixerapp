@@ -1,15 +1,41 @@
-import { toast } from "@/hooks/use-toast";
+import { useToast } from "@/hooks/use-toast";
+import { ToastProps } from "@/components/ui/toast";
 
-type ToastMessage = {
-  title?: string;
-  description: string;
+// Success toast helper
+export const toastSuccess = (
+  toast: (props: ToastProps) => void, 
+  title: string, 
+  description?: string
+) => {
+  toast({
+    title,
+    description,
+    variant: "default",
+  });
 };
 
-// Export the createToastHandlers function for components that need
-// consistent toast styling across the application
-export function createToastHandlers() {
-  return { toast };
-}
+// Error toast helper
+export const toastError = (
+  toast: (props: ToastProps) => void, 
+  title: string, 
+  description?: string
+) => {
+  toast({
+    title,
+    description,
+    variant: "destructive",
+  });
+};
 
-// Export the default toast object for direct imports
-export default toast;
+// Info toast helper
+export const toastInfo = (
+  toast: (props: ToastProps) => void, 
+  title: string, 
+  description?: string
+) => {
+  toast({
+    title,
+    description,
+    variant: "default",
+  });
+};

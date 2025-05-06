@@ -1,4 +1,4 @@
-import { useNavigate } from "wouter";
+import { useLocation } from "wouter";
 import { useAuth } from "@/hooks/use-auth";
 import { useEffect } from "react";
 import { NotificationList } from "@/components/notifications/NotificationList";
@@ -7,7 +7,7 @@ import { ArrowLeft, Loader2 } from "lucide-react";
 
 export default function NotificationsPage() {
   const { user, isLoading } = useAuth();
-  const navigate = useNavigate();
+  const [, navigate] = useLocation();
 
   // Redirect to auth page if not logged in
   useEffect(() => {

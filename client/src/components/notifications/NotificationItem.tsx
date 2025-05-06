@@ -12,7 +12,7 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useMemo } from "react";
-import { useNavigate } from "wouter";
+import { useLocation } from "wouter";
 import { formatDistanceToNow } from "date-fns";
 import { Button } from "@/components/ui/button";
 import { useNotifications } from "@/hooks/use-notifications";
@@ -23,7 +23,7 @@ interface NotificationItemProps {
 
 export function NotificationItem({ notification }: NotificationItemProps) {
   const { markAsRead, deleteNotification } = useNotifications();
-  const navigate = useNavigate();
+  const [, navigate] = useLocation();
 
   // Function to handle clicking on a notification
   const handleClick = () => {

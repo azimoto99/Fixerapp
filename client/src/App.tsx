@@ -61,6 +61,7 @@ function RouterWithAuth() {
       <ProtectedRoute path="/checkout" component={Checkout} />
       <ProtectedRoute path="/payment-confirmation" component={PaymentConfirmation} />
       <ProtectedRoute path="/stripe-test" component={StripeTest} />
+      <ProtectedRoute path="/notifications" component={NotificationsPage} />
       {/* Payment dashboard is not accessible as there are no job posters */}
       <Route path="/auth" component={AuthPage} />
       <Route path="/login" component={RedirectToAuth} />
@@ -100,9 +101,11 @@ function App() {
       <ThemeProvider defaultTheme="system" storageKey="fixer-theme">
         <TooltipProvider>
           <AuthProvider>
-            <OnboardingProvider>
-              <AuthenticatedContent />
-            </OnboardingProvider>
+            <NotificationProvider>
+              <OnboardingProvider>
+                <AuthenticatedContent />
+              </OnboardingProvider>
+            </NotificationProvider>
           </AuthProvider>
         </TooltipProvider>
       </ThemeProvider>
