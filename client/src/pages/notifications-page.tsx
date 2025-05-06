@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Filter } from 'lucide-react';
 import { useNotifications } from '@/hooks/use-notifications';
-import { NotificationList } from '@/components/notifications';
+import { NotificationList, NotificationItem } from '@/components/notifications';
 import Header from '@/components/Header';
 import { Button } from '@/components/ui/button';
 import {

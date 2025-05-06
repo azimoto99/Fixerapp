@@ -1,3 +1,3 @@
-export * from './NotificationPopover';
-export * from './NotificationList';
-export * from './NotificationItem';
+export { NotificationItem } from './NotificationItem';
+export { NotificationList } from './NotificationList';
+export { NotificationPopover } from './NotificationPopover';

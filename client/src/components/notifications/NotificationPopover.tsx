@@ -1,15 +1,15 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { Link } from 'wouter';
-import { BellIcon } from 'lucide-react';
-import { cn } from '@/lib/utils';
 import { useNotifications } from '@/hooks/use-notifications';
 import { NotificationList } from './NotificationList';
+import { BellIcon } from 'lucide-react';
+import { Button } from '@/components/ui/button';
 import {
   Popover,
   PopoverContent,
   PopoverTrigger,
-} from "@/components/ui/popover";
-import { Button } from '@/components/ui/button';
+} from '@/components/ui/popover';
+import { cn } from '@/lib/utils';
 
 interface NotificationPopoverProps {
   className?: string;
@@ -18,45 +18,43 @@ interface NotificationPopoverProps {
 export function NotificationPopover({ className }: NotificationPopoverProps) {
   const { unreadCount } = useNotifications();
   const [open, setOpen] = useState(false);
-  const [hasNewNotifications, setHasNewNotifications] = useState(false);
-  
-  // When unread count increases, show animation
-  useEffect(() => {
-    if (unreadCount > 0) {
-      setHasNewNotifications(true);
-      
-      // Clear the animation after 3 seconds
-      const timeout = setTimeout(() => {
-        setHasNewNotifications(false);
-      }, 3000);
-      
-      return () => clearTimeout(timeout);
-    }
-  }, [unreadCount]);
   
   return (
     <Popover open={open} onOpenChange={setOpen}>
       <PopoverTrigger asChild>
-        <Button
-          variant="ghost"
-          size="icon"
-          className={cn("relative h-9 w-9", className)}
-          onClick={() => setOpen(true)}
+        <Button 
+          variant="ghost" 
+          size="icon" 
+          className={cn("relative", className)}
+          aria-label={`${unreadCount} unread notifications`}
         >
-          <BellIcon className="h-[1.2rem] w-[1.2rem]" />
+          <BellIcon className="h-5 w-5" />
           {unreadCount > 0 && (
-            <span className={cn(
-              "absolute top-1 right-1 flex h-4 w-4 items-center justify-center rounded-full bg-red-500 text-[10px] font-medium text-white",
-              hasNewNotifications && "animate-pulse"
-            )}>
-              {unreadCount > 9 ? '9+' : unreadCount}
+            <span className="absolute -top-1 -right-1 h-4 min-w-4 rounded-full bg-primary text-[10px] text-primary-foreground flex items-center justify-center px-1">
+              {unreadCount > 99 ? '99+' : unreadCount}
             </span>
           )}
-          <span className="sr-only">Notifications</span>
         </Button>
       </PopoverTrigger>
-      <PopoverContent className="w-80 p-0" align="end">
+      <PopoverContent 
+        className="w-[380px] p-0" 
+        align="end"
+        sideOffset={8}
+      >
         <NotificationList limit={5} />
+        
+        <div className="p-2 border-t text-center">
+          <Link href="/notifications">
+            <Button 
+              variant="ghost" 
+              size="sm" 
+              className="w-full text-xs"
+              onClick={() => setOpen(false)}
+            >
+              View all notifications
+            </Button>
+          </Link>
+        </div>
       </PopoverContent>
     </Popover>
   );
