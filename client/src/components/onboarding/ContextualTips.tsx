@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { useOnboarding } from './OnboardingProvider';
 import { useAuth } from '@/hooks/use-auth';
 import { useLocation } from 'wouter';
+import { TourStep } from './OnboardingTour';
 
 interface TipDefinition {
   id: string;
@@ -11,6 +12,7 @@ interface TipDefinition {
   position?: 'top' | 'right' | 'bottom' | 'left';
   character?: 'happy' | 'thinking' | 'excited' | 'confused' | 'pointing';
   highlight?: boolean;
+  highlightPulse?: boolean;
   condition?: () => boolean;
   priority: number;
   delay?: number;
@@ -66,7 +68,7 @@ const ContextualTips: React.FC = () => {
       position: 'bottom',
       character: 'thinking',
       highlight: true,
-      condition: () => location.includes('/profile') && user?.accountType === 'worker' && !user?.stripeConnectId,
+      condition: () => location.includes('/profile') && user?.accountType === 'worker',
       priority: 30
     },
     
@@ -101,7 +103,7 @@ const ContextualTips: React.FC = () => {
   useEffect(() => {
     if (!user || hasTourBeenCompleted('welcome-tour')) return;
     
-    const welcomeTourSteps = [
+    const welcomeTourSteps: TourStep[] = [
       {
         id: 'welcome-1',
         title: 'Welcome to Fixer! 👋',

@@ -20,6 +20,8 @@ import { useAuth } from "@/hooks/use-auth";
 import { StripeConnectCheck, StripeRequirementsCheck } from "@/components/stripe";
 import WelcomeMessage from "@/components/WelcomeMessage";
 import { ThemeProvider } from "@/components/theme";
+import { OnboardingProvider } from "@/components/onboarding/OnboardingProvider";
+import ContextualTips from "@/components/onboarding/ContextualTips";
 import { useEffect } from "react";
 
 // Redirect component for old routes
@@ -82,6 +84,8 @@ function AuthenticatedContent() {
           </StripeRequirementsCheck>
         </StripeConnectCheck>
       )}
+      {/* Contextual tips will track user actions and show tooltips at the right moments */}
+      {user && <ContextualTips />}
       <Toaster />
     </>
   );
@@ -93,7 +97,9 @@ function App() {
       <ThemeProvider defaultTheme="system" storageKey="fixer-theme">
         <TooltipProvider>
           <AuthProvider>
-            <AuthenticatedContent />
+            <OnboardingProvider>
+              <AuthenticatedContent />
+            </OnboardingProvider>
           </AuthProvider>
         </TooltipProvider>
       </ThemeProvider>
