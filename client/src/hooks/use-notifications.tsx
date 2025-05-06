@@ -2,7 +2,7 @@ import { createContext, ReactNode, useContext } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { Notification } from "@shared/schema";
 import { getQueryFn, apiRequest, queryClient } from "@/lib/queryClient";
-import { useToast } from "@/hooks/use-toast";
+import { toastSuccess, toastError } from "@/lib/toast-utils";
 
 type NotificationsContextType = {
   notifications: Notification[];
@@ -16,8 +16,6 @@ type NotificationsContextType = {
 export const NotificationsContext = createContext<NotificationsContextType | null>(null);
 
 export function NotificationProvider({ children }: { children: ReactNode }) {
-  const { success, error } = useToast();
-  
   // Fetch all notifications
   const {
     data: notifications = [],
@@ -38,10 +36,10 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/notifications'] });
-      success("Notification marked as read");
+      toastSuccess("Notification marked as read");
     },
     onError: (err: Error) => {
-      error("Failed to mark notification as read");
+      toastError("Failed to mark notification as read");
       console.error(err);
     },
   });
@@ -53,10 +51,10 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/notifications'] });
-      success("All notifications marked as read");
+      toastSuccess("All notifications marked as read");
     },
     onError: (err: Error) => {
-      error("Failed to mark all notifications as read");
+      toastError("Failed to mark all notifications as read");
       console.error(err);
     },
   });
@@ -68,10 +66,10 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/notifications'] });
-      success("Notification deleted");
+      toastSuccess("Notification deleted");
     },
     onError: (err: Error) => {
-      error("Failed to delete notification");
+      toastError("Failed to delete notification");
       console.error(err);
     },
   });

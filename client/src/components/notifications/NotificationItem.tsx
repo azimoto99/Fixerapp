@@ -1,150 +1,153 @@
 import { useState } from 'react';
 import { format, formatDistanceToNow } from 'date-fns';
-import { CheckCheck, Trash2, MapPin, BriefcaseBusiness, Bell, Mail, ExternalLink } from 'lucide-react';
-import { cn } from '@/lib/utils';
-import { Button } from '@/components/ui/button';
+import { Check, MapPin, Clock, Trash2, AlertCircle, Bell } from 'lucide-react';
 import { Notification } from '@shared/schema';
 import { useNotifications } from '@/hooks/use-notifications';
-import { useLocation } from 'wouter';
+import { Button } from '@/components/ui/button';
+import { cn } from '@/lib/utils';
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
+
+const getIcon = (type: string) => {
+  switch (type) {
+    case 'job_nearby':
+      return <MapPin className="h-4 w-4" />;
+    case 'reminder':
+      return <Clock className="h-4 w-4" />;
+    case 'alert':
+      return <AlertCircle className="h-4 w-4" />;
+    default:
+      return <Bell className="h-4 w-4" />;
+  }
+};
 
 interface NotificationItemProps {
   notification: Notification;
-  hideControls?: boolean;
 }
 
-export function NotificationItem({ notification, hideControls = false }: NotificationItemProps) {
+export function NotificationItem({ notification }: NotificationItemProps) {
+  const [isHovering, setIsHovering] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
   const [isMarkingRead, setIsMarkingRead] = useState(false);
   const { markAsRead, deleteNotification } = useNotifications();
-  const [_, navigate] = useLocation();
-
-  const getNotificationIcon = () => {
-    switch (notification.type) {
-      case 'job_nearby':
-        return <MapPin className="h-4 w-4 text-emerald-500" />;
-      case 'job_application':
-        return <BriefcaseBusiness className="h-4 w-4 text-blue-500" />;
-      case 'message':
-        return <Mail className="h-4 w-4 text-indigo-500" />;
-      case 'alert':
-        return <Bell className="h-4 w-4 text-orange-500" />;
-      default:
-        return <Bell className="h-4 w-4 text-gray-500" />;
-    }
-  };
-
+  
   const handleMarkAsRead = async () => {
+    if (notification.isRead || isMarkingRead) return;
+    
     try {
       setIsMarkingRead(true);
       await markAsRead(notification.id);
     } catch (error) {
-      console.error('Error marking notification as read:', error);
+      console.error('Failed to mark notification as read:', error);
     } finally {
       setIsMarkingRead(false);
     }
   };
-
-  const handleDelete = async () => {
+  
+  const handleDelete = async (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (isDeleting) return;
+    
     try {
       setIsDeleting(true);
       await deleteNotification(notification.id);
     } catch (error) {
-      console.error('Error deleting notification:', error);
+      console.error('Failed to delete notification:', error);
     } finally {
       setIsDeleting(false);
     }
   };
-
-  const handleClick = () => {
-    // If the notification has a sourceId and sourceType, navigate to the source
-    if (notification.sourceId && notification.sourceType) {
-      switch (notification.sourceType) {
-        case 'job':
-          navigate(`/job/${notification.sourceId}`);
-          break;
-        case 'application':
-          navigate(`/applications/${notification.sourceId}`);
-          break;
-        // Add more source types as needed
-        default:
-          break;
-      }
-    }
-
-    // If the notification is not read, mark it as read
-    if (!notification.isRead) {
-      handleMarkAsRead();
-    }
-  };
-
-  // Format the notification date
-  const formattedDate = notification.createdAt ? 
-    formatDistanceToNow(new Date(notification.createdAt), { addSuffix: true }) : 
-    'Unknown date';
-
+  
+  const formattedDate = notification.createdAt 
+    ? new Date(notification.createdAt)
+    : new Date();
+  
+  const timeAgo = formatDistanceToNow(formattedDate, { addSuffix: true });
+  const fullDate = format(formattedDate, 'PPP p');
+  
   return (
-    <div 
+    <div
       className={cn(
-        "flex justify-between p-4 cursor-pointer hover:bg-muted/40 transition-colors group relative",
-        !notification.isRead && "bg-muted/20 border-l-4 border-primary"
+        "flex items-start p-4 border-b transition-colors relative group",
+        notification.isRead ? 'bg-background' : 'bg-muted/30',
+        !notification.isRead && 'hover:bg-muted/50',
       )}
-      onClick={handleClick}
+      onMouseEnter={() => setIsHovering(true)}
+      onMouseLeave={() => setIsHovering(false)}
+      onClick={handleMarkAsRead}
     >
-      <div className="flex gap-3 items-start">
-        <div className="mt-0.5">
-          {getNotificationIcon()}
-        </div>
-        <div className="space-y-1">
-          <div className="font-medium">{notification.title}</div>
-          <div className="text-sm text-muted-foreground">{notification.message}</div>
-          <div className="text-xs text-muted-foreground/80 flex items-center gap-1">
-            {formattedDate}
-            
-            {notification.sourceId && notification.sourceType && (
-              <button 
-                className="ml-1 inline-flex items-center text-xs text-primary hover:underline" 
-                onClick={(e) => e.stopPropagation()}
-              >
-                <ExternalLink className="h-3 w-3 ml-1" />
-                View details
-              </button>
-            )}
-          </div>
-        </div>
+      <div className={cn(
+        "flex-shrink-0 rounded-full p-2 mr-3",
+        notification.isRead ? 'bg-muted' : 'bg-primary/10'
+      )}>
+        {getIcon(notification.type)}
       </div>
       
-      {!hideControls && (
-        <div className="flex items-start gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-          {!notification.isRead && (
-            <Button 
-              variant="ghost" 
-              size="icon" 
-              className="h-8 w-8"
-              onClick={(e) => {
-                e.stopPropagation();
-                handleMarkAsRead();
-              }}
-              disabled={isMarkingRead}
-            >
-              <CheckCheck className="h-4 w-4 text-primary" />
-              <span className="sr-only">Mark as read</span>
-            </Button>
-          )}
-          <Button 
-            variant="ghost" 
-            size="icon" 
-            className="h-8 w-8"
-            onClick={(e) => {
-              e.stopPropagation();
-              handleDelete();
-            }}
-            disabled={isDeleting}
-          >
-            <Trash2 className="h-4 w-4 text-muted-foreground" />
-            <span className="sr-only">Delete</span>
-          </Button>
+      <div className="flex-1 min-w-0">
+        <div className="flex items-center justify-between mb-1">
+          <p className={cn(
+            "text-sm font-medium",
+            !notification.isRead && "font-semibold"
+          )}>
+            {notification.title}
+          </p>
+          
+          <div className="flex items-center gap-2">
+            {!notification.isRead && (
+              <div className="h-2 w-2 rounded-full bg-primary"></div>
+            )}
+            
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <p className="text-xs text-muted-foreground whitespace-nowrap">
+                    {timeAgo}
+                  </p>
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p>{fullDate}</p>
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+          </div>
         </div>
-      )}
+        
+        <p className="text-sm text-muted-foreground line-clamp-2">
+          {notification.message}
+        </p>
+        
+        {(isHovering || isDeleting) && (
+          <div className="flex items-center justify-end gap-2 mt-2">
+            {!notification.isRead && (
+              <Button 
+                variant="ghost" 
+                size="sm"
+                className="h-8 text-xs"
+                onClick={handleMarkAsRead}
+                disabled={isMarkingRead}
+              >
+                <Check className="h-3.5 w-3.5 mr-1" />
+                <span>Mark as read</span>
+              </Button>
+            )}
+            
+            <Button 
+              variant="ghost"
+              size="icon"
+              className="h-8 w-8 text-destructive hover:text-destructive"
+              onClick={handleDelete}
+              disabled={isDeleting}
+            >
+              <Trash2 className="h-3.5 w-3.5" />
+              <span className="sr-only">Delete</span>
+            </Button>
+          </div>
+        )}
+      </div>
     </div>
   );
 }

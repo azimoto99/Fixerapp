@@ -81,7 +81,7 @@ export async function apiRequest(
   }
 }
 
-type UnauthorizedBehavior = "returnNull" | "throw";
+type UnauthorizedBehavior = "returnNull" | "throw" | "returnEmptyArray";
 export const getQueryFn: <T>(options: {
   on401: UnauthorizedBehavior;
   retry?: boolean;
@@ -93,8 +93,12 @@ export const getQueryFn: <T>(options: {
       // Use the improved apiRequest function instead of fetch
       const res = await apiRequest("GET", queryKey[0] as string, undefined, { timeout });
       
-      if (unauthorizedBehavior === "returnNull" && res.status === 401) {
-        return null;
+      if (res.status === 401) {
+        if (unauthorizedBehavior === "returnNull") {
+          return null;
+        } else if (unauthorizedBehavior === "returnEmptyArray") {
+          return [] as unknown as T;
+        }
       }
       
       try {
@@ -105,6 +109,14 @@ export const getQueryFn: <T>(options: {
       }
     } catch (error) {
       console.error(`Query error for ${queryKey[0]}:`, error);
+      
+      // Return empty array for unauthorized if that behavior is requested
+      if (error instanceof Error && 
+          error.message.includes('Authentication failed') && 
+          unauthorizedBehavior === "returnEmptyArray") {
+        return [] as unknown as T;
+      }
+      
       throw error;
     }
   };

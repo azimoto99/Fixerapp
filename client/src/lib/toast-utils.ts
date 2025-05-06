@@ -1,12 +1,15 @@
-import { useToast } from "@/hooks/use-toast";
+import { toast as uiToast } from "@/components/ui/use-toast";
 
 /**
  * Show a success toast notification
  * @param message The message to show in the toast
  */
 export const toastSuccess = (message: string) => {
-  const { success } = useToast();
-  success(message);
+  uiToast({
+    title: "Success",
+    description: message,
+    variant: "default",
+  });
 };
 
 /**
@@ -14,8 +17,11 @@ export const toastSuccess = (message: string) => {
  * @param message The message to show in the toast
  */
 export const toastError = (message: string) => {
-  const { error } = useToast();
-  error(message);
+  uiToast({
+    title: "Error",
+    description: message,
+    variant: "destructive",
+  });
 };
 
 /**
@@ -23,6 +29,7 @@ export const toastError = (message: string) => {
  * @param message The message to show in the toast
  */
 export const toastInfo = (message: string) => {
-  const { info } = useToast();
-  info(message);
+  uiToast({
+    description: message,
+  });
 };
