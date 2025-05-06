@@ -96,7 +96,7 @@ const SimpleUserDrawer: React.FC<SimpleUserDrawerProps> = ({
 
   return (
     <>
-      <div onClick={() => setIsOpen(true)} className="cursor-pointer">
+      <div onClick={() => setIsOpen(true)} className="cursor-pointer user-drawer-trigger">
         {children || (
           <div className="bg-primary text-white shadow-lg rounded-full w-10 h-10 flex items-center justify-center transform transition-all hover:scale-105 active:scale-95">
             <div className="absolute -top-1 -right-1 w-3 h-3 bg-emerald-500 rounded-full animate-pulse-marker"></div>

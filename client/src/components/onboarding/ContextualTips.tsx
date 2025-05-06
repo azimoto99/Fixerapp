@@ -157,25 +157,29 @@ const ContextualTips: React.FC = () => {
     // Show highest priority tip if any are eligible
     if (eligibleTips.length > 0) {
       const tipToShow = eligibleTips[0];
+      const tipId = tipToShow.id;
       
-      showTooltip(
-        tipToShow.id,
-        tipToShow.title,
-        tipToShow.content,
-        {
-          targetSelector: tipToShow.targetSelector,
-          position: tipToShow.position,
-          characterExpression: tipToShow.character,
-          highlight: tipToShow.highlight,
-          highlightPulse: tipToShow.highlightPulse,
-          delay: tipToShow.delay || 0
-        }
-      );
-      
-      // Mark this tip as shown in this session
-      setShownTipIds(prev => [...prev, tipToShow.id]);
+      // Prevent showing the same tip again in this session
+      if (!shownTipIds.includes(tipId)) {
+        showTooltip(
+          tipId,
+          tipToShow.title,
+          tipToShow.content,
+          {
+            targetSelector: tipToShow.targetSelector,
+            position: tipToShow.position,
+            characterExpression: tipToShow.character,
+            highlight: tipToShow.highlight,
+            highlightPulse: tipToShow.highlightPulse,
+            delay: tipToShow.delay || 0
+          }
+        );
+        
+        // Mark this tip as shown in this session
+        setShownTipIds(prev => [...prev, tipId]);
+      }
     }
-  }, [user, location, shownTipIds, showTooltip, hasUserCompletedAction]);
+  }, [user, location, hasUserCompletedAction]);
 
   // Track user actions for contextual tips
   useEffect(() => {
