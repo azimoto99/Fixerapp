@@ -492,7 +492,7 @@ const MapSection: React.FC<MapSectionProps> = ({ jobs, selectedJob, onSelectJob,
             {/* Map View Toggle Control - placed at top left for better visibility */}
             <div className="leaflet-control-container">
               <div className="leaflet-top leaflet-left">
-                <div className="leaflet-control leaflet-bar ml-3 mt-16">
+                <div className="leaflet-control leaflet-bar ml-3 mt-32">
                   <MapViewToggle 
                     view={mapView} 
                     onChange={setMapView}
@@ -519,7 +519,7 @@ const MapSection: React.FC<MapSectionProps> = ({ jobs, selectedJob, onSelectJob,
         
         {/* Fallback location notice */}
         {isUsingFallback && (
-          <div className="absolute top-4 left-1/2 -translate-x-1/2 z-[1000]">
+          <div className="absolute top-20 left-1/2 -translate-x-1/2 z-[1000]">
             <div className="bg-primary/10 border border-primary/20 rounded-full shadow px-3 py-1 text-primary text-xs">
               <p className="flex items-center">
                 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" className="w-3 h-3 mr-1">
