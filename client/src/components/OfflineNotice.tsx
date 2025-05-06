@@ -1,14 +1,14 @@
 
 import { useEffect, useState } from 'react';
-import { AlertCircle, Wifi, WifiOff } from 'lucide-react';
-import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { Alert, AlertDescription } from './ui/alert';
+import { WifiOff } from 'lucide-react';
 
-export function OfflineNotice() {
-  const [isOnline, setIsOnline] = useState(navigator.onLine);
+export default function OfflineNotice() {
+  const [isOffline, setIsOffline] = useState(!navigator.onLine);
 
   useEffect(() => {
-    const handleOnline = () => setIsOnline(true);
-    const handleOffline = () => setIsOnline(false);
+    const handleOnline = () => setIsOffline(false);
+    const handleOffline = () => setIsOffline(true);
 
     window.addEventListener('online', handleOnline);
     window.addEventListener('offline', handleOffline);
@@ -19,14 +19,13 @@ export function OfflineNotice() {
     };
   }, []);
 
-  if (isOnline) return null;
+  if (!isOffline) return null;
 
   return (
-    <Alert variant="destructive" className="fixed bottom-4 right-4 max-w-md animate-in fade-in slide-in-from-bottom-4">
+    <Alert variant="destructive" className="fixed bottom-4 left-4 right-4 z-50">
       <WifiOff className="h-4 w-4" />
-      <AlertTitle>You're offline</AlertTitle>
       <AlertDescription>
-        Check your internet connection to continue using the app.
+        You are currently offline. Some features may be unavailable.
       </AlertDescription>
     </Alert>
   );

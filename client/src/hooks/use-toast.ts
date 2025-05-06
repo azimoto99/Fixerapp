@@ -1,32 +1,26 @@
-import { toast } from '@/components/ui/use-toast';
 
-interface ToastOptions {
-  title?: string;
-  description?: string;
-  variant?: 'default' | 'destructive';
-  duration?: number;
-}
+import { toast } from "@/components/ui/use-toast";
 
 export function useToast() {
-  const showToast = ({
-    title,
-    description,
-    variant = 'default',
-    duration = 3000
-  }: ToastOptions) => {
-    toast({
-      title,
-      description,
-      variant,
-      duration,
-    });
-  };
-
   return {
-    toast: showToast,
-    success: (title: string, description?: string) =>
-      showToast({ title, description, variant: 'default' }),
-    error: (title: string, description?: string) =>
-      showToast({ title, description, variant: 'destructive' }),
+    success: (message: string) => {
+      toast({
+        title: "Success",
+        description: message,
+        variant: "default",
+      });
+    },
+    error: (message: string) => {
+      toast({
+        title: "Error",
+        description: message,
+        variant: "destructive",
+      });
+    },
+    info: (message: string) => {
+      toast({
+        description: message,
+      });
+    },
   };
 }
