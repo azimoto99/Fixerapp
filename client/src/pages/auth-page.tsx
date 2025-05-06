@@ -42,7 +42,7 @@ export default function AuthPage() {
       </div>
       
       {/* Right Side - Hero Section */}
-      <div className="hidden lg:flex lg:w-1/2 bg-gradient-to-br from-primary-100 to-primary-800 flex-col items-center justify-center text-white p-12">
+      <div className="hidden lg:flex lg:w-1/2 bg-gradient-to-br from-primary/30 to-primary flex-col items-center justify-center text-white p-12 dark:from-primary/20 dark:to-primary/80">
         <div className="max-w-md">
           <h1 className="text-4xl font-bold mb-6">Welcome to Fixer</h1>
           <p className="text-xl mb-8">

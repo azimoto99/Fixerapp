@@ -103,7 +103,7 @@ const SettingsContent: React.FC<SettingsContentProps> = ({ user }) => {
         onValueChange={setActiveTab}
         className="space-y-4"
       >
-        <TabsList className="grid grid-cols-3 w-full">
+        <TabsList className="grid grid-cols-4 w-full">
           <TabsTrigger value="notifications">
             <Bell className="h-4 w-4 mr-2" />
             Notifications
@@ -111,6 +111,10 @@ const SettingsContent: React.FC<SettingsContentProps> = ({ user }) => {
           <TabsTrigger value="privacy">
             <Shield className="h-4 w-4 mr-2" />
             Privacy
+          </TabsTrigger>
+          <TabsTrigger value="appearance">
+            <Palette className="h-4 w-4 mr-2" />
+            Appearance
           </TabsTrigger>
           <TabsTrigger value="data">
             <Download className="h-4 w-4 mr-2" />
@@ -261,6 +265,24 @@ const SettingsContent: React.FC<SettingsContentProps> = ({ user }) => {
                   checked={privacySettings.allowLocationAccess}
                   onCheckedChange={(checked) => handlePrivacyChange('allowLocationAccess', checked)}
                 />
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        {/* Appearance Tab */}
+        <TabsContent value="appearance" className="space-y-4">
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-base">Theme Settings</CardTitle>
+              <CardDescription>Customize the appearance of the application</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="flex flex-col space-y-4">
+                <Label className="mb-2">
+                  Choose Theme
+                </Label>
+                <ThemeToggle variant="radio" />
               </div>
             </CardContent>
           </Card>

@@ -12,7 +12,7 @@ import {
   DropdownMenuSubTrigger,
   DropdownMenuLabel
 } from '@/components/ui/dropdown-menu';
-import { DropdownThemeToggle } from '@/components/theme';
+import { ThemeToggle } from '@/components/theme';
 
 const Header = () => {
   const { user, logoutMutation } = useAuth();
@@ -105,7 +105,7 @@ const Header = () => {
                   <DropdownMenuSubContent>
                     <DropdownMenuLabel>Appearance</DropdownMenuLabel>
                     <div className="p-2 w-56">
-                      <DropdownThemeToggle />
+                      <ThemeToggle variant="compact" />
                     </div>
                     <DropdownMenuSeparator />
                     <DropdownMenuItem>
