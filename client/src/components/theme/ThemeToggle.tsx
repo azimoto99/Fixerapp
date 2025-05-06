@@ -26,39 +26,35 @@ export function ThemeToggle({ variant = "dropdown" }: ThemeToggleProps) {
 
   if (variant === "radio") {
     return (
-      <Card>
-        <CardContent className="pt-6">
-          <RadioGroup 
-            value={theme} 
-            onValueChange={setTheme}
-            className="space-y-3"
-          >
-            <div className="flex items-center space-x-2">
-              <RadioGroupItem value="light" id="light-theme" />
-              <Label htmlFor="light-theme" className="flex items-center cursor-pointer">
-                <Sun className="h-4 w-4 mr-2" />
-                Light
-              </Label>
-            </div>
-            
-            <div className="flex items-center space-x-2">
-              <RadioGroupItem value="dark" id="dark-theme" />
-              <Label htmlFor="dark-theme" className="flex items-center cursor-pointer">
-                <Moon className="h-4 w-4 mr-2" />
-                Dark
-              </Label>
-            </div>
-            
-            <div className="flex items-center space-x-2">
-              <RadioGroupItem value="system" id="system-theme" />
-              <Label htmlFor="system-theme" className="flex items-center cursor-pointer">
-                <Monitor className="h-4 w-4 mr-2" />
-                System
-              </Label>
-            </div>
-          </RadioGroup>
-        </CardContent>
-      </Card>
+      <RadioGroup 
+        value={theme} 
+        onValueChange={setTheme}
+        className="space-y-4"
+      >
+        <div className="flex items-center space-x-3 p-3 rounded-lg border border-border/60 hover:border-primary/40 transition-colors bg-background/60">
+          <RadioGroupItem value="light" id="light-theme" className="h-5 w-5" />
+          <Label htmlFor="light-theme" className="flex items-center cursor-pointer text-sm font-medium">
+            <Sun className="h-5 w-5 mr-3 text-amber-500" />
+            Light Mode
+          </Label>
+        </div>
+        
+        <div className="flex items-center space-x-3 p-3 rounded-lg border border-border/60 hover:border-primary/40 transition-colors bg-background/60">
+          <RadioGroupItem value="dark" id="dark-theme" className="h-5 w-5" />
+          <Label htmlFor="dark-theme" className="flex items-center cursor-pointer text-sm font-medium">
+            <Moon className="h-5 w-5 mr-3 text-blue-400" />
+            Dark Mode
+          </Label>
+        </div>
+        
+        <div className="flex items-center space-x-3 p-3 rounded-lg border border-border/60 hover:border-primary/40 transition-colors bg-background/60">
+          <RadioGroupItem value="system" id="system-theme" className="h-5 w-5" />
+          <Label htmlFor="system-theme" className="flex items-center cursor-pointer text-sm font-medium">
+            <Monitor className="h-5 w-5 mr-3 text-gray-400" />
+            System Default
+          </Label>
+        </div>
+      </RadioGroup>
     );
   }
 
@@ -66,33 +62,33 @@ export function ThemeToggle({ variant = "dropdown" }: ThemeToggleProps) {
     return (
       <div className="flex items-center space-x-2">
         <Button 
-          variant={theme === "light" ? "default" : "outline"} 
-          size="icon" 
-          className="h-8 w-8" 
+          variant={theme === "light" ? "default" : "secondary"} 
+          size="sm" 
+          className={`h-9 px-3 ${theme === "light" ? "bg-amber-500/20 text-amber-600 hover:bg-amber-500/30 border-amber-500/30" : "bg-muted/50"}`}
           onClick={() => setTheme("light")}
         >
-          <Sun className="h-4 w-4" />
-          <span className="sr-only">Light</span>
+          <Sun className="h-4 w-4 mr-1.5" />
+          <span>Light</span>
         </Button>
         
         <Button 
-          variant={theme === "dark" ? "default" : "outline"} 
-          size="icon" 
-          className="h-8 w-8" 
+          variant={theme === "dark" ? "default" : "secondary"} 
+          size="sm" 
+          className={`h-9 px-3 ${theme === "dark" ? "bg-blue-500/20 text-blue-500 hover:bg-blue-500/30 border-blue-500/30" : "bg-muted/50"}`}
           onClick={() => setTheme("dark")}
         >
-          <Moon className="h-4 w-4" />
-          <span className="sr-only">Dark</span>
+          <Moon className="h-4 w-4 mr-1.5" />
+          <span>Dark</span>
         </Button>
         
         <Button 
-          variant={theme === "system" ? "default" : "outline"} 
-          size="icon" 
-          className="h-8 w-8" 
+          variant={theme === "system" ? "default" : "secondary"} 
+          size="sm" 
+          className={`h-9 px-3 ${theme === "system" ? "bg-gray-500/20 text-gray-500 hover:bg-gray-500/30 border-gray-500/30" : "bg-muted/50"}`}
           onClick={() => setTheme("system")}
         >
-          <Monitor className="h-4 w-4" />
-          <span className="sr-only">System</span>
+          <Monitor className="h-4 w-4 mr-1.5" />
+          <span>Auto</span>
         </Button>
       </div>
     );
@@ -101,24 +97,45 @@ export function ThemeToggle({ variant = "dropdown" }: ThemeToggleProps) {
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <Button variant="outline" size="icon">
+        <Button 
+          variant="ghost" 
+          size="icon"
+          className="rounded-full h-9 w-9 bg-primary/5 hover:bg-primary/10 hover:text-primary"
+        >
           <Sun className="h-[1.2rem] w-[1.2rem] rotate-0 scale-100 transition-all dark:-rotate-90 dark:scale-0" />
           <Moon className="absolute h-[1.2rem] w-[1.2rem] rotate-90 scale-0 transition-all dark:rotate-0 dark:scale-100" />
           <span className="sr-only">Toggle theme</span>
         </Button>
       </DropdownMenuTrigger>
-      <DropdownMenuContent align="end">
-        <DropdownMenuItem onClick={() => setTheme("light")}>
-          <Sun className="h-4 w-4 mr-2" />
-          Light
+      <DropdownMenuContent align="end" className="min-w-[180px] p-2">
+        <DropdownMenuItem 
+          onClick={() => setTheme("light")}
+          className="flex items-center cursor-pointer rounded-md mb-1 focus:bg-amber-500/10"
+        >
+          <div className="mr-2 h-7 w-7 rounded-full bg-amber-500/15 flex items-center justify-center">
+            <Sun className="h-4 w-4 text-amber-600" />
+          </div>
+          <span>Light Mode</span>
         </DropdownMenuItem>
-        <DropdownMenuItem onClick={() => setTheme("dark")}>
-          <Moon className="h-4 w-4 mr-2" />
-          Dark
+        
+        <DropdownMenuItem 
+          onClick={() => setTheme("dark")}
+          className="flex items-center cursor-pointer rounded-md mb-1 focus:bg-blue-500/10"
+        >
+          <div className="mr-2 h-7 w-7 rounded-full bg-blue-500/15 flex items-center justify-center">
+            <Moon className="h-4 w-4 text-blue-500" />
+          </div>
+          <span>Dark Mode</span>
         </DropdownMenuItem>
-        <DropdownMenuItem onClick={() => setTheme("system")}>
-          <Monitor className="h-4 w-4 mr-2" />
-          System
+        
+        <DropdownMenuItem 
+          onClick={() => setTheme("system")}
+          className="flex items-center cursor-pointer rounded-md focus:bg-gray-500/10"
+        >
+          <div className="mr-2 h-7 w-7 rounded-full bg-gray-500/15 flex items-center justify-center">
+            <Monitor className="h-4 w-4 text-gray-500" />
+          </div>
+          <span>System Default</span>
         </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>
