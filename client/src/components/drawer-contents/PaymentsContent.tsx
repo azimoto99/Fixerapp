@@ -267,11 +267,12 @@ const PaymentsContent: React.FC<PaymentsContentProps> = ({ userId }) => {
                               <TableCell>
                                 <Badge
                                   variant={
-                                    payment.status === 'completed' ? 'success' :
+                                    payment.status === 'completed' ? 'default' :
                                     payment.status === 'pending' ? 'outline' :
-                                    payment.status === 'processing' ? 'default' :
+                                    payment.status === 'processing' ? 'secondary' :
                                     'destructive'
                                   }
+                                  className={payment.status === 'completed' ? 'bg-green-600' : undefined}
                                 >
                                   {payment.status}
                                 </Badge>

@@ -2065,6 +2065,96 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
   
+  // Payment methods endpoints
+  apiRouter.get("/payment-methods", isAuthenticated, async (req: Request, res: Response) => {
+    try {
+      if (!req.user.stripeCustomerId) {
+        return res.json([]);
+      }
+      
+      const paymentMethods = await stripe.paymentMethods.list({
+        customer: req.user.stripeCustomerId,
+        type: 'card',
+      });
+      
+      res.json(paymentMethods.data);
+    } catch (error) {
+      console.error('Error fetching payment methods:', error);
+      res.status(500).json({ message: (error as Error).message });
+    }
+  });
+  
+  apiRouter.post("/payment-methods/:id/set-default", isAuthenticated, async (req: Request, res: Response) => {
+    try {
+      const paymentMethodId = req.params.id;
+      
+      if (!req.user.stripeCustomerId) {
+        return res.status(400).json({ message: "No Stripe customer ID found" });
+      }
+      
+      // Update the customer's default payment method
+      const customer = await stripe.customers.update({
+        id: req.user.stripeCustomerId,
+        invoice_settings: {
+          default_payment_method: paymentMethodId,
+        },
+      });
+      
+      res.json({ success: true });
+    } catch (error) {
+      console.error('Error setting default payment method:', error);
+      res.status(500).json({ message: (error as Error).message });
+    }
+  });
+  
+  apiRouter.delete("/payment-methods/:id", isAuthenticated, async (req: Request, res: Response) => {
+    try {
+      const paymentMethodId = req.params.id;
+      
+      // Detach the payment method from the customer
+      const paymentMethod = await stripe.paymentMethods.detach(paymentMethodId);
+      
+      res.json({ success: true });
+    } catch (error) {
+      console.error('Error deleting payment method:', error);
+      res.status(500).json({ message: (error as Error).message });
+    }
+  });
+  
+  apiRouter.post("/stripe/create-setup-intent", isAuthenticated, async (req: Request, res: Response) => {
+    try {
+      // Make sure we have a customer ID
+      let customerId = req.user.stripeCustomerId;
+      
+      // If the user doesn't have a customer ID yet, create one
+      if (!customerId) {
+        const customer = await stripe.customers.create({
+          name: req.user.fullName || req.user.username,
+          email: req.user.email,
+          metadata: {
+            userId: req.user.id.toString(),
+          },
+        });
+        
+        customerId = customer.id;
+        
+        // Update user with new customer ID
+        await storage.updateUser(req.user.id, { stripeCustomerId: customerId });
+      }
+      
+      // Create a SetupIntent
+      const setupIntent = await stripe.setupIntents.create({
+        customer: customerId,
+        payment_method_types: ['card'],
+      });
+      
+      res.json({ clientSecret: setupIntent.client_secret });
+    } catch (error) {
+      console.error('Error creating setup intent:', error);
+      res.status(500).json({ message: (error as Error).message });
+    }
+  });
+
   apiRouter.post("/stripe/confirm-payment", isStripeAuthenticated, async (req: Request, res: Response) => {
     try {
       const { paymentId, paymentIntentId } = req.body;

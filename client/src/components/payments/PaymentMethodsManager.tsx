@@ -11,6 +11,7 @@ import {
   CardTitle,
 } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
 import { Plus, Trash2, CreditCard, CheckCircle, Edit, Loader2, AlertCircle } from 'lucide-react';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { loadStripe } from '@stripe/stripe-js';
@@ -285,10 +286,10 @@ const PaymentMethodsManager: React.FC<PaymentMethodsManagerProps> = ({ userId })
                 
                 <div className="flex items-center gap-2">
                   {method.isDefault ? (
-                    <Badge className="flex items-center gap-1 bg-green-100 text-green-800 hover:bg-green-200 border-green-200">
+                    <div className="flex items-center gap-1 text-xs py-1 px-2 rounded-full bg-green-100 text-green-800 hover:bg-green-200 border border-green-200">
                       <CheckCircle className="h-3 w-3" />
                       Default
-                    </Badge>
+                    </div>
                   ) : (
                     <Button
                       variant="ghost"
