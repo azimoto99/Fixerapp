@@ -5,30 +5,11 @@ type ToastMessage = {
   description: string;
 };
 
-// Create toast utilities as an object instead of a hook
-const toastHandlers = {
-  success: (message: string) => {
-    toast({
-      title: "Success",
-      description: message,
-      variant: "default",
-    });
-  },
-  
-  error: (message: string) => {
-    toast({
-      title: "Error",
-      description: message,
-      variant: "destructive",
-    });
-  },
-  
-  info: (message: string) => {
-    toast({
-      description: message,
-      variant: "default",
-    });
-  }
-};
+// Export the createToastHandlers function for components that need
+// consistent toast styling across the application
+export function createToastHandlers() {
+  return { toast };
+}
 
-export default toastHandlers;
+// Export the default toast object for direct imports
+export default toast;

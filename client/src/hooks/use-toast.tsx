@@ -9,6 +9,14 @@ export type ToastProps = {
   open?: boolean;
 };
 
+interface ToastFunction {
+  (props: ToastProps): { id: string; dismiss: () => void };
+  dismiss: (id?: string) => void;
+  success: (message: string) => { id: string; dismiss: () => void };
+  error: (message: string) => { id: string; dismiss: () => void };
+  info: (message: string) => { id: string; dismiss: () => void };
+}
+
 let count = 0;
 
 function genId() {
@@ -16,8 +24,8 @@ function genId() {
   return count.toString();
 }
 
-// Standalone toast function for use in non-component code
-export const toast = (props: ToastProps) => {
+// Helper for creating toast
+function createToastEvent(props: ToastProps) {
   const id = props.id || genId();
   
   if (typeof window !== 'undefined') {
@@ -37,26 +45,45 @@ export const toast = (props: ToastProps) => {
   
   return {
     id,
-    dismiss: () => {
-      if (typeof window !== 'undefined') {
-        const event = new CustomEvent('toast-dismiss', {
-          detail: { id },
-        });
-        window.dispatchEvent(event);
-      }
-    },
+    dismiss: () => dismissToast(id),
   };
-};
+}
 
-// Add dismiss method to the toast function
-toast.dismiss = (id?: string) => {
+// Helper for dismissing toast
+function dismissToast(id?: string) {
   if (typeof window !== 'undefined') {
     const event = new CustomEvent('toast-dismiss', {
       detail: { id },
     });
     window.dispatchEvent(event);
   }
-};
+}
+
+// Main toast function with helper methods
+export const toast = (props: ToastProps) => createToastEvent(props);
+
+// Add helper methods to the toast function
+toast.dismiss = dismissToast;
+
+// Success toast
+toast.success = (message: string) => createToastEvent({
+  title: "Success",
+  description: message,
+  variant: "default",
+});
+
+// Error toast
+toast.error = (message: string) => createToastEvent({
+  title: "Error",
+  description: message,
+  variant: "destructive",
+});
+
+// Info toast
+toast.info = (message: string) => createToastEvent({
+  description: message,
+  variant: "default",
+});
 
 // Hook version for component use
 export function useToast() {
