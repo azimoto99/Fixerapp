@@ -142,6 +142,20 @@ export const userBadges = pgTable("user_badges", {
   metadata: jsonb("metadata"), // Additional data about how the badge was earned
 });
 
+// Notifications table for system and job notifications
+export const notifications = pgTable("notifications", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id").notNull(), // References users.id (recipient)
+  title: text("title").notNull(),
+  message: text("message").notNull(),
+  type: text("type").notNull(), // "job_posted", "application_received", etc.
+  isRead: boolean("is_read").notNull().default(false),
+  sourceId: integer("source_id"), // Optional ID of related entity (job, application, etc.)
+  sourceType: text("source_type"), // "job", "application", etc.
+  createdAt: timestamp("created_at").defaultNow(),
+  metadata: jsonb("metadata"), // Additional data specific to notification type
+});
+
 // Insert schemas
 export const insertUserSchema = createInsertSchema(users).omit({
   id: true,
@@ -203,6 +217,12 @@ export const insertUserBadgeSchema = createInsertSchema(userBadges).omit({
   earnedAt: true,
 });
 
+export const insertNotificationSchema = createInsertSchema(notifications).omit({
+  id: true,
+  isRead: true,
+  createdAt: true,
+});
+
 // Types
 export type User = typeof users.$inferSelect & {
   requiresProfileCompletion?: boolean | null; // Virtual field, not in DB
@@ -248,6 +268,9 @@ export type InsertBadge = z.infer<typeof insertBadgeSchema>;
 
 export type UserBadge = typeof userBadges.$inferSelect;
 export type InsertUserBadge = z.infer<typeof insertUserBadgeSchema>;
+
+export type Notification = typeof notifications.$inferSelect;
+export type InsertNotification = z.infer<typeof insertNotificationSchema>;
 
 // Categories enum for job types
 export const JOB_CATEGORIES = [
@@ -295,4 +318,18 @@ export const BADGE_CATEGORIES = [
   "Speed",
   "Reliability",
   "Special Achievement"
+] as const;
+
+// Notification types
+export const NOTIFICATION_TYPES = [
+  "job_posted",
+  "job_assigned",
+  "job_completed",
+  "application_received",
+  "application_accepted",
+  "application_rejected",
+  "payment_received",
+  "payment_sent",
+  "review_received",
+  "system_message"
 ] as const;
