@@ -2589,6 +2589,158 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   }
 
+  // Notification endpoints
+  // Get all notifications for a user
+  apiRouter.get("/notifications", isAuthenticated, async (req: Request, res: Response) => {
+    try {
+      const userId = req.user.id;
+      const { isRead, limit } = req.query;
+      
+      // Parse options
+      const options: { isRead?: boolean, limit?: number } = {};
+      
+      if (isRead !== undefined) {
+        options.isRead = isRead === 'true';
+      }
+      
+      if (limit !== undefined) {
+        options.limit = parseInt(limit as string);
+      }
+      
+      const notifications = await storage.getNotifications(userId, options);
+      res.json(notifications);
+    } catch (error) {
+      console.error('Error fetching notifications:', error);
+      res.status(500).json({ message: "Failed to fetch notifications" });
+    }
+  });
+
+  // Get a specific notification
+  apiRouter.get("/notifications/:id", isAuthenticated, async (req: Request, res: Response) => {
+    try {
+      const id = parseInt(req.params.id);
+      const notification = await storage.getNotification(id);
+      
+      if (!notification) {
+        return res.status(404).json({ message: "Notification not found" });
+      }
+      
+      // Ensure user only accesses their own notifications
+      if (notification.userId !== req.user.id) {
+        return res.status(403).json({ message: "You can only access your own notifications" });
+      }
+      
+      res.json(notification);
+    } catch (error) {
+      console.error('Error fetching notification:', error);
+      res.status(500).json({ message: "Failed to fetch notification" });
+    }
+  });
+  
+  // Mark a notification as read
+  apiRouter.patch("/notifications/:id/read", isAuthenticated, async (req: Request, res: Response) => {
+    try {
+      const id = parseInt(req.params.id);
+      
+      // Get the notification first to check ownership
+      const notification = await storage.getNotification(id);
+      
+      if (!notification) {
+        return res.status(404).json({ message: "Notification not found" });
+      }
+      
+      // Ensure user only updates their own notifications
+      if (notification.userId !== req.user.id) {
+        return res.status(403).json({ message: "You can only update your own notifications" });
+      }
+      
+      const updatedNotification = await storage.markNotificationAsRead(id);
+      res.json(updatedNotification);
+    } catch (error) {
+      console.error('Error marking notification as read:', error);
+      res.status(500).json({ message: "Failed to mark notification as read" });
+    }
+  });
+  
+  // Mark all notifications as read
+  apiRouter.post("/notifications/mark-all-read", isAuthenticated, async (req: Request, res: Response) => {
+    try {
+      const userId = req.user.id;
+      const count = await storage.markAllNotificationsAsRead(userId);
+      res.json({ count, message: `Marked ${count} notifications as read` });
+    } catch (error) {
+      console.error('Error marking all notifications as read:', error);
+      res.status(500).json({ message: "Failed to mark all notifications as read" });
+    }
+  });
+  
+  // Delete a notification
+  apiRouter.delete("/notifications/:id", isAuthenticated, async (req: Request, res: Response) => {
+    try {
+      const id = parseInt(req.params.id);
+      
+      // Get the notification first to check ownership
+      const notification = await storage.getNotification(id);
+      
+      if (!notification) {
+        return res.status(404).json({ message: "Notification not found" });
+      }
+      
+      // Ensure user only deletes their own notifications
+      if (notification.userId !== req.user.id) {
+        return res.status(403).json({ message: "You can only delete your own notifications" });
+      }
+      
+      const success = await storage.deleteNotification(id);
+      
+      if (!success) {
+        return res.status(500).json({ message: "Failed to delete notification" });
+      }
+      
+      res.json({ message: "Notification deleted successfully" });
+    } catch (error) {
+      console.error('Error deleting notification:', error);
+      res.status(500).json({ message: "Failed to delete notification" });
+    }
+  });
+  
+  // Notify nearby workers about a job (for job posters)
+  apiRouter.post("/jobs/:id/notify-nearby-workers", isAuthenticated, async (req: Request, res: Response) => {
+    try {
+      const jobId = parseInt(req.params.id);
+      
+      // Get the job to check ownership
+      const job = await storage.getJob(jobId);
+      
+      if (!job) {
+        return res.status(404).json({ message: "Job not found" });
+      }
+      
+      // Ensure only the job poster can send notifications
+      if (job.posterId !== req.user.id) {
+        return res.status(403).json({ message: "Only the job poster can send notifications" });
+      }
+      
+      // Parse radius from request body, default to 5 miles
+      const schema = z.object({
+        radiusMiles: z.number().default(5)
+      });
+      
+      const { radiusMiles } = schema.parse(req.body);
+      
+      // Send notifications to nearby workers
+      const notificationCount = await storage.notifyNearbyWorkers(jobId, radiusMiles);
+      
+      res.json({ 
+        notificationCount, 
+        message: `Sent notifications to ${notificationCount} nearby workers` 
+      });
+    } catch (error) {
+      console.error('Error notifying nearby workers:', error);
+      res.status(500).json({ message: "Failed to notify nearby workers" });
+    }
+  });
+
   // Mount the API router under /api prefix
   app.use("/api", apiRouter);
 

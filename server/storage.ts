@@ -903,8 +903,9 @@ export class MemStorage implements IStorage {
         userId: worker.id,
         type: 'job_posted',
         title: 'New job nearby!',
-        content: `"${job.title}" was just posted ${radiusMiles} miles from you.`,
-        link: `/job/${job.id}`,
+        message: `"${job.title}" was just posted ${radiusMiles} miles from you.`,
+        sourceId: job.id,
+        sourceType: 'job',
         metadata: { jobId: job.id }
       };
       
