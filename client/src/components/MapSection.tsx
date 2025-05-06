@@ -529,14 +529,14 @@ const MapSection: React.FC<MapSectionProps> = ({ jobs, selectedJob, onSelectJob,
         {isUsingFallback && (
           <div className="absolute top-20 left-1/2 -translate-x-1/2 z-[1000]">
             <div className="bg-card/90 border border-primary/30 rounded-lg shadow-md px-4 py-2 text-foreground text-xs backdrop-blur-sm">
-              <p className="flex items-center">
-                <div className="bg-primary/20 rounded-full p-1 mr-2">
+              <div className="flex items-center">
+                <span className="bg-primary/20 rounded-full p-1 mr-2">
                   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" className="w-3 h-3 text-primary">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
                   </svg>
-                </div>
+                </span>
                 <span className="font-medium">Using approximate location</span>
-              </p>
+              </div>
             </div>
           </div>
         )}
@@ -609,13 +609,13 @@ const MapSection: React.FC<MapSectionProps> = ({ jobs, selectedJob, onSelectJob,
               }
             }}
           >
-            <div className="sticky top-0 bg-white pt-2 pb-1 px-4 border-b z-[9999]">
+            <div className="sticky top-0 bg-card pt-2 pb-1 px-4 border-b border-border z-[9999]">
               <div className="flex justify-center pb-1 drag-handle cursor-grab active:cursor-grabbing">
-                <div className="w-10 h-1 bg-gray-300 rounded-full"></div>
+                <div className="w-10 h-1 bg-muted-foreground/30 rounded-full"></div>
               </div>
               <div className="flex justify-between items-center">
                 <div>
-                  <h3 className="text-lg font-bold">${selectedJob.paymentAmount}</h3>
+                  <h3 className="text-lg font-bold text-foreground">${selectedJob.paymentAmount}</h3>
                   <div className="text-xs text-primary font-medium flex items-center">
                     <span className="inline-block w-2 h-2 rounded-full bg-primary mr-1"></span>
                     Available Now
@@ -623,7 +623,7 @@ const MapSection: React.FC<MapSectionProps> = ({ jobs, selectedJob, onSelectJob,
                 </div>
                 <button 
                   onClick={handleCloseDetail}
-                  className="p-1 rounded-full hover:bg-gray-100 transition-colors"
+                  className="p-1 rounded-full hover:bg-muted/50 transition-colors text-muted-foreground hover:text-foreground"
                   aria-label="Close details"
                 >
                   <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-5 h-5">
@@ -637,11 +637,11 @@ const MapSection: React.FC<MapSectionProps> = ({ jobs, selectedJob, onSelectJob,
             <JobDetail job={selectedJob} onClose={handleCloseDetail} />
             
             {/* Apply button fixed at bottom */}
-            <div className="sticky bottom-0 left-0 right-0 bg-white p-4 border-t z-[9999] pb-[calc(0.5rem+env(safe-area-inset-bottom))]">
+            <div className="sticky bottom-0 left-0 right-0 bg-card p-4 border-t border-border z-[9999] pb-[calc(0.5rem+env(safe-area-inset-bottom))]">
               <button 
                 onClick={handleApply}
                 disabled={isApplying}
-                className="w-full py-3 px-4 rounded-full bg-primary hover:bg-primary/90 text-white font-medium flex items-center justify-center disabled:opacity-70 disabled:cursor-not-allowed transition-all duration-300 hover:shadow-lg"
+                className="w-full py-3 px-4 rounded-full bg-primary hover:bg-primary/90 text-primary-foreground font-medium flex items-center justify-center disabled:opacity-70 disabled:cursor-not-allowed transition-all duration-300 hover:shadow-lg"
               >
                 {isApplying ? (
                   <>
