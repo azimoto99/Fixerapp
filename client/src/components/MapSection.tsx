@@ -53,7 +53,7 @@ const ZoomInControl = memo(() => {
   return (
     <button 
       onClick={handleZoomIn}
-      className="bg-primary text-white shadow-lg rounded-full w-10 h-10 flex items-center justify-center transform transition-all hover:scale-105 active:scale-95 hover:bg-primary/90"
+      className="bg-primary text-primary-foreground shadow-lg rounded-full w-10 h-10 flex items-center justify-center transform transition-all hover:scale-105 active:scale-95 hover:bg-primary/90 border border-primary/20"
       aria-label="Zoom in"
     >
       <PlusCircle className="h-5 w-5" />
@@ -70,7 +70,7 @@ const ZoomOutControl = memo(() => {
   return (
     <button 
       onClick={handleZoomOut}
-      className="bg-primary text-white shadow-lg rounded-full w-10 h-10 flex items-center justify-center transform transition-all hover:scale-105 active:scale-95 hover:bg-primary/90"
+      className="bg-primary text-primary-foreground shadow-lg rounded-full w-10 h-10 flex items-center justify-center transform transition-all hover:scale-105 active:scale-95 hover:bg-primary/90 border border-primary/20"
       aria-label="Zoom out"
     >
       <MinusCircle className="h-5 w-5" />
@@ -89,7 +89,7 @@ const RecenterControl = memo(({ position }: { position: LatLngExpression | null 
   return (
     <button 
       onClick={handleRecenter}
-      className="bg-white text-primary border border-gray-200 shadow-md rounded-full w-12 h-12 flex items-center justify-center transform transition-all hover:scale-105 active:scale-95 hover:bg-gray-50"
+      className="bg-primary text-primary-foreground shadow-lg rounded-full w-12 h-12 flex items-center justify-center transform transition-all hover:scale-105 active:scale-95 hover:bg-primary/90 border border-primary/20"
       aria-label="Return to my location"
     >
       <Target className="h-6 w-6" />

@@ -6,19 +6,42 @@ import { Label } from "@/components/ui/label";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Card, CardContent } from "@/components/ui/card";
 import { useEffect, useState } from "react";
+import { useToast } from "@/hooks/use-toast";
 
 interface ThemeToggleProps {
   variant?: "dropdown" | "radio" | "compact";
 }
 
 export function ThemeToggle({ variant = "dropdown" }: ThemeToggleProps) {
-  const { theme, setTheme } = useTheme();
+  const { theme, setTheme, resolvedTheme } = useTheme();
   const [mounted, setMounted] = useState(false);
+  const { toast } = useToast();
 
   // After mounting, we can show the theme UI
   useEffect(() => {
     setMounted(true);
   }, []);
+  
+  // Handle theme change and ensure it's saved
+  const handleThemeChange = (newTheme: string) => {
+    try {
+      // Set the theme in next-themes
+      setTheme(newTheme);
+      
+      // Also explicitly save to localStorage as a backup
+      localStorage.setItem('theme', newTheme);
+      
+      toast({
+        title: "Theme Updated",
+        description: `Theme set to ${newTheme.charAt(0).toUpperCase() + newTheme.slice(1)}`,
+        duration: 2000,
+      });
+      
+      console.log(`Theme changed to: ${newTheme}`);
+    } catch (error) {
+      console.error('Error setting theme:', error);
+    }
+  };
 
   if (!mounted) {
     return null;
@@ -28,7 +51,7 @@ export function ThemeToggle({ variant = "dropdown" }: ThemeToggleProps) {
     return (
       <RadioGroup 
         value={theme} 
-        onValueChange={setTheme}
+        onValueChange={handleThemeChange}
         className="space-y-4"
       >
         <div className="flex items-center space-x-3 p-3 rounded-lg border border-border/60 hover:border-primary/40 transition-colors bg-background/60">
