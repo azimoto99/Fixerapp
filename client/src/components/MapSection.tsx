@@ -288,12 +288,20 @@ const MapSection: React.FC<MapSectionProps> = ({ jobs, selectedJob, onSelectJob,
   // If no user location yet, show loading
   if (!position) {
     return (
-      <div className="md:col-span-2 bg-white shadow rounded-lg flex items-center justify-center h-80">
-        <div className="text-center">
-          <Loader2 className="h-10 w-10 animate-spin text-primary mx-auto mb-4" />
-          <p>Finding your location...</p>
+      <div className="md:col-span-2 bg-background/50 border border-border shadow-md rounded-lg flex items-center justify-center h-80">
+        <div className="text-center p-6 bg-card/80 rounded-xl border border-border shadow-sm max-w-sm">
+          <div className="relative mx-auto mb-5 w-16 h-16">
+            <div className="absolute inset-0 bg-primary/20 rounded-full animate-ping"></div>
+            <div className="relative flex items-center justify-center w-16 h-16 bg-primary/10 rounded-full">
+              <Loader2 className="h-8 w-8 animate-spin text-primary" />
+            </div>
+          </div>
+          <h3 className="text-foreground font-medium mb-2">Finding your location...</h3>
+          <p className="text-muted-foreground text-sm">Please allow location access for the best experience</p>
           {locationError && (
-            <p className="text-sm text-red-600 mt-2">{locationError}</p>
+            <div className="mt-4 p-3 bg-destructive/10 border border-destructive/20 rounded-lg text-sm text-destructive">
+              {locationError}
+            </div>
           )}
         </div>
       </div>
@@ -520,12 +528,14 @@ const MapSection: React.FC<MapSectionProps> = ({ jobs, selectedJob, onSelectJob,
         {/* Fallback location notice */}
         {isUsingFallback && (
           <div className="absolute top-20 left-1/2 -translate-x-1/2 z-[1000]">
-            <div className="bg-primary/10 border border-primary/20 rounded-full shadow px-3 py-1 text-primary text-xs">
+            <div className="bg-card/90 border border-primary/30 rounded-lg shadow-md px-4 py-2 text-foreground text-xs backdrop-blur-sm">
               <p className="flex items-center">
-                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" className="w-3 h-3 mr-1">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
-                </svg>
-                Using approximate location
+                <div className="bg-primary/20 rounded-full p-1 mr-2">
+                  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" className="w-3 h-3 text-primary">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                  </svg>
+                </div>
+                <span className="font-medium">Using approximate location</span>
               </p>
             </div>
           </div>
@@ -555,7 +565,7 @@ const MapSection: React.FC<MapSectionProps> = ({ jobs, selectedJob, onSelectJob,
         {showJobDetail && selectedJob && (
           <div 
             className="absolute bottom-0 left-0 right-0 z-[9000] max-h-[70%] overflow-y-auto 
-                      bg-white rounded-t-xl shadow-xl animate-slide-up job-detail-panel"
+                      bg-card rounded-t-xl shadow-xl animate-slide-up job-detail-panel border-t border-x border-border"
             style={{ filter: 'drop-shadow(0 -10px 8px rgb(0 0 0 / 0.04))' }}
             onTouchStart={(e) => {
               // Store initial touch position for swipe detection

@@ -88,7 +88,7 @@ export function ThemeToggle({ variant = "dropdown" }: ThemeToggleProps) {
           variant={theme === "light" ? "default" : "secondary"} 
           size="sm" 
           className={`h-9 px-3 ${theme === "light" ? "bg-amber-500/20 text-amber-600 hover:bg-amber-500/30 border-amber-500/30" : "bg-muted/50"}`}
-          onClick={() => setTheme("light")}
+          onClick={() => handleThemeChange("light")}
         >
           <Sun className="h-4 w-4 mr-1.5" />
           <span>Light</span>
@@ -98,7 +98,7 @@ export function ThemeToggle({ variant = "dropdown" }: ThemeToggleProps) {
           variant={theme === "dark" ? "default" : "secondary"} 
           size="sm" 
           className={`h-9 px-3 ${theme === "dark" ? "bg-blue-500/20 text-blue-500 hover:bg-blue-500/30 border-blue-500/30" : "bg-muted/50"}`}
-          onClick={() => setTheme("dark")}
+          onClick={() => handleThemeChange("dark")}
         >
           <Moon className="h-4 w-4 mr-1.5" />
           <span>Dark</span>
@@ -108,7 +108,7 @@ export function ThemeToggle({ variant = "dropdown" }: ThemeToggleProps) {
           variant={theme === "system" ? "default" : "secondary"} 
           size="sm" 
           className={`h-9 px-3 ${theme === "system" ? "bg-gray-500/20 text-gray-500 hover:bg-gray-500/30 border-gray-500/30" : "bg-muted/50"}`}
-          onClick={() => setTheme("system")}
+          onClick={() => handleThemeChange("system")}
         >
           <Monitor className="h-4 w-4 mr-1.5" />
           <span>Auto</span>
@@ -132,7 +132,7 @@ export function ThemeToggle({ variant = "dropdown" }: ThemeToggleProps) {
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" className="min-w-[180px] p-2">
         <DropdownMenuItem 
-          onClick={() => setTheme("light")}
+          onClick={() => handleThemeChange("light")}
           className="flex items-center cursor-pointer rounded-md mb-1 focus:bg-amber-500/10"
         >
           <div className="mr-2 h-7 w-7 rounded-full bg-amber-500/15 flex items-center justify-center">
@@ -142,7 +142,7 @@ export function ThemeToggle({ variant = "dropdown" }: ThemeToggleProps) {
         </DropdownMenuItem>
         
         <DropdownMenuItem 
-          onClick={() => setTheme("dark")}
+          onClick={() => handleThemeChange("dark")}
           className="flex items-center cursor-pointer rounded-md mb-1 focus:bg-blue-500/10"
         >
           <div className="mr-2 h-7 w-7 rounded-full bg-blue-500/15 flex items-center justify-center">
@@ -152,7 +152,7 @@ export function ThemeToggle({ variant = "dropdown" }: ThemeToggleProps) {
         </DropdownMenuItem>
         
         <DropdownMenuItem 
-          onClick={() => setTheme("system")}
+          onClick={() => handleThemeChange("system")}
           className="flex items-center cursor-pointer rounded-md focus:bg-gray-500/10"
         >
           <div className="mr-2 h-7 w-7 rounded-full bg-gray-500/15 flex items-center justify-center">
