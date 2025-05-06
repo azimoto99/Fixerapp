@@ -181,10 +181,24 @@ function useToast() {
     }
   }, [state])
 
+  const persistentToast = (props: any) => {
+    const id = toast({
+      ...props,
+      duration: props.duration || Infinity,
+      action: props.action || {
+        label: "Dismiss",
+        onClick: () => dispatch({ type: "DISMISS_TOAST", toastId: id })
+      }
+    });
+    return id;
+  };
+
+
   return {
     ...state,
     toast,
     dismiss: (toastId?: string) => dispatch({ type: "DISMISS_TOAST", toastId }),
+    persistentToast
   }
 }
 

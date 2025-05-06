@@ -85,7 +85,7 @@ const MAX_CAPS_PERCENTAGE = 30; // max percentage of capital letters allowed
 export function filterJobContent(title: string, description: string): ContentFilterResult {
   // Combine title and description for analysis
   const fullText = `${title} ${description}`.toLowerCase();
-  
+
   // Check for minimum content
   if (description.length < MIN_DESCRIPTION_LENGTH) {
     return { 
@@ -93,19 +93,19 @@ export function filterJobContent(title: string, description: string): ContentFil
       reason: "Job description is too short. Please provide more details about the job."
     };
   }
-  
+
   // Check excessive capitalization
   const capsCount = (title + description).replace(/[^A-Z]/g, '').length;
   const totalCount = (title + description).replace(/\s/g, '').length;
   const capsPercentage = (capsCount / totalCount) * 100;
-  
+
   if (capsPercentage > MAX_CAPS_PERCENTAGE) {
     return {
       isApproved: false,
       reason: "Excessive use of capital letters. Please use standard capitalization."
     };
   }
-  
+
   // Check for prohibited content categories
   for (const [category, patterns] of Object.entries(PROHIBITED_CONTENT)) {
     for (const pattern of patterns) {
@@ -117,30 +117,30 @@ export function filterJobContent(title: string, description: string): ContentFil
       }
     }
   }
-  
+
   // Check for suspicious keywords
   const suspiciousFound = SUSPICIOUS_KEYWORDS.filter(keyword => 
     fullText.includes(keyword.toLowerCase())
   );
-  
+
   if (suspiciousFound.length > 0) {
     return {
       isApproved: false,
       reason: "Your post contains terms that suggest potentially inappropriate activity. Please review our Terms of Service."
     };
   }
-  
+
   // Check for repetitive text (spam indicator)
   const words = fullText.split(/\s+/);
   const uniqueWords = new Set(words);
-  
+
   if (words.length > 20 && uniqueWords.size / words.length < 0.5) {
     return {
       isApproved: false,
       reason: "Your post contains repetitive content which may be considered spam."
     };
   }
-  
+
   return { isApproved: true };
 }
 
@@ -148,32 +148,19 @@ export function filterJobContent(title: string, description: string): ContentFil
  * Filters and validates payment amounts to prevent unrealistic values
  */
 export function validatePaymentAmount(amount: number): ContentFilterResult {
-  // Minimum wage checks (using $7.25 as federal minimum)
-  const MIN_HOURLY_RATE = 7.25;
-  
-  // Unrealistically high payment check
-  const MAX_REASONABLE_AMOUNT = 10000;
-  
-  if (amount <= 0) {
+  if (amount < 10) {
     return {
       isApproved: false,
-      reason: "Payment amount must be greater than zero."
+      reason: "Minimum payment amount is $10"
     };
   }
-  
-  if (amount < MIN_HOURLY_RATE) {
+
+  if (amount > 10000) {
     return {
-      isApproved: false,
-      reason: `Payment appears to be below minimum wage. Please ensure compliance with labor laws.`
+      isApproved: false, 
+      reason: "Maximum payment amount is $10,000"
     };
   }
-  
-  if (amount > MAX_REASONABLE_AMOUNT) {
-    return {
-      isApproved: false,
-      reason: "The payment amount appears unusually high. Please verify and adjust if necessary."
-    };
-  }
-  
+
   return { isApproved: true };
 }
