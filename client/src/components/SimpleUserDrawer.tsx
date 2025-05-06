@@ -17,6 +17,7 @@ import ProfileContent from './drawer-contents/ProfileContent';
 import EarningsContent from './drawer-contents/EarningsContent';
 import ReviewsContent from './drawer-contents/ReviewsContent';
 import SettingsContent from './drawer-contents/SettingsContent';
+import PaymentsContent from './drawer-contents/PaymentsContent';
 
 interface SimpleUserDrawerProps {
   children?: React.ReactNode;
@@ -82,6 +83,8 @@ const SimpleUserDrawer: React.FC<SimpleUserDrawerProps> = ({
         return <ProfileContent user={user} />;
       case "earnings":
         return <EarningsContent userId={user.id} />;
+      case "payments":
+        return <PaymentsContent userId={user.id} />;
       case "reviews":
         return <ReviewsContent userId={user.id} />;
       case "settings":
@@ -173,13 +176,15 @@ const SimpleUserDrawer: React.FC<SimpleUserDrawerProps> = ({
                     </button>
                   )}
                   
-                  {/* Transaction History button - available for all users */}
+                  {/* Payments tab - available for all users */}
                   <button 
-                    onClick={() => {
-                      setIsOpen(false);
-                      navigate('/transactions');
-                    }}
-                    className="flex flex-col items-center justify-center w-16 h-16 rounded-lg hover:bg-emerald-600/5 text-gray-600"
+                    onClick={() => setActiveTab("payments")}
+                    className={cn(
+                      "flex flex-col items-center justify-center w-16 h-16 rounded-lg user-drawer-payment-button",
+                      activeTab === "payments" 
+                        ? "bg-emerald-600/10 text-emerald-600" 
+                        : "hover:bg-emerald-600/5 text-gray-600"
+                    )}
                   >
                     <CreditCard className="h-5 w-5 mb-1" />
                     <span className="text-xs">Payments</span>
