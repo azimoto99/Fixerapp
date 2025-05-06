@@ -8,6 +8,7 @@ import {
   payments,
   badges,
   userBadges,
+  notifications,
   type User, 
   type InsertUser, 
   type Job,
@@ -25,7 +26,9 @@ import {
   type Badge,
   type InsertBadge,
   type UserBadge,
-  type InsertUserBadge
+  type InsertUserBadge,
+  type Notification,
+  type InsertNotification
 } from "@shared/schema";
 
 import session from "express-session";
@@ -125,6 +128,17 @@ export interface IStorage {
   getUserBadges(userId: number): Promise<UserBadge[]>;
   awardBadge(userBadge: InsertUserBadge): Promise<UserBadge>;
   revokeBadge(userId: number, badgeId: number): Promise<boolean>;
+  
+  // Notification operations
+  getNotifications(userId: number, options?: { isRead?: boolean, limit?: number }): Promise<Notification[]>;
+  getNotification(id: number): Promise<Notification | undefined>;
+  createNotification(notification: InsertNotification): Promise<Notification>;
+  markNotificationAsRead(id: number): Promise<Notification | undefined>;
+  markAllNotificationsAsRead(userId: number): Promise<number>; // Returns count of updated notifications
+  deleteNotification(id: number): Promise<boolean>;
+  
+  // Specialized notification methods
+  notifyNearbyWorkers(jobId: number, radiusMiles: number): Promise<number>; // Returns count of notifications sent
 }
 
 export class MemStorage implements IStorage {
@@ -137,6 +151,7 @@ export class MemStorage implements IStorage {
   private payments: Map<number, Payment>;
   private badges: Map<number, Badge>;
   private userBadges: Map<number, UserBadge>;
+  private notifications: Map<number, Notification>;
   
   private userIdCounter: number;
   private jobIdCounter: number;
@@ -147,6 +162,7 @@ export class MemStorage implements IStorage {
   private paymentIdCounter: number;
   private badgeIdCounter: number;
   private userBadgeIdCounter: number;
+  private notificationIdCounter: number;
 
   constructor() {
     this.users = new Map();
@@ -158,6 +174,7 @@ export class MemStorage implements IStorage {
     this.payments = new Map();
     this.badges = new Map();
     this.userBadges = new Map();
+    this.notifications = new Map();
     
     this.userIdCounter = 1;
     this.jobIdCounter = 1;
@@ -168,6 +185,7 @@ export class MemStorage implements IStorage {
     this.paymentIdCounter = 1;
     this.badgeIdCounter = 1;
     this.userBadgeIdCounter = 1;
+    this.notificationIdCounter = 1;
     
     // No sample data - never initialize any sample data
   }
