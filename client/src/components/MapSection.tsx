@@ -18,11 +18,12 @@ import {
 } from 'react-leaflet';
 import 'leaflet/dist/leaflet.css';
 import { LatLngExpression } from 'leaflet';
-import { Loader2, PlusCircle, MinusCircle, Target, Layers } from 'lucide-react';
+import { Loader2, PlusCircle, MinusCircle, Target, Layers, Plus } from 'lucide-react';
 import { useAuth } from '@/hooks/use-auth';
 import { useToast } from '@/hooks/use-toast';
 import { apiRequest, queryClient } from '@/lib/queryClient';
 import { StripeConnectRequired } from '@/components/stripe';
+import { Link } from 'wouter';
 
 interface MapSectionProps {
   jobs: Job[];
@@ -519,9 +520,29 @@ const MapSection: React.FC<MapSectionProps> = ({ jobs, selectedJob, onSelectJob,
                 </div>
               </div>
               
-              {/* Recenter Control - placed at bottom right */}
+              {/* Post Job Button and Recenter Control - placed at bottom right */}
               <div className="leaflet-bottom leaflet-right">
-                <div className="leaflet-control leaflet-bar flex flex-col items-center mb-32 mr-3">
+                <div className="leaflet-control leaflet-bar flex flex-col items-center mb-32 mr-3 space-y-3">
+                  {/* "Post Job" button added here */}
+                  <a 
+                    href="/post-job"
+                    className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-2 px-4 rounded-full shadow-lg transition-transform hover:scale-105 transform-gpu flex items-center gap-2"
+                    aria-label="Post a new job"
+                    onClick={(e) => {
+                      if (!user) {
+                        e.preventDefault();
+                        toast({
+                          title: "Login Required",
+                          description: "Please login to post a job",
+                          variant: "destructive"
+                        });
+                      }
+                    }}
+                  >
+                    <Plus className="h-5 w-5" />
+                    <span className="text-sm">Post Job</span>
+                  </a>
+                  
                   <RecenterControl position={position} />
                 </div>
               </div>
@@ -584,6 +605,25 @@ const MapSection: React.FC<MapSectionProps> = ({ jobs, selectedJob, onSelectJob,
               
               {/* Right side: User and actions */}
               <div className="flex items-center gap-3">
+                {/* Post Job button between heat text and compass */}
+                <a 
+                  href="/post-job"
+                  className="bg-emerald-600 hover:bg-emerald-700 text-white text-xs px-3 py-1.5 rounded-full shadow-lg flex items-center gap-1"
+                  onClick={(e) => {
+                    if (!user) {
+                      e.preventDefault();
+                      toast({
+                        title: "Login Required",
+                        description: "Please login to post a job",
+                        variant: "destructive"
+                      });
+                    }
+                  }}
+                >
+                  <Plus className="h-3 w-3" />
+                  <span>Post Job</span>
+                </a>
+                
                 <FindNearestJobButton />
                 {user && (
                   <div>

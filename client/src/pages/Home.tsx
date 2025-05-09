@@ -333,8 +333,7 @@ export default function Home() {
       
       {/* Mobile nav removed as requested */}
       
-      {/* Show new job button for everyone */}
-      <NewJobButton />
+      {/* New job button now integrated in the MapSection component */}
     </div>
   );
 }
