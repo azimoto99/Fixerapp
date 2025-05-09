@@ -1,0 +1,26 @@
+/* Styles for the ThemeToggle component */
+.theme-toggle-button {
+  transition: all 0.2s ease;
+}
+
+/* Dark mode specific styles */
+.dark .sun-icon {
+  opacity: 0;
+  transform: rotate(-90deg) scale(0);
+}
+
+.dark .moon-icon {
+  opacity: 1;
+  transform: rotate(0) scale(1);
+}
+
+/* Light mode specific styles */
+.sun-icon {
+  opacity: 1;
+  transform: rotate(0) scale(1);
+}
+
+.moon-icon {
+  opacity: 0;
+  transform: rotate(90deg) scale(0);
+}
