@@ -25,24 +25,24 @@ async function testPaymentFlow() {
     // 1. Get an active worker with a Stripe Connect account
     console.log('\n1. Finding worker with Stripe Connect account...');
     const users = await storage.getAllUsers();
-    const worker = users.find(u => u.accountType === 'worker' && u.stripeConnectAccountId);
+    const worker = users.find(u => u.account_type === 'worker' && u.stripe_connect_account_id);
     
     if (!worker) {
       console.error('No worker found with a Stripe Connect account');
       return;
     }
     
-    console.log(`Found worker: ${worker.username} (ID: ${worker.id}) with Connect account: ${worker.stripeConnectAccountId}`);
-    console.log(`Connect account status: ${worker.stripeConnectAccountStatus}`);
+    console.log(`Found worker: ${worker.username} (ID: ${worker.id}) with Connect account: ${worker.stripe_connect_account_id}`);
+    console.log(`Connect account status: ${worker.stripe_connect_account_status}`);
     
     // 2. Find or create a test job for this worker
     console.log('\n2. Finding or creating test job...');
     const jobs = await storage.getJobs();
-    let job = jobs.find(j => j.workerId === worker.id);
+    let job = jobs.find(j => j.worker_id === worker.id);
     
     if (!job) {
       console.log('Creating a test job for the worker...');
-      const poster = users.find(u => u.accountType === 'poster');
+      const poster = users.find(u => u.account_type === 'poster');
       
       if (!poster) {
         console.error('No job poster found in the database');
@@ -53,17 +53,17 @@ async function testPaymentFlow() {
         title: "Test Payment Job",
         description: "This is a test job to verify payments",
         status: "completed",
-        paymentAmount: 50,
-        serviceFee: 5,
-        totalAmount: 55,
+        payment_amount: 50,
+        service_fee: 5,
+        total_amount: 55,
         category: "Computer Repair",
         location: "Test Location",
         latitude: 37.7749,
         longitude: -122.4194,
-        posterId: poster.id,
-        workerId: worker.id,
-        paymentStatus: "pending",
-        hasPaid: false
+        poster_id: poster.id,
+        worker_id: worker.id,
+        payment_status: "pending",
+        has_paid: false
       });
       
       console.log(`Created test job: "${job.title}" (ID: ${job.id})`);
