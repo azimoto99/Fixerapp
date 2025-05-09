@@ -2390,7 +2390,38 @@ export async function registerRoutes(app: Express): Promise<Server> {
                   console.log(`Successfully transferred $${netAmount} to worker ${job.workerId} (Connect account: ${worker.stripeConnectAccountId})`);
                   
                   // Update the earning record to mark it as paid
-                  await storage.updateEarningStatus(earning.id, 'paid', new Date());
+                  await storage.updateEarningStatus(earning.id, 'processing', new Date());
+                  
+                  // Create notification for worker that payment is being processed
+                  await storage.createNotification({
+                    userId: job.workerId,
+                    type: "payment_processing",
+                    title: "Payment Processing",
+                    message: `Your payment of $${netAmount.toFixed(2)} for job "${job.title}" is being processed.`,
+                    isRead: false,
+                    sourceType: "job",
+                    sourceId: job.id,
+                    metadata: {
+                      transferId: transfer.id,
+                      amount: netAmount,
+                      jobTitle: job.title
+                    }
+                  });
+                  
+                  // Create notification for job poster
+                  await storage.createNotification({
+                    userId: job.posterId,
+                    type: "payment_sent",
+                    title: "Payment Sent",
+                    message: `Your payment of $${job.totalAmount.toFixed(2)} for job "${job.title}" has been processed.`,
+                    isRead: false,
+                    sourceType: "job",
+                    sourceId: job.id,
+                    metadata: {
+                      paymentId: payment.id.toString(),
+                      amount: job.totalAmount
+                    }
+                  });
                 } catch (transferError) {
                   console.error(`Error transferring to Connect account: ${(transferError as Error).message}`);
                   // We don't want to fail the whole transaction if the transfer fails
@@ -2463,8 +2494,39 @@ export async function registerRoutes(app: Express): Promise<Server> {
                 
                 console.log(`Successfully transferred $${netAmount} to worker ${job.workerId} (Connect account: ${worker.stripeConnectAccountId})`);
                 
-                // Update the earning record to mark it as paid
-                await storage.updateEarningStatus(earning.id, 'paid', new Date());
+                // Update the earning record to mark it as processing
+                await storage.updateEarningStatus(earning.id, 'processing', new Date());
+                
+                // Create notification for worker that payment is being processed
+                await storage.createNotification({
+                  userId: job.workerId,
+                  type: "payment_processing",
+                  title: "Payment Processing",
+                  message: `Your payment of $${netAmount.toFixed(2)} for job "${job.title}" is being processed.`,
+                  isRead: false,
+                  sourceType: "job",
+                  sourceId: job.id,
+                  metadata: {
+                    transferId: transfer.id,
+                    amount: netAmount,
+                    jobTitle: job.title
+                  }
+                });
+                
+                // Create notification for job poster
+                await storage.createNotification({
+                  userId: job.posterId,
+                  type: "payment_sent", 
+                  title: "Payment Sent",
+                  message: `Your payment for job "${job.title}" has been processed.`,
+                  isRead: false,
+                  sourceType: "job",
+                  sourceId: job.id,
+                  metadata: {
+                    paymentId: createdPayment.id.toString(),
+                    amount: job.totalAmount
+                  }
+                });
               } catch (transferError) {
                 console.error(`Error transferring to Connect account: ${(transferError as Error).message}`);
                 // We don't want to fail the whole transaction if the transfer fails
