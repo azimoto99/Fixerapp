@@ -9,7 +9,7 @@
     "splash": {
       "image": "./assets/splash.png",
       "resizeMode": "contain",
-      "backgroundColor": "#ffffff"
+      "backgroundColor": "#000000"
     },
     "assetBundlePatterns": [
       "**/*"
@@ -21,7 +21,7 @@
     "android": {
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
-        "backgroundColor": "#ffffff"
+        "backgroundColor": "#000000"
       },
       "package": "com.fixerapp.app",
       "permissions": [
@@ -39,6 +39,12 @@
       "eas": {
         "projectId": "fixer-app"
       }
+    },
+    "primaryColor": "#68D391",
+    "notification": {
+      "icon": "./assets/icon.png",
+      "color": "#000000",
+      "androidMode": "default"
     }
   }
 }

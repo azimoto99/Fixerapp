@@ -1,118 +1,54 @@
-# Connecting Fixer App to Your Phone
+# Connecting the Fixer App to Your Phone
 
-This guide will help you connect the Fixer app directly to your phone using Expo Go.
+This guide provides instructions to connect the Fixer app to your mobile device.
 
-## Prerequisites
+## Choose Your Device
 
-1. **Your phone and computer on the same WiFi network**
-   - This is essential for local development
-   - If you're having issues, you can also use Expo's tunnel feature
+- [Android Guide](./expo-android-guide.md)
+- iOS Guide (coming soon)
 
-2. **Expo Go app installed on your phone**
-   - [Download for Android](https://play.google.com/store/apps/details?id=host.exp.exponent)
-   - [Download for iOS](https://apps.apple.com/app/expo-go/id982107779)
+## Quick Start
 
-## Step 1: Install Required Dependencies
+For most users, the simplest way to connect is:
 
-First, let's make sure all required dependencies are installed:
+1. Run the connection script:
+   ```bash
+   ./connect-to-phone.sh
+   ```
 
-```bash
-./setup-expo.sh
-```
+2. Install the Expo Go app on your device:
+   - [Android - Google Play Store](https://play.google.com/store/apps/details?id=host.exp.exponent)
+   - [iOS - App Store](https://apps.apple.com/app/expo-go/id982107779)
 
-Or run manually:
+3. Scan the QR code that appears in the terminal with your device's camera.
 
-```bash
-npm install --legacy-peer-deps expo expo-cli @expo/webpack-config expo-dev-client expo-updates
-```
+## App Features on Mobile
 
-## Step 2: Start Expo Development Server
+Running the Fixer app on a mobile device enables:
 
-Run the following command to start the Expo development server:
+- **Geolocation**: Accurate location tracking
+- **Map Navigation**: Seamless mapping experience
+- **Push Notifications**: Real-time job alerts
+- **Camera Access**: For profile photos and job documentation
+- **Touch Interactions**: Mobile-optimized UI
+- **Offline Mode**: Limited functionality without internet
 
-```bash
-npx expo start
-```
+## Enhanced Mobile Experience
 
-This will:
-- Start a development server
-- Display a QR code in the terminal
-- Open Expo Developer Tools in your browser
+The Fixer app is designed to be mobile-first, providing an optimal experience on phones:
 
-## Step 3: Connect Your Phone
-
-### For Android:
-
-1. Open the Expo Go app on your Android device
-2. Tap "Scan QR Code" 
-3. Scan the QR code displayed in your terminal or browser
-4. The app should load on your device
-
-### For iOS:
-
-1. Open the Camera app on your iOS device
-2. Scan the QR code displayed in your terminal or browser
-3. Tap the banner that appears at the top of your screen
-4. The Expo Go app will open and load your project
-
-## Step 4: Development Options
-
-While connected, you'll have access to several development features:
-
-- **Live Reloading**: Changes will automatically refresh
-- **Hot Reloading**: Most changes will update without a full refresh
-- **Developer Menu**: Shake your device to access developer options
+- **Responsive Design**: Adapts to your screen size
+- **Touch-Friendly Controls**: Larger buttons and intuitive gestures
+- **Performance Optimizations**: Faster loading and smoother animations on mobile
 
 ## Troubleshooting
 
-### Connection Issues
+If you encounter issues connecting:
 
-If you can't connect via the default connection method:
+1. Ensure your phone and computer are on the same network
+2. Try the "tunnel" connection option
+3. Check that your firewall isn't blocking connections
+4. Restart the Expo Go app
+5. Verify you have the latest version of Expo Go installed
 
-1. In the terminal where Expo is running, press `d` to open the developer tools
-2. Select "Connection" and choose "Tunnel" instead of "LAN"
-3. A new QR code will be generated - scan this one instead
-
-### Expo Client Out of Date
-
-If you see a message that Expo Client is out of date:
-
-1. Update the Expo Go app on your phone
-2. Make sure your project's dependencies are up to date
-
-### Unable to Scan QR Code
-
-If scanning the QR code doesn't work:
-
-1. In the Expo Go app, tap "Enter URL manually"
-2. Enter the URL displayed near the QR code (e.g., exp://192.168.1.5:19000)
-
-## Advanced: Setting Up for Production
-
-When you're ready to create a standalone app for distribution:
-
-1. Update your app.json with appropriate metadata
-2. Create a build using EAS:
-
-```bash
-npx eas build --platform android
-# or
-npx eas build --platform ios
-```
-
-## Using Expo Go's Development Client
-
-For projects with custom native code:
-
-1. Build a development client:
-
-```bash
-npx eas build --profile development
-```
-
-2. Install the resulting app on your device
-3. This custom development client can work with native modules
-
-## Need More Help?
-
-Refer to the [Expo documentation](https://docs.expo.dev/get-started/installation/) for more detailed information.
+For detailed troubleshooting, see the device-specific guides.
