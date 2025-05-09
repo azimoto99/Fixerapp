@@ -1,23 +1,30 @@
-import { Router, Request, Response } from 'express';
+import { Router, Request, Response, NextFunction } from 'express';
 import Stripe from 'stripe';
 import { storage } from './storage';
+import { User } from '@shared/schema';
+
+// Declare the user type extension for Express Request
+declare global {
+  namespace Express {
+    interface Request {
+      user?: User;
+    }
+  }
+}
 
 if (!process.env.STRIPE_SECRET_KEY) {
   throw new Error('Missing required environment variable: STRIPE_SECRET_KEY');
 }
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY, {
-  apiVersion: "2023-10-16" as any,
+  apiVersion: "2023-10-16",
 });
 
 // Authentication middleware for Stripe routes
-const isAuthenticated = (req: Request, res: Response, next: Function) => {
+const isAuthenticated = (req: Request, res: Response, next: NextFunction) => {
   if (!req.isAuthenticated() || !req.user) {
     return res.status(401).json({ message: "Unauthorized - Please login again" });
   }
-  
-  // Add type assertion to ensure req.user is available in routes
-  (req as any).user = req.user;
   
   next();
 };
