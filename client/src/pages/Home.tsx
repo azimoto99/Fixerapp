@@ -333,8 +333,8 @@ export default function Home() {
       
       {/* Mobile nav removed as requested */}
       
-      {/* Show new job button for all logged-in users */}
-      {user && <NewJobButton />}
+      {/* Show new job button for everyone */}
+      <NewJobButton />
     </div>
   );
 }
