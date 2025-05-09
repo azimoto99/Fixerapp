@@ -1,50 +1,19 @@
 
 {
-  "expo": {
+  "name": "Fixer",
+  "version": "1.0.0",
+  "appConfig": {
     "name": "Fixer",
-    "slug": "fixer",
-    "version": "1.0.0",
+    "description": "A dynamic gig economy platform connecting local workers and job posters",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
-    "userInterfaceStyle": "automatic",
-    "splash": {
-      "image": "./assets/splash.png",
-      "resizeMode": "contain",
+    "theme": {
+      "primaryColor": "#68D391",
       "backgroundColor": "#000000"
-    },
-    "assetBundlePatterns": [
-      "**/*"
-    ],
-    "ios": {
-      "supportsTablet": true,
-      "bundleIdentifier": "com.fixerapp.app"
-    },
-    "android": {
-      "adaptiveIcon": {
-        "foregroundImage": "./assets/adaptive-icon.png",
-        "backgroundColor": "#000000"
-      },
-      "package": "com.fixerapp.app"
     },
     "web": {
       "favicon": "./assets/favicon.png"
     },
-    "plugins": [
-      "expo-updates"
-    ],
-    "extra": {
-      "eas": {
-        "projectId": "fixer-app"
-      }
-    },
-    "updates": {
-      "enabled": true,
-      "fallbackToCacheTimeout": 0,
-      "url": "https://u.expo.dev/your-project-id"
-    },
-    "runtimeVersion": "exposdk:53.0.0",
-    "scheme": "fixer",
-    "owner": "fixer",
-    "developmentClient": true
+    "appId": "com.fixerapp.app"
   }
 }
