@@ -39,13 +39,12 @@
     },
     "updates": {
       "enabled": true,
-      "fallbackToCacheTimeout": 0
+      "fallbackToCacheTimeout": 0,
+      "url": "https://u.expo.dev/your-project-id"
     },
+    "runtimeVersion": "exposdk:53.0.0",
     "scheme": "fixer",
     "owner": "fixer",
-    "runtimeVersion": {
-      "policy": "sdkVersion"
-    },
     "developmentClient": true
   }
 }
