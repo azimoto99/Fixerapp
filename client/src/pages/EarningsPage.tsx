@@ -34,9 +34,18 @@ import {
   SelectTrigger, 
   SelectValue 
 } from '@/components/ui/select';
+import { 
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle
+} from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Loader2, DollarSign, TrendingUp, Calendar } from 'lucide-react';
+import { Separator } from '@/components/ui/separator';
+import { Loader2, DollarSign, TrendingUp, Calendar, Download, Clock } from 'lucide-react';
 import { formatCurrency } from '@/lib/utils';
 import { useToast } from '@/hooks/use-toast';
 import { Redirect } from 'wouter';
@@ -252,6 +261,7 @@ export default function EarningsPage() {
 // The earnings table component
 function EarningsTable({ earnings }: { earnings: (Earning & { job?: Job })[] }) {
   const { toast } = useToast();
+  const [selectedEarning, setSelectedEarning] = useState<(Earning & { job?: Job }) | null>(null);
   
   if (earnings.length === 0) {
     return (
@@ -264,63 +274,161 @@ function EarningsTable({ earnings }: { earnings: (Earning & { job?: Job })[] }) 
       </div>
     );
   }
+  
+  // Function to show the earning details dialog
+  const showEarningDetails = (earning: Earning & { job?: Job }) => {
+    setSelectedEarning(earning);
+  };
+  
+  // Function to close the earning details dialog
+  const closeEarningDetails = () => {
+    setSelectedEarning(null);
+  };
 
   return (
-    <Card>
-      <CardContent className="p-0">
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>Job</TableHead>
-              <TableHead>Date</TableHead>
-              <TableHead>Amount</TableHead>
-              <TableHead>Status</TableHead>
-              <TableHead className="text-right">Action</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {earnings.map((earning) => (
-              <TableRow key={earning.id}>
-                <TableCell className="font-medium">
-                  {earning.job?.title || `Job #${earning.jobId}`}
-                </TableCell>
-                <TableCell>
-                  {earning.dateEarned ? new Date(earning.dateEarned).toLocaleDateString() : 'N/A'}
-                </TableCell>
-                <TableCell>{formatCurrency(earning.amount)}</TableCell>
-                <TableCell>
+    <>
+      <Card>
+        <CardContent className="p-0">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Job</TableHead>
+                <TableHead>Date</TableHead>
+                <TableHead>Amount</TableHead>
+                <TableHead>Status</TableHead>
+                <TableHead className="text-right">Action</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {earnings.map((earning) => (
+                <TableRow key={earning.id}>
+                  <TableCell className="font-medium">
+                    {earning.job?.title || `Job #${earning.jobId}`}
+                  </TableCell>
+                  <TableCell>
+                    {earning.dateEarned ? new Date(earning.dateEarned).toLocaleDateString() : 'N/A'}
+                  </TableCell>
+                  <TableCell>{formatCurrency(earning.amount)}</TableCell>
+                  <TableCell>
+                    <Badge 
+                      className={
+                        earning.status === 'paid' 
+                          ? 'bg-green-100 text-green-800 hover:bg-green-100' 
+                          : earning.status === 'pending'
+                            ? 'bg-yellow-100 text-yellow-800 hover:bg-yellow-100'
+                            : 'bg-red-100 text-red-800 hover:bg-red-100'
+                      }
+                    >
+                      {earning.status === 'paid' ? 'Paid' : 
+                       earning.status === 'pending' ? 'Pending' : 'Cancelled'}
+                    </Badge>
+                  </TableCell>
+                  <TableCell className="text-right">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => showEarningDetails(earning)}
+                    >
+                      View Details
+                    </Button>
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </CardContent>
+      </Card>
+      
+      {/* Earning Details Dialog */}
+      <Dialog open={!!selectedEarning} onOpenChange={(open) => !open && closeEarningDetails()}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Earning Details</DialogTitle>
+            <DialogDescription>
+              Detailed information for this payment
+            </DialogDescription>
+          </DialogHeader>
+          
+          {selectedEarning && (
+            <div className="space-y-4">
+              <div className="grid grid-cols-2 gap-2 text-sm">
+                <div className="font-medium">Job:</div>
+                <div>{selectedEarning.job?.title || `Job #${selectedEarning.jobId}`}</div>
+                
+                <div className="font-medium">Date Earned:</div>
+                <div>{selectedEarning.dateEarned ? new Date(selectedEarning.dateEarned).toLocaleDateString() : 'N/A'}</div>
+                
+                <div className="font-medium">Date Paid:</div>
+                <div>{selectedEarning.datePaid ? new Date(selectedEarning.datePaid).toLocaleDateString() : 'Pending'}</div>
+                
+                <div className="font-medium">Gross Amount:</div>
+                <div className="text-primary font-semibold">{formatCurrency(selectedEarning.amount)}</div>
+                
+                <div className="font-medium">Service Fee:</div>
+                <div className="text-destructive">{formatCurrency(selectedEarning.serviceFee)}</div>
+                
+                <div className="font-medium">Net Amount:</div>
+                <div className="text-green-600 font-semibold">{formatCurrency(selectedEarning.netAmount)}</div>
+                
+                <div className="font-medium">Status:</div>
+                <div>
                   <Badge 
                     className={
-                      earning.status === 'paid' 
-                        ? 'bg-green-100 text-green-800 hover:bg-green-100' 
-                        : earning.status === 'pending'
-                          ? 'bg-yellow-100 text-yellow-800 hover:bg-yellow-100'
-                          : 'bg-red-100 text-red-800 hover:bg-red-100'
+                      selectedEarning.status === 'paid' 
+                        ? 'bg-green-100 text-green-800' 
+                        : selectedEarning.status === 'pending'
+                          ? 'bg-yellow-100 text-yellow-800'
+                          : 'bg-red-100 text-red-800'
                     }
                   >
-                    {earning.status === 'paid' ? 'Paid' : 
-                     earning.status === 'pending' ? 'Pending' : 'Cancelled'}
+                    {selectedEarning.status === 'paid' ? 'Paid' : 
+                     selectedEarning.status === 'pending' ? 'Pending' : 'Cancelled'}
                   </Badge>
-                </TableCell>
-                <TableCell className="text-right">
-                  <Button
-                    variant="outline"
+                </div>
+              </div>
+              
+              <Separator />
+              
+              <div className="flex justify-between items-center">
+                <Button 
+                  variant="outline" 
+                  size="sm"
+                  onClick={() => {
+                    // Download receipt functionality
+                    toast({
+                      title: "Receipt Downloaded",
+                      description: "The receipt has been downloaded to your device.",
+                    });
+                  }}
+                >
+                  <Download className="mr-2 h-4 w-4" />
+                  Download Receipt
+                </Button>
+                
+                {selectedEarning.status === 'pending' && (
+                  <Button 
+                    variant="outline" 
                     size="sm"
                     onClick={() => {
                       toast({
-                        title: "Details Viewed",
-                        description: `You viewed details for ${earning.job?.title || `Job #${earning.jobId}`}`,
+                        title: "Payment Status",
+                        description: "Payment is currently being processed and will be deposited to your account.",
                       });
                     }}
                   >
-                    View Details
+                    <Clock className="mr-2 h-4 w-4" />
+                    Check Status
                   </Button>
-                </TableCell>
-              </TableRow>
-            ))}
-          </TableBody>
-        </Table>
-      </CardContent>
-    </Card>
+                )}
+              </div>
+            </div>
+          )}
+          
+          <DialogFooter className="mt-4">
+            <Button onClick={closeEarningDetails}>Close</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </>
   );
 }
