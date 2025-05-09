@@ -604,7 +604,7 @@ const MapSection: React.FC<MapSectionProps> = ({ jobs, selectedJob, onSelectJob,
                       </svg>
                     </button>
                     
-                    <SimpleUserDrawer 
+                    <SimpleUserDrawer2 
                       isOpen={isUserDrawerOpen}
                       onClose={() => setIsUserDrawerOpen(false)}
                     />
