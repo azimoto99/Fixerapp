@@ -93,7 +93,7 @@ function AuthenticatedContent() {
       )}
       {/* Contextual tips will track user actions and show tooltips at the right moments */}
       {user && <ContextualTips />}
-      <ExpoConnectGuide />
+      {/* ExpoConnectGuide button removed from UI - use ./expo-connect.sh in console instead */}
       <Toaster />
     </>
   );

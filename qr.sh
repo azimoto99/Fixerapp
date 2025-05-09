@@ -6,18 +6,20 @@ YELLOW='\033[1;33m'
 BLUE='\033[0;34m'
 NC='\033[0m' # No Color
 
-# Get the Replit URL from the environment or use a default
-REPLIT_URL=$(echo "$REPLIT_DEPLOYMENT_URL" | sed 's/https:\/\///')
-if [ -z "$REPLIT_URL" ]; then
-  # Try to get from .replit file
-  REPLIT_URL=$(grep -o 'hostname = "[^"]*"' .replit 2>/dev/null | sed 's/hostname = "//;s/"//')
-fi
-
-if [ -z "$REPLIT_URL" ]; then
-  # If still empty, use a generic one that users will need to replace
-  REPLIT_URL="your-repl-name.username.repl.co"
-  echo -e "${YELLOW}Couldn't detect your Replit URL automatically.${NC}"
-  echo -e "${YELLOW}Replace the following URL with your actual Replit URL.${NC}"
+# Use the URL provided as the first argument, or try to detect it
+if [ -n "$1" ]; then
+  REPLIT_URL="$1"
+else
+  # Try to get URL from browser preview
+  echo -e "${YELLOW}Getting the URL from your browser preview...${NC}"
+  REPLIT_URL=$(curl -s https://replit.com/data/user/sessionInfo | grep -o '"domain":"[^"]*"' | sed 's/"domain":"//;s/"//')
+  
+  if [ -z "$REPLIT_URL" ]; then
+    # If still empty, use a generic one that users will need to replace
+    REPLIT_URL="f687e0af-8a85-452c-998d-fcf012f2440c-00-qm9vd9fy3b2t.riker.replit.dev"
+    echo -e "${YELLOW}Using Replit preview URL. If this is not correct, run:${NC}"
+    echo -e "${YELLOW}./qr.sh your-actual-url${NC}"
+  fi
 fi
 
 # Create a URL for Expo
