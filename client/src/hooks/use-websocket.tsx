@@ -26,7 +26,8 @@ export function useWebSocket() {
       // Determine the WebSocket URL based on current protocol
       const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
       const host = window.location.host;
-      const wsUrl = `${protocol}//${host}/ws`;
+      const userId = localStorage.getItem('userId');
+      const wsUrl = `${protocol}//${host}/ws/notifications${userId ? `?userId=${userId}` : ''}`;
       
       const socket = new WebSocket(wsUrl);
       
