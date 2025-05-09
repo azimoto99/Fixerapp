@@ -470,18 +470,7 @@ const MapSection: React.FC<MapSectionProps> = ({ jobs, selectedJob, onSelectJob,
 
             {/* Map View Toggle Control - placed at top left for better visibility */}
             <div className="leaflet-control-container">
-              <div className="leaflet-top leaflet-left">
-                <div className="leaflet-control leaflet-bar ml-3 mt-32">
-                  <MapViewToggle 
-                    view={mapView} 
-                    onChange={setMapView}
-                  />
-                </div>
-              </div>
-              
-              {/* Map controls removed as requested */}
-              
-{/* Heat map legend removed */}
+              {/* Map controls and toggle removed as they are now in the top control bar */}
             </div>
           </MapContainer>
         )}
