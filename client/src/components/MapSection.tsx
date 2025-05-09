@@ -2,7 +2,7 @@ import React, { useState, useEffect, useMemo, useCallback, memo } from 'react';
 import { useGeolocation } from '@/lib/geolocation';
 import JobDetail from './JobDetail';
 import { JobMarker } from './JobMarker';
-import SimpleUserDrawer from './SimpleUserDrawer';
+import SimpleUserDrawer2 from './SimpleUserDrawer2';
 import UserDrawerV2 from './UserDrawerV2';
 import HeatmapLayer from './HeatmapLayer';
 import MapViewToggle from './MapViewToggle';

@@ -6,6 +6,7 @@ import { Separator } from "@/components/ui/separator";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/hooks/use-auth";
 import { useSimpleToast } from "@/hooks/use-simple-toast";
+import Portal from "./Portal";
 // Simplified placeholder content for tabs
 const ProfileContent = ({ user }: any) => (
   <div>
@@ -124,27 +125,28 @@ const SimpleUserDrawer = ({ isOpen, onClose }: SimpleUserDrawerProps) => {
   }
 
   return (
-    <div style={{ 
-      position: 'fixed', 
-      inset: 0, 
-      backgroundColor: 'rgba(0, 0, 0, 0.5)',
-      backdropFilter: 'blur(4px)',
-      zIndex: 99999999 
-    }}>
-      <div
-        ref={drawerRef}
-        style={{
-          position: 'fixed',
-          top: 0,
-          right: 0,
-          bottom: 0,
-          width: '320px',
-          backgroundColor: 'var(--background)',
-          boxShadow: '-2px 0 10px rgba(0, 0, 0, 0.2)',
-          zIndex: 100000000,
-          overflowY: 'auto',
-          animation: 'slide-in 0.3s ease-out',
-        }}
+    <Portal>
+      <div style={{ 
+        position: 'fixed', 
+        inset: 0, 
+        backgroundColor: 'rgba(0, 0, 0, 0.5)',
+        backdropFilter: 'blur(4px)',
+        pointerEvents: 'all'
+      }}>
+        <div
+          ref={drawerRef}
+          style={{
+            position: 'fixed',
+            top: 0,
+            right: 0,
+            bottom: 0,
+            width: '320px',
+            backgroundColor: 'var(--background)',
+            boxShadow: '-2px 0 10px rgba(0, 0, 0, 0.2)',
+            overflowY: 'auto',
+            animation: 'slide-in 0.3s ease-out',
+            pointerEvents: 'all'
+          }}
       >
         {/* Drawer header */}
         <div className="p-4 border-b">
