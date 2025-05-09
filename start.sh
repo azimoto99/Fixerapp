@@ -6,6 +6,10 @@ start_health_check_server() {
   NODE_ENV=production node dist/health-check.js
 }
 
+# Start the health monitoring script in the background
+echo "Starting health monitoring..."
+./health-monitor.sh &
+
 # Start the main server
 echo "Starting main application server..."
 NODE_ENV=production node dist/index.js || start_health_check_server
