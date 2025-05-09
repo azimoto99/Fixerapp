@@ -93,7 +93,6 @@ export default function SimpleUserDrawer2({ isOpen, onClose }: SimpleUserDrawerP
   }
 
   const handleLogout = () => {
-    showToast("Logging out...", "info", { position: 'bottom' });
     logoutMutation.mutate();
     onClose();
   };
@@ -187,10 +186,7 @@ export default function SimpleUserDrawer2({ isOpen, onClose }: SimpleUserDrawerP
                 {/* Main sections */}
                 <div className="mb-2 px-2 py-1 w-full">
                   <button
-                    onClick={() => {
-                      navigateTo('/');
-                      showToast("Returning to home screen", "success");
-                    }}
+                    onClick={() => navigateTo('/')}
                     className="flex flex-col items-center justify-center w-full h-14 rounded-lg hover:bg-emerald-600/5 text-gray-600"
                     title="Home"
                   >
@@ -203,10 +199,7 @@ export default function SimpleUserDrawer2({ isOpen, onClose }: SimpleUserDrawerP
 
                 {/* User sections */}
                 <button 
-                  onClick={() => {
-                    setActiveTab("profile");
-                    showToast("Viewing profile information", "info");
-                  }}
+                  onClick={() => setActiveTab("profile")}
                   className={cn(
                     "flex flex-col items-center justify-center w-14 h-14 rounded-lg",
                     activeTab === "profile" 
@@ -221,10 +214,7 @@ export default function SimpleUserDrawer2({ isOpen, onClose }: SimpleUserDrawerP
                 
                 {/* Reviews */}
                 <button 
-                  onClick={() => {
-                    setActiveTab("reviews");
-                    showToast("Viewing your reviews", "info");
-                  }}
+                  onClick={() => setActiveTab("reviews")}
                   className={cn(
                     "flex flex-col items-center justify-center w-14 h-14 rounded-lg",
                     activeTab === "reviews" 
@@ -241,10 +231,7 @@ export default function SimpleUserDrawer2({ isOpen, onClose }: SimpleUserDrawerP
 
                 {/* Financial sections */}
                 <button 
-                  onClick={() => {
-                    setActiveTab("payments");
-                    showToast("Viewing payment information", "info");
-                  }}
+                  onClick={() => setActiveTab("payments")}
                   className={cn(
                     "flex flex-col items-center justify-center w-14 h-14 rounded-lg",
                     activeTab === "payments" 
@@ -259,10 +246,7 @@ export default function SimpleUserDrawer2({ isOpen, onClose }: SimpleUserDrawerP
                 
                 {user.accountType === 'worker' && (
                   <button 
-                    onClick={() => {
-                      setActiveTab("earnings");
-                      showToast("Viewing your earnings", "success");
-                    }}
+                    onClick={() => setActiveTab("earnings")}
                     className={cn(
                       "flex flex-col items-center justify-center w-14 h-14 rounded-lg",
                       activeTab === "earnings" 
@@ -278,10 +262,7 @@ export default function SimpleUserDrawer2({ isOpen, onClose }: SimpleUserDrawerP
                 
                 {user.accountType === 'poster' && (
                   <button 
-                    onClick={() => {
-                      navigateTo('/payment-dashboard');
-                      showToast("Opening payment dashboard", "info");
-                    }}
+                    onClick={() => navigateTo('/payment-dashboard')}
                     className="flex flex-col items-center justify-center w-14 h-14 rounded-lg hover:bg-emerald-600/5 text-gray-600"
                     title="Dashboard"
                   >
