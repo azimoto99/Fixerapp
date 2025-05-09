@@ -699,6 +699,20 @@ export class DatabaseStorage implements IStorage {
       .where(eq(earnings.jobId, jobId))
       .orderBy(desc(earnings.dateEarned));
   }
+  
+  async getAllEarningsByStatus(statusList: string[]): Promise<Earning[]> {
+    if (!statusList || statusList.length === 0) {
+      return [];
+    }
+    
+    // Create conditions for each status in the list using 'or'
+    const statusConditions = statusList.map(status => eq(earnings.status, status));
+    
+    return await db.select()
+      .from(earnings)
+      .where(or(...statusConditions))
+      .orderBy(desc(earnings.dateEarned));
+  }
 
   async createEarning(earning: InsertEarning): Promise<Earning> {
     // Default service fee if not provided
@@ -736,6 +750,15 @@ export class DatabaseStorage implements IStorage {
       .where(eq(earnings.id, id))
       .returning();
     
+    return updatedEarning;
+  }
+  
+  async updateEarningTransferId(id: number, transferId: string): Promise<Earning | undefined> {
+    const [updatedEarning] = await db.update(earnings)
+      .set({ transferId })
+      .where(eq(earnings.id, id))
+      .returning();
+      
     return updatedEarning;
   }
 

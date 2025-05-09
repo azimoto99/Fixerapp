@@ -127,8 +127,10 @@ export interface IStorage {
   getEarning(id: number): Promise<Earning | undefined>;
   getEarningsForWorker(workerId: number): Promise<Earning[]>;
   getEarningsForJob(jobId: number): Promise<Earning[]>;
+  getAllEarningsByStatus(statusList: string[]): Promise<Earning[]>;
   createEarning(earning: InsertEarning): Promise<Earning>;
   updateEarningStatus(id: number, status: string, datePaid?: Date): Promise<Earning | undefined>;
+  updateEarningTransferId(id: number, transferId: string): Promise<Earning | undefined>;
   
   // Payment operations
   getPayment(id: number): Promise<Payment | undefined>;
