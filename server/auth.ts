@@ -93,10 +93,31 @@ export function setupAuth(app: Express) {
     if (!req.session) {
       console.error('Session not available!', { sessionID: req.sessionID });
       
-      // Create a new session if needed
-      if (!req.sessionID) {
-        console.log('Creating new session since none exists');
-      }
+      // Regenerate the session to fix potential issues
+      return next(new Error('Failed to load session middleware'));
+    }
+    
+    // For debugging - log session in development
+    if (process.env.NODE_ENV !== 'production' && req.path === '/api/user') {
+      console.log('User info requested - session ID:', req.sessionID);
+      console.log('isAuthenticated:', req.isAuthenticated());
+      console.log('Session data:', JSON.stringify(req.session, (key, value) => {
+        if (key === 'passport' && value) {
+          return value.user ? { user: value.user } : 'not set';
+        }
+        if (key === 'userId') {
+          return value || 'not set';
+        }
+        if (key === 'loginTime') {
+          return value || 'not set';
+        }
+        return value;
+      }, 2));
+    }
+    
+    // Create a new session if needed
+    if (!req.sessionID) {
+      console.log('Creating new session since none exists');
     }
     
     // Ensure cookie is properly set
