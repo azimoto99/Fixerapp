@@ -128,9 +128,12 @@ export function formatDistance(distance: number): string {
   if (distance < 0.1) {
     return "< 0.1 miles";
   } else if (distance < 1) {
-    return `${(distance * 10).toFixed(0) / 10} miles`;
+    // Format fraction of a mile
+    const formatted = Math.round(distance * 10) / 10;
+    return `${formatted} miles`;
   } else {
-    return `${distance.toFixed(1)} miles`;
+    // Format distances of 1 mile or more
+    return `${parseFloat(distance.toFixed(1))} miles`;
   }
 }
 

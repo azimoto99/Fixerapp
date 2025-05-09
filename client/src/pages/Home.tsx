@@ -6,7 +6,7 @@ import JobSearch from '@/components/JobSearch';
 import ViewToggle from '@/components/ViewToggle';
 import JobListSection from '@/components/JobListSection';
 import MapSection from '@/components/MapSection';
-import NewJobButton from '@/components/NewJobButton';
+// NewJobButton is conditionally rendered based on location status
 
 import { useJobs } from '@/hooks/useJobs';
 import { Job } from '@shared/schema';
