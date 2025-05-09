@@ -1,11 +1,20 @@
-import React, { useState } from 'react';
-import { useQuery, useMutation } from '@tanstack/react-query';
-import { apiRequest, queryClient } from '@/lib/queryClient';
-import { useForm } from 'react-hook-form';
-import { zodResolver } from '@hookform/resolvers/zod';
-import { z } from 'zod';
-import { useToast } from '@/hooks/use-toast';
-import { type ToastProps } from '@/components/ui/toast';
+import React, { useState, useEffect } from 'react';
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardFooter,
+  CardHeader,
+  CardTitle
+} from '@/components/ui/card';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import {
   Form,
   FormControl,
@@ -14,81 +23,228 @@ import {
   FormItem,
   FormLabel,
   FormMessage,
-} from '@/components/ui/form';
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardFooter,
-  CardHeader,
-  CardTitle,
-} from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Textarea } from '@/components/ui/textarea';
-import {
+} from "@/components/ui/form";
+import { 
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
-  SelectValue,
+  SelectValue
 } from '@/components/ui/select';
-import { Loader2, AlertCircle } from 'lucide-react';
-import { formatCurrency } from '@/lib/utils';
-import { loadStripe } from '@stripe/stripe-js';
-import {
-  Elements,
-  PaymentElement,
-  useStripe,
-  useElements,
+import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
+import { Button } from '@/components/ui/button';
+import { Separator } from '@/components/ui/separator';
+import { useToast } from '@/hooks/use-toast';
+import { useAuth } from '@/hooks/use-auth';
+import { 
+  CreditCard, 
+  DollarSign, 
+  ChevronsUpDown, 
+  CheckCircle2, 
+  AlertCircle,
+  ShieldCheck
+} from 'lucide-react';
+import { 
+  useStripe, 
+  useElements, 
+  CardElement, 
+  Elements 
 } from '@stripe/react-stripe-js';
+import { loadStripe } from '@stripe/stripe-js';
+import { useMutation, useQuery } from '@tanstack/react-query';
+import { apiRequest, queryClient } from '@/lib/queryClient';
+import { formatCurrency } from '@/lib/utils';
+import { zodResolver } from "@hookform/resolvers/zod";
+import { useForm } from "react-hook-form";
+import { z } from "zod";
 
-// Make sure to load Stripe outside of component rendering
-if (!import.meta.env.VITE_STRIPE_PUBLIC_KEY) {
-  throw new Error('Missing required Stripe key: VITE_STRIPE_PUBLIC_KEY');
-}
+// Load Stripe
 const stripePromise = loadStripe(import.meta.env.VITE_STRIPE_PUBLIC_KEY);
 
-// Form schema
+// Form schema for payment details
 const paymentFormSchema = z.object({
-  jobId: z.number().optional(),
-  workerId: z.number().optional(),
-  amount: z.number().min(5, 'Minimum payment amount is $5'),
-  description: z.string().min(5, 'Please provide a brief description'),
+  amount: z.coerce.number().min(5, "Minimum payment is $5").max(10000, "Maximum payment is $10,000"),
+  description: z.string().min(5, "Please provide a brief description").max(200, "Description is too long"),
+  saveCard: z.boolean().optional(),
 });
 
 type PaymentFormValues = z.infer<typeof paymentFormSchema>;
 
-// Payment form component (to be wrapped in Elements)
-const PaymentForm = ({ 
-  jobId, 
-  workerId, 
-  onSuccess, 
-  isExistingJob = false 
-}: { 
-  jobId?: number; 
-  workerId?: number; 
+// Saved payment method type
+interface SavedPaymentMethod {
+  id: string;
+  type: string;
+  card?: {
+    brand: string;
+    last4: string;
+    exp_month: number;
+    exp_year: number;
+  };
+  isDefault: boolean;
+}
+
+// Payment form for saved payment methods
+const SavedPaymentMethodForm: React.FC<{
+  jobId: number;
+  amount: number;
+  description: string;
+  paymentMethods: SavedPaymentMethod[];
   onSuccess: () => void;
-  isExistingJob?: boolean;
-}) => {
+  onCancel: () => void;
+}> = ({ jobId, amount, description, paymentMethods, onSuccess, onCancel }) => {
+  const [selectedPaymentMethod, setSelectedPaymentMethod] = useState<string>('');
+  const [isProcessing, setIsProcessing] = useState(false);
   const { toast } = useToast();
+
+  // Set default payment method if available
+  useEffect(() => {
+    const defaultMethod = paymentMethods.find(m => m.isDefault);
+    if (defaultMethod) {
+      setSelectedPaymentMethod(defaultMethod.id);
+    } else if (paymentMethods.length > 0) {
+      setSelectedPaymentMethod(paymentMethods[0].id);
+    }
+  }, [paymentMethods]);
+
+  // Mutation for processing payment with saved method
+  const processPaymentMutation = useMutation({
+    mutationFn: async (data: { jobId: number; paymentMethodId: string; amount: number; description: string }) => {
+      const res = await apiRequest('POST', '/api/payments/process-saved', data);
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/jobs'] });
+      toast({
+        title: "Payment Successful",
+        description: "Your payment has been processed successfully.",
+      });
+      onSuccess();
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Payment Failed",
+        description: error.message || "There was an error processing your payment. Please try again.",
+        variant: "destructive",
+      });
+    }
+  });
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    if (!selectedPaymentMethod) {
+      toast({
+        title: "Payment Method Required",
+        description: "Please select a payment method to continue.",
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    setIsProcessing(true);
+    
+    processPaymentMutation.mutate({
+      jobId,
+      paymentMethodId: selectedPaymentMethod,
+      amount,
+      description
+    });
+  };
+
+  return (
+    <form onSubmit={handleSubmit} className="space-y-4">
+      <div className="space-y-2">
+        <label className="text-sm font-medium">Select Payment Method</label>
+        <div className="space-y-2">
+          {paymentMethods.map(method => (
+            <div 
+              key={method.id}
+              className={`
+                border rounded-lg p-3 flex items-center gap-3 cursor-pointer transition-colors
+                ${selectedPaymentMethod === method.id ? 'border-primary bg-primary/5' : 'hover:bg-accent'}
+              `}
+              onClick={() => setSelectedPaymentMethod(method.id)}
+            >
+              <div className={`
+                p-2 rounded-full 
+                ${selectedPaymentMethod === method.id ? 'bg-primary text-white' : 'bg-muted'}
+              `}>
+                <CreditCard className="h-4 w-4" />
+              </div>
+              <div className="flex-1">
+                <p className="font-medium">{method.card?.brand?.toUpperCase() || 'Card'} •••• {method.card?.last4}</p>
+                <p className="text-xs text-muted-foreground">Expires {method.card?.exp_month}/{method.card?.exp_year}</p>
+              </div>
+              {selectedPaymentMethod === method.id && (
+                <CheckCircle2 className="h-5 w-5 text-primary" />
+              )}
+            </div>
+          ))}
+        </div>
+      </div>
+
+      <div className="bg-muted/30 p-4 rounded-lg space-y-2">
+        <div className="flex justify-between">
+          <span className="text-sm">Amount:</span>
+          <span className="font-medium">{formatCurrency(amount)}</span>
+        </div>
+        <div className="flex justify-between">
+          <span className="text-sm">Service Fee:</span>
+          <span className="text-muted-foreground">{formatCurrency(amount * 0.05)}</span>
+        </div>
+        <Separator className="my-2" />
+        <div className="flex justify-between">
+          <span className="font-medium">Total:</span>
+          <span className="font-medium">{formatCurrency(amount * 1.05)}</span>
+        </div>
+      </div>
+
+      <div className="flex justify-end space-x-2 pt-2">
+        <Button
+          type="button"
+          variant="outline"
+          disabled={isProcessing}
+          onClick={onCancel}
+        >
+          Cancel
+        </Button>
+        <Button
+          type="submit"
+          disabled={!selectedPaymentMethod || isProcessing}
+        >
+          {isProcessing ? (
+            <>
+              <ChevronsUpDown className="mr-2 h-4 w-4 animate-spin" />
+              Processing...
+            </>
+          ) : (
+            'Pay Now'
+          )}
+        </Button>
+      </div>
+    </form>
+  );
+};
+
+// New card payment form
+const NewCardPaymentForm: React.FC<{
+  jobId: number;
+  amount: number;
+  description: string;
+  saveCard: boolean;
+  onSuccess: () => void;
+  onCancel: () => void;
+}> = ({ jobId, amount, description, saveCard, onSuccess, onCancel }) => {
   const stripe = useStripe();
   const elements = useElements();
   const [isProcessing, setIsProcessing] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const { toast } = useToast();
 
-  // Initialize form with default values
-  const form = useForm<PaymentFormValues>({
-    resolver: zodResolver(paymentFormSchema),
-    defaultValues: {
-      jobId: jobId,
-      workerId: workerId,
-      amount: 0,
-      description: '',
-    },
-  });
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
 
-  const handleSubmit = async (data: PaymentFormValues) => {
     if (!stripe || !elements) {
       return;
     }
@@ -97,222 +253,328 @@ const PaymentForm = ({
     setErrorMessage(null);
 
     try {
-      // Confirm payment with Stripe
-      const { error, paymentIntent } = await stripe.confirmPayment({
-        elements,
-        confirmParams: {
-          return_url: window.location.origin + '/payment-confirmation',
-        },
-        redirect: 'if_required',
+      // Create payment method
+      const { error: createError, paymentMethod } = await stripe.createPaymentMethod({
+        type: 'card',
+        card: elements.getElement(CardElement)!,
       });
 
-      if (error) {
-        setErrorMessage(error.message || 'An error occurred during payment');
-      } else if (paymentIntent && paymentIntent.status === 'succeeded') {
-        // Payment succeeded - update payment record on server
-        const res = await apiRequest('PATCH', `/api/payments/${paymentIntent.id}/status`, {
-          status: 'completed',
-          transactionId: paymentIntent.id
-        });
-
-        if (!res.ok) {
-          throw new Error('Failed to update payment status');
-        }
-
-        toast({
-          title: 'Payment Successful',
-          description: `You have successfully paid ${formatCurrency(data.amount)}`,
-        });
-
-        // Invalidate cache to refresh data
-        queryClient.invalidateQueries({ queryKey: ['/api/payments/user'] });
-        
-        // Call success callback
-        onSuccess();
+      if (createError) {
+        throw new Error(createError.message || 'Failed to process your card');
       }
-    } catch (err) {
-      console.error('Payment error:', err);
-      setErrorMessage((err as Error).message || 'An error occurred during payment');
+
+      // Process payment with the new card
+      const response = await apiRequest('POST', '/api/payments/process', {
+        jobId,
+        paymentMethodId: paymentMethod.id,
+        amount,
+        description,
+        saveCard
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || 'Payment failed');
+      }
+
+      toast({
+        title: 'Payment Successful',
+        description: 'Your payment has been processed successfully.',
+      });
+
+      onSuccess();
+    } catch (err: any) {
+      setErrorMessage(err.message || 'An error occurred');
+      toast({
+        title: 'Payment Failed',
+        description: err.message || 'There was an error processing your payment',
+        variant: 'destructive',
+      });
     } finally {
       setIsProcessing(false);
     }
   };
 
   return (
-    <Form {...form}>
-      <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-4">
-        {/* Amount field */}
-        <FormField
-          control={form.control}
-          name="amount"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Payment Amount</FormLabel>
-              <FormControl>
-                <div className="relative">
-                  <span className="absolute left-3 top-2.5 text-muted-foreground">$</span>
-                  <Input
-                    type="number"
-                    step="0.01"
-                    min="5"
-                    className="pl-8"
-                    placeholder="0.00"
-                    {...field}
-                    onChange={(e) => field.onChange(parseFloat(e.target.value))}
-                  />
-                </div>
-              </FormControl>
-              <FormDescription>
-                Enter the amount you wish to pay
-              </FormDescription>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-
-        {/* Description field */}
-        <FormField
-          control={form.control}
-          name="description"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Payment Description</FormLabel>
-              <FormControl>
-                <Textarea
-                  placeholder="Enter a description for this payment"
-                  {...field}
-                />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-
-        {/* Payment element */}
-        <div className="space-y-2">
-          <FormLabel>Card Details</FormLabel>
-          <PaymentElement />
+    <form onSubmit={handleSubmit} className="space-y-4">
+      <div className="space-y-2">
+        <label className="text-sm font-medium">Card Information</label>
+        <div className="border rounded-md p-3">
+          <CardElement 
+            options={{
+              style: {
+                base: {
+                  fontSize: '16px',
+                  color: '#424770',
+                  '::placeholder': {
+                    color: '#aab7c4',
+                  },
+                },
+                invalid: {
+                  color: '#9e2146',
+                },
+              },
+            }}
+          />
         </div>
+      </div>
 
-        {/* Error message */}
-        {errorMessage && (
-          <div className="rounded-md bg-destructive/10 p-3 text-destructive flex items-start">
-            <AlertCircle className="h-5 w-5 mr-2 mt-0.5 flex-shrink-0" />
-            <div>{errorMessage}</div>
-          </div>
-        )}
+      <div className="bg-muted/30 p-4 rounded-lg space-y-2">
+        <div className="flex justify-between">
+          <span className="text-sm">Amount:</span>
+          <span className="font-medium">{formatCurrency(amount)}</span>
+        </div>
+        <div className="flex justify-between">
+          <span className="text-sm">Service Fee:</span>
+          <span className="text-muted-foreground">{formatCurrency(amount * 0.05)}</span>
+        </div>
+        <Separator className="my-2" />
+        <div className="flex justify-between">
+          <span className="font-medium">Total:</span>
+          <span className="font-medium">{formatCurrency(amount * 1.05)}</span>
+        </div>
+      </div>
 
-        {/* Submit button */}
+      {errorMessage && (
+        <div className="bg-destructive/10 p-3 rounded-md text-sm text-destructive flex items-start">
+          <AlertCircle className="h-4 w-4 mr-2 mt-0.5" />
+          {errorMessage}
+        </div>
+      )}
+
+      <div className="flex justify-end space-x-2 pt-2">
+        <Button
+          type="button"
+          variant="outline"
+          disabled={isProcessing}
+          onClick={onCancel}
+        >
+          Cancel
+        </Button>
         <Button
           type="submit"
-          className="w-full"
-          disabled={isProcessing || !stripe || !elements}
+          disabled={!stripe || isProcessing}
         >
           {isProcessing ? (
             <>
-              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              <ChevronsUpDown className="mr-2 h-4 w-4 animate-spin" />
               Processing...
             </>
           ) : (
-            `Pay ${form.watch('amount') ? formatCurrency(form.watch('amount')) : '$0.00'}`
+            'Pay Now'
           )}
         </Button>
-      </form>
-    </Form>
+      </div>
+    </form>
   );
 };
 
-// Payment form wrapper component that fetches client secret
-interface JobPaymentFormProps {
-  jobId?: number;
-  workerId?: number;
+// Main payment form component
+export const JobPaymentForm: React.FC<{
+  jobId: number;
   onSuccess: () => void;
-  isExistingJob?: boolean;
-}
-
-const JobPaymentForm: React.FC<JobPaymentFormProps> = ({
-  jobId,
-  workerId,
-  onSuccess,
-  isExistingJob = false,
-}) => {
-  const [clientSecret, setClientSecret] = useState<string | null>(null);
+  defaultAmount?: number;
+  defaultDescription?: string;
+}> = ({ jobId, onSuccess, defaultAmount = 0, defaultDescription = '' }) => {
+  const { user } = useAuth();
   const { toast } = useToast();
-
-  // Create a payment intent when component mounts
-  const { isLoading, error } = useQuery({
-    queryKey: ['/api/stripe/create-payment-intent', jobId],
-    queryFn: async () => {
-      try {
-        const res = await apiRequest('POST', '/api/stripe/create-payment-intent', {
-          amount: 100, // Initial amount - will be updated by form
-          jobId,
-          workerId,
-        });
-
-        if (!res.ok) {
-          throw new Error('Failed to create payment intent');
-        }
-
-        const data = await res.json();
-        setClientSecret(data.clientSecret);
-        return data;
-      } catch (err) {
-        console.error('Error creating payment intent:', err);
-        toast({
-          title: 'Error',
-          description: 'Failed to initialize payment. Please try again later.',
-          variant: 'destructive',
-        });
-        throw err;
-      }
+  const [paymentStage, setPaymentStage] = useState<'form' | 'payment'>('form');
+  const [clientSecret, setClientSecret] = useState<string | null>(null);
+  const [useExistingCard, setUseExistingCard] = useState(true);
+  
+  // Form setup
+  const form = useForm<PaymentFormValues>({
+    resolver: zodResolver(paymentFormSchema),
+    defaultValues: {
+      amount: defaultAmount,
+      description: defaultDescription,
+      saveCard: true,
     },
-    enabled: !!jobId || !!workerId, // Only run if we have either jobId or workerId
   });
+  
+  // Query saved payment methods
+  const { data: paymentMethods, isLoading: isLoadingPaymentMethods } = useQuery<SavedPaymentMethod[]>({
+    queryKey: ['/api/payment-methods'],
+    enabled: !!user,
+  });
+  
+  // Check if user has saved payment methods
+  const hasSavedPaymentMethods = !!paymentMethods && paymentMethods.length > 0;
+  
+  // Set up payment intent when going to payment stage
+  useEffect(() => {
+    if (paymentStage === 'payment' && !useExistingCard && !clientSecret) {
+      const setupIntent = async () => {
+        try {
+          const response = await apiRequest('POST', '/api/payments/setup-intent', {});
+          const data = await response.json();
+          setClientSecret(data.clientSecret);
+        } catch (error) {
+          toast({
+            title: 'Error',
+            description: 'Failed to prepare payment form',
+            variant: 'destructive',
+          });
+          setPaymentStage('form');
+        }
+      };
 
-  if (isLoading) {
-    return (
-      <div className="flex items-center justify-center py-8">
-        <Loader2 className="h-8 w-8 animate-spin text-primary" />
-      </div>
-    );
+      setupIntent();
+    }
+  }, [paymentStage, useExistingCard, clientSecret, toast]);
+  
+  // Handle form submission
+  function onSubmit(values: PaymentFormValues) {
+    setPaymentStage('payment');
   }
-
-  if (error || !clientSecret) {
-    return (
-      <div className="rounded-md bg-destructive/10 p-4 text-destructive">
-        <div className="flex items-center">
-          <AlertCircle className="h-5 w-5 mr-2" />
-          <span>Error initializing payment</span>
-        </div>
-        <Button
-          variant="outline"
-          size="sm"
-          className="mt-2"
-          onClick={() => window.location.reload()}
-        >
-          Try Again
-        </Button>
-      </div>
-    );
-  }
-
-  const options = {
-    clientSecret,
-    appearance: {
-      theme: 'stripe' as const,
-    },
+  
+  // Handle payment success
+  const handlePaymentSuccess = () => {
+    form.reset();
+    setPaymentStage('form');
+    setClientSecret(null);
+    onSuccess();
   };
-
+  
+  // Handle cancellation
+  const handleCancel = () => {
+    setPaymentStage('form');
+    setClientSecret(null);
+  };
+  
   return (
-    <Elements stripe={stripePromise} options={options}>
-      <PaymentForm
-        jobId={jobId}
-        workerId={workerId}
-        onSuccess={onSuccess}
-        isExistingJob={isExistingJob}
-      />
-    </Elements>
+    <Card className="w-full">
+      <CardHeader>
+        <CardTitle>Make a Payment</CardTitle>
+        <CardDescription>
+          Pay for services securely using Stripe
+        </CardDescription>
+      </CardHeader>
+      <CardContent>
+        {paymentStage === 'form' ? (
+          <Form {...form}>
+            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+              <FormField
+                control={form.control}
+                name="amount"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Payment Amount</FormLabel>
+                    <FormControl>
+                      <div className="relative">
+                        <DollarSign className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
+                        <Input 
+                          type="number" 
+                          placeholder="0.00" 
+                          className="pl-10" 
+                          {...field}
+                          min={5}
+                          step={0.01} 
+                        />
+                      </div>
+                    </FormControl>
+                    <FormDescription>
+                      Enter the amount to pay for this job
+                    </FormDescription>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              
+              <FormField
+                control={form.control}
+                name="description"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Description</FormLabel>
+                    <FormControl>
+                      <Textarea 
+                        placeholder="Payment for job completion"
+                        className="resize-none"
+                        {...field}
+                      />
+                    </FormControl>
+                    <FormDescription>
+                      Enter a brief description for this payment
+                    </FormDescription>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              
+              {hasSavedPaymentMethods && (
+                <FormField
+                  control={form.control}
+                  name="saveCard"
+                  render={({ field }) => (
+                    <FormItem className="flex flex-row items-start space-x-3 space-y-0 rounded-md border p-4">
+                      <FormControl>
+                        <div className="flex items-center space-x-2">
+                          <Select
+                            value={useExistingCard ? "existing" : "new"}
+                            onValueChange={(value) => setUseExistingCard(value === "existing")}
+                          >
+                            <SelectTrigger className="w-[180px]">
+                              <SelectValue placeholder="Select payment type" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="existing">Use saved card</SelectItem>
+                              <SelectItem value="new">Use a new card</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
+                      </FormControl>
+                    </FormItem>
+                  )}
+                />
+              )}
+              
+              <div className="flex justify-end">
+                <Button type="submit">Continue to Payment</Button>
+              </div>
+            </form>
+          </Form>
+        ) : (
+          <>
+            {hasSavedPaymentMethods && useExistingCard ? (
+              <SavedPaymentMethodForm
+                jobId={jobId}
+                amount={form.getValues('amount')}
+                description={form.getValues('description')}
+                paymentMethods={paymentMethods || []}
+                onSuccess={handlePaymentSuccess}
+                onCancel={handleCancel}
+              />
+            ) : clientSecret ? (
+              <Elements 
+                stripe={stripePromise} 
+                options={{ clientSecret }}
+              >
+                <NewCardPaymentForm
+                  jobId={jobId}
+                  amount={form.getValues('amount')}
+                  description={form.getValues('description')}
+                  saveCard={!!form.getValues('saveCard')}
+                  onSuccess={handlePaymentSuccess}
+                  onCancel={handleCancel}
+                />
+              </Elements>
+            ) : (
+              <div className="py-8 text-center">
+                <ChevronsUpDown className="mx-auto h-8 w-8 animate-spin text-muted-foreground" />
+                <p className="mt-2 text-sm text-muted-foreground">Preparing payment form...</p>
+              </div>
+            )}
+          </>
+        )}
+      </CardContent>
+      <CardFooter className="flex justify-between">
+        <div className="flex items-center text-sm text-muted-foreground">
+          <ShieldCheck className="h-4 w-4 mr-1" />
+          Your payment is secured by Stripe.
+        </div>
+      </CardFooter>
+    </Card>
   );
 };
 
