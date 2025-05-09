@@ -21,6 +21,7 @@ import {
 import { setupAuth } from "./auth";
 import { setupStripeRoutes } from "./stripe";
 import { setupPasswordReset } from "./password-reset";
+import { createWebhookRouter } from "./webhooks";
 
 // Initialize Stripe with the secret key
 if (!process.env.STRIPE_SECRET_KEY) {
@@ -3394,6 +3395,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.status(500).json({ message: "Failed to create notification" });
     }
   });
+
+  // Mount Stripe webhook endpoint
+  // This needs to be before the API router to handle raw bodies correctly
+  app.use("/api/webhooks/stripe", createWebhookRouter());
 
   // Mount the API router under /api prefix
   app.use("/api", apiRouter);
