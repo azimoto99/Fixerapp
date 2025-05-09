@@ -6,6 +6,7 @@
 import { storage } from "./storage";
 import Stripe from "stripe";
 import dotenv from "dotenv";
+import { Earning, Job } from "@shared/schema";
 
 // Load environment variables
 dotenv.config();
@@ -18,19 +19,6 @@ if (!process.env.STRIPE_SECRET_KEY) {
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY, {
   apiVersion: "2023-10-16",
 });
-
-// Define Earning type based on database schema
-export type Earning = {
-  id: number;
-  workerId: number;
-  jobId: number;
-  amount: number;
-  status: string;
-  createdAt: Date;
-  updatedAt: Date;
-  transferId: string | null;
-  description: string | null;
-};
 
 /**
  * Process a payout for a worker earning
@@ -45,7 +33,7 @@ export async function processWorkerPayout(earningId: number): Promise<{
 }> {
   try {
     // 1. Get the earning record
-    const earning = await storage.getEarningById(earningId);
+    const earning = await storage.getEarning(earningId);
     
     if (!earning) {
       return {
@@ -91,7 +79,7 @@ export async function processWorkerPayout(earningId: number): Promise<{
     }
     
     // 6. Get the job details for better reference
-    const job = await storage.getJobById(earning.jobId);
+    const job = await storage.getJob(earning.jobId);
     
     const jobTitle = job ? job.title : `Job #${earning.jobId}`;
     const description = earning.description || `Payment for ${jobTitle}`;
@@ -128,11 +116,7 @@ export async function processWorkerPayout(earningId: number): Promise<{
       });
       
       // 9. Update the earning record with the transfer ID and status
-      await storage.updateEarning(earning.id, {
-        status: 'paid',
-        transferId: transfer.id,
-        updatedAt: new Date()
-      });
+      await storage.updateEarningStatus(earning.id, 'paid', new Date());
       
       // 10. Create a notification for the worker
       await storage.createNotification({
@@ -193,10 +177,12 @@ export async function processAllPendingPayoutsForWorker(workerId: number): Promi
   }>;
 }> {
   try {
-    // 1. Get all pending earnings for the worker
-    const pendingEarnings = await storage.getEarningsByWorkerIdAndStatus(
-      workerId,
-      ['pending', 'approved']
+    // 1. Get all earnings for the worker
+    const allEarnings = await storage.getEarningsForWorker(workerId);
+    
+    // Filter for pending and approved earnings
+    const pendingEarnings = allEarnings.filter(
+      earning => earning.status === 'pending' || earning.status === 'approved'
     );
     
     // Initialize result
