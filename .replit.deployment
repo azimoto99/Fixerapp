@@ -1,0 +1,9 @@
+run = "npm start"
+entrypoint = "index.js"
+
+[env]
+PORT = "8080"
+NODE_ENV = "production"
+
+[[deployment.buildCommand]]
+command = "npm run build"

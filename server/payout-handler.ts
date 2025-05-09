@@ -5,11 +5,9 @@
 
 import { storage } from "./storage";
 import Stripe from "stripe";
-import dotenv from "dotenv";
 import { Earning, Job } from "@shared/schema";
 
-// Load environment variables
-dotenv.config();
+// Environment variables are loaded by Node.js
 
 // Initialize Stripe
 if (!process.env.STRIPE_SECRET_KEY) {
