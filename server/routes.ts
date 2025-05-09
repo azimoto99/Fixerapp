@@ -2232,50 +2232,93 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post("/webhook/stripe", express.raw({type: 'application/json'}), async (req: Request, res: Response) => {
     const sig = req.headers['stripe-signature'];
     
+    // First, validate that webhook signature exists if we're in production
+    if (process.env.NODE_ENV === 'production' && !process.env.STRIPE_WEBHOOK_SECRET) {
+      console.error('Stripe webhook secret is required in production mode');
+      // Don't expose this detail in the response for security
+      return res.status(500).send('Configuration error');
+    }
+    
+    // Check that signature header exists in secured environments
+    if (process.env.STRIPE_WEBHOOK_SECRET && !sig) {
+      console.error('Stripe signature missing from webhook request');
+      return res.status(400).send('Missing stripe-signature header');
+    }
+    
     try {
       // Parse the event - with or without webhook secret
       let event;
+      
       if (process.env.STRIPE_WEBHOOK_SECRET) {
-        // If we have a webhook secret, verify the signature
-        event = stripe.webhooks.constructEvent(
-          req.body, 
-          sig as string, 
-          process.env.STRIPE_WEBHOOK_SECRET
-        );
+        try {
+          // If we have a webhook secret, verify the signature
+          event = stripe.webhooks.constructEvent(
+            req.body, 
+            sig as string, 
+            process.env.STRIPE_WEBHOOK_SECRET
+          );
+          console.log(`Webhook received: ${event.type}`);
+        } catch (err) {
+          console.error(`Webhook signature verification failed: ${(err as Error).message}`);
+          return res.status(400).send(`Webhook signature verification failed: ${(err as Error).message}`);
+        }
       } else {
-        // Without webhook secret, just parse the event
-        event = JSON.parse(req.body.toString());
+        // Without webhook secret, just parse the event (only in development)
+        try {
+          event = JSON.parse(req.body.toString());
+          console.log(`Unverified webhook received: ${event.type} (NO SIGNATURE VERIFICATION - dev mode only)`);
+        } catch (err) {
+          console.error(`Webhook parsing failed: ${(err as Error).message}`);
+          return res.status(400).send('Webhook parsing failed');
+        }
       }
       
-      // Handle different payment events
-      if (event.type === 'payment_intent.succeeded') {
-        await handleSuccessfulPayment(event.data.object);
-      } 
-      else if (event.type === 'payment_intent.payment_failed') {
-        await handleFailedPayment(event.data.object);
+      // Process events in a try/catch block with specific error handling for each type
+      try {
+        // Handle different payment events
+        if (event.type === 'payment_intent.succeeded') {
+          await handleSuccessfulPayment(event.data.object);
+        } 
+        else if (event.type === 'payment_intent.payment_failed') {
+          await handleFailedPayment(event.data.object);
+        }
+        else if (event.type === 'payment_intent.canceled') {
+          await handleCanceledPayment(event.data.object);
+        }
+        // Connect account events 
+        else if (event.type === 'account.updated') {
+          await handleConnectAccountUpdate(event.data.object);
+        }
+        else if (event.type === 'account.application.authorized') {
+          await handleConnectAccountAuthorized(event.data.object);
+        }
+        else if (event.type === 'account.application.deauthorized') {
+          await handleConnectAccountDeauthorized(event.data.object);
+        }
+        else if (event.type === 'transfer.created' || event.type === 'transfer.paid') {
+          await handleTransferEvent(event.data.object, event.type);
+        }
+        else {
+          // Log unhandled event types for monitoring
+          console.log(`Received unhandled Stripe webhook event type: ${event.type}`);
+        }
+        
+        // Return success response
+        return res.json({received: true, event: event.type});
+      } catch (eventError) {
+        // Log specific event processing error but don't fail the webhook
+        // This ensures Stripe doesn't continue to retry the webhook
+        console.error(`Error processing webhook event ${event.type}:`, eventError);
+        return res.status(200).json({
+          received: true,
+          error: `Error processing ${event.type} event: ${(eventError as Error).message}`,
+          eventType: event.type
+        });
       }
-      else if (event.type === 'payment_intent.canceled') {
-        await handleCanceledPayment(event.data.object);
-      }
-      // Connect account events 
-      else if (event.type === 'account.updated') {
-        await handleConnectAccountUpdate(event.data.object);
-      }
-      else if (event.type === 'account.application.authorized') {
-        await handleConnectAccountAuthorized(event.data.object);
-      }
-      else if (event.type === 'account.application.deauthorized') {
-        await handleConnectAccountDeauthorized(event.data.object);
-      }
-      else if (event.type === 'transfer.created' || event.type === 'transfer.paid') {
-        await handleTransferEvent(event.data.object, event.type);
-      }
-      
-      // Return success response
-      res.json({received: true});
     } catch (error) {
-      console.error('Webhook error:', error);
-      res.status(400).send(`Webhook Error: ${(error as Error).message}`);
+      // This catch handles any general webhook processing errors
+      console.error('Critical webhook error:', error);
+      return res.status(400).send(`Webhook Error: ${(error as Error).message}`);
     }
   });
   
@@ -2478,14 +2521,68 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       
       // Update the user's account status based on the Connect account details
-      const accountStatus = getConnectAccountStatus(account);
+      const previousStatus = user.stripeConnectAccountStatus;
+      const newStatus = getConnectAccountStatus(account);
       
       // Update the user in the database with the new status
       await storage.updateUser(user.id, {
-        stripeConnectAccountStatus: accountStatus
+        stripeConnectAccountStatus: newStatus
       });
       
-      console.log(`Updated Connect account status for user ${user.id} to ${accountStatus}`);
+      console.log(`Updated Connect account status for user ${user.id} from ${previousStatus} to ${newStatus}`);
+      
+      // Handle status transitions with notifications
+      if (previousStatus !== newStatus) {
+        // Create a notification for the user about the status change
+        let notificationTitle = "";
+        let notificationMessage = "";
+        
+        if (newStatus === 'active' && previousStatus !== 'active') {
+          notificationTitle = "Stripe Connect Account Activated";
+          notificationMessage = "Your Stripe Connect account is now active. You can now receive payments for completed jobs.";
+          
+          // Create notification in database
+          await storage.createNotification({
+            userId: user.id,
+            type: "stripe_account_update",
+            title: notificationTitle,
+            message: notificationMessage,
+            isRead: false,
+            sourceType: "stripe",
+            sourceId: null,
+          });
+        } 
+        else if (newStatus === 'disabled' && previousStatus === 'active') {
+          notificationTitle = "Stripe Connect Account Restricted";
+          notificationMessage = "Your Stripe Connect account has been restricted. Please check your Stripe dashboard for more information.";
+          
+          // Create notification in database
+          await storage.createNotification({
+            userId: user.id,
+            type: "stripe_account_update",
+            title: notificationTitle,
+            message: notificationMessage,
+            isRead: false,
+            sourceType: "stripe",
+            sourceId: null,
+          });
+        }
+        else if (newStatus === 'incomplete' && (previousStatus === 'active' || previousStatus === 'disabled')) {
+          notificationTitle = "Stripe Connect Account Needs Attention";
+          notificationMessage = "Your Stripe Connect account requires additional information. Please go to the Payments dashboard to complete your profile.";
+          
+          // Create notification in database
+          await storage.createNotification({
+            userId: user.id,
+            type: "stripe_account_update",
+            title: notificationTitle,
+            message: notificationMessage,
+            isRead: false,
+            sourceType: "stripe",
+            sourceId: null,
+          });
+        }
+      }
     } catch (error) {
       console.error(`Error handling Connect account update: ${(error as Error).message}`);
     }
