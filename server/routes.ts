@@ -4,6 +4,8 @@ import { storage } from "./storage";
 import { z } from "zod";
 import Stripe from "stripe";
 import { filterJobContent, validatePaymentAmount } from "./content-filter";
+import { initNotificationService } from "./notification-service";
+import { createWebhookRouter } from "./webhooks";
 import { 
   insertUserSchema, 
   insertJobSchema, 
@@ -21,7 +23,6 @@ import {
 import { setupAuth } from "./auth";
 import { setupStripeRoutes } from "./stripe";
 import { setupPasswordReset } from "./password-reset";
-import { createWebhookRouter } from "./webhooks";
 
 // Initialize Stripe with the secret key
 if (!process.env.STRIPE_SECRET_KEY) {
@@ -3404,5 +3405,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.use("/api", apiRouter);
 
   const httpServer = createServer(app);
+  
+  // Initialize the notification service with real-time WebSocket support
+  const notificationService = initNotificationService(httpServer);
+  console.log('Notification service initialized for real-time payment events');
+  
   return httpServer;
 }
