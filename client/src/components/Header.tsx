@@ -39,15 +39,15 @@ const Header = () => {
           <nav className="hidden md:ml-8 md:flex md:space-x-8">
             {/* Links for all users */}
             <Link href="/">
-              <div className={`text-gray-300 hover:text-gray-100 font-medium px-1 py-5 cursor-pointer ${location === '/' ? 'text-emerald-500 border-b-2 border-emerald-500' : ''}`}>
+              <div className={`text-gray-500 hover:text-gray-900 font-medium px-1 py-5 cursor-pointer ${location === '/' ? 'text-emerald-600 border-b-2 border-emerald-600' : ''}`}>
                 {user?.accountType === 'worker' ? 'Find Jobs' : 'Browse Workers'}
               </div>
             </Link>
             
-            {/* Links for posters only */}
-            {(!user || user.accountType === 'poster') && (
+            {/* Post Job link - available to all authenticated users */}
+            {user && (
               <Link href="/post-job">
-                <div className={`text-gray-300 hover:text-gray-100 font-medium px-1 py-5 cursor-pointer ${location === '/post-job' ? 'text-emerald-500 border-b-2 border-emerald-500' : ''}`}>
+                <div className={`text-gray-500 hover:text-gray-900 font-medium px-1 py-5 cursor-pointer ${location === '/post-job' ? 'text-emerald-600 border-b-2 border-emerald-600' : ''}`}>
                   Post a Job
                 </div>
               </Link>
@@ -56,7 +56,7 @@ const Header = () => {
             {/* Links for workers only */}
             {user?.accountType === 'worker' && (
               <Link href="/applications">
-                <div className={`text-gray-300 hover:text-gray-100 font-medium px-1 py-5 cursor-pointer ${location === '/applications' ? 'text-emerald-500 border-b-2 border-emerald-500' : ''}`}>
+                <div className={`text-gray-500 hover:text-gray-900 font-medium px-1 py-5 cursor-pointer ${location === '/applications' ? 'text-emerald-600 border-b-2 border-emerald-600' : ''}`}>
                   My Applications
                 </div>
               </Link>
@@ -80,6 +80,13 @@ const Header = () => {
           </nav>
         </div>
         <div className="flex items-center space-x-4">
+          {/* Show post job button for all users (even non-logged in) in the header */}
+          <Link href="/post-job">
+            <div className="hidden md:flex text-white bg-emerald-600 hover:bg-emerald-700 font-medium py-2 px-4 rounded-md">
+              Post a Job
+            </div>
+          </Link>
+          
           {user && <NotificationPopover className="hidden md:flex" />}
           {user ? (
             <div className="cursor-pointer" onClick={(e) => {
