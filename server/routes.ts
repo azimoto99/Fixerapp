@@ -20,6 +20,7 @@ import {
 } from "@shared/schema";
 import { setupAuth } from "./auth";
 import { setupStripeRoutes } from "./stripe";
+import { setupPasswordReset } from "./password-reset";
 
 // Initialize Stripe with the secret key
 if (!process.env.STRIPE_SECRET_KEY) {
