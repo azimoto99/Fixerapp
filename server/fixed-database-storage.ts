@@ -442,6 +442,15 @@ export class FixedDatabaseStorage implements IStorage {
       return undefined;
     }
   }
+  
+  async updateEarningTransferId(id: number, transferId: string) {
+    try {
+      return await this.storage.updateEarningTransferId(id, transferId);
+    } catch (error) {
+      console.error(`Error in updateEarningTransferId(${id}):`, error);
+      return undefined;
+    }
+  }
 
   // Payment operations
   async getPayment(id: number) {
