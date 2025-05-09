@@ -17,6 +17,10 @@ export const users = pgTable("users", {
   rating: doublePrecision("rating"), // Average rating from completed jobs
   isActive: boolean("is_active").notNull().default(true),
   lastActive: timestamp("last_active").defaultNow(),
+  // Location data
+  latitude: doublePrecision("latitude"), // Latitude coordinate for user's location
+  longitude: doublePrecision("longitude"), // Longitude coordinate for user's location
+  location: text("location"), // Human-readable location (address, city, etc.)
   // Social login fields
   googleId: text("google_id"), // Google OAuth ID
   facebookId: text("facebook_id"), // Facebook OAuth ID

@@ -2,7 +2,7 @@ import { eq, and, like, desc, or, asc } from 'drizzle-orm';
 import { db } from './db';
 import { IStorage } from './storage';
 import {
-  users, jobs, applications, reviews, tasks, earnings, payments, badges, userBadges,
+  users, jobs, applications, reviews, tasks, earnings, payments, badges, userBadges, notifications,
   User, InsertUser,
   Job, InsertJob,
   Application, InsertApplication,
@@ -11,7 +11,8 @@ import {
   Earning, InsertEarning,
   Payment, InsertPayment,
   Badge, InsertBadge, 
-  UserBadge, InsertUserBadge
+  UserBadge, InsertUserBadge,
+  Notification, InsertNotification
 } from '@shared/schema';
 import connectPg from "connect-pg-simple";
 import session from "express-session";
@@ -35,10 +36,45 @@ export class DatabaseStorage implements IStorage {
   
   // User operations
   async getAllUsers(): Promise<User[]> {
-    const allUsers = await db.select().from(users);
-    
-    // Add the virtual fields to each user
-    return allUsers.map(user => this.addVirtualFields(user));
+    try {
+      // First try to get all users with all fields
+      const allUsers = await db.select().from(users);
+      
+      // Add the virtual fields to each user
+      return allUsers.map(user => this.addVirtualFields(user));
+    } catch (error: any) {
+      // If there's an error about missing columns, try a more selective query
+      if (error.message && error.message.includes("column") && error.message.includes("does not exist")) {
+        console.warn("Missing columns in users table, using fallback query:", error.message);
+        
+        // Use a specific select without the new columns
+        const query = `
+          SELECT 
+            id, username, password, full_name as "fullName", email, phone, bio, 
+            avatar_url as "avatarUrl", account_type as "accountType", skills, 
+            rating, is_active as "isActive", last_active as "lastActive",
+            google_id as "googleId", facebook_id as "facebookId",
+            stripe_customer_id as "stripeCustomerId", 
+            stripe_connect_account_id as "stripeConnectAccountId", 
+            stripe_connect_account_status as "stripeConnectAccountStatus",
+            stripe_terms_accepted as "stripeTermsAccepted", 
+            stripe_terms_accepted_at as "stripeTermsAcceptedAt",
+            stripe_representative_name as "stripeRepresentativeName", 
+            stripe_representative_title as "stripeRepresentativeTitle",
+            stripe_representative_requirements_complete as "stripeRepresentativeRequirementsComplete", 
+            stripe_banking_details_complete as "stripeBankingDetailsComplete"
+          FROM users
+        `;
+        
+        const result = await db.execute(query);
+        if (!result.rows) return [];
+        
+        // Add the virtual fields to each user
+        return result.rows.map(user => this.addVirtualFields(user));
+      }
+      // For other errors, rethrow
+      throw error;
+    }
   }
 
   // Helper function to add virtual fields to user objects
@@ -70,23 +106,125 @@ export class DatabaseStorage implements IStorage {
   }
   
   async getUser(id: number): Promise<User | undefined> {
-    const [user] = await db.select().from(users).where(eq(users.id, id));
-    return this.addVirtualFields(user);
+    try {
+      // First try to get the user with all fields
+      const [user] = await db.select().from(users).where(eq(users.id, id));
+      return this.addVirtualFields(user);
+    } catch (error) {
+      // If there's an error about missing columns, try a more selective query
+      if (error.message && error.message.includes("column") && error.message.includes("does not exist")) {
+        console.warn("Missing columns in users table, using fallback query:", error.message);
+        
+        // Use a specific select without the new columns
+        const query = `
+          SELECT 
+            id, username, password, full_name as "fullName", email, phone, bio, 
+            avatar_url as "avatarUrl", account_type as "accountType", skills, 
+            rating, is_active as "isActive", last_active as "lastActive",
+            google_id as "googleId", facebook_id as "facebookId",
+            stripe_customer_id as "stripeCustomerId", 
+            stripe_connect_account_id as "stripeConnectAccountId", 
+            stripe_connect_account_status as "stripeConnectAccountStatus",
+            stripe_terms_accepted as "stripeTermsAccepted", 
+            stripe_terms_accepted_at as "stripeTermsAcceptedAt",
+            stripe_representative_name as "stripeRepresentativeName", 
+            stripe_representative_title as "stripeRepresentativeTitle",
+            stripe_representative_requirements_complete as "stripeRepresentativeRequirementsComplete", 
+            stripe_banking_details_complete as "stripeBankingDetailsComplete"
+          FROM users WHERE id = $1
+        `;
+        
+        const result = await db.execute(query, [id]);
+        if (result.length === 0) return undefined;
+        
+        return this.addVirtualFields(result[0]);
+      }
+      // For other errors, rethrow
+      throw error;
+    }
   }
 
   async getUserByUsername(username: string): Promise<User | undefined> {
-    const [user] = await db.select().from(users).where(eq(users.username, username));
-    return this.addVirtualFields(user);
+    try {
+      // First try to get the user with all fields
+      const [user] = await db.select().from(users).where(eq(users.username, username));
+      return this.addVirtualFields(user);
+    } catch (error) {
+      // If there's an error about missing columns, try a more selective query
+      if (error.message && error.message.includes("column") && error.message.includes("does not exist")) {
+        console.warn("Missing columns in users table, using fallback query:", error.message);
+        
+        // Use a specific select without the new columns
+        const query = `
+          SELECT 
+            id, username, password, full_name as "fullName", email, phone, bio, 
+            avatar_url as "avatarUrl", account_type as "accountType", skills, 
+            rating, is_active as "isActive", last_active as "lastActive",
+            google_id as "googleId", facebook_id as "facebookId",
+            stripe_customer_id as "stripeCustomerId", 
+            stripe_connect_account_id as "stripeConnectAccountId", 
+            stripe_connect_account_status as "stripeConnectAccountStatus",
+            stripe_terms_accepted as "stripeTermsAccepted", 
+            stripe_terms_accepted_at as "stripeTermsAcceptedAt",
+            stripe_representative_name as "stripeRepresentativeName", 
+            stripe_representative_title as "stripeRepresentativeTitle",
+            stripe_representative_requirements_complete as "stripeRepresentativeRequirementsComplete", 
+            stripe_banking_details_complete as "stripeBankingDetailsComplete"
+          FROM users WHERE username = $1
+        `;
+        
+        const result = await db.execute(query, [username]);
+        if (result.length === 0) return undefined;
+        
+        return this.addVirtualFields(result[0]);
+      }
+      // For other errors, rethrow
+      throw error;
+    }
   }
   
   async getUserByUsernameAndType(username: string, accountType: string): Promise<User | undefined> {
-    const [user] = await db.select().from(users).where(
-      and(
-        eq(users.username, username),
-        eq(users.accountType, accountType)
-      )
-    );
-    return this.addVirtualFields(user);
+    try {
+      // First try to get the user with all fields
+      const [user] = await db.select().from(users).where(
+        and(
+          eq(users.username, username),
+          eq(users.accountType, accountType)
+        )
+      );
+      return this.addVirtualFields(user);
+    } catch (error: any) {
+      // If there's an error about missing columns, try a more selective query
+      if (error.message && error.message.includes("column") && error.message.includes("does not exist")) {
+        console.warn("Missing columns in users table, using fallback query:", error.message);
+        
+        // Use a specific select without the new columns
+        const query = `
+          SELECT 
+            id, username, password, full_name as "fullName", email, phone, bio, 
+            avatar_url as "avatarUrl", account_type as "accountType", skills, 
+            rating, is_active as "isActive", last_active as "lastActive",
+            google_id as "googleId", facebook_id as "facebookId",
+            stripe_customer_id as "stripeCustomerId", 
+            stripe_connect_account_id as "stripeConnectAccountId", 
+            stripe_connect_account_status as "stripeConnectAccountStatus",
+            stripe_terms_accepted as "stripeTermsAccepted", 
+            stripe_terms_accepted_at as "stripeTermsAcceptedAt",
+            stripe_representative_name as "stripeRepresentativeName", 
+            stripe_representative_title as "stripeRepresentativeTitle",
+            stripe_representative_requirements_complete as "stripeRepresentativeRequirementsComplete", 
+            stripe_banking_details_complete as "stripeBankingDetailsComplete"
+          FROM users WHERE username = $1 AND account_type = $2
+        `;
+        
+        const result = await db.execute(query, [username, accountType]);
+        if (!result.rows || result.rows.length === 0) return undefined;
+        
+        return this.addVirtualFields(result.rows[0]);
+      }
+      // For other errors, rethrow
+      throw error;
+    }
   }
 
   async createUser(user: InsertUser): Promise<User> {
