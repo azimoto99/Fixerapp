@@ -82,15 +82,20 @@ const Header = () => {
         <div className="flex items-center space-x-4">
           {user && <NotificationPopover className="hidden md:flex" />}
           {user ? (
-            <UserDrawerV2>
-              <button className="flex items-center text-sm rounded-full focus:outline-none">
-                <Avatar className="h-8 w-8">
-                  <AvatarImage src={user.avatarUrl || undefined} alt={user.fullName} />
-                  <AvatarFallback>{user.fullName?.charAt(0) || 'U'}</AvatarFallback>
-                </Avatar>
-                <span className="hidden md:block ml-2 text-sm font-medium">{user.fullName}</span>
-              </button>
-            </UserDrawerV2>
+            <div className="cursor-pointer" onClick={(e) => {
+              e.stopPropagation();
+              // The drawer is triggered by this click wrapper
+            }}>
+              <UserDrawerV2>
+                <button className="flex items-center text-sm rounded-full focus:outline-none">
+                  <Avatar className="h-8 w-8">
+                    <AvatarImage src={user.avatarUrl || undefined} alt={user.fullName} />
+                    <AvatarFallback>{user.fullName?.charAt(0) || 'U'}</AvatarFallback>
+                  </Avatar>
+                  <span className="hidden md:block ml-2 text-sm font-medium">{user.fullName}</span>
+                </button>
+              </UserDrawerV2>
+            </div>
           ) : (
             <Link href="/login">
               <div className="text-emerald-600 hover:text-emerald-700 font-medium cursor-pointer">Login</div>

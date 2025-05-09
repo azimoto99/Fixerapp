@@ -324,7 +324,7 @@ const MapSection: React.FC<MapSectionProps> = ({ jobs, selectedJob, onSelectJob,
           onSkip={() => setShowStripeConnectRequired(false)}
         />
       )}
-      <div className="relative h-screen">
+      <div className="relative h-screen max-h-[calc(100vh-64px)] overflow-hidden">
         <style>{`
           .leaflet-container {
             height: 100%;
@@ -544,22 +544,64 @@ const MapSection: React.FC<MapSectionProps> = ({ jobs, selectedJob, onSelectJob,
         
 
 
-        {/* Actions menu in top right */}
-        <div className="absolute top-4 right-4 z-[1000] flex gap-2">
-          {user && (
-            <UserDrawerV2 
-              onDrawerStateChange={setIsUserDrawerOpen}
-              externalCloseState={forceCloseDrawer}
-            >
-              <div className="bg-primary text-white shadow-lg rounded-full w-10 h-10 flex items-center justify-center transform transition-all hover:scale-105 active:scale-95 p-0 relative">
-                <div className="absolute -top-1 -right-1 w-3 h-3 bg-red-500 rounded-full animate-pulse-marker"></div>
-                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                  <path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"></path>
-                  <circle cx="12" cy="7" r="4"></circle>
-                </svg>
+        {/* Map controls and overlay - fixed actions on top */}
+        <div className="absolute top-0 right-0 z-[900] w-full">
+          {/* Floating control panel */}
+          <div className="bg-background/70 backdrop-blur-md border-b border-border/20 dark:border-border/20 shadow-sm px-4 py-2">
+            <div className="flex justify-between items-center">
+              {/* Left side: Map toggle controls */}
+              <div className="flex gap-2">
+                <MapViewToggle 
+                  view={mapView} 
+                  onChange={setMapView}
+                  className="bg-background/60"
+                />
               </div>
-            </UserDrawerV2>
-          )}
+              
+              {/* Center: Location status */}
+              <div className="hidden md:flex flex-col items-center">
+                {isUsingFallback ? (
+                  <div className="bg-primary/10 text-primary text-xs px-3 py-1 rounded-full flex items-center">
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" className="w-3 h-3 mr-1">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                    </svg>
+                    <span>Using approximate location</span>
+                  </div>
+                ) : (
+                  <div className="bg-emerald-500/10 text-emerald-600 text-xs px-3 py-1 rounded-full flex items-center">
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" className="w-3 h-3 mr-1">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                    </svg>
+                    <span>Location active</span>
+                  </div>
+                )}
+              </div>
+              
+              {/* Right side: User and actions */}
+              <div className="flex items-center gap-3">
+                <FindNearestJobButton />
+                {user && (
+                  <div className="cursor-pointer" onClick={(e) => {
+                    e.stopPropagation();
+                    setIsUserDrawerOpen(true);
+                  }}>
+                    <UserDrawerV2 
+                      onDrawerStateChange={setIsUserDrawerOpen}
+                      externalCloseState={forceCloseDrawer}
+                    >
+                      <div className="bg-primary text-white shadow-md rounded-full w-10 h-10 flex items-center justify-center transform transition-all hover:scale-105 active:scale-95 p-0 relative">
+                        <div className="absolute -top-1 -right-1 w-3 h-3 bg-red-500 rounded-full animate-pulse-marker"></div>
+                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                          <path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"></path>
+                          <circle cx="12" cy="7" r="4"></circle>
+                        </svg>
+                      </div>
+                    </UserDrawerV2>
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
         </div>
         
         {/* Bottom card for job details - DoorDash-style slide-up panel */}
