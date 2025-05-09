@@ -17,6 +17,7 @@ import PaymentConfirmation from "@/pages/PaymentConfirmation";
 import PaymentsDashboard from "@/pages/PaymentsDashboard";
 import StripeTest from "@/pages/StripeTest";
 import NotificationsPage from "@/pages/notifications-page";
+import ResetPassword from "@/pages/ResetPassword";
 import { AuthProvider } from "@/hooks/use-auth";
 import { NotificationProvider } from "@/hooks/use-notifications";
 import { ProtectedRoute } from "@/lib/protected-route";
@@ -72,6 +73,7 @@ function RouterWithAuth() {
       <Route path="/login" component={RedirectToAuth} />
       <Route path="/register" component={RedirectToAuth} />
       <Route path="/auth/callback" component={() => <div>Processing authentication...</div>} />
+      <Route path="/reset-password" component={ResetPassword} />
       {/* Account type selection is no longer needed */}
       <Route path="/complete-profile" component={CompleteProfile} />
       <Route component={NotFound} />
