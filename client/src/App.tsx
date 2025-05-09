@@ -14,6 +14,7 @@ import TransactionHistory from "@/pages/TransactionHistory";
 import CompleteProfile from "@/pages/CompleteProfile";
 import Checkout from "@/pages/Checkout";
 import PaymentConfirmation from "@/pages/PaymentConfirmation";
+import PaymentsDashboard from "@/pages/PaymentsDashboard";
 import StripeTest from "@/pages/StripeTest";
 import NotificationsPage from "@/pages/notifications-page";
 import { AuthProvider } from "@/hooks/use-auth";
@@ -63,9 +64,10 @@ function RouterWithAuth() {
       <ProtectedRoute path="/transactions" component={TransactionHistory} />
       <ProtectedRoute path="/checkout" component={Checkout} />
       <ProtectedRoute path="/payment-confirmation" component={PaymentConfirmation} />
+      <ProtectedRoute path="/payments" component={PaymentsDashboard} />
+      <ProtectedRoute path="/payments/dashboard" component={PaymentsDashboard} />
       <ProtectedRoute path="/stripe-test" component={StripeTest} />
       <ProtectedRoute path="/notifications" component={NotificationsPage} />
-      {/* Payment dashboard is not accessible as there are no job posters */}
       <Route path="/auth" component={AuthPage} />
       <Route path="/login" component={RedirectToAuth} />
       <Route path="/register" component={RedirectToAuth} />

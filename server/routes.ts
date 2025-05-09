@@ -19,6 +19,7 @@ import {
   BADGE_CATEGORIES
 } from "@shared/schema";
 import { setupAuth } from "./auth";
+import { setupStripeRoutes } from "./stripe";
 
 // Initialize Stripe with the secret key
 if (!process.env.STRIPE_SECRET_KEY) {
@@ -148,6 +149,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // Create API router
   const apiRouter = express.Router();
+  
+  // Set up Stripe routes
+  setupStripeRoutes(apiRouter);
 
   // Handle account type setting (always worker now)
   apiRouter.post("/set-account-type", async (req: Request, res: Response) => {

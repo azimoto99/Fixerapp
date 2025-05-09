@@ -14,7 +14,7 @@ import {
   AlertTriangle, 
   CreditCard, 
   Building, 
-  LucideBank, 
+  Banknote, 
   ReceiptText,
   Wallet,
   Shield
@@ -415,7 +415,7 @@ export const StripeConnectOnboarding: React.FC<{
               <OnboardingStep
                 title="Set Up Banking Details"
                 description="Add your bank account information to receive payouts"
-                icon={<LucideBank className="h-5 w-5" />}
+                icon={<Banknote className="h-5 w-5" />}
                 status={bankingStatus}
               >
                 {bankingStatus === 'current' && (
