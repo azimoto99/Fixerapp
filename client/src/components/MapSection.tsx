@@ -6,7 +6,6 @@ import SimpleUserDrawer2 from './SimpleUserDrawer2';
 import UserDrawerV2 from './UserDrawerV2';
 import HeatmapLayer from './HeatmapLayer';
 import MapViewToggle from './MapViewToggle';
-import HeatmapLegend from './HeatmapLegend';
 import FindNearestJobButton from './FindNearestJobButton';
 import { Job } from '@shared/schema';
 import { 
@@ -527,12 +526,7 @@ const MapSection: React.FC<MapSectionProps> = ({ jobs, selectedJob, onSelectJob,
                 </div>
               </div>
               
-              {/* Heat map legend - only show in heatmap view, placed at bottom left */}
-              <div className="leaflet-bottom leaflet-left">
-                <div className="leaflet-control leaflet-bar ml-3 mb-32">
-                  <HeatmapLegend visible={mapView === 'heatmap'} />
-                </div>
-              </div>
+{/* Heat map legend removed */}
             </div>
           </MapContainer>
         )}
