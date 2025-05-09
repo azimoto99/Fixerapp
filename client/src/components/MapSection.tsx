@@ -526,30 +526,10 @@ const MapSection: React.FC<MapSectionProps> = ({ jobs, selectedJob, onSelectJob,
                 )}
               </div>
               
-              {/* Right side: User and actions */}
-              <div className="flex items-center gap-3">
-                {/* Post Job button between heat text and compass */}
-                <Button
-                  size="sm"
-                  className="bg-emerald-600 hover:bg-emerald-700 text-white text-xs px-3 py-1.5 h-auto rounded-full shadow-lg"
-                  onClick={() => {
-                    if (!user) {
-                      toast({
-                        title: "Login Required",
-                        description: "Please login to post a job",
-                        variant: "destructive"
-                      });
-                    } else {
-                      // Use replace to avoid back button issues
-                      window.location.href = "/jobs/post";
-                    }
-                  }}
-                >
-                  <Plus className="h-3 w-3 mr-1" />
-                  <span>Post Job</span>
-                </Button>
-                {user && (
-                  <div>
+              {/* Right side: User button with combined action */}
+              <div className="flex items-center">
+                {user ? (
+                  <div className="relative">
                     <button 
                       onClick={() => setIsUserDrawerOpen(true)}
                       className="bg-primary text-white shadow-md rounded-full w-10 h-10 flex items-center justify-center transform transition-all hover:scale-105 active:scale-95 p-0 relative"
@@ -561,11 +541,37 @@ const MapSection: React.FC<MapSectionProps> = ({ jobs, selectedJob, onSelectJob,
                       </svg>
                     </button>
                     
+                    {/* Post Job Quick Action button */}
+                    <button
+                      onClick={() => {
+                        window.location.href = "/jobs/post";
+                      }}
+                      className="absolute -left-12 top-1 bg-emerald-600 text-white rounded-full w-8 h-8 flex items-center justify-center shadow-md transform transition-all hover:scale-105 active:scale-95"
+                      title="Post a Job"
+                    >
+                      <Plus className="h-4 w-4" />
+                    </button>
+                    
                     <SimpleUserDrawer2 
                       isOpen={isUserDrawerOpen}
                       onClose={() => setIsUserDrawerOpen(false)}
                     />
                   </div>
+                ) : (
+                  <Button
+                    size="sm"
+                    className="bg-primary hover:bg-primary/90 text-white text-xs px-3 py-1.5 h-auto rounded-full shadow-lg"
+                    onClick={() => {
+                      toast({
+                        title: "Login Required",
+                        description: "Please login to access account features",
+                        variant: "destructive"
+                      });
+                      window.location.href = "/auth";
+                    }}
+                  >
+                    <span>Login</span>
+                  </Button>
                 )}
               </div>
             </div>
