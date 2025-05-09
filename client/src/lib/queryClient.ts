@@ -64,6 +64,21 @@ export async function apiRequest(
     
     clearTimeout(timeoutId);
     
+    // Check for special headers related to authentication
+    const userId = res.headers.get('X-User-ID');
+    if (userId) {
+      // Store userId in localStorage for WebSocket authentication
+      localStorage.setItem('userId', userId);
+      console.log('User ID stored for WebSocket auth:', userId);
+    }
+    
+    // Check for logout header
+    if (res.headers.get('X-Clear-User-ID') === 'true') {
+      // Clear userId from localStorage
+      localStorage.removeItem('userId');
+      console.log('User ID cleared from localStorage');
+    }
+    
     await throwIfResNotOk(res);
     return res;
   } catch (error) {

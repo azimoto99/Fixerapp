@@ -67,7 +67,8 @@ export class NotificationService {
       
       // Extract user ID from URL query parameters (again, now that we've validated it exists)
       const urlParams = new URLSearchParams(request.url?.split('?')[1] || '');
-      const userId = parseInt(urlParams.get('userId') || '0');
+      const userIdParam = urlParams.get('userId') || '0';
+      const userId = parseInt(userIdParam);
       
       // Generate a unique client ID
       const clientId = `${userId}-${Date.now()}-${Math.random().toString(36).substring(2, 15)}`;

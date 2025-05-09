@@ -201,6 +201,9 @@ export function setupAuth(app: Express) {
       // Store user ID as backup in case passport session gets corrupted
       req.session.userId = user.id;
       
+      // Set user ID for WebSocket authentication in a custom header
+      res.setHeader('X-User-ID', user.id.toString());
+      
       req.login(user, (loginErr) => {
         if (loginErr) {
           return next(loginErr);
@@ -215,6 +218,9 @@ export function setupAuth(app: Express) {
 
   // Logout endpoint
   app.post("/api/logout", (req: Request, res: Response, next: NextFunction) => {
+    // Signal to client to remove userId from localStorage for WebSocket authentication
+    res.setHeader('X-Clear-User-ID', 'true');
+    
     req.logout((err) => {
       if (err) {
         return next(err);
@@ -249,6 +255,9 @@ export function setupAuth(app: Express) {
     
     // Don't return password in response
     if (req.user) {
+      // Set user ID for WebSocket authentication in a custom header
+      res.setHeader('X-User-ID', req.user.id.toString());
+      
       const { password, ...userResponse } = req.user;
       res.json(userResponse);
     } else {
