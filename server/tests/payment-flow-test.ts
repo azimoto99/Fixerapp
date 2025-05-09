@@ -32,8 +32,14 @@ async function testPaymentFlow() {
       return;
     }
     
+    // Add a null guard to protect against potentially null Connect account ID
+    if (!worker.stripeConnectAccountId) {
+      console.error('Worker has null stripeConnectAccountId - cannot complete the test');
+      return;
+    }
+    
     console.log(`Found worker: ${worker.username} (ID: ${worker.id}) with Connect account: ${worker.stripeConnectAccountId}`);
-    console.log(`Connect account status: ${worker.stripeConnectAccountStatus}`);
+    console.log(`Connect account status: ${worker.stripeConnectAccountStatus || 'unknown'}`);
     
     // 2. Find or create a test job for this worker
     console.log('\n2. Finding or creating test job...');
@@ -130,10 +136,14 @@ async function testPaymentFlow() {
     console.log(`Transferring $${netAmount} to worker account ${worker.stripeConnectAccountId}...`);
     
     try {
+      // We've already checked for null above, but TypeScript might still show a warning,
+      // so we'll assert the type here for extra safety
+      const connectAccountId: string = worker.stripeConnectAccountId as string;
+      
       const transfer = await stripe.transfers.create({
         amount: Math.round(netAmount * 100), // Convert to cents
         currency: 'usd',
-        destination: worker.stripeConnectAccountId,
+        destination: connectAccountId,
         transfer_group: `job-${job.id}`,
         metadata: {
           jobId: job.id.toString(),
