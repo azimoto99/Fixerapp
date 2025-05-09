@@ -26,6 +26,7 @@ import { ThemeProvider } from "@/components/theme";
 import { OnboardingProvider } from "@/components/onboarding/OnboardingProvider";
 import ContextualTips from "@/components/onboarding/ContextualTips";
 import { SimpleToastProvider } from "@/hooks/use-simple-toast";
+import ExpoConnectGuide from "@/components/ExpoConnectGuide";
 import { useEffect } from "react";
 
 // Redirect component for old routes
@@ -92,6 +93,7 @@ function AuthenticatedContent() {
       )}
       {/* Contextual tips will track user actions and show tooltips at the right moments */}
       {user && <ContextualTips />}
+      <ExpoConnectGuide />
       <Toaster />
     </>
   );
