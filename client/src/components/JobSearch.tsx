@@ -257,6 +257,48 @@ const JobSearch: React.FC<JobSearchProps> = memo(({ onSearch }) => {
             >
               <Filter size={14} />
             </Button>
+            
+            {/* Radius filter button - only show in location mode */}
+            {searchMode === 'location' && (
+              <Popover open={showRadiusFilter} onOpenChange={setShowRadiusFilter}>
+                <PopoverTrigger asChild>
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant={showRadiusFilter ? "default" : "ghost"}
+                    className={`rounded-full w-8 h-8 p-0 ml-1 
+                      ${showRadiusFilter ? 'bg-primary hover:bg-primary/90' : 'hover:bg-secondary'}`}
+                    title="Set search radius"
+                  >
+                    <Ruler size={14} />
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-64 p-4" align="end">
+                  <div className="space-y-4">
+                    <h4 className="font-medium text-sm">Search Radius</h4>
+                    <div className="space-y-2">
+                      <div className="flex justify-between items-center">
+                        <span className="text-xs text-muted-foreground">Distance: {radiusMiles} miles</span>
+                        <span className="text-xs text-muted-foreground">
+                          {radiusMiles < 5 ? 'Local' : radiusMiles < 15 ? 'Nearby' : radiusMiles < 30 ? 'In area' : 'Regional'}
+                        </span>
+                      </div>
+                      <Slider 
+                        defaultValue={[radiusMiles]} 
+                        min={1} 
+                        max={50} 
+                        step={1}
+                        onValueChange={handleRadiusChange}
+                      />
+                      <div className="flex justify-between">
+                        <span className="text-xs text-muted-foreground">1mi</span>
+                        <span className="text-xs text-muted-foreground">50mi</span>
+                      </div>
+                    </div>
+                  </div>
+                </PopoverContent>
+              </Popover>
+            )}
           </div>
           
           {/* Categories horizontal pill bar - only show when filter is active */}
