@@ -14,6 +14,7 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { ThemeToggle } from '@/components/theme';
 import { NotificationPopover } from '@/components/notifications';
+import UserDrawerV2 from '@/components/UserDrawerV2';
 
 const Header = () => {
   const { user, logoutMutation } = useAuth();

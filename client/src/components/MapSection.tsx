@@ -3,6 +3,7 @@ import { useGeolocation } from '@/lib/geolocation';
 import JobDetail from './JobDetail';
 import { JobMarker } from './JobMarker';
 import SimpleUserDrawer from './SimpleUserDrawer';
+import UserDrawerV2 from './UserDrawerV2';
 import HeatmapLayer from './HeatmapLayer';
 import MapViewToggle from './MapViewToggle';
 import HeatmapLegend from './HeatmapLegend';
@@ -546,7 +547,7 @@ const MapSection: React.FC<MapSectionProps> = ({ jobs, selectedJob, onSelectJob,
         {/* Actions menu in top right */}
         <div className="absolute top-4 right-4 z-[1000] flex gap-2">
           {user && (
-            <SimpleUserDrawer 
+            <UserDrawerV2 
               onDrawerStateChange={setIsUserDrawerOpen}
               externalCloseState={forceCloseDrawer}
             >
@@ -557,7 +558,7 @@ const MapSection: React.FC<MapSectionProps> = ({ jobs, selectedJob, onSelectJob,
                   <circle cx="12" cy="7" r="4"></circle>
                 </svg>
               </div>
-            </SimpleUserDrawer>
+            </UserDrawerV2>
           )}
         </div>
         
