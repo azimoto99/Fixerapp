@@ -125,11 +125,21 @@ export const getQueryFn: <T>(options: {
     } catch (error) {
       console.error(`Query error for ${queryKey[0]}:`, error);
       
-      // Return empty array for unauthorized if that behavior is requested
+      // Return empty array or null for unauthorized if that behavior is requested
       if (error instanceof Error && 
-          error.message.includes('Authentication failed') && 
+          (error.message.includes('Authentication failed') ||
+           error.message.includes('Not authenticated') || 
+           error.message.includes('Unauthorized')) && 
           unauthorizedBehavior === "returnEmptyArray") {
         return [] as unknown as T;
+      }
+      
+      if (error instanceof Error && 
+          (error.message.includes('Authentication failed') ||
+           error.message.includes('Not authenticated') || 
+           error.message.includes('Unauthorized')) && 
+          unauthorizedBehavior === "returnNull") {
+        return null as unknown as T;
       }
       
       throw error;

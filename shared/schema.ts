@@ -114,6 +114,8 @@ export const earnings = pgTable("earnings", {
   status: text("status").notNull().default("pending"), // "pending", "paid", "cancelled"
   dateEarned: timestamp("date_earned").defaultNow(), // When the job was completed
   datePaid: timestamp("date_paid"), // When the worker was paid
+  transferId: text("transfer_id"), // Stripe transfer ID for payouts
+  description: text("description"), // Description of the earning
 });
 
 // Payments table to track payment transactions

@@ -32,11 +32,15 @@ import {
 } from "@shared/schema";
 
 import session from "express-session";
+import { db } from "./db";
+import { eq, and, or, like, desc, asc, isNotNull, sql } from "drizzle-orm";
+import connectPg from "connect-pg-simple";
+import { pool } from "./db";
 
 // Storage interface for all CRUD operations
 export interface IStorage {
   // Session store for authentication
-  sessionStore?: session.Store;
+  sessionStore: session.Store;
   
   // User operations
   getAllUsers(): Promise<User[]>;
@@ -156,53 +160,17 @@ export interface IStorage {
   notifyNearbyWorkers(jobId: number, radiusMiles: number): Promise<number>; // Returns count of notifications sent
 }
 
-export class MemStorage implements IStorage {
-  private users: Map<number, User>;
-  private jobs: Map<number, Job>;
-  private applications: Map<number, Application>;
-  private reviews: Map<number, Review>;
-  private tasks: Map<number, Task>;
-  private earnings: Map<number, Earning>;
-  private payments: Map<number, Payment>;
-  private badges: Map<number, Badge>;
-  private userBadges: Map<number, UserBadge>;
-  private notifications: Map<number, Notification>;
+export class DatabaseStorage implements IStorage {
+  sessionStore: session.Store;
   
-  private userIdCounter: number;
-  private jobIdCounter: number;
-  private applicationIdCounter: number;
-  private reviewIdCounter: number;
-  private taskIdCounter: number;
-  private earningIdCounter: number;
-  private paymentIdCounter: number;
-  private badgeIdCounter: number;
-  private userBadgeIdCounter: number;
-  private notificationIdCounter: number;
-
   constructor() {
-    this.users = new Map();
-    this.jobs = new Map();
-    this.applications = new Map();
-    this.reviews = new Map();
-    this.tasks = new Map();
-    this.earnings = new Map();
-    this.payments = new Map();
-    this.badges = new Map();
-    this.userBadges = new Map();
-    this.notifications = new Map();
-    
-    this.userIdCounter = 1;
-    this.jobIdCounter = 1;
-    this.applicationIdCounter = 1;
-    this.reviewIdCounter = 1;
-    this.taskIdCounter = 1;
-    this.earningIdCounter = 1;
-    this.paymentIdCounter = 1;
-    this.badgeIdCounter = 1;
-    this.userBadgeIdCounter = 1;
-    this.notificationIdCounter = 1;
-    
-    // No sample data - never initialize any sample data
+    // Initialize PostgreSQL session store
+    const PostgresSessionStore = connectPg(session);
+    this.sessionStore = new PostgresSessionStore({ 
+      pool, 
+      createTableIfMissing: true,
+      tableName: 'session'
+    });
   }
 
   // Helper function to calculate distance between two points in miles
