@@ -203,6 +203,59 @@ export class FixedDatabaseStorage implements IStorage {
       return [];
     }
   }
+  
+  // Stripe-specific methods
+  async updateStripeCustomerId(userId: number, stripeCustomerId: string) {
+    try {
+      if (typeof this.storage.updateStripeCustomerId === 'function') {
+        return await this.storage.updateStripeCustomerId(userId, stripeCustomerId);
+      }
+      console.warn(`updateStripeCustomerId not implemented in storage, returning undefined`);
+      return undefined;
+    } catch (error) {
+      console.error(`Error in updateStripeCustomerId(${userId}):`, error);
+      return undefined;
+    }
+  }
+  
+  async updateStripeConnectAccount(userId: number, connectAccountId: string, connectAccountStatus: string) {
+    try {
+      if (typeof this.storage.updateStripeConnectAccount === 'function') {
+        return await this.storage.updateStripeConnectAccount(userId, connectAccountId, connectAccountStatus);
+      }
+      console.warn(`updateStripeConnectAccount not implemented in storage, returning undefined`);
+      return undefined;
+    } catch (error) {
+      console.error(`Error in updateStripeConnectAccount(${userId}):`, error);
+      return undefined;
+    }
+  }
+  
+  async updateUserStripeInfo(userId: number, stripeInfo: any) {
+    try {
+      if (typeof this.storage.updateUserStripeInfo === 'function') {
+        return await this.storage.updateUserStripeInfo(userId, stripeInfo);
+      }
+      console.warn(`updateUserStripeInfo not implemented in storage, returning undefined`);
+      return undefined;
+    } catch (error) {
+      console.error(`Error in updateUserStripeInfo(${userId}):`, error);
+      return undefined;
+    }
+  }
+  
+  async getAllEarningsByStatus(statusList: string[]) {
+    try {
+      if (typeof this.storage.getAllEarningsByStatus === 'function') {
+        return await this.storage.getAllEarningsByStatus(statusList);
+      }
+      console.warn(`getAllEarningsByStatus not implemented in storage, returning empty array`);
+      return [];
+    } catch (error) {
+      console.error(`Error in getAllEarningsByStatus:`, error);
+      return [];
+    }
+  }
 
   // Job operations
   async getJob(id: number) {
