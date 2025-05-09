@@ -115,8 +115,12 @@ const MapSection: React.FC<MapSectionProps> = ({ jobs, selectedJob, onSelectJob,
     setShowJobDetail(false);
     // Clear the selected job if onSelectJob callback is provided
     if (onSelectJob) {
-      onSelectJob(undefined as any);
+      // Pass null to properly clear the selected job in parent component
+      onSelectJob(null as any);
     }
+    
+    // Also reset the previous selected job ID
+    setPreviousSelectedJobId(null);
   };
   
   // Handle job application

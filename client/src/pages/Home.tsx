@@ -60,8 +60,8 @@ const WorkerDashboard = () => {
     });
   };
 
-  const handleSelectJob = (job: Job) => {
-    setSelectedJob(job);
+  const handleSelectJob = (job: Job | null) => {
+    setSelectedJob(job || undefined);
   };
 
   const handleViewChange = (newView: 'list' | 'map') => {
