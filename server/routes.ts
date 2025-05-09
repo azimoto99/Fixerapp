@@ -3118,6 +3118,36 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
   
+  // Earnings endpoints
+  apiRouter.get("/earnings/worker", isAuthenticated, async (req: Request, res: Response) => {
+    try {
+      if (req.user.accountType !== 'worker') {
+        return res.status(403).json({ 
+          message: "Forbidden: Only worker accounts can access earnings data" 
+        });
+      }
+      
+      // Fetch the worker's earnings
+      const earnings = await storage.getEarningsForWorker(req.user.id);
+      
+      // For each earning, fetch the associated job details
+      const earningsWithJobDetails = await Promise.all(
+        earnings.map(async (earning) => {
+          const job = await storage.getJob(earning.jobId);
+          return {
+            ...earning,
+            job: job || undefined
+          };
+        })
+      );
+      
+      res.json(earningsWithJobDetails);
+    } catch (error) {
+      console.error("Error fetching worker earnings:", error);
+      res.status(500).json({ message: "Server error: " + (error as Error).message });
+    }
+  });
+
   // Create notification endpoint for direct creation (admin/system only)
   apiRouter.post("/notifications", isAuthenticated, async (req: Request, res: Response) => {
     try {
