@@ -7,7 +7,7 @@ interface PortalProps {
 }
 
 // Component that creates a portal to a div outside of the main DOM hierarchy
-export const Portal = ({ children, zIndex = 1000 }: PortalProps) => {
+export const Portal = ({ children, zIndex = 9999 }: PortalProps) => {
   const [portalRoot, setPortalRoot] = useState<HTMLElement | null>(null);
 
   useEffect(() => {

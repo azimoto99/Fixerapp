@@ -598,7 +598,8 @@ export default function SimpleUserDrawer2({ isOpen, onClose }: SimpleUserDrawerP
             boxShadow: '-2px 0 10px rgba(0, 0, 0, 0.2)',
             overflowY: 'auto',
             animation: 'slide-in 0.3s ease-out',
-            pointerEvents: 'all'
+            pointerEvents: 'all',
+            zIndex: 10000
           }}
         >
           {/* Drawer header */}
