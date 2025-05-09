@@ -82,50 +82,15 @@ const Header = () => {
         <div className="flex items-center space-x-4">
           {user && <NotificationPopover className="hidden md:flex" />}
           {user ? (
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <button className="flex items-center text-sm rounded-full focus:outline-none">
-                  <Avatar className="h-8 w-8">
-                    <AvatarImage src={user.avatarUrl || undefined} alt={user.fullName} />
-                    <AvatarFallback>{user.fullName?.charAt(0) || 'U'}</AvatarFallback>
-                  </Avatar>
-                  <span className="hidden md:block ml-2 text-sm font-medium text-gray-700">{user.fullName}</span>
-                </button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end">
-                <DropdownMenuItem>
-                  <Link href="/profile">
-                    <span className="cursor-pointer w-full">Profile</span>
-                  </Link>
-                </DropdownMenuItem>
-                <DropdownMenuItem>
-                  <Link href="/notifications">
-                    <span className="cursor-pointer w-full">Notifications</span>
-                  </Link>
-                </DropdownMenuItem>
-                <DropdownMenuSub>
-                  <DropdownMenuSubTrigger>
-                    <span>Settings</span>
-                  </DropdownMenuSubTrigger>
-                  <DropdownMenuSubContent>
-                    <DropdownMenuLabel>Appearance</DropdownMenuLabel>
-                    <div className="p-2 w-56">
-                      <ThemeToggle variant="compact" />
-                    </div>
-                    <DropdownMenuSeparator />
-                    <DropdownMenuItem>
-                      <Link href="/settings">
-                        <span className="cursor-pointer w-full">All Settings</span>
-                      </Link>
-                    </DropdownMenuItem>
-                  </DropdownMenuSubContent>
-                </DropdownMenuSub>
-                <DropdownMenuSeparator />
-                <DropdownMenuItem onClick={handleLogout} className="cursor-pointer">
-                  Logout
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
+            <UserDrawerV2>
+              <button className="flex items-center text-sm rounded-full focus:outline-none">
+                <Avatar className="h-8 w-8">
+                  <AvatarImage src={user.avatarUrl || undefined} alt={user.fullName} />
+                  <AvatarFallback>{user.fullName?.charAt(0) || 'U'}</AvatarFallback>
+                </Avatar>
+                <span className="hidden md:block ml-2 text-sm font-medium">{user.fullName}</span>
+              </button>
+            </UserDrawerV2>
           ) : (
             <Link href="/login">
               <div className="text-emerald-600 hover:text-emerald-700 font-medium cursor-pointer">Login</div>
