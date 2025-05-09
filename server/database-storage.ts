@@ -36,6 +36,32 @@ export class DatabaseStorage implements IStorage {
     });
   }
   
+  // Stripe-specific methods
+  async updateStripeCustomerId(userId: number, stripeCustomerId: string): Promise<User | undefined> {
+    return this.updateUser(userId, { stripeCustomerId });
+  }
+  
+  async updateStripeConnectAccount(userId: number, connectAccountId: string, connectAccountStatus: string): Promise<User | undefined> {
+    return this.updateUser(userId, { 
+      stripeConnectAccountId: connectAccountId,
+      stripeConnectAccountStatus: connectAccountStatus
+    });
+  }
+  
+  async updateUserStripeInfo(userId: number, stripeInfo: { 
+    stripeCustomerId?: string;
+    stripeConnectAccountId?: string;
+    stripeConnectAccountStatus?: string;
+    stripeTermsAccepted?: boolean;
+    stripeTermsAcceptedAt?: Date;
+    stripeRepresentativeName?: string;
+    stripeRepresentativeTitle?: string;
+    stripeRepresentativeRequirementsComplete?: boolean;
+    stripeBankingDetailsComplete?: boolean;
+  }): Promise<User | undefined> {
+    return this.updateUser(userId, stripeInfo);
+  }
+
   // User operations
   async getAllUsers(): Promise<User[]> {
     try {

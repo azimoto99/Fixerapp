@@ -63,6 +63,21 @@ export interface IStorage {
   }): Promise<User | undefined>;
   getUsersWithSkills(skills: string[]): Promise<User[]>;
   
+  // Stripe-specific methods
+  updateStripeCustomerId(userId: number, stripeCustomerId: string): Promise<User | undefined>;
+  updateStripeConnectAccount(userId: number, connectAccountId: string, connectAccountStatus: string): Promise<User | undefined>;
+  updateUserStripeInfo(userId: number, stripeInfo: { 
+    stripeCustomerId?: string;
+    stripeConnectAccountId?: string;
+    stripeConnectAccountStatus?: string;
+    stripeTermsAccepted?: boolean;
+    stripeTermsAcceptedAt?: Date;
+    stripeRepresentativeName?: string;
+    stripeRepresentativeTitle?: string;
+    stripeRepresentativeRequirementsComplete?: boolean;
+    stripeBankingDetailsComplete?: boolean;
+  }): Promise<User | undefined>;
+  
   // Job operations
   getJob(id: number): Promise<Job | undefined>;
   getJobs(filters?: {
@@ -333,6 +348,32 @@ export class MemStorage implements IStorage {
       // Check if user has at least one of the required skills
       return skills.some(skill => user.skills?.includes(skill));
     });
+  }
+  
+  // Stripe-specific methods
+  async updateStripeCustomerId(userId: number, stripeCustomerId: string): Promise<User | undefined> {
+    return this.updateUser(userId, { stripeCustomerId });
+  }
+  
+  async updateStripeConnectAccount(userId: number, connectAccountId: string, connectAccountStatus: string): Promise<User | undefined> {
+    return this.updateUser(userId, { 
+      stripeConnectAccountId: connectAccountId,
+      stripeConnectAccountStatus: connectAccountStatus
+    });
+  }
+  
+  async updateUserStripeInfo(userId: number, stripeInfo: { 
+    stripeCustomerId?: string;
+    stripeConnectAccountId?: string;
+    stripeConnectAccountStatus?: string;
+    stripeTermsAccepted?: boolean;
+    stripeTermsAcceptedAt?: Date;
+    stripeRepresentativeName?: string;
+    stripeRepresentativeTitle?: string;
+    stripeRepresentativeRequirementsComplete?: boolean;
+    stripeBankingDetailsComplete?: boolean;
+  }): Promise<User | undefined> {
+    return this.updateUser(userId, stripeInfo);
   }
 
   // Job operations
