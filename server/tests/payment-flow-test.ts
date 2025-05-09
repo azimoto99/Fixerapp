@@ -12,7 +12,7 @@ if (!process.env.STRIPE_SECRET_KEY) {
   throw new Error('Missing required Stripe secret: STRIPE_SECRET_KEY');
 }
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY, {
-  apiVersion: "2023-10-16",
+  apiVersion: "2025-04-30.basil",
 });
 
 // Test function to simulate the job payment flow
@@ -25,45 +25,46 @@ async function testPaymentFlow() {
     // 1. Get an active worker with a Stripe Connect account
     console.log('\n1. Finding worker with Stripe Connect account...');
     const users = await storage.getAllUsers();
-    const worker = users.find(u => u.account_type === 'worker' && u.stripe_connect_account_id);
+    const worker = users.find(u => u.accountType === 'worker' && u.stripeConnectAccountId);
     
     if (!worker) {
       console.error('No worker found with a Stripe Connect account');
       return;
     }
     
-    console.log(`Found worker: ${worker.username} (ID: ${worker.id}) with Connect account: ${worker.stripe_connect_account_id}`);
-    console.log(`Connect account status: ${worker.stripe_connect_account_status}`);
+    console.log(`Found worker: ${worker.username} (ID: ${worker.id}) with Connect account: ${worker.stripeConnectAccountId}`);
+    console.log(`Connect account status: ${worker.stripeConnectAccountStatus}`);
     
     // 2. Find or create a test job for this worker
     console.log('\n2. Finding or creating test job...');
     const jobs = await storage.getJobs();
-    let job = jobs.find(j => j.worker_id === worker.id);
+    let job = jobs.find(j => j.workerId === worker.id);
     
     if (!job) {
       console.log('Creating a test job for the worker...');
-      const poster = users.find(u => u.account_type === 'poster');
+      const poster = users.find(u => u.accountType === 'poster');
       
       if (!poster) {
         console.error('No job poster found in the database');
         return;
       }
       
+      // The dateNeeded field is required according to our schema
+      const tomorrow = new Date();
+      tomorrow.setDate(tomorrow.getDate() + 1);
+      
       job = await storage.createJob({
         title: "Test Payment Job",
         description: "This is a test job to verify payments",
         status: "completed",
-        payment_amount: 50,
-        service_fee: 5,
-        total_amount: 55,
+        paymentAmount: 50,
+        paymentType: "fixed",
         category: "Computer Repair",
         location: "Test Location",
         latitude: 37.7749,
         longitude: -122.4194,
-        poster_id: poster.id,
-        worker_id: worker.id,
-        payment_status: "pending",
-        has_paid: false
+        posterId: poster.id,
+        dateNeeded: tomorrow
       });
       
       console.log(`Created test job: "${job.title}" (ID: ${job.id})`);
@@ -73,13 +74,15 @@ async function testPaymentFlow() {
     
     // 3. Create a payment for the job
     console.log('\n3. Creating payment for job...');
-    const netAmount = job.paymentAmount - job.serviceFee;
-    console.log(`Job payment amount: $${job.paymentAmount}, Service fee: $${job.serviceFee}, Net amount: $${netAmount}`);
+    const serviceFee = 5; // Standard service fee
+    const totalAmount = job.paymentAmount + serviceFee;
+    const netAmount = job.paymentAmount - serviceFee;
+    console.log(`Job payment amount: $${job.paymentAmount}, Service fee: $${serviceFee}, Net amount: $${netAmount}`);
     
     // 4. Create a Stripe payment intent for testing
     console.log('\n4. Creating Stripe payment intent...');
     const paymentIntent = await stripe.paymentIntents.create({
-      amount: Math.round(job.totalAmount * 100), // Convert to cents
+      amount: Math.round(totalAmount * 100), // Convert to cents
       currency: 'usd',
       payment_method_types: ['card'],
       metadata: {
@@ -95,7 +98,7 @@ async function testPaymentFlow() {
     console.log('\n5. Creating payment record in our database...');
     const payment = await storage.createPayment({
       userId: job.posterId,
-      amount: job.totalAmount,
+      amount: totalAmount,
       type: "job_payment",
       status: "completed",
       paymentMethod: "stripe",
@@ -115,7 +118,7 @@ async function testPaymentFlow() {
       jobId: job.id,
       workerId: worker.id,
       amount: job.paymentAmount,
-      serviceFee: job.serviceFee,
+      serviceFee: serviceFee,
       netAmount: netAmount,
       status: "pending"
     });
@@ -130,7 +133,7 @@ async function testPaymentFlow() {
       const transfer = await stripe.transfers.create({
         amount: Math.round(netAmount * 100), // Convert to cents
         currency: 'usd',
-        destination: worker.stripeConnectAccountId as string,
+        destination: worker.stripeConnectAccountId,
         transfer_group: `job-${job.id}`,
         metadata: {
           jobId: job.id.toString(),
