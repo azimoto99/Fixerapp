@@ -7,6 +7,52 @@ import { z } from 'zod';
 import { pgTable, serial, text, timestamp } from 'drizzle-orm/pg-core';
 import { hashPassword } from './auth';
 
+// Ensure the password reset tokens table exists
+async function createResetTokensTable() {
+  try {
+    console.log('Checking and creating password_reset_tokens table if needed...');
+    
+    // First check if the table exists
+    const checkTable = `
+      SELECT EXISTS (
+        SELECT FROM information_schema.tables 
+        WHERE table_schema = 'public'
+        AND table_name = 'password_reset_tokens'
+      );
+    `;
+    
+    const result = await db.execute(checkTable);
+    const tableExists = result.rows[0].exists;
+    
+    if (tableExists) {
+      console.log('Password reset tokens table already exists');
+      return;
+    }
+    
+    // Create the table with the proper structure
+    const createTable = `
+      CREATE TABLE IF NOT EXISTS "password_reset_tokens" (
+        "id" SERIAL PRIMARY KEY,
+        "user_id" INTEGER NOT NULL,
+        "token" TEXT NOT NULL,
+        "expires_at" TIMESTAMP NOT NULL,
+        "created_at" TIMESTAMP DEFAULT NOW() NOT NULL,
+        "used" TEXT DEFAULT 'false' NOT NULL
+      );
+      CREATE INDEX IF NOT EXISTS "IDX_password_reset_tokens_user_id" ON "password_reset_tokens" ("user_id");
+      CREATE INDEX IF NOT EXISTS "IDX_password_reset_tokens_token" ON "password_reset_tokens" ("token");
+    `;
+    
+    await db.execute(createTable);
+    console.log('Password reset tokens table created successfully');
+  } catch (error) {
+    console.error('Error creating password reset tokens table:', error);
+  }
+}
+
+// Execute the table creation when this module is loaded
+createResetTokensTable().catch(console.error);
+
 // Define a schema for password reset tokens
 export const passwordResetTokens = pgTable('password_reset_tokens', {
   id: serial('id').primaryKey(),

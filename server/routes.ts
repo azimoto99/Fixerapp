@@ -147,6 +147,9 @@ async function isStripeAuthenticated(req: Request, res: Response, next: Function
 export async function registerRoutes(app: Express): Promise<Server> {
   // Set up authentication
   setupAuth(app);
+  
+  // Set up password reset
+  setupPasswordReset(app);
 
   // Create API router
   const apiRouter = express.Router();
