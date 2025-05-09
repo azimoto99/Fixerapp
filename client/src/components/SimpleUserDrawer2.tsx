@@ -577,13 +577,14 @@ export default function SimpleUserDrawer2({ isOpen, onClose }: SimpleUserDrawerP
   }
 
   return (
-    <Portal>
+    <Portal zIndex={9999}>
       <div style={{ 
         position: 'fixed', 
         inset: 0, 
         backgroundColor: 'rgba(0, 0, 0, 0.5)',
         backdropFilter: 'blur(4px)',
-        pointerEvents: 'all'
+        pointerEvents: 'all',
+        zIndex: 9999
       }}>
         <div
           ref={drawerRef}
