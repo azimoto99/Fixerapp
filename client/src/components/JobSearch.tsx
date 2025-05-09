@@ -1,17 +1,24 @@
 import { useState, useCallback, memo, useRef } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { Slider } from '@/components/ui/slider';
 import { JOB_CATEGORIES } from '@shared/schema';
 import { useToast } from '@/hooks/use-toast';
 import { geocodeAddress } from '@/lib/geocoding';
-import { Loader2, MapPin, Book, RotateCcw, Search, Filter } from 'lucide-react';
+import { Loader2, MapPin, Book, RotateCcw, Search, Filter, Ruler } from 'lucide-react';
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
 
 interface JobSearchProps {
   onSearch: (params: { 
     query: string; 
     category: string; 
     searchMode?: 'location' | 'description';
-    coordinates?: { latitude: number; longitude: number } 
+    coordinates?: { latitude: number; longitude: number };
+    radiusMiles?: number;
   }) => void;
 }
 
@@ -37,6 +44,9 @@ const JobSearch: React.FC<JobSearchProps> = memo(({ onSearch }) => {
   const [isSearching, setIsSearching] = useState(false);
   const [lastSearchLocation, setLastSearchLocation] = useState<string | null>(null);
   const [showCategories, setShowCategories] = useState(false);
+  const [radiusMiles, setRadiusMiles] = useState<number>(10); // Default 10 mile radius
+  const [showRadiusFilter, setShowRadiusFilter] = useState(false);
+  const [locationCoordinates, setLocationCoordinates] = useState<{latitude: number, longitude: number} | null>(null);
   const { toast } = useToast();
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -59,14 +69,19 @@ const JobSearch: React.FC<JobSearchProps> = memo(({ onSearch }) => {
           // Store the location name for displaying to user
           setLastSearchLocation(geocodeResult.displayName?.split(',')[0] || query);
           
+          // Store coordinates for radius filter to use
+          const coordinates = {
+            latitude: geocodeResult.latitude,
+            longitude: geocodeResult.longitude
+          };
+          setLocationCoordinates(coordinates);
+          
           onSearch({ 
             query, 
             category: searchCategory, 
             searchMode,
-            coordinates: {
-              latitude: geocodeResult.latitude,
-              longitude: geocodeResult.longitude
-            }
+            coordinates,
+            radiusMiles: searchMode === 'location' ? radiusMiles : undefined
           });
         } else {
           toast({
@@ -88,6 +103,23 @@ const JobSearch: React.FC<JobSearchProps> = memo(({ onSearch }) => {
     } else {
       // For description search, just pass the query directly
       onSearch({ query, category: searchCategory, searchMode });
+    }
+  };
+  
+  // Handle radius change and search with updated radius
+  const handleRadiusChange = (value: number[]) => {
+    const newRadius = value[0];
+    setRadiusMiles(newRadius);
+    
+    // Only trigger a search if we have coordinates and are in location mode
+    if (locationCoordinates && searchMode === 'location') {
+      onSearch({
+        query,
+        category,
+        searchMode,
+        coordinates: locationCoordinates,
+        radiusMiles: newRadius
+      });
     }
   };
 
