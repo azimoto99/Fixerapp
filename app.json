@@ -43,7 +43,9 @@
     },
     "scheme": "fixer",
     "owner": "fixer",
-    "runtimeVersion": "1.0.0",
+    "runtimeVersion": {
+      "policy": "sdkVersion"
+    },
     "developmentClient": true
   }
 }
