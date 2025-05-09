@@ -3,7 +3,7 @@ import { useLocation } from 'wouter';
 import { z } from 'zod';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useForm } from 'react-hook-form';
-import { insertJobSchema } from '@shared/schema';
+import { insertJobSchema, insertTaskSchema } from '@shared/schema';
 import { useAuth } from '@/hooks/use-auth';
 import { useToast } from '@/hooks/use-toast';
 import { apiRequest } from '@/lib/queryClient';
@@ -12,6 +12,7 @@ import { useGeolocation } from '@/lib/geolocation';
 import Header from '@/components/Header';
 import PaymentDetailsForm from '@/components/PaymentDetailsForm';
 import AddressAutocomplete from '@/components/AddressAutocomplete';
+import TaskEditor, { TaskItemProps } from '@/components/TaskEditor';
 import { Button } from '@/components/ui/button';
 import {
   Form,
@@ -35,6 +36,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { JOB_CATEGORIES, SKILLS } from '@shared/schema';
 import { Dialog, DialogContent } from '@/components/ui/dialog';
+import { Card, CardContent } from '@/components/ui/card';
 
 const formSchema = insertJobSchema.extend({
   paymentAmount: z.coerce
@@ -54,6 +56,7 @@ export default function PostJob() {
   const [showPaymentForm, setShowPaymentForm] = useState(false);
   const [formData, setFormData] = useState<z.infer<typeof formSchema> | null>(null);
   const [paymentMethodId, setPaymentMethodId] = useState<string | null>(null);
+  const [tasks, setTasks] = useState<TaskItemProps[]>([]);
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -123,7 +126,35 @@ export default function PostJob() {
       
       // Create the job
       const response = await apiRequest('POST', '/api/jobs', jobData);
-      const data = await response.json();
+      const jobResponse = await response.json();
+      
+      // Create tasks for the job if there are any
+      if (tasks.length > 0) {
+        try {
+          // Submit each task with the job ID
+          const taskPromises = tasks.map(task => {
+            const taskData = {
+              jobId: jobResponse.id,
+              description: task.description,
+              position: task.position,
+              isOptional: task.isOptional,
+              dueTime: task.dueTime,
+              location: task.location,
+              latitude: task.latitude,
+              longitude: task.longitude,
+              bonusAmount: task.bonusAmount || 0
+            };
+            
+            return apiRequest('POST', '/api/tasks', taskData);
+          });
+          
+          await Promise.all(taskPromises);
+          console.log('All tasks created successfully');
+        } catch (taskError) {
+          console.error('Error creating tasks:', taskError);
+          // We don't fail the whole job if tasks fail to be created
+        }
+      }
       
       // Close the payment form dialog
       setShowPaymentForm(false);
@@ -134,7 +165,7 @@ export default function PostJob() {
       });
       
       // Navigate to the job details page
-      navigate(`/job/${data.id}`);
+      navigate(`/job/${jobResponse.id}`);
     } catch (error) {
       toast({
         title: "Error",
@@ -165,7 +196,35 @@ export default function PostJob() {
         
         // Create the job
         const response = await apiRequest('POST', '/api/jobs', values);
-        const data = await response.json();
+        const jobResponse = await response.json();
+        
+        // Create tasks for the job if there are any
+        if (tasks.length > 0) {
+          try {
+            // Submit each task with the job ID
+            const taskPromises = tasks.map(task => {
+              const taskData = {
+                jobId: jobResponse.id,
+                description: task.description,
+                position: task.position,
+                isOptional: task.isOptional,
+                dueTime: task.dueTime,
+                location: task.location,
+                latitude: task.latitude,
+                longitude: task.longitude,
+                bonusAmount: task.bonusAmount || 0
+              };
+              
+              return apiRequest('POST', '/api/tasks', taskData);
+            });
+            
+            await Promise.all(taskPromises);
+            console.log('All tasks created successfully');
+          } catch (taskError) {
+            console.error('Error creating tasks:', taskError);
+            // We don't fail the whole job if tasks fail to be created
+          }
+        }
         
         toast({
           title: "Job Posted",
@@ -173,7 +232,7 @@ export default function PostJob() {
         });
         
         // Navigate to the job details page
-        navigate(`/job/${data.id}`);
+        navigate(`/job/${jobResponse.id}`);
       } catch (error) {
         toast({
           title: "Error",
@@ -342,7 +401,7 @@ export default function PostJob() {
                         ? 'Hourly Rate:' 
                         : 'Job Amount:'}
                     </span>
-                    <span>${parseFloat(form.watch('paymentAmount') || 0).toFixed(2)}</span>
+                    <span>${parseFloat(String(form.watch('paymentAmount') || '0')).toFixed(2)}</span>
                   </div>
                   <div className="flex justify-between text-sm mb-2 text-foreground">
                     <span>Service Fee:</span>
@@ -351,13 +410,13 @@ export default function PostJob() {
                   {form.watch('paymentType') === 'fixed' && (
                     <div className="flex justify-between font-medium border-t border-border pt-2 mt-2 text-foreground">
                       <span>Total Amount:</span>
-                      <span>${(parseFloat(form.watch('paymentAmount') || 0) + 2.50).toFixed(2)}</span>
+                      <span>${(parseFloat(String(form.watch('paymentAmount') || '0')) + 2.50).toFixed(2)}</span>
                     </div>
                   )}
                   {form.watch('paymentType') === 'fixed' && (
                     <div className="flex justify-between text-sm mt-2 text-muted-foreground">
                       <span>Worker Receives:</span>
-                      <span>${parseFloat(form.watch('paymentAmount') || 0).toFixed(2)}</span>
+                      <span>${parseFloat(String(form.watch('paymentAmount') || '0')).toFixed(2)}</span>
                     </div>
                   )}
                   {form.watch('paymentType') === 'hourly' && (
@@ -415,6 +474,15 @@ export default function PostJob() {
                   )}
                 />
                 
+                {/* Task Editor */}
+                <div className="border border-border rounded-lg p-4 mb-6">
+                  <h3 className="text-lg font-medium mb-4">Job Tasks</h3>
+                  <p className="text-sm text-muted-foreground mb-4">
+                    Add specific tasks that need to be completed. You can set required tasks and optional bonus tasks.
+                  </p>
+                  <TaskEditor tasks={tasks} setTasks={setTasks} />
+                </div>
+                
                 {/* Required Skills */}
                 <FormField
                   control={form.control}
@@ -444,11 +512,11 @@ export default function PostJob() {
                                       checked={field.value?.includes(skill)}
                                       onCheckedChange={(checked) => {
                                         return checked
-                                          ? field.onChange([...field.value, skill])
+                                          ? field.onChange([...(field.value || []), skill])
                                           : field.onChange(
-                                              field.value?.filter(
+                                              field.value?.filter?.(
                                                 (value) => value !== skill
-                                              )
+                                              ) || []
                                             )
                                       }}
                                     />

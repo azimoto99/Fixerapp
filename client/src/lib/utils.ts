@@ -5,105 +5,67 @@ export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
 }
 
-export function formatCurrency(amount: number): string {
+/**
+ * Format a Date object to a readable time string
+ * @param date - The Date object to format
+ * @param forInput - If true, return in format for time input (HH:MM), otherwise return readable format
+ * @returns Formatted time string
+ */
+export function formatTime(date: Date, forInput: boolean = false): string {
+  if (!date) return '';
+  
+  try {
+    if (forInput) {
+      return date.toTimeString().slice(0, 5); // HH:MM format for inputs
+    }
+    
+    return new Intl.DateTimeFormat('en-US', {
+      hour: 'numeric',
+      minute: 'numeric',
+      hour12: true
+    }).format(date);
+  } catch (error) {
+    console.error("Error formatting time:", error);
+    return '';
+  }
+}
+
+/**
+ * Format a price to USD
+ * @param price - The price to format
+ * @returns Formatted price string
+ */
+export function formatPrice(price: number): string {
   return new Intl.NumberFormat('en-US', {
     style: 'currency',
     currency: 'USD',
-    minimumFractionDigits: 0,
-    maximumFractionDigits: 0,
-  }).format(amount);
+  }).format(price);
 }
 
-export function formatDistance(miles: number): string {
-  return `${miles.toFixed(1)} miles away`;
-}
-
-export function getTimeAgo(date: Date | string): string {
-  const now = new Date();
-  const past = new Date(date);
-  const diffMs = now.getTime() - past.getTime();
-  const diffMin = Math.round(diffMs / 60000);
-  const diffHours = Math.round(diffMs / 3600000);
-  const diffDays = Math.round(diffMs / 86400000);
+/**
+ * Calculate distance between two points in miles
+ * @param lat1 - Latitude of first point
+ * @param lon1 - Longitude of first point
+ * @param lat2 - Latitude of second point
+ * @param lon2 - Longitude of second point
+ * @returns Distance in miles
+ */
+export function calculateDistance(
+  lat1: number, 
+  lon1: number, 
+  lat2: number, 
+  lon2: number
+): number {
+  // Haversine formula
+  const R = 3958.8; // Radius of the Earth in miles
+  const dLat = (lat2 - lat1) * Math.PI / 180;
+  const dLon = (lon2 - lon1) * Math.PI / 180;
+  const a = 
+    Math.sin(dLat/2) * Math.sin(dLat/2) +
+    Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * 
+    Math.sin(dLon/2) * Math.sin(dLon/2);
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+  const distance = R * c; // Distance in miles
   
-  if (diffMin < 60) {
-    return `${diffMin}m ago`;
-  } else if (diffHours < 24) {
-    return `${diffHours}h ago`;
-  } else if (diffDays < 30) {
-    return `${diffDays}d ago`;
-  } else {
-    return past.toLocaleDateString();
-  }
-}
-
-export function getCategoryIcon(category: string): string {
-  switch(category) {
-    case 'Home Maintenance':
-      return 'home-gear-line';
-    case 'Cleaning':
-      return 'brush-line';
-    case 'Delivery':
-      return 'truck-line';
-    case 'Event Help':
-      return 'calendar-event-line';
-    case 'Moving':
-      return 'home-8-line';
-    case 'Tech Support':
-      return 'computer-line';
-    case 'Shopping':
-      return 'shopping-basket-line';
-    case 'Pet Care':
-      return 'footprint-line';
-    case 'Tutoring':
-      return 'book-open-line';
-    default:
-      return 'briefcase-line';
-  }
-}
-
-export function getCategoryColor(category: string): string {
-  switch(category) {
-    case 'Home Maintenance':
-      return 'primary';
-    case 'Cleaning':
-      return 'cyan';
-    case 'Delivery':
-      return 'secondary';
-    case 'Event Help':
-      return 'purple';
-    case 'Moving':
-      return 'indigo';
-    case 'Tech Support':
-      return 'amber';
-    case 'Shopping':
-      return 'rose';
-    case 'Pet Care':
-      return 'green';
-    case 'Tutoring':
-      return 'blue';
-    default:
-      return 'gray';
-  }
-}
-
-export function formatDateTime(date: Date | string): string {
-  return new Date(date).toLocaleString('en-US', {
-    weekday: 'long',
-    month: 'long',
-    day: 'numeric',
-    hour: 'numeric',
-    minute: '2-digit',
-    hour12: true
-  });
-}
-
-export function formatDate(date: Date | string | null): string {
-  if (!date) return 'N/A';
-  
-  return new Date(date).toLocaleDateString('en-US', {
-    year: 'numeric',
-    month: 'short',
-    day: 'numeric'
-  });
+  return Math.round(distance * 10) / 10; // Round to 1 decimal place
 }

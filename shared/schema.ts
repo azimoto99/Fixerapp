@@ -95,6 +95,12 @@ export const tasks = pgTable("tasks", {
   completedAt: timestamp("completed_at"),
   completedBy: integer("completed_by"), // References users.id (worker who completed the task)
   position: integer("position").notNull(), // Order position in the task list
+  isOptional: boolean("is_optional").notNull().default(false), // Whether the task is optional (bonus)
+  dueTime: timestamp("due_time"), // When the task is due
+  location: text("location"), // Specific location for this task, if different from the job location
+  latitude: doublePrecision("latitude"), // Task-specific latitude
+  longitude: doublePrecision("longitude"), // Task-specific longitude
+  bonusAmount: doublePrecision("bonus_amount"), // Additional payment for optional tasks
 });
 
 // Earnings table to track worker earnings
