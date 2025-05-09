@@ -37,15 +37,22 @@ export function useWebSocket() {
       // Get user ID from auth context via localStorage
       let userId: string | null = null;
       try {
-        const auth = JSON.parse(localStorage.getItem('auth') || '{}');
-        userId = auth.user?.id?.toString();
+        // Try multiple sources for the user ID to ensure we can connect
+        // 1. Try direct userId from localStorage (set by our updated queryClient)
+        userId = localStorage.getItem('userId');
         
+        // 2. Try from auth object in localStorage
         if (!userId) {
-          // Try direct userId from localStorage as fallback
-          userId = localStorage.getItem('userId');
+          const auth = JSON.parse(localStorage.getItem('auth') || '{}');
+          userId = auth.user?.id?.toString();
+        }
+        
+        // Log the retrieved user ID
+        if (userId) {
+          console.log(`WebSocket using user ID: ${userId}`);
         }
       } catch (e) {
-        console.error('Error parsing auth from localStorage:', e);
+        console.error('Error retrieving user ID for WebSocket connection:', e);
       }
       
       // Only connect if we have a user ID
@@ -100,16 +107,51 @@ export function useWebSocket() {
         setStatus('disconnected');
       };
       
-      socket.onclose = () => {
-        console.log('WebSocket connection closed');
+      socket.onclose = (event) => {
+        console.log(`WebSocket connection closed with code ${event.code}`);
         setStatus('disconnected');
         
-        // Reconnect after a delay
-        setTimeout(() => {
-          if (document.visibilityState === 'visible') {
-            connect();
-          }
-        }, 3000);
+        // Check if the connection was closed because of an authentication issue
+        if (event.code === 1008) {
+          console.error('WebSocket connection closed due to authentication issue');
+          setStatus('unauthorized');
+          
+          // Try to get a fresh user ID before reconnecting
+          fetch('/api/user', { credentials: 'include' })
+            .then(response => {
+              if (response.ok) {
+                return response.json();
+              }
+              throw new Error('Failed to refresh user authentication');
+            })
+            .then(userData => {
+              if (userData && userData.id) {
+                localStorage.setItem('userId', userData.id.toString());
+                console.log('Refreshed user ID for WebSocket:', userData.id);
+                
+                // Reconnect after successful auth refresh
+                setTimeout(() => {
+                  if (document.visibilityState === 'visible') {
+                    connect();
+                  }
+                }, 1000);
+              }
+            })
+            .catch(err => {
+              console.error('Failed to refresh authentication:', err);
+            });
+        } else {
+          // Normal reconnection for non-auth related disconnects
+          // Use exponential backoff starting with 3 seconds
+          const delay = Math.min(3000 * (reconnectTimerRef.current ? 2 : 1), 30000);
+          console.log(`Will attempt to reconnect in ${delay/1000} seconds`);
+          
+          reconnectTimerRef.current = setTimeout(() => {
+            if (document.visibilityState === 'visible') {
+              connect();
+            }
+          }, delay);
+        }
       };
       
       socketRef.current = socket;

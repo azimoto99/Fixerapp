@@ -12,21 +12,46 @@ export function RealTimeNotificationProvider({ children }: { children: ReactNode
   const { user } = useAuth();
   const [userId, setUserId] = useState<number | null>(null);
   
-  // Only create a WebSocket connection if we have a user
+  // Handle user authentication for WebSocket connections
   useEffect(() => {
+    // Check for userId in multiple places to ensure we have the most up-to-date value
     if (user?.id) {
-      // Store the user ID in localStorage for the WebSocket connection
-      localStorage.setItem('userId', user.id.toString());
+      // User from auth context is the primary source
       setUserId(user.id);
+      
+      // Also store in localStorage for WebSocket connection persistence
+      localStorage.setItem('userId', user.id.toString());
+      
+      console.log('RealTimeNotificationProvider: User authenticated with ID:', user.id);
     } else {
-      localStorage.removeItem('userId');
-      setUserId(null);
+      // Try to get userId from localStorage as fallback
+      const storedUserId = localStorage.getItem('userId');
+      
+      if (storedUserId && !isNaN(parseInt(storedUserId))) {
+        // If we have a valid userId in localStorage, use it
+        const parsedId = parseInt(storedUserId);
+        setUserId(parsedId);
+        console.log('RealTimeNotificationProvider: Using stored user ID:', parsedId);
+      } else {
+        // No valid user ID found
+        setUserId(null);
+        
+        // Clean up localStorage to avoid using stale data
+        localStorage.removeItem('userId');
+        console.log('RealTimeNotificationProvider: No valid user ID found');
+      }
     }
   }, [user]);
   
-  // Only use the WebSocket when we have a user ID
+  // WebSocket component that handles real-time notifications
   const WebSocketComponent = () => {
-    const { lastMessage } = useWebSocket();
+    // Use the WebSocket hook which will connect using the userId in localStorage
+    const { lastMessage, status } = useWebSocket();
+    
+    // Log WebSocket status changes
+    useEffect(() => {
+      console.log('WebSocket status:', status);
+    }, [status]);
     
     // Handle incoming WebSocket notifications by invalidating relevant queries
     useEffect(() => {
