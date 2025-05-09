@@ -144,7 +144,7 @@ const WorkerDashboard = () => {
             <div className="text-center py-8">
               <p className="text-muted-foreground mb-4">You haven't posted any jobs yet.</p>
               <Button className="bg-primary text-white hover:bg-primary/90" asChild>
-                <a href="/post-job">Post Your First Job</a>
+                <a href="/jobs/post">Post Your First Job</a>
               </Button>
             </div>
           )}
@@ -221,7 +221,7 @@ const PosterDashboard = () => {
       <div className="flex items-center justify-between mb-6">
         <h1 className="text-2xl font-bold text-foreground">Job Poster Dashboard</h1>
         <Button asChild>
-          <a href="/post-job">Post a New Job</a>
+          <a href="/jobs/post">Post a New Job</a>
         </Button>
       </div>
 
@@ -300,7 +300,7 @@ const PosterDashboard = () => {
           <div className="text-center py-8">
             <p className="text-muted-foreground">You haven't posted any jobs yet.</p>
             <Button className="mt-4" asChild>
-              <a href="/post-job">Post Your First Job</a>
+              <a href="/jobs/post">Post Your First Job</a>
             </Button>
           </div>
         )}

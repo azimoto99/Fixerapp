@@ -56,6 +56,7 @@ function RouterWithAuth() {
     <Switch>
       <ProtectedRoute path="/" component={Home} />
       <ProtectedRoute path="/post-job" component={PostJob} />
+      <ProtectedRoute path="/jobs/post" component={PostJob} />
       <ProtectedRoute path="/job/:id" component={JobDetailPage} />
       <ProtectedRoute path="/earnings" component={EarningsPage} />
       <ProtectedRoute path="/transactions" component={TransactionHistory} />

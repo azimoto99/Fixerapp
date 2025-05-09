@@ -21,7 +21,7 @@ const NewJobButton: React.FC = () => {
   
   return (
     <div className="fixed right-6 bottom-24 md:bottom-12 z-[1000]">
-      <Link href="/post-job">
+      <Link href="/jobs/post">
         <Button 
           size="lg"
           onClick={handleClick}

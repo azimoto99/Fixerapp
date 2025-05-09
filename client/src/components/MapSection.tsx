@@ -528,7 +528,7 @@ const MapSection: React.FC<MapSectionProps> = ({ jobs, selectedJob, onSelectJob,
               <div className="flex items-center gap-3">
                 {/* Post Job button between heat text and compass */}
                 <a 
-                  href="/post-job"
+                  href="/jobs/post"
                   className="bg-emerald-600 hover:bg-emerald-700 text-white text-xs px-3 py-1.5 rounded-full shadow-lg flex items-center gap-1"
                   onClick={(e) => {
                     if (!user) {
