@@ -65,6 +65,7 @@ const SimpleUserDrawer = ({ isOpen, onClose }: SimpleUserDrawerProps) => {
   const [activeTab, setActiveTab] = useState<string>("profile");
   const [, navigate] = useLocation();
   const drawerRef = useRef<HTMLDivElement>(null);
+  const { showToast } = useSimpleToast();
 
   // Add click outside handler
   useEffect(() => {
@@ -90,6 +91,7 @@ const SimpleUserDrawer = ({ isOpen, onClose }: SimpleUserDrawerProps) => {
   }
 
   const handleLogout = () => {
+    showToast("Logging out...", "info", { position: 'bottom' });
     logoutMutation.mutate();
     onClose();
   };
@@ -182,7 +184,10 @@ const SimpleUserDrawer = ({ isOpen, onClose }: SimpleUserDrawerProps) => {
               {/* Main sections */}
               <div className="mb-2 px-2 py-1 w-full">
                 <button
-                  onClick={() => navigateTo('/')}
+                  onClick={() => {
+                    navigateTo('/');
+                    showToast("Returning to home screen", "success");
+                  }}
                   className="flex flex-col items-center justify-center w-full h-14 rounded-lg hover:bg-emerald-600/5 text-gray-600"
                   title="Home"
                 >
@@ -195,7 +200,10 @@ const SimpleUserDrawer = ({ isOpen, onClose }: SimpleUserDrawerProps) => {
 
               {/* User sections */}
               <button 
-                onClick={() => setActiveTab("profile")}
+                onClick={() => {
+                  setActiveTab("profile");
+                  showToast("Viewing profile information", "info");
+                }}
                 className={cn(
                   "flex flex-col items-center justify-center w-14 h-14 rounded-lg",
                   activeTab === "profile" 
@@ -210,7 +218,10 @@ const SimpleUserDrawer = ({ isOpen, onClose }: SimpleUserDrawerProps) => {
               
               {/* Reviews */}
               <button 
-                onClick={() => setActiveTab("reviews")}
+                onClick={() => {
+                  setActiveTab("reviews");
+                  showToast("Viewing your reviews", "info");
+                }}
                 className={cn(
                   "flex flex-col items-center justify-center w-14 h-14 rounded-lg",
                   activeTab === "reviews" 
@@ -227,7 +238,10 @@ const SimpleUserDrawer = ({ isOpen, onClose }: SimpleUserDrawerProps) => {
 
               {/* Financial sections */}
               <button 
-                onClick={() => setActiveTab("payments")}
+                onClick={() => {
+                  setActiveTab("payments");
+                  showToast("Viewing payment information", "info");
+                }}
                 className={cn(
                   "flex flex-col items-center justify-center w-14 h-14 rounded-lg",
                   activeTab === "payments" 
@@ -242,7 +256,10 @@ const SimpleUserDrawer = ({ isOpen, onClose }: SimpleUserDrawerProps) => {
               
               {user.accountType === 'worker' && (
                 <button 
-                  onClick={() => setActiveTab("earnings")}
+                  onClick={() => {
+                    setActiveTab("earnings");
+                    showToast("Viewing your earnings", "success");
+                  }}
                   className={cn(
                     "flex flex-col items-center justify-center w-14 h-14 rounded-lg",
                     activeTab === "earnings" 
@@ -258,7 +275,10 @@ const SimpleUserDrawer = ({ isOpen, onClose }: SimpleUserDrawerProps) => {
               
               {user.accountType === 'poster' && (
                 <button 
-                  onClick={() => navigateTo('/payment-dashboard')}
+                  onClick={() => {
+                    navigateTo('/payment-dashboard');
+                    showToast("Opening payment dashboard", "info");
+                  }}
                   className="flex flex-col items-center justify-center w-14 h-14 rounded-lg hover:bg-emerald-600/5 text-gray-600"
                   title="Dashboard"
                 >
@@ -271,7 +291,10 @@ const SimpleUserDrawer = ({ isOpen, onClose }: SimpleUserDrawerProps) => {
 
               {/* Settings */}  
               <button 
-                onClick={() => setActiveTab("settings")}
+                onClick={() => {
+                  setActiveTab("settings");
+                  showToast("Viewing settings", "info");
+                }}
                 className={cn(
                   "flex flex-col items-center justify-center w-14 h-14 rounded-lg",
                   activeTab === "settings" 
