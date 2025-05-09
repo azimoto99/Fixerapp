@@ -128,24 +128,18 @@ const UserDrawerV2: React.FC<UserDrawerProps> = ({
 
   return (
     <>
-      {/* Trigger button */}
-      <div 
-        className="cursor-pointer user-drawer-trigger"
-        onClick={() => {
-          setIsOpen(true);
-          console.log('UserDrawerV2 trigger clicked, setting isOpen to true');
-        }}
-      >
-        {children || (
-          <div className="bg-primary text-white shadow-lg rounded-full w-10 h-10 flex items-center justify-center transform transition-all hover:scale-105 active:scale-95">
-            {isOpen ? (
-              <X className="h-5 w-5" />
-            ) : (
-              <User className="h-5 w-5" />
-            )}
-          </div>
-        )}
-      </div>
+      {/* Children are now optional (only for backward compatibility) */}
+      {children && (
+        <div 
+          className="cursor-pointer user-drawer-trigger"
+          onClick={() => {
+            setIsOpen(true);
+            console.log('UserDrawerV2 trigger clicked, setting isOpen to true');
+          }}
+        >
+          {children}
+        </div>
+      )}
 
       {/* Drawer overlay and container */}
       {isOpen && (
