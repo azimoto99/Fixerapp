@@ -28,6 +28,8 @@ export const users = pgTable("users", {
   stripeCustomerId: text("stripe_customer_id"), // Stripe Customer ID for payments
   stripeConnectAccountId: text("stripe_connect_account_id"), // Stripe Connect account for receiving payments
   stripeConnectAccountStatus: text("stripe_connect_account_status"), // Status of Connect account
+  stripeTransfersEnabled: boolean("stripe_transfers_enabled").default(false), // Whether the account can receive transfers
+  stripeAccountUpdatedAt: timestamp("stripe_account_updated_at"), // When the Stripe account was last updated
   // Terms acceptance fields
   stripeTermsAccepted: boolean("stripe_terms_accepted").default(false), // Whether user has accepted Stripe's TOS
   stripeTermsAcceptedAt: timestamp("stripe_terms_accepted_at"), // When the user accepted Stripe's TOS
@@ -247,6 +249,7 @@ export type User = typeof users.$inferSelect & {
   requiresStripeTerms?: boolean; // Virtual field to check if user needs to accept Stripe TOS
   requiresStripeRepresentative?: boolean; // Virtual field to check if user needs to provide representative info
   requiresStripeBankingDetails?: boolean; // Virtual field to check if user needs to provide banking details
+  canReceivePayouts?: boolean; // Virtual field to check if user's Stripe Connect account can receive payouts
 };
 export type InsertUser = z.infer<typeof insertUserSchema> & {
   requiresProfileCompletion?: boolean | null; // Virtual field, not in DB

@@ -306,6 +306,12 @@ export class DatabaseStorage implements IStorage {
       user.accountType === 'worker' && 
       !user.stripeBankingDetailsComplete;
     
+    // Check if user can receive payouts via Stripe Connect
+    const canReceivePayouts = 
+      user.accountType === 'worker' && 
+      user.stripeConnectAccountId !== null && 
+      user.stripeTransfersEnabled === true;
+    
     const enhanced: User = {
       ...user,
       requiresProfileCompletion,
@@ -313,7 +319,8 @@ export class DatabaseStorage implements IStorage {
       skillsVerified: {},
       requiresStripeTerms,
       requiresStripeRepresentative,
-      requiresStripeBankingDetails
+      requiresStripeBankingDetails,
+      canReceivePayouts
     };
     
     return enhanced;

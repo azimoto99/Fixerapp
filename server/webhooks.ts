@@ -297,13 +297,11 @@ async function handleTransferCreated(transfer: Stripe.Transfer) {
       undefined // Keep datePaid as is
     );
     
-    // Add the transferId to the earning's metadata
-    // This may require a separate method in storage
-    await storage.updateUser(earning.workerId, {
-      // This is just a placeholder, you'll need to implement the actual update
-      // in your storage implementation
-      metadata: { ...earning.metadata, transferId: transfer.id }
-    });
+    // Update the earning with the transfer ID
+    await storage.updateEarningTransferId(earning.id, transfer.id);
+    
+    // Log the successful update
+    console.log(`Updated earning #${earning.id} with transfer ID: ${transfer.id}`);
     
     // Create a notification for the worker
     await storage.createNotification({
