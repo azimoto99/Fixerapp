@@ -121,7 +121,18 @@ export function setupAuth(app: Express) {
     }, async (req, username, password, done) => {
       try {
         // Only worker accounts exist now, so just get the user by username
-        const user = await storage.getUserByUsername(username);
+        let user = await storage.getUserByUsername(username);
+        
+        // If exact match failed, try case-insensitive match
+        if (!user) {
+          // Make login case-insensitive by converting username to lowercase
+          const lowerUsername = username.toLowerCase();
+          
+          // Get all users and find one with matching lowercase username
+          const allUsers = await storage.getAllUsers();
+          user = allUsers.find(u => u.username.toLowerCase() === lowerUsername);
+        }
+        
         if (!user) {
           return done(null, false, { message: "No account found with this username" });
         }
