@@ -3,6 +3,7 @@ import { useLocation } from 'wouter';
 import { useAuth } from '@/hooks/use-auth';
 import Login from './Login';
 import Register from './Register';
+import DirectConnect from '@/components/DirectConnect';
 
 // Define wrapper components to add onModeChange prop
 const LoginWithMode = (props: any) => {
