@@ -144,6 +144,9 @@ async function isStripeAuthenticated(req: Request, res: Response, next: Function
   return res.status(401).json({ message: "Unauthorized - Please login again" });
 }
 
+// Import payout routes
+import payoutRouter from './payout-routes';
+
 export async function registerRoutes(app: Express): Promise<Server> {
   // Set up authentication
   setupAuth(app);
