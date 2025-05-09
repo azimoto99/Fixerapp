@@ -541,17 +541,6 @@ const MapSection: React.FC<MapSectionProps> = ({ jobs, selectedJob, onSelectJob,
                       </svg>
                     </button>
                     
-                    {/* Post Job Quick Action button */}
-                    <button
-                      onClick={() => {
-                        window.location.href = "/jobs/post";
-                      }}
-                      className="absolute -left-12 top-1 bg-emerald-600 text-white rounded-full w-8 h-8 flex items-center justify-center shadow-md transform transition-all hover:scale-105 active:scale-95"
-                      title="Post a Job"
-                    >
-                      <Plus className="h-4 w-4" />
-                    </button>
-                    
                     <SimpleUserDrawer2 
                       isOpen={isUserDrawerOpen}
                       onClose={() => setIsUserDrawerOpen(false)}
