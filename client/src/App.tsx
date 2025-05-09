@@ -25,6 +25,7 @@ import WelcomeMessage from "@/components/WelcomeMessage";
 import { ThemeProvider } from "@/components/theme";
 import { OnboardingProvider } from "@/components/onboarding/OnboardingProvider";
 import ContextualTips from "@/components/onboarding/ContextualTips";
+import { SimpleToastProvider } from "@/hooks/use-simple-toast";
 import { useEffect } from "react";
 
 // Redirect component for old routes
@@ -100,13 +101,15 @@ function App() {
     <QueryClientProvider client={queryClient}>
       <ThemeProvider defaultTheme="system" storageKey="fixer-theme">
         <TooltipProvider>
-          <AuthProvider>
-            <NotificationProvider>
-              <OnboardingProvider>
-                <AuthenticatedContent />
-              </OnboardingProvider>
-            </NotificationProvider>
-          </AuthProvider>
+          <SimpleToastProvider>
+            <AuthProvider>
+              <NotificationProvider>
+                <OnboardingProvider>
+                  <AuthenticatedContent />
+                </OnboardingProvider>
+              </NotificationProvider>
+            </AuthProvider>
+          </SimpleToastProvider>
         </TooltipProvider>
       </ThemeProvider>
     </QueryClientProvider>

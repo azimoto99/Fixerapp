@@ -332,7 +332,15 @@ const MapSection: React.FC<MapSectionProps> = ({ jobs, selectedJob, onSelectJob,
             height: 100%;
             width: 100%;
             touch-action: manipulation;
-            z-index: 1;
+            z-index: 1 !important;
+          }
+          
+          /* Force all leaflet controls to lower z-index */
+          .leaflet-control,
+          .leaflet-top,
+          .leaflet-bottom,
+          .leaflet-pane {
+            z-index: 400 !important;
           }
           .custom-job-marker {
             background: none;
