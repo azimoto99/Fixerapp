@@ -26,6 +26,7 @@ interface UserDrawerProps {
   children?: React.ReactNode;
   onDrawerStateChange?: (isOpen: boolean) => void;
   externalCloseState?: boolean;
+  isOpen?: boolean;
 }
 
 /**
@@ -34,11 +35,12 @@ interface UserDrawerProps {
 const UserDrawerV2: React.FC<UserDrawerProps> = ({ 
   children, 
   onDrawerStateChange,
-  externalCloseState 
+  externalCloseState,
+  isOpen: externalIsOpen 
 }) => {
   const { user, logoutMutation } = useAuth();
   const [activeTab, setActiveTab] = useState<string>("profile");
-  const [isOpen, setIsOpen] = useState(false);
+  const [isOpen, setIsOpen] = useState(externalIsOpen || false);
   const [, navigate] = useLocation();
   
   // Listen for external close requests
@@ -47,6 +49,13 @@ const UserDrawerV2: React.FC<UserDrawerProps> = ({
       setIsOpen(false);
     }
   }, [externalCloseState, isOpen]);
+  
+  // Listen for external isOpen changes
+  useEffect(() => {
+    if (externalIsOpen !== undefined) {
+      setIsOpen(externalIsOpen);
+    }
+  }, [externalIsOpen]);
   
   // Notify parent when drawer state changes
   useEffect(() => {
@@ -87,6 +96,11 @@ const UserDrawerV2: React.FC<UserDrawerProps> = ({
 
   const closeDrawer = () => {
     setIsOpen(false);
+  };
+  
+  const openDrawer = () => {
+    setIsOpen(true);
+    console.log('Opening drawer - UserDrawerV2');
   };
 
   // Navigate to a route and close the drawer

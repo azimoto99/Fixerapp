@@ -142,6 +142,7 @@ const MapSection: React.FC<MapSectionProps> = ({ jobs, selectedJob, onSelectJob,
     
     // Close user drawer if open
     if (isUserDrawerOpen) {
+      setIsUserDrawerOpen(false);
       setForceCloseDrawer(true);
       // Reset the force close state after a short delay
       setTimeout(() => {
@@ -585,6 +586,7 @@ const MapSection: React.FC<MapSectionProps> = ({ jobs, selectedJob, onSelectJob,
                   <UserDrawerV2 
                     onDrawerStateChange={setIsUserDrawerOpen}
                     externalCloseState={forceCloseDrawer}
+                    isOpen={isUserDrawerOpen}
                   >
                     <div className="bg-primary text-white shadow-md rounded-full w-10 h-10 flex items-center justify-center transform transition-all hover:scale-105 active:scale-95 p-0 relative">
                       <div className="absolute -top-1 -right-1 w-3 h-3 bg-red-500 rounded-full animate-pulse-marker"></div>
