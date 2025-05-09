@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { useToast } from '@/hooks/use-toast';
 
-export type WebSocketStatus = 'connecting' | 'connected' | 'disconnected';
+export type WebSocketStatus = 'connecting' | 'connected' | 'disconnected' | 'unauthorized';
 
 /**
  * Hook for connecting to the notification service WebSocket
@@ -13,11 +13,18 @@ export function useWebSocket() {
   const [lastMessage, setLastMessage] = useState<any | null>(null);
   const socketRef = useRef<WebSocket | null>(null);
   const { toast } = useToast();
+  const reconnectTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   
   // Connect to the WebSocket server
   const connect = useCallback(() => {
     if (socketRef.current?.readyState === WebSocket.OPEN) {
       return; // Already connected
+    }
+    
+    // If we have a pending reconnect timer, clear it
+    if (reconnectTimerRef.current) {
+      clearTimeout(reconnectTimerRef.current);
+      reconnectTimerRef.current = null;
     }
     
     setStatus('connecting');
@@ -26,8 +33,30 @@ export function useWebSocket() {
       // Determine the WebSocket URL based on current protocol
       const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
       const host = window.location.host;
-      const userId = localStorage.getItem('userId');
-      const wsUrl = `${protocol}//${host}/ws/notifications${userId ? `?userId=${userId}` : ''}`;
+      
+      // Get user ID from auth context via localStorage
+      let userId: string | null = null;
+      try {
+        const auth = JSON.parse(localStorage.getItem('auth') || '{}');
+        userId = auth.user?.id?.toString();
+        
+        if (!userId) {
+          // Try direct userId from localStorage as fallback
+          userId = localStorage.getItem('userId');
+        }
+      } catch (e) {
+        console.error('Error parsing auth from localStorage:', e);
+      }
+      
+      // Only connect if we have a user ID
+      if (!userId) {
+        console.log('Not connecting WebSocket - no user ID available');
+        setStatus('unauthorized');
+        return; // Exit without throwing an error
+      }
+      
+      const wsUrl = `${protocol}//${host}/ws/notifications?userId=${userId}`;
+      console.log(`Connecting to WebSocket at ${wsUrl}`);
       
       const socket = new WebSocket(wsUrl);
       

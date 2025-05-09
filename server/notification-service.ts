@@ -34,14 +34,40 @@ export class NotificationService {
       console.log('Client connected to notification service');
       
       // Extract user ID from URL query parameters
-      const urlParams = new URLSearchParams(request.url?.split('?')[1] || '');
-      const userId = parseInt(urlParams.get('userId') || '0');
-      
-      if (!userId) {
-        console.log('Connection rejected: No user ID provided');
-        socket.close(1008, 'User ID required');
+      try {
+        const urlParams = new URLSearchParams(request.url?.split('?')[1] || '');
+        const userIdStr = urlParams.get('userId');
+        
+        if (!userIdStr) {
+          console.log('Connection rejected: No user ID provided');
+          socket.send(JSON.stringify({ 
+            type: 'error', 
+            message: 'User ID required for WebSocket connection' 
+          }));
+          socket.close(1008, 'User ID required');
+          return;
+        }
+        
+        const userId = parseInt(userIdStr);
+        
+        if (isNaN(userId) || userId <= 0) {
+          console.log('Connection rejected: Invalid user ID format', userIdStr);
+          socket.send(JSON.stringify({ 
+            type: 'error', 
+            message: 'Invalid user ID format' 
+          }));
+          socket.close(1008, 'Invalid user ID');
+          return;
+        }
+      } catch (error) {
+        console.error('Error processing WebSocket connection parameters:', error);
+        socket.close(1011, 'Server error processing connection');
         return;
       }
+      
+      // Extract user ID from URL query parameters (again, now that we've validated it exists)
+      const urlParams = new URLSearchParams(request.url?.split('?')[1] || '');
+      const userId = parseInt(urlParams.get('userId') || '0');
       
       // Generate a unique client ID
       const clientId = `${userId}-${Date.now()}-${Math.random().toString(36).substring(2, 15)}`;

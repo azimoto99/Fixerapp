@@ -94,6 +94,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         // Normal login flow - no need to check account type as all users are workers
         queryClient.setQueryData(["/api/user"], userData);
         
+        // Store user ID in localStorage for WebSocket connections
+        localStorage.setItem('userId', userData.id.toString());
+        
+        // Store auth data in localStorage 
+        localStorage.setItem('auth', JSON.stringify({
+          isAuthenticated: true,
+          user: userData
+        }));
+        
         // Verify the session is established by making a call to /api/user
         fetch('/api/user', { credentials: 'include' })
           .then(res => {
@@ -169,6 +178,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         // Normal registration flow - no need to check account type as all users are workers
         queryClient.setQueryData(["/api/user"], userData);
         
+        // Store user ID in localStorage for WebSocket connections
+        localStorage.setItem('userId', userData.id.toString());
+        
+        // Store auth data in localStorage 
+        localStorage.setItem('auth', JSON.stringify({
+          isAuthenticated: true,
+          user: userData
+        }));
+        
         // Verify the session is established by making a call to /api/user
         fetch('/api/user', { credentials: 'include' })
           .then(res => {
@@ -225,7 +243,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       await apiRequest("POST", "/api/logout");
     },
     onSuccess: () => {
+      // Clear all auth-related cache
       queryClient.setQueryData(["/api/user"], null);
+      
+      // Clear auth data from localStorage
+      localStorage.removeItem('userId');
+      localStorage.removeItem('auth');
+      
       toast({
         title: "Logged out",
         description: "You have been logged out successfully",
