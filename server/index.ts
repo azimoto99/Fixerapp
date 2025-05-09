@@ -91,5 +91,6 @@ app.use((req, res, next) => {
     reusePort: true,
   }, () => {
     log(`Server running on ${host}:${port}`);
+    log(`Health check endpoints available at / and /health`);
   });
 })();

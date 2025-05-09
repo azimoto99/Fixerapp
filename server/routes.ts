@@ -3404,6 +3404,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Mount the API router under /api prefix
   app.use("/api", apiRouter);
 
+  // Health check endpoint for deployment autoscaling
+  app.get("/health", (_req, res) => {
+    // Simple health check that returns 200 OK
+    res.status(200).json({ status: "ok", timestamp: new Date().toISOString() });
+  });
+
   const httpServer = createServer(app);
   
   // Initialize the notification service with real-time WebSocket support

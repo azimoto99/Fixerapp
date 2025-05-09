@@ -1,0 +1,2 @@
+ENDPOINT=/health
+TIMEOUT=10
