@@ -88,6 +88,26 @@ export function setupAuth(app: Express) {
   // Add session middleware
   app.use(session(sessionSettings));
   
+  // Use a session checker middleware
+  app.use((req, res, next) => {
+    if (!req.session) {
+      console.error('Session not available!', { sessionID: req.sessionID });
+      
+      // Create a new session if needed
+      if (!req.sessionID) {
+        console.log('Creating new session since none exists');
+      }
+    }
+    
+    // Ensure cookie is properly set
+    if (req.session && req.session.cookie) {
+      // Ensure cookie maxAge is set to 30 days
+      req.session.cookie.maxAge = 30 * 24 * 60 * 60 * 1000;
+    }
+    
+    next();
+  });
+  
   // Initialize Passport and restore authentication state from session
   app.use(passport.initialize());
   app.use(passport.session());
@@ -197,6 +217,14 @@ export function setupAuth(app: Express) {
       
       console.log('Session regenerated with new ID:', req.sessionID);
       
+      // Add connect.sid cookie explicitly to help browsers
+      res.cookie('connect.sid', req.sessionID, {
+        path: '/', 
+        httpOnly: true,
+        maxAge: 30 * 24 * 60 * 60 * 1000, // 30 days
+        sameSite: 'lax'
+      });
+      
       passport.authenticate("local", (err: Error | null, userObj: Express.User | false, info: { message: string } | undefined) => {
         if (err) {
           console.error('Login authentication error:', err);
@@ -240,10 +268,21 @@ export function setupAuth(app: Express) {
           req.session.loggingIn = true;
           req.session.userId = user.id; // Store user ID directly in session as a backup
           
+          // If session.passport doesn't exist yet, create it
+          if (!req.session.passport) {
+            req.session.passport = { user: user.id };
+          }
+          
           req.login(user, (err) => {
             if (err) {
               console.error('Login session error:', err);
               return next(err);
+            }
+            
+            // Double check that passport data was properly set
+            if (!req.session.passport || !req.session.passport.user) {
+              console.warn('Passport data missing after login! Fixing...');
+              req.session.passport = { user: user.id };
             }
             
             // Store a timestamp for debugging session issues
@@ -254,7 +293,8 @@ export function setupAuth(app: Express) {
               req.session.cookie.maxAge = 30 * 24 * 60 * 60 * 1000; // 30 days
             }
             
-            // Save the session explicitly before sending response
+            // Force the session to be saved back to the store
+            // This is crucial to ensure the session data is persisted
             req.session.save((saveErr) => {
               if (saveErr) {
                 console.error('Session save error:', saveErr);
@@ -267,7 +307,7 @@ export function setupAuth(app: Express) {
                 new Date(Date.now() + req.session.cookie.maxAge).toISOString() : 'No expiration');
               console.log('isAuthenticated after login:', req.isAuthenticated());
               console.log('User in session:', req.user ? `ID: ${req.user.id}` : 'No user');
-              console.log('Session data:', req.session);
+              console.log('Passport data in session:', req.session.passport);
               
               // Enhanced session verification after login
               if (!req.isAuthenticated() || !req.user) {
@@ -280,6 +320,9 @@ export function setupAuth(app: Express) {
                     console.error('Login retry error:', retryErr);
                     return next(retryErr);
                   }
+                  
+                  // Make absolutely sure passport data is set
+                  req.session.passport = { user: user.id };
                   
                   // Save the session again after retry
                   req.session.save((retrySaveErr) => {
@@ -303,6 +346,10 @@ export function setupAuth(app: Express) {
               if (!req.session.passport || !req.session.passport.user) {
                 console.warn('WARNING: Session passport data not found after login!');
                 console.log('Session contents:', req.session);
+                // Repair the session
+                req.session.passport = { user: user.id };
+                // Save again
+                req.session.save();
               }
               
               // Don't return password in response
@@ -318,16 +365,44 @@ export function setupAuth(app: Express) {
   });
 
   app.post("/api/logout", (req, res, next) => {
+    console.log('Logout requested for user:', req.user?.id);
+    
+    // First, call req.logout to remove the req.user property and clear the login session
     req.logout((err) => {
-      if (err) return next(err);
-      res.status(200).json({ message: "Logged out successfully" });
+      if (err) {
+        console.error('Error during logout:', err);
+        return next(err);
+      }
+      
+      // Then regenerate the session to ensure complete cleanup
+      req.session.regenerate((regerr) => {
+        if (regerr) {
+          console.error('Error regenerating session during logout:', regerr);
+          // Continue anyway since the authentication is already cleared
+        }
+        
+        console.log('User logged out and session regenerated');
+        res.status(200).json({ message: "Logged out successfully" });
+      });
     });
   });
 
   app.get("/api/user", async (req, res) => {
     console.log('User info requested - session ID:', req.sessionID);
     console.log('isAuthenticated:', req.isAuthenticated());
-    console.log('Session data:', req.session);
+    console.log('Session data:', JSON.stringify(req.session, null, 2));
+    
+    // Check for session passport data
+    if (req.session.passport && req.session.passport.user) {
+      console.log('Session has passport user ID:', req.session.passport.user);
+    } else {
+      console.log('No passport data in session');
+      // Try to repair the session
+      if (req.session.userId && typeof req.session.userId === 'number') {
+        console.log('Attempting to restore session from userId:', req.session.userId);
+        req.session.passport = { user: req.session.userId };
+      }
+    }
     
     // Primary check: Use passport's isAuthenticated
     if (req.isAuthenticated() && req.user) {
@@ -338,8 +413,45 @@ export function setupAuth(app: Express) {
       return res.json(user);
     }
     
-    // Backup check: If passport auth fails but we have userId in session
-    if (req.session.userId) {
+    // Backup check: If passport auth fails but we have passport.user in session
+    if (req.session.passport && req.session.passport.user) {
+      console.log('Trying backup authentication via passport.user:', req.session.passport.user);
+      
+      try {
+        // Try to get the user from the database
+        const user = await storage.getUser(req.session.passport.user);
+        
+        if (user) {
+          console.log('User authenticated via backup passport.user:', user.id);
+          
+          // Restore passport session
+          req.login(user, (err) => {
+            if (err) {
+              console.error('Failed to restore passport session:', err);
+            } else {
+              console.log('Passport session restored from backup passport.user');
+            }
+            
+            // Don't return password in response
+            const { password, ...userResponse } = user;
+            
+            // Save the session to ensure changes are persisted
+            req.session.save((saveErr) => {
+              if (saveErr) {
+                console.error('Error saving session after restoring:', saveErr);
+              } else {
+                console.log('Session saved after restore');
+              }
+              
+              return res.json(userResponse);
+            });
+          });
+          return;
+        }
+      } catch (err) {
+        console.error('Error fetching user from backup passport.user:', err);
+      }
+    } else if (req.session.userId && typeof req.session.userId === 'number') {
       console.log('Trying backup authentication via session.userId:', req.session.userId);
       
       try {
@@ -357,9 +469,18 @@ export function setupAuth(app: Express) {
               console.log('Passport session restored from backup userId');
             }
             
-            // Don't return password in response
-            const { password, ...userResponse } = user;
-            return res.json(userResponse);
+            // Save the session explicitly to ensure it persists
+            req.session.save((saveErr) => {
+              if (saveErr) {
+                console.error('Error saving session after restoring from userId:', saveErr);
+              } else {
+                console.log('Session saved after restore from userId');
+              }
+              
+              // Don't return password in response
+              const { password, ...userResponse } = user;
+              return res.json(userResponse);
+            });
           });
           return;
         }
@@ -370,7 +491,18 @@ export function setupAuth(app: Express) {
     
     // If we get here, authentication failed by all methods
     console.log('User not authenticated by any method');
-    return res.status(401).json({ message: "Not authenticated" });
+    console.log('Authentication failed: isAuthenticated=' + req.isAuthenticated() + 
+                ', has session=' + (req.session ? true : false) + 
+                ', has user=' + (req.user ? true : false) + 
+                ', sessionID=' + req.sessionID);
+    console.log('Session data: ' + JSON.stringify({
+      id: req.sessionID,
+      cookie: req.session?.cookie,
+      passport: req.session?.passport ? 'set' : 'not set',
+      userId: req.session?.userId ? 'set' : 'not set',
+      loginTime: req.session?.loginTime ? 'set' : 'not set'
+    }, null, 2));
+    return res.status(401).json({ message: "Unauthorized - Please login again" });
   });
   
   // Removing this endpoint as it's been moved to routes.ts

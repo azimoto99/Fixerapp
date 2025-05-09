@@ -24,7 +24,9 @@ export class FixedDatabaseStorage implements IStorage {
       tableName: 'sessions', // Default is "session"
       createTableIfMissing: true, // Create the table if it doesn't exist
       pruneSessionInterval: 60 * 15, // Prune every 15 minutes
-      errorLog: console.error // Log errors for easier debugging
+      errorLog: console.error, // Log errors for easier debugging
+      // Add a TTL for the session that matches the cookie maxAge
+      ttl: 30 * 24 * 60 * 60 // 30 days in seconds
     });
     
     console.log("PostgreSQL session store initialized");
