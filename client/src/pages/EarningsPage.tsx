@@ -4,6 +4,8 @@ import { useAuth } from '@/hooks/use-auth';
 import { Earning, Job } from '@shared/schema';
 import Header from '@/components/Header';
 // Mobile Nav removed as requested
+import EarningsSummaryChart from '@/components/earnings/EarningsSummaryChart';
+import EarningsTransactionHistory from '@/components/earnings/EarningsTransactionHistory';
 import { 
   Card, 
   CardContent, 
@@ -208,6 +210,16 @@ export default function EarningsPage() {
               </p>
             </CardContent>
           </Card>
+        </div>
+        
+        {/* Earnings Chart */}
+        <div className="mb-8">
+          <EarningsSummaryChart earnings={filteredEarnings} isLoading={isLoading} />
+        </div>
+        
+        {/* Transaction History */}
+        <div className="mb-8">
+          <EarningsTransactionHistory earnings={filteredEarnings} isLoading={isLoading} />
         </div>
         
         {/* Earnings Tabs */}
