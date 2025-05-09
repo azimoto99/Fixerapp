@@ -1,9 +1,15 @@
-run = "npm start"
-entrypoint = "index.js"
+run = "./start.sh"
+entrypoint = "dist/index.js"
 
 [env]
 PORT = "8080"
 NODE_ENV = "production"
 
 [[deployment.buildCommand]]
-command = "npm run build"
+command = "./build-server-only.sh"
+
+[health]
+path = "/health"
+timeout = "10s"
+interval = "2s"
+retries = 3
