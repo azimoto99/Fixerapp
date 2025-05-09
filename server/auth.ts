@@ -79,7 +79,7 @@ export function setupAuth(app: Express) {
       httpOnly: true,
       path: '/',
     },
-    name: 'fixer.sid' // Custom name for the session cookie
+    name: 'fixer.sid', // Custom name for the session cookie
   };
 
   // Trust the first proxy to handle X-Forwarded-* headers correctly
