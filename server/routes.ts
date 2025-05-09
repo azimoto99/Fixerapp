@@ -159,6 +159,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
   
   // Set up Stripe routes
   setupStripeRoutes(apiRouter);
+  
+  // Mount payout routes for worker payments
+  apiRouter.use('/payments', payoutRouter);
 
   // Handle account type setting (always worker now)
   apiRouter.post("/set-account-type", async (req: Request, res: Response) => {

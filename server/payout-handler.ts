@@ -3,17 +3,34 @@
  * Processes payouts for worker earnings using Stripe Connect transfers
  */
 
-import Stripe from "stripe";
 import { storage } from "./storage";
-import { Earning } from "@shared/schema";
+import Stripe from "stripe";
+import dotenv from "dotenv";
 
+// Load environment variables
+dotenv.config();
+
+// Initialize Stripe
 if (!process.env.STRIPE_SECRET_KEY) {
-  throw new Error('Missing required environment variable: STRIPE_SECRET_KEY');
+  throw new Error('Missing required Stripe secret: STRIPE_SECRET_KEY');
 }
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY, {
-  apiVersion: "2023-10-16" as any,
+  apiVersion: "2023-10-16",
 });
+
+// Define Earning type based on database schema
+export type Earning = {
+  id: number;
+  workerId: number;
+  jobId: number;
+  amount: number;
+  status: string;
+  createdAt: Date;
+  updatedAt: Date;
+  transferId: string | null;
+  description: string | null;
+};
 
 /**
  * Process a payout for a worker earning
@@ -24,102 +41,136 @@ export async function processWorkerPayout(earningId: number): Promise<{
   success: boolean;
   message: string;
   transferId?: string;
+  amount?: number;
 }> {
   try {
     // 1. Get the earning record
-    const earning = await storage.getEarning(earningId);
+    const earning = await storage.getEarningById(earningId);
+    
     if (!earning) {
-      return { success: false, message: "Earning not found" };
+      return {
+        success: false,
+        message: `Earning record #${earningId} not found`
+      };
     }
     
-    // 2. Check if earning is already paid
-    if (earning.status === 'paid') {
-      return { success: false, message: "Earning already paid" };
+    // 2. Check if earning is already processed
+    if (earning.status === 'paid' || earning.transferId) {
+      return {
+        success: false,
+        message: `Earning #${earningId} has already been processed`,
+        transferId: earning.transferId || undefined,
+        amount: earning.amount
+      };
     }
     
-    // 3. Get the worker
+    // 3. Check if the earning status allows for payout
+    if (earning.status !== 'pending' && earning.status !== 'approved') {
+      return {
+        success: false,
+        message: `Earning #${earningId} has status '${earning.status}' which is not eligible for payout`
+      };
+    }
+    
+    // 4. Get the worker details
     const worker = await storage.getUser(earning.workerId);
+    
     if (!worker) {
-      return { success: false, message: "Worker not found" };
+      return {
+        success: false,
+        message: `Worker #${earning.workerId} not found`
+      };
     }
     
-    // 4. Check if worker has a Connect account
+    // 5. Check if worker has a Stripe Connect account
     if (!worker.stripeConnectAccountId) {
-      return { 
-        success: false, 
-        message: "Worker has no Stripe Connect account configured" 
+      return {
+        success: false,
+        message: `Worker #${earning.workerId} does not have a Stripe Connect account`
       };
     }
     
-    // 5. Get the job details
-    const job = await storage.getJob(earning.jobId);
-    if (!job) {
-      return { success: false, message: "Job not found" };
-    }
+    // 6. Get the job details for better reference
+    const job = await storage.getJobById(earning.jobId);
     
-    // 6. Create a transfer to the worker's Connect account
+    const jobTitle = job ? job.title : `Job #${earning.jobId}`;
+    const description = earning.description || `Payment for ${jobTitle}`;
+    
+    // 7. Check if the Connect account is in good standing with capability to receive transfers
     try {
-      const transfer = await stripe.transfers.create({
-        amount: Math.round(earning.netAmount * 100), // Convert to cents
-        currency: 'usd',
-        destination: worker.stripeConnectAccountId,
-        description: `Payment for job: ${job.title} (ID: ${job.id})`,
-        metadata: {
-          jobId: job.id.toString(),
-          workerId: worker.id.toString(),
-          earningId: earning.id.toString(),
-          platform: 'GigConnect'
-        }
-      });
+      const account = await stripe.accounts.retrieve(worker.stripeConnectAccountId);
       
-      // 7. Update earning status
-      await storage.updateEarningStatus(earning.id, 'paid', new Date());
-      
-      // 8. Create notification for worker
-      await storage.createNotification({
-        userId: worker.id,
-        title: 'Payment Received',
-        message: `You've received $${earning.netAmount.toFixed(2)} for job: ${job.title}`,
-        type: 'payment_received',
-        sourceId: job.id,
-        sourceType: 'job',
-        metadata: {
-          amount: earning.netAmount,
-          transferId: transfer.id
-        }
-      });
-      
-      return { 
-        success: true, 
-        message: "Transfer successful", 
-        transferId: transfer.id 
-      };
-    } catch (error: any) {
-      console.error("Transfer error:", error.message);
-      
-      // Special handling for common Stripe transfer errors
-      if (error.message.includes("capabilities")) {
-        return { 
-          success: false, 
-          message: "Worker account missing required capabilities (transfers). Worker must complete Stripe onboarding." 
-        };
-      } else if (error.message.includes("insufficient funds")) {
-        return { 
-          success: false, 
-          message: "Insufficient funds in platform account. In test mode, this error can be ignored." 
+      // Check if transfers capability is enabled
+      if (
+        !account.capabilities?.transfers ||
+        account.capabilities.transfers !== 'active'
+      ) {
+        return {
+          success: false,
+          message: `Worker Connect account cannot receive transfers. Current capabilities: ${JSON.stringify(account.capabilities)}`
         };
       }
       
-      return { 
-        success: false, 
-        message: `Transfer failed: ${error.message}` 
+      // 8. Create the transfer to the worker's Connect account
+      const amountInCents = Math.round(earning.amount * 100);
+      
+      const transfer = await stripe.transfers.create({
+        amount: amountInCents,
+        currency: 'usd',
+        destination: worker.stripeConnectAccountId,
+        description: description,
+        metadata: {
+          earningId: earning.id.toString(),
+          workerId: worker.id.toString(),
+          jobId: earning.jobId.toString(),
+          jobTitle: jobTitle
+        }
+      });
+      
+      // 9. Update the earning record with the transfer ID and status
+      await storage.updateEarning(earning.id, {
+        status: 'paid',
+        transferId: transfer.id,
+        updatedAt: new Date()
+      });
+      
+      // 10. Create a notification for the worker
+      await storage.createNotification({
+        userId: worker.id,
+        title: 'Payment Processed',
+        message: `You've been paid $${earning.amount.toFixed(2)} for ${jobTitle}`,
+        type: 'payment',
+        isRead: false,
+        sourceType: 'earning',
+        sourceId: earning.id,
+        metadata: {
+          amount: earning.amount,
+          transferId: transfer.id,
+          jobTitle: jobTitle
+        }
+      });
+      
+      return {
+        success: true,
+        message: `Successfully processed payment of $${earning.amount.toFixed(2)} to worker #${worker.id}`,
+        transferId: transfer.id,
+        amount: earning.amount
+      };
+      
+    } catch (error: any) {
+      console.error('Error processing worker payout:', error);
+      
+      return {
+        success: false,
+        message: `Failed to process payout: ${error.message}`
       };
     }
   } catch (error: any) {
-    console.error("Payout processing error:", error);
-    return { 
-      success: false, 
-      message: `Payout error: ${error.message}` 
+    console.error('Error in processWorkerPayout:', error);
+    
+    return {
+      success: false,
+      message: `Internal server error: ${error.message}`
     };
   }
 }
@@ -130,67 +181,71 @@ export async function processWorkerPayout(earningId: number): Promise<{
  * @returns Results of all payout attempts
  */
 export async function processAllPendingPayoutsForWorker(workerId: number): Promise<{
-  success: boolean;
   totalProcessed: number;
   successfulPayouts: number;
   failedPayouts: number;
+  totalAmount: number;
   results: Array<{
     earningId: number;
-    amount: number;
     success: boolean;
     message: string;
-    transferId?: string;
+    amount?: number;
   }>;
 }> {
   try {
-    // Get all pending earnings for the worker
-    const earnings = await storage.getEarningsForWorker(workerId);
-    const pendingEarnings = earnings.filter(e => e.status === 'pending');
+    // 1. Get all pending earnings for the worker
+    const pendingEarnings = await storage.getEarningsByWorkerIdAndStatus(
+      workerId,
+      ['pending', 'approved']
+    );
     
-    if (pendingEarnings.length === 0) {
-      return {
-        success: true,
-        totalProcessed: 0,
-        successfulPayouts: 0,
-        failedPayouts: 0,
-        results: []
-      };
-    }
+    // Initialize result
+    const result = {
+      totalProcessed: pendingEarnings.length,
+      successfulPayouts: 0,
+      failedPayouts: 0,
+      totalAmount: 0,
+      results: [] as Array<{
+        earningId: number;
+        success: boolean;
+        message: string;
+        amount?: number;
+      }>
+    };
     
-    const results = [];
-    let successCount = 0;
-    
+    // 2. Process each earning
     for (const earning of pendingEarnings) {
-      const result = await processWorkerPayout(earning.id);
+      const payoutResult = await processWorkerPayout(earning.id);
       
-      results.push({
+      result.results.push({
         earningId: earning.id,
-        amount: earning.netAmount,
-        success: result.success,
-        message: result.message,
-        transferId: result.transferId
+        success: payoutResult.success,
+        message: payoutResult.message,
+        amount: earning.amount
       });
       
-      if (result.success) {
-        successCount++;
+      if (payoutResult.success) {
+        result.successfulPayouts++;
+        result.totalAmount += earning.amount;
+      } else {
+        result.failedPayouts++;
       }
     }
     
-    return {
-      success: true,
-      totalProcessed: pendingEarnings.length,
-      successfulPayouts: successCount,
-      failedPayouts: pendingEarnings.length - successCount,
-      results
-    };
+    return result;
   } catch (error: any) {
-    console.error("Error processing all pending payouts:", error);
+    console.error('Error processing all pending payouts for worker:', error);
+    
     return {
-      success: false,
       totalProcessed: 0,
       successfulPayouts: 0,
       failedPayouts: 0,
-      results: []
+      totalAmount: 0,
+      results: [{
+        earningId: 0,
+        success: false,
+        message: `Internal server error: ${error.message}`
+      }]
     };
   }
 }
@@ -200,73 +255,98 @@ export async function processAllPendingPayoutsForWorker(workerId: number): Promi
  * @returns Summary of processing results
  */
 export async function processAllPendingPayouts(): Promise<{
-  success: boolean;
   totalProcessed: number;
   successfulPayouts: number;
   failedPayouts: number;
+  totalAmount: number;
+  workerResults: Record<number, {
+    workerId: number;
+    successfulPayouts: number;
+    failedPayouts: number;
+    totalAmount: number;
+  }>;
 }> {
   try {
-    // Get all earnings with pending status
-    const allEarnings = await getAllPendingEarnings();
+    // 1. Get all pending earnings
+    const pendingEarnings = await getAllPendingEarnings();
     
-    if (allEarnings.length === 0) {
-      return {
-        success: true,
-        totalProcessed: 0,
-        successfulPayouts: 0,
-        failedPayouts: 0
-      };
+    // Initialize result
+    const result = {
+      totalProcessed: pendingEarnings.length,
+      successfulPayouts: 0,
+      failedPayouts: 0,
+      totalAmount: 0,
+      workerResults: {} as Record<number, {
+        workerId: number;
+        successfulPayouts: number;
+        failedPayouts: number;
+        totalAmount: number;
+      }>
+    };
+    
+    // 2. Group earnings by worker
+    const earningsByWorker: Record<number, Earning[]> = {};
+    
+    for (const earning of pendingEarnings) {
+      if (!earningsByWorker[earning.workerId]) {
+        earningsByWorker[earning.workerId] = [];
+      }
+      
+      earningsByWorker[earning.workerId].push(earning);
     }
     
-    let successCount = 0;
-    let failCount = 0;
-    
-    for (const earning of allEarnings) {
-      const result = await processWorkerPayout(earning.id);
+    // 3. Process earnings for each worker
+    for (const [workerId, earnings] of Object.entries(earningsByWorker)) {
+      const workerIdNum = parseInt(workerId);
       
-      if (result.success) {
-        successCount++;
-      } else {
-        failCount++;
+      result.workerResults[workerIdNum] = {
+        workerId: workerIdNum,
+        successfulPayouts: 0,
+        failedPayouts: 0,
+        totalAmount: 0
+      };
+      
+      for (const earning of earnings) {
+        const payoutResult = await processWorkerPayout(earning.id);
+        
+        if (payoutResult.success) {
+          result.successfulPayouts++;
+          result.totalAmount += earning.amount;
+          result.workerResults[workerIdNum].successfulPayouts++;
+          result.workerResults[workerIdNum].totalAmount += earning.amount;
+        } else {
+          result.failedPayouts++;
+          result.workerResults[workerIdNum].failedPayouts++;
+        }
       }
     }
     
-    return {
-      success: true,
-      totalProcessed: allEarnings.length,
-      successfulPayouts: successCount,
-      failedPayouts: failCount
-    };
+    return result;
+    
   } catch (error: any) {
-    console.error("Error processing all pending payouts:", error);
+    console.error('Error processing all pending payouts:', error);
+    
     return {
-      success: false,
       totalProcessed: 0,
       successfulPayouts: 0,
-      failedPayouts: 0
+      failedPayouts: 0,
+      totalAmount: 0,
+      workerResults: {}
     };
   }
 }
 
-// Helper function to get all pending earnings across the platform
+/**
+ * Get all pending and approved earnings across the platform
+ * @returns Array of earnings
+ */
 async function getAllPendingEarnings(): Promise<Earning[]> {
   try {
-    // In production, this should be optimized with a direct query
-    // to get only pending earnings, but for now we'll filter in memory
-    const allWorkers = await storage.getAllUsers();
-    const workers = allWorkers.filter(u => u.accountType === 'worker');
-    
-    let pendingEarnings: Earning[] = [];
-    
-    for (const worker of workers) {
-      const earnings = await storage.getEarningsForWorker(worker.id);
-      const pending = earnings.filter(e => e.status === 'pending');
-      pendingEarnings = [...pendingEarnings, ...pending];
-    }
-    
-    return pendingEarnings;
+    // Get earnings with status 'pending' or 'approved'
+    const earnings = await storage.getAllEarningsByStatus(['pending', 'approved']);
+    return earnings;
   } catch (error) {
-    console.error("Error getting pending earnings:", error);
+    console.error('Error getting pending earnings:', error);
     return [];
   }
 }
