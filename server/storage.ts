@@ -33,7 +33,7 @@ import {
 
 import session from "express-session";
 import { db } from "./db";
-import { eq, and, or, like, desc, asc, isNotNull, sql } from "drizzle-orm";
+import { eq, and, or, like, desc, asc, isNotNull, isNull, sql } from "drizzle-orm";
 import connectPg from "connect-pg-simple";
 import { pool } from "./db";
 
@@ -445,7 +445,12 @@ export class DatabaseStorage implements IStorage {
 
   // Job operations
   async getJob(id: number): Promise<Job | undefined> {
-    return this.jobs.get(id);
+    const [job] = await db
+      .select()
+      .from(jobs)
+      .where(eq(jobs.id, id));
+      
+    return job;
   }
 
   async getJobs(filters?: {
@@ -455,92 +460,126 @@ export class DatabaseStorage implements IStorage {
     workerId?: number;
     search?: string;
   }): Promise<Job[]> {
-    let jobList = Array.from(this.jobs.values());
+    let query = db.select().from(jobs);
     
     if (filters) {
+      let conditions = [];
+      
       if (filters.category) {
-        jobList = jobList.filter(job => job.category === filters.category);
+        conditions.push(eq(jobs.category, filters.category));
       }
       
       if (filters.status) {
-        jobList = jobList.filter(job => job.status === filters.status);
+        conditions.push(eq(jobs.status, filters.status));
       }
       
       if (filters.posterId) {
-        jobList = jobList.filter(job => job.posterId === filters.posterId);
+        conditions.push(eq(jobs.posterId, filters.posterId));
       }
       
       if (filters.workerId) {
-        jobList = jobList.filter(job => job.workerId === filters.workerId);
+        if (filters.workerId) {
+          conditions.push(eq(jobs.workerId, filters.workerId));
+        } else {
+          conditions.push(isNull(jobs.workerId));
+        }
       }
       
+      // Apply all conditions
+      if (conditions.length > 0) {
+        query = query.where(and(...conditions));
+      }
+      
+      // Handle search separately as it uses LIKE and is more complex
       if (filters.search) {
-        const searchLower = filters.search.toLowerCase();
-        jobList = jobList.filter(job => 
-          job.title.toLowerCase().includes(searchLower) ||
-          job.description.toLowerCase().includes(searchLower) ||
-          job.category.toLowerCase().includes(searchLower)
-        );
+        const searchLower = `%${filters.search.toLowerCase()}%`;
+        // Use a separate query for search
+        query = db
+          .select()
+          .from(jobs)
+          .where(
+            or(
+              like(sql`LOWER(${jobs.title})`, searchLower),
+              like(sql`LOWER(${jobs.description})`, searchLower),
+              like(sql`LOWER(${jobs.category})`, searchLower)
+            )
+          );
+        
+        // If we have other conditions, add them to the search query
+        if (conditions.length > 0) {
+          query = query.where(and(...conditions));
+        }
       }
     }
     
     // Sort by date posted (newest first)
-    return jobList.sort((a, b) => 
-      new Date(b.datePosted).getTime() - new Date(a.datePosted).getTime()
-    );
+    return query.orderBy(desc(jobs.datePosted));
   }
 
   async createJob(insertJob: InsertJob): Promise<Job> {
-    const id = this.jobIdCounter++;
-    const datePosted = new Date();
-    const workerId = null;
     const serviceFee = 2.5; // Service fee is fixed at $2.50
-    const totalAmount = insertJob.paymentType === 'fixed' ? insertJob.paymentAmount + serviceFee : insertJob.paymentAmount;
+    const totalAmount = insertJob.paymentType === 'fixed' ? 
+      insertJob.paymentAmount + serviceFee : insertJob.paymentAmount;
     const status = insertJob.status || 'open'; // Default status is 'open'
     
     // Make sure boolean values are defined
-    const equipmentProvided = insertJob.equipmentProvided === undefined ? false : insertJob.equipmentProvided;
+    const equipmentProvided = insertJob.equipmentProvided === undefined ? 
+      false : insertJob.equipmentProvided;
     
-    const job: Job = { 
-      ...insertJob, 
-      id, 
-      datePosted, 
-      workerId, 
-      serviceFee, 
-      totalAmount,
-      status,
-      equipmentProvided
-    };
+    const [job] = await db
+      .insert(jobs)
+      .values({
+        ...insertJob,
+        datePosted: new Date(),
+        workerId: null,
+        serviceFee,
+        totalAmount,
+        status,
+        equipmentProvided,
+        // Ensure location description is valid
+        locationDescription: insertJob.locationDescription || null
+      })
+      .returning();
     
-    this.jobs.set(id, job);
     return job;
   }
 
   async updateJob(id: number, data: Partial<InsertJob>): Promise<Job | undefined> {
-    const job = this.jobs.get(id);
+    // First get the existing job
+    const job = await this.getJob(id);
     if (!job) return undefined;
     
-    let updatedJob = { ...job, ...data };
+    let updateData: any = { ...data };
     
     // Recalculate total amount and service fee if payment information has been updated
     if (data.paymentAmount !== undefined || data.paymentType !== undefined) {
       const paymentType = data.paymentType || job.paymentType;
-      const paymentAmount = data.paymentAmount !== undefined ? data.paymentAmount : job.paymentAmount;
+      const paymentAmount = data.paymentAmount !== undefined ? 
+        data.paymentAmount : job.paymentAmount;
       const serviceFee = 2.5; // Fixed service fee
       
-      updatedJob = {
-        ...updatedJob,
-        serviceFee,
-        totalAmount: paymentType === 'fixed' ? paymentAmount + serviceFee : paymentAmount
-      };
+      updateData.serviceFee = serviceFee;
+      updateData.totalAmount = paymentType === 'fixed' ? 
+        paymentAmount + serviceFee : paymentAmount;
     }
     
-    this.jobs.set(id, updatedJob);
+    // Update the job
+    const [updatedJob] = await db
+      .update(jobs)
+      .set(updateData)
+      .where(eq(jobs.id, id))
+      .returning();
+    
     return updatedJob;
   }
 
   async deleteJob(id: number): Promise<boolean> {
-    return this.jobs.delete(id);
+    const result = await db
+      .delete(jobs)
+      .where(eq(jobs.id, id));
+      
+    // Return true if at least one row was affected
+    return !!result;
   }
 
   async getJobsNearLocation(
@@ -548,14 +587,23 @@ export class DatabaseStorage implements IStorage {
     longitude: number, 
     radiusMiles: number
   ): Promise<Job[]> {
-    const jobs = Array.from(this.jobs.values());
+    // Get all jobs
+    const allJobs = await db
+      .select()
+      .from(jobs);
     
-    return jobs.filter(job => {
+    // Filter jobs that have valid coordinates
+    const jobsWithCoordinates = allJobs.filter(job => 
+      job.latitude !== null && job.longitude !== null
+    );
+    
+    // Filter jobs by distance
+    return jobsWithCoordinates.filter(job => {
       const distance = this.calculateDistance(
         latitude, 
         longitude, 
-        job.latitude, 
-        job.longitude
+        job.latitude!, // Non-null assertion since we filtered
+        job.longitude! // Non-null assertion since we filtered
       );
       return distance <= radiusMiles;
     });
@@ -938,32 +986,25 @@ export class DatabaseStorage implements IStorage {
 
   // Notification operations
   async getNotifications(userId: number, options?: { isRead?: boolean, limit?: number }): Promise<Notification[]> {
-    let query = db
+    let queryBuilder = db
       .select()
       .from(notifications)
-      .where(eq(notifications.userId, userId))
-      .orderBy(desc(notifications.createdAt));
+      .where(eq(notifications.userId, userId));
     
     // Filter by read status if specified
     if (options && options.isRead !== undefined) {
-      query = db
-        .select()
-        .from(notifications)
-        .where(
-          and(
-            eq(notifications.userId, userId),
-            eq(notifications.isRead, options.isRead)
-          )
-        )
-        .orderBy(desc(notifications.createdAt));
+      queryBuilder = queryBuilder.where(eq(notifications.isRead, options.isRead));
     }
+    
+    // Order by created date
+    queryBuilder = queryBuilder.orderBy(desc(notifications.createdAt));
     
     // Apply limit if specified
     if (options && options.limit) {
-      query = query.limit(options.limit);
+      queryBuilder = queryBuilder.limit(options.limit);
     }
     
-    return query;
+    return await queryBuilder;
   }
   
   async getNotification(id: number): Promise<Notification | undefined> {
@@ -1012,19 +1053,21 @@ export class DatabaseStorage implements IStorage {
           eq(notifications.userId, userId),
           eq(notifications.isRead, false)
         )
-      );
+      )
+      .returning();
     
     // Return count of affected rows
-    return result.length || 0;
+    return result.length;
   }
   
   async deleteNotification(id: number): Promise<boolean> {
     const result = await db
       .delete(notifications)
-      .where(eq(notifications.id, id));
+      .where(eq(notifications.id, id))
+      .returning();
       
     // Return true if at least one row was affected
-    return !!result;
+    return result.length > 0;
   }
   
   // Specialized notification methods
