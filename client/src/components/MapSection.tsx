@@ -18,6 +18,7 @@ import {
 import 'leaflet/dist/leaflet.css';
 import { LatLngExpression } from 'leaflet';
 import { Loader2, Plus } from 'lucide-react';
+import { Button } from '@/components/ui/button';
 import { useAuth } from '@/hooks/use-auth';
 import { useToast } from '@/hooks/use-toast';
 import { apiRequest, queryClient } from '@/lib/queryClient';
@@ -527,23 +528,25 @@ const MapSection: React.FC<MapSectionProps> = ({ jobs, selectedJob, onSelectJob,
               {/* Right side: User and actions */}
               <div className="flex items-center gap-3">
                 {/* Post Job button between heat text and compass */}
-                <a 
-                  href="/jobs/post"
-                  className="bg-emerald-600 hover:bg-emerald-700 text-white text-xs px-3 py-1.5 rounded-full shadow-lg flex items-center gap-1"
-                  onClick={(e) => {
+                <Button
+                  size="sm"
+                  className="bg-emerald-600 hover:bg-emerald-700 text-white text-xs px-3 py-1.5 h-auto rounded-full shadow-lg"
+                  onClick={() => {
                     if (!user) {
-                      e.preventDefault();
                       toast({
                         title: "Login Required",
                         description: "Please login to post a job",
                         variant: "destructive"
                       });
+                    } else {
+                      // Use replace to avoid back button issues
+                      window.location.href = "/jobs/post";
                     }
                   }}
                 >
-                  <Plus className="h-3 w-3" />
+                  <Plus className="h-3 w-3 mr-1" />
                   <span>Post Job</span>
-                </a>
+                </Button>
                 {user && (
                   <div>
                     <button 
