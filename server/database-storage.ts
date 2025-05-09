@@ -657,4 +657,131 @@ export class DatabaseStorage implements IStorage {
     // For PostgreSQL, we can check if any rows were affected
     return !!result;
   }
+
+  // Notification operations
+  async getNotifications(userId: number, options?: { isRead?: boolean, limit?: number }): Promise<Notification[]> {
+    let query = db.select().from(notifications).where(eq(notifications.userId, userId));
+    
+    // Apply read status filter if provided
+    if (options && options.isRead !== undefined) {
+      query = query.where(eq(notifications.isRead, options.isRead));
+    }
+    
+    // Order by created date (newest first)
+    query = query.orderBy(desc(notifications.createdAt));
+    
+    // Apply limit if provided
+    if (options && options.limit) {
+      query = query.limit(options.limit);
+    }
+    
+    const result = await query;
+    return result;
+  }
+  
+  async getNotification(id: number): Promise<Notification | undefined> {
+    const [notification] = await db.select().from(notifications).where(eq(notifications.id, id));
+    return notification;
+  }
+  
+  async createNotification(notification: InsertNotification): Promise<Notification> {
+    const [result] = await db.insert(notifications).values(notification).returning();
+    return result;
+  }
+  
+  async markNotificationAsRead(id: number): Promise<Notification | undefined> {
+    const [notification] = await db
+      .update(notifications)
+      .set({ isRead: true })
+      .where(eq(notifications.id, id))
+      .returning();
+    
+    return notification;
+  }
+  
+  async markAllNotificationsAsRead(userId: number): Promise<number> {
+    const result = await db
+      .update(notifications)
+      .set({ isRead: true })
+      .where(
+        and(
+          eq(notifications.userId, userId),
+          eq(notifications.isRead, false)
+        )
+      );
+    
+    // Return the number of affected rows
+    return result.rowCount || 0;
+  }
+  
+  async deleteNotification(id: number): Promise<boolean> {
+    const result = await db.delete(notifications).where(eq(notifications.id, id));
+    return !!result.rowCount;
+  }
+  
+  async notifyNearbyWorkers(jobId: number, radiusMiles: number): Promise<number> {
+    // Get the job details
+    const job = await this.getJob(jobId);
+    if (!job) return 0;
+    
+    // Get the poster's details for the notification
+    const poster = await this.getUser(job.posterId);
+    if (!poster) return 0;
+    
+    // Find all workers in the database
+    const allWorkers = await db
+      .select()
+      .from(users)
+      .where(eq(users.accountType, 'worker'))
+      .execute();
+    
+    let notificationCount = 0;
+    
+    for (const worker of allWorkers) {
+      // Skip workers who don't have location data
+      if (!worker.latitude || !worker.longitude) continue;
+      
+      // Calculate distance between job and worker
+      const distance = this.calculateDistance(
+        job.latitude,
+        job.longitude,
+        worker.latitude,
+        worker.longitude
+      );
+      
+      // If worker is within the radius, send notification
+      if (distance <= radiusMiles) {
+        try {
+          await this.createNotification({
+            userId: worker.id,
+            title: 'New Job Nearby',
+            message: `${poster.fullName} posted a new job "${job.title}" ${distance.toFixed(1)} miles from you`,
+            type: 'job_posted',
+            sourceId: job.id,
+            sourceType: 'job',
+            metadata: { distance: distance.toFixed(1) }
+          });
+          
+          notificationCount++;
+        } catch (error) {
+          console.error(`Failed to notify worker ${worker.id} about job ${jobId}:`, error);
+        }
+      }
+    }
+    
+    return notificationCount;
+  }
+  
+  // Helper function to calculate distance between two points using Haversine formula
+  private calculateDistance(lat1: number, lon1: number, lat2: number, lon2: number): number {
+    const R = 3958.8; // Earth's radius in miles
+    const dLat = (lat2 - lat1) * Math.PI / 180;
+    const dLon = (lon2 - lon1) * Math.PI / 180;
+    const a = 
+      Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+      Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * 
+      Math.sin(dLon / 2) * Math.sin(dLon / 2);
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+    return R * c;
+  }
 }
