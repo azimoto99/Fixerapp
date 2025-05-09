@@ -4,14 +4,12 @@
     "slug": "fixer",
     "version": "1.0.0",
     "orientation": "portrait",
-    "icon": "./attached_assets/app_icon.png",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "automatic",
     "splash": {
-      "image": "./attached_assets/splash.png",
+      "image": "./assets/splash.png",
       "resizeMode": "contain",
       "backgroundColor": "#ffffff"
-    },
-    "updates": {
-      "fallbackToCacheTimeout": 0
     },
     "assetBundlePatterns": [
       "**/*"
@@ -22,20 +20,24 @@
     },
     "android": {
       "adaptiveIcon": {
-        "foregroundImage": "./attached_assets/adaptive_icon.png",
-        "backgroundColor": "#FFFFFF"
+        "foregroundImage": "./assets/adaptive-icon.png",
+        "backgroundColor": "#ffffff"
       },
-      "package": "com.fixerapp.app"
+      "package": "com.fixerapp.app",
+      "permissions": [
+        "ACCESS_COARSE_LOCATION",
+        "ACCESS_FINE_LOCATION"
+      ]
     },
     "web": {
-      "favicon": "./attached_assets/favicon.png"
+      "favicon": "./assets/favicon.png"
     },
     "plugins": [
       "expo-updates"
     ],
     "extra": {
       "eas": {
-        "projectId": "your-project-id"
+        "projectId": "fixer-app"
       }
     }
   }
