@@ -289,6 +289,18 @@ const MapSection: React.FC<MapSectionProps> = ({ jobs, selectedJob, onSelectJob,
           .leaflet-pane {
             z-index: 400 !important;
           }
+          
+          /* Additional fixes for z-index issues */
+          .leaflet-map-pane {
+            z-index: 100 !important;
+          }
+          .leaflet-overlay-pane {
+            z-index: 300 !important;
+          }
+          /* Ensure all map elements have lower z-index than our drawer */
+          .leaflet-popup-pane {
+            z-index: 500 !important;
+          }
           .custom-job-marker {
             background: none;
             border: none;
@@ -476,7 +488,7 @@ const MapSection: React.FC<MapSectionProps> = ({ jobs, selectedJob, onSelectJob,
         
         {/* Fallback location notice */}
         {isUsingFallback && (
-          <div className="absolute top-20 left-1/2 -translate-x-1/2 z-[1000]">
+          <div className="absolute top-20 left-1/2 -translate-x-1/2 z-[500]">
             <div className="bg-card/90 border border-primary/30 rounded-lg shadow-md px-4 py-2 text-foreground text-xs backdrop-blur-sm">
               <div className="flex items-center">
                 <span className="bg-primary/20 rounded-full p-1 mr-2">
@@ -493,7 +505,7 @@ const MapSection: React.FC<MapSectionProps> = ({ jobs, selectedJob, onSelectJob,
 
 
         {/* Map controls and overlay - fixed actions on top */}
-        <div className="absolute top-0 right-0 z-[9000] w-full">
+        <div className="absolute top-0 right-0 z-[500] w-full">
           {/* Floating control panel */}
           <div className="bg-background/70 backdrop-blur-md border-b border-border/20 dark:border-border/20 shadow-sm px-4 py-2">
             <div className="flex justify-between items-center">
@@ -574,7 +586,7 @@ const MapSection: React.FC<MapSectionProps> = ({ jobs, selectedJob, onSelectJob,
         {/* Bottom card for job details - DoorDash-style slide-up panel */}
         {showJobDetail && selectedJob && (
           <div 
-            className="absolute bottom-0 left-0 right-0 z-[9000] max-h-[70%] overflow-y-auto 
+            className="absolute bottom-0 left-0 right-0 z-[500] max-h-[70%] overflow-y-auto 
                       bg-card rounded-t-xl shadow-xl animate-slide-up job-detail-panel border-t border-x border-border"
             style={{ filter: 'drop-shadow(0 -10px 8px rgb(0 0 0 / 0.04))' }}
             onTouchStart={(e) => {
@@ -619,7 +631,7 @@ const MapSection: React.FC<MapSectionProps> = ({ jobs, selectedJob, onSelectJob,
               }
             }}
           >
-            <div className="sticky top-0 bg-card pt-2 pb-1 px-4 border-b border-border z-[9999]">
+            <div className="sticky top-0 bg-card pt-2 pb-1 px-4 border-b border-border z-[900]">
               <div className="flex justify-center pb-1 drag-handle cursor-grab active:cursor-grabbing">
                 <div className="w-10 h-1 bg-muted-foreground/30 rounded-full"></div>
               </div>
@@ -647,7 +659,7 @@ const MapSection: React.FC<MapSectionProps> = ({ jobs, selectedJob, onSelectJob,
             <JobDetail job={selectedJob} onClose={handleCloseDetail} />
             
             {/* Apply button fixed at bottom */}
-            <div className="sticky bottom-0 left-0 right-0 bg-card p-4 border-t border-border z-[9999] pb-[calc(0.5rem+env(safe-area-inset-bottom))]">
+            <div className="sticky bottom-0 left-0 right-0 bg-card p-4 border-t border-border z-[900] pb-[calc(0.5rem+env(safe-area-inset-bottom))]">
               <button 
                 onClick={handleApply}
                 disabled={isApplying}
