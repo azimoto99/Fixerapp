@@ -2,6 +2,10 @@
   "expo": {
     "name": "Fixer",
     "slug": "fixer",
+    "server": {
+      "url": "https://workspace.azimoto9.repl.co",
+      "localhost": false
+    },
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
