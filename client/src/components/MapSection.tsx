@@ -6,7 +6,6 @@ import SimpleUserDrawer2 from './SimpleUserDrawer2';
 import UserDrawerV2 from './UserDrawerV2';
 import HeatmapLayer from './HeatmapLayer';
 import MapViewToggle from './MapViewToggle';
-import FindNearestJobButton from './FindNearestJobButton';
 import { Job } from '@shared/schema';
 import { 
   MapContainer, 
@@ -18,12 +17,11 @@ import {
 } from 'react-leaflet';
 import 'leaflet/dist/leaflet.css';
 import { LatLngExpression } from 'leaflet';
-import { Loader2, PlusCircle, MinusCircle, Target, Layers, Plus } from 'lucide-react';
+import { Loader2, Plus } from 'lucide-react';
 import { useAuth } from '@/hooks/use-auth';
 import { useToast } from '@/hooks/use-toast';
 import { apiRequest, queryClient } from '@/lib/queryClient';
 import { StripeConnectRequired } from '@/components/stripe';
-import { Link } from 'wouter';
 
 interface MapSectionProps {
   jobs: Job[];
@@ -45,59 +43,7 @@ const RecenterMap = memo(({ position }: { position: LatLngExpression | null }) =
   return null;
 });
 
-// Custom map control components that are memoized for better performance
-const ZoomInControl = memo(() => {
-  const map = useMap();
-  const handleZoomIn = useCallback(() => {
-    map.zoomIn();
-  }, [map]);
-  
-  return (
-    <button 
-      onClick={handleZoomIn}
-      className="bg-primary text-primary-foreground shadow-lg rounded-full w-10 h-10 flex items-center justify-center transform transition-all hover:scale-105 active:scale-95 hover:bg-primary/90 border border-primary/20"
-      aria-label="Zoom in"
-    >
-      <PlusCircle className="h-5 w-5" />
-    </button>
-  );
-});
-
-const ZoomOutControl = memo(() => {
-  const map = useMap();
-  const handleZoomOut = useCallback(() => {
-    map.zoomOut();
-  }, [map]);
-  
-  return (
-    <button 
-      onClick={handleZoomOut}
-      className="bg-primary text-primary-foreground shadow-lg rounded-full w-10 h-10 flex items-center justify-center transform transition-all hover:scale-105 active:scale-95 hover:bg-primary/90 border border-primary/20"
-      aria-label="Zoom out"
-    >
-      <MinusCircle className="h-5 w-5" />
-    </button>
-  );
-});
-
-const RecenterControl = memo(({ position }: { position: LatLngExpression | null }) => {
-  const map = useMap();
-  const handleRecenter = useCallback(() => {
-    if (position) {
-      map.setView(position, 15);
-    }
-  }, [map, position]);
-  
-  return (
-    <button 
-      onClick={handleRecenter}
-      className="bg-primary text-primary-foreground shadow-lg rounded-full w-12 h-12 flex items-center justify-center transform transition-all hover:scale-105 active:scale-95 hover:bg-primary/90 border border-primary/20"
-      aria-label="Return to my location"
-    >
-      <Target className="h-6 w-6" />
-    </button>
-  );
-});
+// Custom controls removed - no longer needed
 
 // DoorDash-style interactive map component for showing nearby gigs
 const MapSection: React.FC<MapSectionProps> = ({ jobs, selectedJob, onSelectJob, searchCoordinates }) => {
@@ -520,32 +466,7 @@ const MapSection: React.FC<MapSectionProps> = ({ jobs, selectedJob, onSelectJob,
                 </div>
               </div>
               
-              {/* Post Job Button and Recenter Control - placed at bottom right */}
-              <div className="leaflet-bottom leaflet-right">
-                <div className="leaflet-control leaflet-bar flex flex-col items-center mb-32 mr-3 space-y-3">
-                  {/* "Post Job" button added here */}
-                  <a 
-                    href="/post-job"
-                    className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-2 px-4 rounded-full shadow-lg transition-transform hover:scale-105 transform-gpu flex items-center gap-2"
-                    aria-label="Post a new job"
-                    onClick={(e) => {
-                      if (!user) {
-                        e.preventDefault();
-                        toast({
-                          title: "Login Required",
-                          description: "Please login to post a job",
-                          variant: "destructive"
-                        });
-                      }
-                    }}
-                  >
-                    <Plus className="h-5 w-5" />
-                    <span className="text-sm">Post Job</span>
-                  </a>
-                  
-                  <RecenterControl position={position} />
-                </div>
-              </div>
+              {/* Map controls removed as requested */}
               
 {/* Heat map legend removed */}
             </div>
@@ -623,8 +544,6 @@ const MapSection: React.FC<MapSectionProps> = ({ jobs, selectedJob, onSelectJob,
                   <Plus className="h-3 w-3" />
                   <span>Post Job</span>
                 </a>
-                
-                <FindNearestJobButton />
                 {user && (
                   <div>
                     <button 
