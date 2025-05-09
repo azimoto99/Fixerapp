@@ -157,6 +157,221 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Create API router
   const apiRouter = express.Router();
   
+  // Payment endpoints for the JobPaymentForm component
+  apiRouter.post("/payments/setup-intent", isAuthenticated, async (req: Request, res: Response) => {
+    try {
+      // Redirect to the Stripe create-setup-intent endpoint
+      const response = await stripe.setupIntents.create({
+        customer: req.user?.stripeCustomerId,
+        usage: 'off_session',
+      });
+      
+      res.json({ clientSecret: response.client_secret });
+    } catch (error: any) {
+      console.error('Error creating setup intent:', error);
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  apiRouter.post("/payments/process", isAuthenticated, async (req: Request, res: Response) => {
+    try {
+      const { jobId, paymentMethodId, amount, description, saveCard } = req.body;
+      
+      if (!jobId || !paymentMethodId) {
+        return res.status(400).json({ message: "Job ID and payment method ID are required" });
+      }
+
+      // Get the job to check if it exists and get details
+      const job = await storage.getJob(Number(jobId));
+      if (!job) {
+        return res.status(404).json({ message: "Job not found" });
+      }
+      
+      // Validate the user is authorized to make payment for this job
+      if (job.posterId !== req.user.id) {
+        return res.status(403).json({ 
+          message: "You are not authorized to make payment for this job" 
+        });
+      }
+
+      // Create or use existing customer
+      let customerId = req.user.stripeCustomerId;
+      if (!customerId) {
+        const customer = await stripe.customers.create({
+          email: req.user.email,
+          name: req.user.fullName,
+          metadata: {
+            userId: req.user.id.toString()
+          }
+        });
+        
+        customerId = customer.id;
+        
+        // Update user with Stripe customer ID
+        await storage.updateUser(req.user.id, { 
+          stripeCustomerId: customerId 
+        });
+      }
+      
+      // If saveCard is true, save the payment method to the customer
+      if (saveCard) {
+        await stripe.paymentMethods.attach(paymentMethodId, {
+          customer: customerId,
+        });
+      }
+      
+      // Create the payment intent
+      const actualAmount = amount || job.totalAmount;
+      const paymentIntent = await stripe.paymentIntents.create({
+        amount: Math.round(actualAmount * 100), // Convert to cents
+        currency: 'usd',
+        customer: customerId,
+        payment_method: paymentMethodId,
+        off_session: true,
+        confirm: true,
+        metadata: {
+          jobId: job.id.toString(),
+          userId: req.user.id.toString(),
+          jobTitle: job.title
+        }
+      });
+      
+      // Create a payment record in our database
+      const payment = await storage.createPayment({
+        userId: req.user.id,
+        amount: actualAmount,
+        type: 'job_payment',
+        status: paymentIntent.status === 'succeeded' ? 'completed' : 'pending',
+        paymentMethod: 'stripe',
+        transactionId: paymentIntent.id,
+        jobId: job.id,
+        description: description || `Payment for job: ${job.title}`,
+        metadata: { paymentIntentId: paymentIntent.id }
+      });
+      
+      // If payment succeeded, update job and create an earning record if applicable
+      if (paymentIntent.status === 'succeeded') {
+        // If job is assigned, update it to "in progress"
+        if (job.status === 'assigned') {
+          await storage.updateJob(job.id, { status: 'in_progress' });
+        }
+        
+        // If worker is assigned, create an earning record for them
+        if (job.workerId) {
+          const serviceFee = job.serviceFee || 2.5;
+          const netAmount = job.paymentAmount - serviceFee;
+          
+          await storage.createEarning({
+            jobId: job.id,
+            workerId: job.workerId,
+            amount: job.paymentAmount,
+            serviceFee: serviceFee,
+            netAmount: netAmount,
+            status: 'pending'
+          });
+        }
+      }
+      
+      res.json({ 
+        success: true,
+        status: paymentIntent.status,
+        paymentId: payment.id
+      });
+    } catch (error: any) {
+      console.error('Error processing payment:', error);
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  apiRouter.post("/payments/process-saved", isAuthenticated, async (req: Request, res: Response) => {
+    try {
+      const { jobId, paymentMethodId, amount, description } = req.body;
+      
+      if (!jobId || !paymentMethodId) {
+        return res.status(400).json({ message: "Job ID and payment method ID are required" });
+      }
+
+      // Get the job to check if it exists and get details
+      const job = await storage.getJob(Number(jobId));
+      if (!job) {
+        return res.status(404).json({ message: "Job not found" });
+      }
+      
+      // Validate the user is authorized to make payment for this job
+      if (job.posterId !== req.user.id) {
+        return res.status(403).json({ 
+          message: "You are not authorized to make payment for this job" 
+        });
+      }
+
+      // Ensure user has a Stripe customer ID
+      if (!req.user.stripeCustomerId) {
+        return res.status(400).json({ message: "No payment methods found for this user" });
+      }
+      
+      // Create the payment intent with the saved method
+      const actualAmount = amount || job.totalAmount;
+      const paymentIntent = await stripe.paymentIntents.create({
+        amount: Math.round(actualAmount * 100), // Convert to cents
+        currency: 'usd',
+        customer: req.user.stripeCustomerId,
+        payment_method: paymentMethodId,
+        off_session: true,
+        confirm: true,
+        metadata: {
+          jobId: job.id.toString(),
+          userId: req.user.id.toString(),
+          jobTitle: job.title
+        }
+      });
+      
+      // Create a payment record in our database
+      const payment = await storage.createPayment({
+        userId: req.user.id,
+        amount: actualAmount,
+        type: 'job_payment',
+        status: paymentIntent.status === 'succeeded' ? 'completed' : 'pending',
+        paymentMethod: 'stripe',
+        transactionId: paymentIntent.id,
+        jobId: job.id,
+        description: description || `Payment for job: ${job.title}`,
+        metadata: { paymentIntentId: paymentIntent.id }
+      });
+      
+      // If payment succeeded, update job and create an earning record if applicable
+      if (paymentIntent.status === 'succeeded') {
+        // If job is assigned, update it to "in progress"
+        if (job.status === 'assigned') {
+          await storage.updateJob(job.id, { status: 'in_progress' });
+        }
+        
+        // If worker is assigned, create an earning record for them
+        if (job.workerId) {
+          const serviceFee = job.serviceFee || 2.5;
+          const netAmount = actualAmount - serviceFee;
+          
+          await storage.createEarning({
+            jobId: job.id,
+            workerId: job.workerId,
+            amount: actualAmount,
+            serviceFee: serviceFee,
+            netAmount: netAmount,
+            status: 'pending'
+          });
+        }
+      }
+      
+      res.json({ 
+        success: true,
+        status: paymentIntent.status,
+        paymentId: payment.id
+      });
+    } catch (error: any) {
+      console.error('Error processing payment with saved method:', error);
+      res.status(500).json({ message: error.message });
+    }
+  });
+
   // Set up Stripe routes
   setupStripeRoutes(apiRouter);
   
