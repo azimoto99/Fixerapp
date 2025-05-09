@@ -1,37 +1,25 @@
-import { useState } from 'react';
-import { useQuery } from '@tanstack/react-query';
-import { Button } from '@/components/ui/button';
+import React from 'react';
+import { Compass } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
-import { Job } from '@shared/schema';
-import { Loader2, MapPin } from 'lucide-react';
+import { cn } from '@/lib/utils';
 import { useLocation } from 'wouter';
-import { calculateDistance } from '@/lib/geolocation';
+import { apiRequest } from '@/lib/queryClient';
+import { Button } from '@/components/ui/button';
 
-export default function FindNearestJobButton() {
-  const [isLoading, setIsLoading] = useState(false);
+interface FindNearestJobButtonProps {
+  className?: string;
+}
+
+const FindNearestJobButton: React.FC<FindNearestJobButtonProps> = ({ className }) => {
   const { toast } = useToast();
-  const [, navigate] = useLocation();
-
-  // Fetch open jobs
-  const { data: jobs } = useQuery<Job[]>({
-    queryKey: ['/api/jobs', { status: 'open' }],
-  });
+  const [_, setLocation] = useLocation();
+  const [isSearching, setIsSearching] = React.useState(false);
 
   const handleFindNearestJob = async () => {
-    setIsLoading(true);
+    setIsSearching(true);
     
-    if (!navigator.geolocation) {
-      toast({
-        title: "Geolocation Error",
-        description: "Your browser doesn't support geolocation. Please update your browser or try a different one.",
-        variant: "destructive",
-      });
-      setIsLoading(false);
-      return;
-    }
-
     try {
-      // Get current position
+      // Get user's current position
       const position = await new Promise<GeolocationPosition>((resolve, reject) => {
         navigator.geolocation.getCurrentPosition(resolve, reject, {
           enableHighAccuracy: true,
@@ -39,98 +27,69 @@ export default function FindNearestJobButton() {
           maximumAge: 0
         });
       });
-
-      const { latitude, longitude } = position.coords;
-
-      if (!jobs || jobs.length === 0) {
-        toast({
-          title: "No jobs available",
-          description: "There are no open jobs at the moment. Please check back later.",
-          variant: "default",
-        });
-        setIsLoading(false);
-        return;
-      }
-
-      // Calculate distance to each job and find the nearest one
-      let nearestJob = jobs[0];
-      let shortestDistance = calculateDistance(
-        latitude, 
-        longitude, 
-        nearestJob.latitude, 
-        nearestJob.longitude
-      );
-
-      jobs.forEach(job => {
-        const distance = calculateDistance(
-          latitude, 
-          longitude, 
-          job.latitude, 
-          job.longitude
-        );
-
-        if (distance < shortestDistance) {
-          shortestDistance = distance;
-          nearestJob = job;
-        }
-      });
-
-      // If the job is beyond 25 miles, inform the user
-      if (shortestDistance > 25) {
-        toast({
-          title: "No nearby jobs",
-          description: `The nearest job is ${shortestDistance.toFixed(1)} miles away. Try expanding your search radius.`,
-          variant: "default",
-        });
-        setIsLoading(false);
-        return;
-      }
-
-      // Navigate to the nearest job
-      toast({
-        title: "Job found!",
-        description: `Found a job ${shortestDistance.toFixed(1)} miles away.`,
-      });
       
-      navigate(`/job/${nearestJob.id}`);
+      const { latitude, longitude } = position.coords;
+      
+      // Search for nearby jobs
+      const response = await apiRequest(
+        'GET', 
+        `/api/jobs/nearby?latitude=${latitude}&longitude=${longitude}&radius=5`
+      );
+      
+      const nearbyJobs = await response.json();
+      
+      if (nearbyJobs && nearbyJobs.length > 0) {
+        // Sort by distance to get the nearest job
+        const sortedJobs = [...nearbyJobs].sort((a, b) => a.distance - b.distance);
+        const nearestJob = sortedJobs[0];
+        
+        toast({
+          title: "Nearest job found!",
+          description: `${nearestJob.title} (${nearestJob.distance.toFixed(1)} miles away)`,
+        });
+        
+        // Navigate to job details
+        setLocation(`/job/${nearestJob.id}`);
+      } else {
+        toast({
+          title: "No jobs found nearby",
+          description: "Try expanding your search radius or check back later.",
+          variant: "destructive"
+        });
+      }
     } catch (error) {
+      console.error("Error finding nearby jobs:", error);
       toast({
-        title: "Geolocation Error",
-        description: "Unable to determine your location. Please check your device settings and try again.",
-        variant: "destructive",
+        title: "Location error",
+        description: "Please enable location services to find nearby jobs.",
+        variant: "destructive"
       });
     } finally {
-      setIsLoading(false);
+      setIsSearching(false);
     }
   };
 
   return (
-    <div className="relative">
-      {/* Animated pulse rings */}
-      {!isLoading && (
-        <>
-          <div className="absolute inset-0 rounded-full animate-ping opacity-30 bg-gradient-to-r from-blue-400 to-purple-400"></div>
-          <div className="absolute inset-0 rounded-full animate-pulse opacity-40 bg-gradient-to-r from-blue-500 to-purple-500" style={{ animationDelay: '0.5s' }}></div>
-        </>
+    <Button
+      variant="ghost"
+      size="icon"
+      onClick={handleFindNearestJob}
+      disabled={isSearching}
+      className={cn(
+        "rounded-full w-10 h-10 bg-background/80 text-foreground shadow-sm border border-border/30",
+        "hover:bg-background hover:text-primary transition-all",
+        "disabled:opacity-50",
+        className
       )}
-      
-      <Button 
-        onClick={handleFindNearestJob} 
-        disabled={isLoading}
-        className="relative bg-gradient-to-r from-blue-500 to-purple-500 hover:from-blue-600 hover:to-purple-600 text-white font-medium px-4 py-2 rounded-full shadow-md hover:shadow-lg transition-all duration-300 hover:scale-105 z-10"
-      >
-        {isLoading ? (
-          <>
-            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-            Finding...
-          </>
-        ) : (
-          <>
-            <MapPin className="mr-2 h-4 w-4 animate-bounce-in" />
-            Find Nearest Job
-          </>
-        )}
-      </Button>
-    </div>
+      title="Find nearest job"
+    >
+      {isSearching ? (
+        <div className="w-5 h-5 rounded-full border-2 border-t-transparent border-primary animate-spin" />
+      ) : (
+        <Compass className="h-5 w-5" />
+      )}
+    </Button>
   );
-}
+};
+
+export default FindNearestJobButton;

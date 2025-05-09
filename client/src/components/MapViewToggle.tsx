@@ -8,12 +8,13 @@ import {
 interface MapViewToggleProps {
   view: 'standard' | 'heatmap';
   onChange: (view: 'standard' | 'heatmap') => void;
+  className?: string;
 }
 
 // Memoized toggle component to switch between standard map view and heat map view
-const MapViewToggle = memo(({ view, onChange }: MapViewToggleProps) => {
+const MapViewToggle = memo(({ view, onChange, className }: MapViewToggleProps) => {
   return (
-    <div className="bg-white border border-gray-200 rounded-full shadow-md p-2">
+    <div className={`bg-background/90 border border-border/30 rounded-full shadow-md p-2 ${className || ''}`}>
       <ToggleGroup type="single" value={view} onValueChange={(value) => {
         if (value) onChange(value as 'standard' | 'heatmap');
       }}>
