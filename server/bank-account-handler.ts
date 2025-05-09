@@ -6,6 +6,7 @@
 import { storage } from "./storage";
 import Stripe from "stripe";
 import { User } from "@shared/schema";
+import { formatCurrency } from "./webhooks";
 
 // Initialize Stripe
 if (!process.env.STRIPE_SECRET_KEY) {

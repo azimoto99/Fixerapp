@@ -515,7 +515,7 @@ async function handleAccountUpdated(account: Stripe.Account) {
 }
 
 // Helper function to format currency amounts
-function formatCurrency(amount: number): string {
+export function formatCurrency(amount: number): string {
   return new Intl.NumberFormat('en-US', {
     style: 'currency',
     currency: 'USD',
