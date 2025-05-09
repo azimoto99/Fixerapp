@@ -5,6 +5,8 @@ import { setupVite, serveStatic, log } from "./vite";
 import "./seed";
 // Import and run the session table creation script
 import createSessionsTable from "./create-sessions-table";
+// Import database migrations
+import { runAllMigrations } from "./migrations/run-migrations";
 
 const app = express();
 app.use(express.json());
@@ -43,6 +45,15 @@ app.use((req, res, next) => {
 (async () => {
   // Ensure sessions table exists before setting up routes
   await createSessionsTable();
+  
+  // Run database migrations
+  try {
+    await runAllMigrations();
+    log('Database migrations completed successfully');
+  } catch (error) {
+    log('Error running database migrations:', String(error));
+    // Continue with server startup even if migrations fail
+  }
   
   const server = await registerRoutes(app);
 

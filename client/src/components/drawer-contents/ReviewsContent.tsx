@@ -157,13 +157,8 @@ const ReviewsContent: React.FC<ReviewsContentProps> = ({ userId }) => {
                       </div>
                       
                       <div className="flex items-center space-x-2 text-muted-foreground">
-                        <div className="flex items-center text-xs">
-                          <ThumbsUp className="h-3 w-3 mr-1" />
-                          <span>{Math.floor(Math.random() * 5)}</span>
-                        </div>
-                        <div className="flex items-center text-xs">
-                          <MessageSquare className="h-3 w-3 mr-1" />
-                          <span>{Math.floor(Math.random() * 3)}</span>
+                        <div className="text-xs">
+                          <span className="text-muted-foreground italic">{new Date(review.dateReviewed || Date.now()).toLocaleString()}</span>
                         </div>
                       </div>
                     </div>
