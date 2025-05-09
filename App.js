@@ -1,5 +1,10 @@
+
 import { registerRootComponent } from 'expo';
+import { initializeApp } from '@capacitor/core';
 import App from './client/src/App';
 
-// Register the main component for Expo
+// Initialize Capacitor
+initializeApp();
+
+// Register the main App component
 registerRootComponent(App);
