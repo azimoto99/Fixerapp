@@ -35,19 +35,19 @@ export class DatabaseStorage implements IStorage {
       ttl: 30 * 24 * 60 * 60
     });
   }
-  
+
   // Stripe-specific methods
   async updateStripeCustomerId(userId: number, stripeCustomerId: string): Promise<User | undefined> {
     return this.updateUser(userId, { stripeCustomerId });
   }
-  
+
   async updateStripeConnectAccount(userId: number, connectAccountId: string, connectAccountStatus: string): Promise<User | undefined> {
     return this.updateUser(userId, { 
       stripeConnectAccountId: connectAccountId,
       stripeConnectAccountStatus: connectAccountStatus
     });
   }
-  
+
   async updateUserStripeInfo(userId: number, stripeInfo: { 
     stripeCustomerId?: string;
     stripeConnectAccountId?: string;
@@ -67,14 +67,14 @@ export class DatabaseStorage implements IStorage {
     try {
       // First try to get all users with all fields
       const allUsers = await db.select().from(users);
-      
+
       // Add the virtual fields to each user
       return allUsers.map(user => this.addVirtualFields(user));
     } catch (error: any) {
       // If there's an error about missing columns, try a more selective query
       if (error.message && error.message.includes("column") && error.message.includes("does not exist")) {
         console.warn("Missing columns in users table, using fallback query:", error.message);
-        
+
         // Use a specific select without the new columns
         const query = `
           SELECT 
@@ -93,10 +93,10 @@ export class DatabaseStorage implements IStorage {
             stripe_banking_details_complete as "stripeBankingDetailsComplete"
           FROM users
         `;
-        
+
         const result = await db.execute(query);
         if (!result.rows) return [];
-        
+
         // Add the virtual fields to each user
         return result.rows.map(user => this.addVirtualFields(user));
       }
@@ -108,23 +108,23 @@ export class DatabaseStorage implements IStorage {
   // Helper function to add virtual fields to user objects
   private addVirtualFields(user: typeof users.$inferSelect): User {
     if (!user) return user;
-    
+
     // Check if user needs to complete profile
     const hasSocialLogin = Boolean(user.googleId || user.facebookId);
     const hasPendingAccountType = user.accountType === 'pending';
     const hasMissingProfileFields = !user.bio || !user.phone;
     const needsProfileCompletion = hasSocialLogin && (hasPendingAccountType || hasMissingProfileFields);
-    
+
     // Check if user needs to accept Stripe terms
     // User needs to accept terms if they have a Stripe Connect account but haven't accepted terms
     const hasStripeAccount = Boolean(user.stripeConnectAccountId);
     const needsStripeTerms = hasStripeAccount && !user.stripeTermsAccepted;
-    
+
     // Check if user needs to provide representative information
     // User needs to provide representative info if they have accepted terms but haven't provided representative info
     const needsRepresentative = user.stripeTermsAccepted && 
       (!user.stripeRepresentativeName || !user.stripeRepresentativeTitle);
-    
+
     return {
       ...user,
       requiresProfileCompletion: needsProfileCompletion,
@@ -132,7 +132,7 @@ export class DatabaseStorage implements IStorage {
       requiresStripeRepresentative: needsRepresentative
     };
   }
-  
+
   async getUser(id: number): Promise<User | undefined> {
     try {
       // First try to get the user with all fields
@@ -142,7 +142,7 @@ export class DatabaseStorage implements IStorage {
       // If there's an error about missing columns, try a more selective query
       if (error.message && error.message.includes("column") && error.message.includes("does not exist")) {
         console.warn("Missing columns in users table, using fallback query:", error.message);
-        
+
         // Use a specific select without the new columns
         const query = `
           SELECT 
@@ -161,10 +161,10 @@ export class DatabaseStorage implements IStorage {
             stripe_banking_details_complete as "stripeBankingDetailsComplete"
           FROM users WHERE id = $1
         `;
-        
+
         const result = await db.execute(query, [id]);
         if (result.length === 0) return undefined;
-        
+
         return this.addVirtualFields(result[0]);
       }
       // For other errors, rethrow
@@ -181,7 +181,7 @@ export class DatabaseStorage implements IStorage {
       // If there's an error about missing columns, try a more selective query
       if (error.message && error.message.includes("column") && error.message.includes("does not exist")) {
         console.warn("Missing columns in users table, using fallback query:", error.message);
-        
+
         // Use a specific select without the new columns
         const query = `
           SELECT 
@@ -200,17 +200,17 @@ export class DatabaseStorage implements IStorage {
             stripe_banking_details_complete as "stripeBankingDetailsComplete"
           FROM users WHERE username = $1
         `;
-        
+
         const result = await db.execute(query, [username]);
         if (result.length === 0) return undefined;
-        
+
         return this.addVirtualFields(result[0]);
       }
       // For other errors, rethrow
       throw error;
     }
   }
-  
+
   async getUserByUsernameAndType(username: string, accountType: string): Promise<User | undefined> {
     try {
       // First try to get the user with all fields
@@ -225,7 +225,7 @@ export class DatabaseStorage implements IStorage {
       // If there's an error about missing columns, try a more selective query
       if (error.message && error.message.includes("column") && error.message.includes("does not exist")) {
         console.warn("Missing columns in users table, using fallback query:", error.message);
-        
+
         // Use a specific select without the new columns
         const query = `
           SELECT 
@@ -244,10 +244,10 @@ export class DatabaseStorage implements IStorage {
             stripe_banking_details_complete as "stripeBankingDetailsComplete"
           FROM users WHERE username = $1 AND account_type = $2
         `;
-        
+
         const result = await db.execute(query, [username, accountType]);
         if (!result.rows || result.rows.length === 0) return undefined;
-        
+
         return this.addVirtualFields(result.rows[0]);
       }
       // For other errors, rethrow
@@ -263,10 +263,10 @@ export class DatabaseStorage implements IStorage {
       requiresStripeRepresentative, 
       ...dbUser 
     } = user;
-    
+
     // Insert the user without the virtual fields
     const [createdUser] = await db.insert(users).values(dbUser).returning();
-    
+
     // Add the virtual fields using our helper function
     return this.addVirtualFields(createdUser);
   }
@@ -279,46 +279,46 @@ export class DatabaseStorage implements IStorage {
       requiresStripeRepresentative, 
       ...dbData 
     } = data;
-    
+
     // Update the user without the virtual fields
     const [updatedUser] = await db.update(users)
       .set(dbData)
       .where(eq(users.id, id))
       .returning();
-      
+
     if (!updatedUser) return undefined;
-    
+
     // Add the virtual fields using our helper function
     return this.addVirtualFields(updatedUser);
   }
-  
+
   // User profile methods
   async uploadProfileImage(userId: number, imageData: string): Promise<User | undefined> {
     return this.updateUser(userId, { avatarUrl: imageData });
   }
-  
+
   async updateUserSkills(userId: number, skills: string[]): Promise<User | undefined> {
     return this.updateUser(userId, { skills });
   }
-  
+
   async verifyUserSkill(userId: number, skill: string, isVerified: boolean): Promise<User | undefined> {
     // Get the user first
     const user = await this.getUser(userId);
     if (!user) return undefined;
-    
+
     // In a real implementation, we would update a separate table tracking verified skills
     // For now, we'll just return the user with an updated skillsVerified property
     const skillsVerified = { ...(user.skillsVerified || {}) };
     skillsVerified[skill] = isVerified;
-    
+
     const updatedUser = {
       ...user,
       skillsVerified
     };
-    
+
     return updatedUser;
   }
-  
+
   async updateUserMetrics(userId: number, metrics: {
     completedJobs?: number;
     successRate?: number;
@@ -327,7 +327,7 @@ export class DatabaseStorage implements IStorage {
     // Get the user first
     const user = await this.getUser(userId);
     if (!user) return undefined;
-    
+
     // In a real implementation, we would update a metrics table
     // For now, we'll just return the user with updated metrics
     const updatedUser = {
@@ -336,21 +336,21 @@ export class DatabaseStorage implements IStorage {
       successRate: metrics.successRate !== undefined ? metrics.successRate : (user.successRate || 0),
       responseTime: metrics.responseTime !== undefined ? metrics.responseTime : (user.responseTime || 0)
     };
-    
+
     return updatedUser;
   }
-  
+
   async getUsersWithSkills(skills: string[]): Promise<User[]> {
     // Get all users and filter by skills
     const allUsers = await this.getAllUsers();
-    
+
     // Filter users that have at least one of the requested skills
     return allUsers.filter(user => {
       if (!user.skills || !Array.isArray(user.skills)) return false;
       return user.skills.some(skill => skills.includes(skill));
     });
   }
-  
+
   // Job operations
   async getJob(id: number): Promise<Job | undefined> {
     const [job] = await db.select().from(jobs).where(eq(jobs.id, id));
@@ -365,24 +365,24 @@ export class DatabaseStorage implements IStorage {
     search?: string;
   }): Promise<Job[]> {
     let conditions = [];
-    
+
     if (filters) {
       if (filters.category) {
         conditions.push(eq(jobs.category, filters.category));
       }
-      
+
       if (filters.status) {
         conditions.push(eq(jobs.status, filters.status));
       }
-      
+
       if (filters.posterId) {
         conditions.push(eq(jobs.posterId, filters.posterId));
       }
-      
+
       if (filters.workerId) {
         conditions.push(eq(jobs.workerId, filters.workerId));
       }
-      
+
       if (filters.search) {
         conditions.push(
           or(
@@ -393,7 +393,7 @@ export class DatabaseStorage implements IStorage {
         );
       }
     }
-    
+
     if (conditions.length > 0) {
       return await db.select().from(jobs).where(and(...conditions)).orderBy(desc(jobs.datePosted));
     } else {
@@ -405,7 +405,7 @@ export class DatabaseStorage implements IStorage {
     // Service fee is fixed at $2.50
     const serviceFee = 2.5;
     const totalAmount = job.paymentType === 'fixed' ? job.paymentAmount + serviceFee : job.paymentAmount;
-    
+
     // Create a job object with all required fields, including those specified in InsertJob
     const jobData = {
       title: job.title,
@@ -427,7 +427,7 @@ export class DatabaseStorage implements IStorage {
       workerId: null as number | null,
       datePosted: new Date()
     };
-    
+
     const [createdJob] = await db.insert(jobs).values(jobData).returning();
     return createdJob;
   }
@@ -438,10 +438,10 @@ export class DatabaseStorage implements IStorage {
     if (!existingJob) {
       return undefined;
     }
-    
+
     // Build an object with just the fields we want to update
     const updateData: Partial<Job> = {};
-    
+
     // Copy over fields from data that we want to update
     if (data.title !== undefined) updateData.title = data.title;
     if (data.description !== undefined) updateData.description = data.description;
@@ -452,24 +452,24 @@ export class DatabaseStorage implements IStorage {
     if (data.dateNeeded !== undefined) updateData.dateNeeded = data.dateNeeded;
     if (data.requiredSkills !== undefined) updateData.requiredSkills = data.requiredSkills;
     if (data.equipmentProvided !== undefined) updateData.equipmentProvided = data.equipmentProvided;
-    
+
     // Special handling for payment info to recalculate the total
     if (data.paymentAmount !== undefined || data.paymentType !== undefined) {
       const paymentType = data.paymentType || existingJob.paymentType;
       const paymentAmount = data.paymentAmount !== undefined ? data.paymentAmount : existingJob.paymentAmount;
       const serviceFee = 2.5; // Fixed service fee
-      
+
       updateData.paymentType = paymentType;
       updateData.paymentAmount = paymentAmount;
       updateData.serviceFee = serviceFee;
       updateData.totalAmount = paymentType === 'fixed' ? paymentAmount + serviceFee : paymentAmount;
     }
-    
+
     const [updatedJob] = await db.update(jobs)
       .set(updateData)
       .where(eq(jobs.id, id))
       .returning();
-    
+
     return updatedJob;
   }
 
@@ -478,7 +478,7 @@ export class DatabaseStorage implements IStorage {
     // For PostgreSQL, we can check if any rows were affected
     return !!result;
   }
-  
+
   // Helper function to calculate distance between two points
   private calculateDistance(lat1: number, lon1: number, lat2: number, lon2: number): number {
     const R = 3958.8; // Earth's radius in miles
@@ -491,7 +491,7 @@ export class DatabaseStorage implements IStorage {
     const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
     return R * c;
   }
-  
+
   async getJobsNearLocation(
     latitude: number, 
     longitude: number, 
@@ -501,7 +501,7 @@ export class DatabaseStorage implements IStorage {
     // This is not efficient for large datasets, but for a small app it's simpler
     // than implementing a complex geospatial query
     const allJobs = await db.select().from(jobs);
-    
+
     return allJobs.filter(job => {
       const distance = this.calculateDistance(
         latitude, 
@@ -512,7 +512,7 @@ export class DatabaseStorage implements IStorage {
       return distance <= radiusMiles;
     });
   }
-  
+
   // Application operations
   async getApplication(id: number): Promise<Application | undefined> {
     const [application] = await db.select().from(applications).where(eq(applications.id, id));
@@ -537,25 +537,25 @@ export class DatabaseStorage implements IStorage {
       status: 'pending',
       dateApplied: new Date(),
     };
-    
+
     const [createdApplication] = await db.insert(applications).values(applicationData).returning();
     return createdApplication;
   }
 
   async updateApplication(id: number, data: Partial<InsertApplication>): Promise<Application | undefined> {
     const updateData: Partial<Application> = {};
-    
+
     // Copy over fields from data that we want to update
     if (data.message !== undefined) updateData.message = data.message;
-    
+
     const [updatedApplication] = await db.update(applications)
       .set(updateData)
       .where(eq(applications.id, id))
       .returning();
-    
+
     return updatedApplication;
   }
-  
+
   // Review operations
   async getReview(id: number): Promise<Review | undefined> {
     const [review] = await db.select().from(reviews).where(eq(reviews.id, id));
@@ -581,7 +581,7 @@ export class DatabaseStorage implements IStorage {
       // Additional fields with default values
       dateReviewed: new Date(),
     };
-    
+
     const [createdReview] = await db.insert(reviews).values(reviewData).returning();
     return createdReview;
   }
@@ -603,7 +603,7 @@ export class DatabaseStorage implements IStorage {
     // First, count existing tasks for this job to determine position
     const existingTasks = await this.getTasksForJob(task.jobId);
     const position = existingTasks.length;
-    
+
     // Create a task object with all required fields
     const taskData = {
       jobId: task.jobId,
@@ -614,68 +614,68 @@ export class DatabaseStorage implements IStorage {
       completedAt: null,
       completedBy: null
     };
-    
+
     const [createdTask] = await db.insert(tasks).values(taskData).returning();
     return createdTask;
   }
 
   async updateTask(id: number, data: Partial<Task>): Promise<Task | undefined> {
     const updateData: Partial<Task> = {};
-    
+
     // Copy over fields from data that we want to update
     if (data.description !== undefined) updateData.description = data.description;
     if (data.position !== undefined) updateData.position = data.position;
     if (data.isCompleted !== undefined) updateData.isCompleted = data.isCompleted;
-    
+
     const [updatedTask] = await db.update(tasks)
       .set(updateData)
       .where(eq(tasks.id, id))
       .returning();
-    
+
     return updatedTask;
   }
 
   async completeTask(id: number, completedBy: number): Promise<Task | undefined> {
     const [task] = await db.select().from(tasks).where(eq(tasks.id, id));
     if (!task) return undefined;
-    
+
     const updateData = {
       isCompleted: true,
       completedAt: new Date(),
       completedBy
     };
-    
+
     const [updatedTask] = await db.update(tasks)
       .set(updateData)
       .where(eq(tasks.id, id))
       .returning();
-    
+
     return updatedTask;
   }
 
   async reorderTasks(jobId: number, taskIds: number[]): Promise<Task[]> {
     // Get all tasks for the job
     const jobTasks = await this.getTasksForJob(jobId);
-    
+
     // Make sure all tasks exist and belong to this job
     const allTasksExist = taskIds.every(id => jobTasks.some(task => task.id === id));
     if (!allTasksExist) {
       throw new Error('Some tasks do not exist or do not belong to this job');
     }
-    
+
     // Update positions for each task
     const updatedTasks: Task[] = [];
-    
+
     for (let i = 0; i < taskIds.length; i++) {
       const taskId = taskIds[i];
       const [updatedTask] = await db.update(tasks)
         .set({ position: i })
         .where(and(eq(tasks.id, taskId), eq(tasks.jobId, jobId)))
         .returning();
-      
+
       updatedTasks.push(updatedTask);
     }
-    
+
     // Return tasks sorted by position
     return updatedTasks.sort((a, b) => a.position - b.position);
   }
@@ -699,15 +699,15 @@ export class DatabaseStorage implements IStorage {
       .where(eq(earnings.jobId, jobId))
       .orderBy(desc(earnings.dateEarned));
   }
-  
+
   async getAllEarningsByStatus(statusList: string[]): Promise<Earning[]> {
     if (!statusList || statusList.length === 0) {
       return [];
     }
-    
+
     // Create conditions for each status in the list using 'or'
     const statusConditions = statusList.map(status => eq(earnings.status, status));
-    
+
     return await db.select()
       .from(earnings)
       .where(or(...statusConditions))
@@ -717,10 +717,10 @@ export class DatabaseStorage implements IStorage {
   async createEarning(earning: InsertEarning): Promise<Earning> {
     // Default service fee if not provided
     const serviceFee = earning.serviceFee ?? 2.5;
-    
+
     // Calculate net amount (earnings - service fee)
     const netAmount = earning.amount - serviceFee;
-    
+
     // Create earning object with all required fields
     const earningData = {
       workerId: earning.workerId,
@@ -733,32 +733,32 @@ export class DatabaseStorage implements IStorage {
       dateEarned: new Date(),
       datePaid: null,
     };
-    
+
     const [createdEarning] = await db.insert(earnings).values(earningData).returning();
     return createdEarning;
   }
 
   async updateEarningStatus(id: number, status: string, datePaid?: Date): Promise<Earning | undefined> {
     const updateData: Partial<Earning> = { status };
-    
+
     if (status === 'paid' && datePaid) {
       updateData.datePaid = datePaid;
     }
-    
+
     const [updatedEarning] = await db.update(earnings)
       .set(updateData)
       .where(eq(earnings.id, id))
       .returning();
-    
+
     return updatedEarning;
   }
-  
+
   async updateEarningTransferId(id: number, transferId: string): Promise<Earning | undefined> {
     const [updatedEarning] = await db.update(earnings)
       .set({ transferId })
       .where(eq(earnings.id, id))
       .returning();
-      
+
     return updatedEarning;
   }
 
@@ -767,7 +767,7 @@ export class DatabaseStorage implements IStorage {
     const [payment] = await db.select().from(payments).where(eq(payments.id, id));
     return payment;
   }
-  
+
   async getPaymentByTransactionId(transactionId: string): Promise<Payment | undefined> {
     const [payment] = await db.select().from(payments).where(eq(payments.transactionId, transactionId));
     return payment;
@@ -785,25 +785,25 @@ export class DatabaseStorage implements IStorage {
       ...payment,
       createdAt: new Date()
     }).returning();
-    
+
     return createdPayment;
   }
 
   async updatePaymentStatus(id: number, status: string, transactionId?: string): Promise<Payment | undefined> {
     const updateData: Partial<Payment> = { status };
-    
+
     if (transactionId) {
       updateData.transactionId = transactionId;
     }
-    
+
     const [updatedPayment] = await db.update(payments)
       .set(updateData)
       .where(eq(payments.id, id))
       .returning();
-    
+
     return updatedPayment;
   }
-  
+
   // Badge operations
   async getBadge(id: number): Promise<Badge | undefined> {
     const [badge] = await db.select().from(badges).where(eq(badges.id, id));
@@ -850,44 +850,44 @@ export class DatabaseStorage implements IStorage {
   // Notification operations
   async getNotifications(userId: number, options?: { isRead?: boolean, limit?: number }): Promise<Notification[]> {
     let query = db.select().from(notifications).where(eq(notifications.userId, userId));
-    
+
     // Apply read status filter if provided
     if (options && options.isRead !== undefined) {
       query = query.where(eq(notifications.isRead, options.isRead));
     }
-    
+
     // Order by created date (newest first)
     query = query.orderBy(desc(notifications.createdAt));
-    
+
     // Apply limit if provided
     if (options && options.limit) {
       query = query.limit(options.limit);
     }
-    
+
     const result = await query;
     return result;
   }
-  
+
   async getNotification(id: number): Promise<Notification | undefined> {
     const [notification] = await db.select().from(notifications).where(eq(notifications.id, id));
     return notification;
   }
-  
+
   async createNotification(notification: InsertNotification): Promise<Notification> {
     const [result] = await db.insert(notifications).values(notification).returning();
     return result;
   }
-  
+
   async markNotificationAsRead(id: number): Promise<Notification | undefined> {
     const [notification] = await db
       .update(notifications)
       .set({ isRead: true })
       .where(eq(notifications.id, id))
       .returning();
-    
+
     return notification;
   }
-  
+
   async markAllNotificationsAsRead(userId: number): Promise<number> {
     const result = await db
       .update(notifications)
@@ -898,38 +898,38 @@ export class DatabaseStorage implements IStorage {
           eq(notifications.isRead, false)
         )
       );
-    
+
     // Return the number of affected rows
     return result.rowCount || 0;
   }
-  
+
   async deleteNotification(id: number): Promise<boolean> {
     const result = await db.delete(notifications).where(eq(notifications.id, id));
     return !!result.rowCount;
   }
-  
+
   async notifyNearbyWorkers(jobId: number, radiusMiles: number): Promise<number> {
     // Get the job details
     const job = await this.getJob(jobId);
     if (!job) return 0;
-    
+
     // Get the poster's details for the notification
     const poster = await this.getUser(job.posterId);
     if (!poster) return 0;
-    
+
     // Find all workers in the database
     const allWorkers = await db
       .select()
       .from(users)
       .where(eq(users.accountType, 'worker'))
       .execute();
-    
+
     let notificationCount = 0;
-    
+
     for (const worker of allWorkers) {
       // Skip workers who don't have location data
       if (!worker.latitude || !worker.longitude) continue;
-      
+
       // Calculate distance between job and worker
       const distance = this.calculateDistance(
         job.latitude,
@@ -937,7 +937,7 @@ export class DatabaseStorage implements IStorage {
         worker.latitude,
         worker.longitude
       );
-      
+
       // If worker is within the radius, send notification
       if (distance <= radiusMiles) {
         try {
@@ -950,27 +950,17 @@ export class DatabaseStorage implements IStorage {
             sourceType: 'job',
             metadata: { distance: distance.toFixed(1) }
           });
-          
+
           notificationCount++;
         } catch (error) {
           console.error(`Failed to notify worker ${worker.id} about job ${jobId}:`, error);
         }
       }
     }
-    
+
     return notificationCount;
   }
-  
+
   // Helper function to calculate distance between two points using Haversine formula
-  private calculateDistance(lat1: number, lon1: number, lat2: number, lon2: number): number {
-    const R = 3958.8; // Earth's radius in miles
-    const dLat = (lat2 - lat1) * Math.PI / 180;
-    const dLon = (lon2 - lon1) * Math.PI / 180;
-    const a = 
-      Math.sin(dLat / 2) * Math.sin(dLat / 2) +
-      Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * 
-      Math.sin(dLon / 2) * Math.sin(dLon / 2);
-    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-    return R * c;
-  }
+  // Method removed to prevent duplication
 }
