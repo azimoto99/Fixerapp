@@ -2295,8 +2295,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
         else if (event.type === 'account.application.deauthorized') {
           await handleConnectAccountDeauthorized(event.data.object);
         }
-        else if (event.type === 'transfer.created' || event.type === 'transfer.paid') {
+        else if (event.type === 'transfer.created' || event.type === 'transfer.paid' || event.type === 'transfer.failed') {
           await handleTransferEvent(event.data.object, event.type);
+        }
+        else if (event.type === 'charge.succeeded') {
+          console.log(`Charge succeeded: ${event.data.object.id} for amount ${event.data.object.amount}`);
+        } 
+        else if (event.type.startsWith('customer.subscription.')) {
+          console.log(`Subscription event: ${event.type} for subscription ${event.data.object.id}`);
+        }
+        else if (event.type.startsWith('payment_method.')) {
+          console.log(`Payment method event: ${event.type} for method ${event.data.object.id}`);
         }
         else {
           // Log unhandled event types for monitoring
@@ -2659,7 +2668,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   async function handleTransferEvent(transfer: Stripe.Transfer, eventType: string) {
     try {
       // Extract metadata from transfer (job ID, worker ID, earning ID)
-      const { jobId, workerId, earningId } = transfer.metadata || {};
+      const { jobId, workerId, earningId, paymentId } = transfer.metadata || {};
       
       if (!jobId || !workerId || !earningId) {
         console.log(`Transfer ${transfer.id} doesn't have required metadata, ignoring`);
@@ -2670,6 +2679,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const jobIdInt = parseInt(jobId);
       const workerIdInt = parseInt(workerId);
       const earningIdInt = parseInt(earningId);
+      const paymentIdInt = paymentId ? parseInt(paymentId) : null;
       
       // Get the earning record
       const earning = await storage.getEarning(earningIdInt);
@@ -2678,16 +2688,104 @@ export async function registerRoutes(app: Express): Promise<Server> {
         console.error(`No earning found with ID: ${earningIdInt}`);
         return;
       }
+
+      // Get the worker to notify them about the transfer
+      const worker = await storage.getUser(workerIdInt);
+      if (!worker) {
+        console.error(`No worker found with ID: ${workerIdInt}`);
+        return;
+      }
+      
+      // Get the job to include details in notifications
+      const job = await storage.getJob(jobIdInt);
+      if (!job) {
+        console.error(`No job found with ID: ${jobIdInt}`);
+        return;
+      }
       
       // Update the earning status based on the transfer event
       if (eventType === 'transfer.paid') {
         // Transfer has been paid out to the worker's bank account
         await storage.updateEarningStatus(earningIdInt, 'paid', new Date());
         console.log(`Earning ${earningIdInt} for job ${jobIdInt} marked as paid via webhook`);
+        
+        // Create a notification for the worker
+        await storage.createNotification({
+          userId: workerIdInt,
+          type: 'payment_received',
+          title: 'Payment Received',
+          message: `Your payment of $${(transfer.amount / 100).toFixed(2)} for job "${job.title}" has been sent to your bank account.`,
+          isRead: false,
+          sourceType: 'job',
+          sourceId: jobIdInt,
+          metadata: {
+            transferId: transfer.id,
+            amount: transfer.amount / 100,
+            jobTitle: job.title,
+            paymentDate: new Date().toISOString()
+          }
+        });
+
       } else if (eventType === 'transfer.created') {
         // Transfer has been created but not yet paid out
         await storage.updateEarningStatus(earningIdInt, 'processing');
         console.log(`Earning ${earningIdInt} for job ${jobIdInt} marked as processing via webhook`);
+        
+        // Create a notification for the worker
+        await storage.createNotification({
+          userId: workerIdInt,
+          type: 'payment_processing',
+          title: 'Payment Processing',
+          message: `Your payment of $${(transfer.amount / 100).toFixed(2)} for job "${job.title}" is being processed.`,
+          isRead: false,
+          sourceType: 'job',
+          sourceId: jobIdInt,
+          metadata: {
+            transferId: transfer.id,
+            amount: transfer.amount / 100,
+            jobTitle: job.title
+          }
+        });
+      } else if (eventType === 'transfer.failed') {
+        // Transfer failed - handle appropriately
+        await storage.updateEarningStatus(earningIdInt, 'failed');
+        console.log(`Earning ${earningIdInt} for job ${jobIdInt} marked as failed via webhook`);
+        
+        // Create a notification for the worker about the failed transfer
+        await storage.createNotification({
+          userId: workerIdInt,
+          type: 'payment_failed',
+          title: 'Payment Failed',
+          message: `There was an issue processing your payment of $${(transfer.amount / 100).toFixed(2)} for job "${job.title}". Our team is looking into it.`,
+          isRead: false,
+          sourceType: 'job',
+          sourceId: jobIdInt,
+          metadata: {
+            transferId: transfer.id,
+            amount: transfer.amount / 100,
+            jobTitle: job.title,
+            errorDate: new Date().toISOString()
+          }
+        });
+        
+        // TODO: In a production app, also notify admins about the failed transfer
+      }
+      
+      // If there's a job ID, update the job to indicate payment status
+      if (job) {
+        let paymentStatus = '';
+        
+        if (eventType === 'transfer.paid') {
+          paymentStatus = 'paid';
+        } else if (eventType === 'transfer.created') {
+          paymentStatus = 'processing';
+        } else if (eventType === 'transfer.failed') {
+          paymentStatus = 'failed';
+        }
+        
+        if (paymentStatus) {
+          await storage.updateJob(jobIdInt, { paymentStatus });
+        }
       }
     } catch (error) {
       console.error(`Error handling transfer event: ${(error as Error).message}`);
