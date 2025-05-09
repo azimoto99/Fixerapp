@@ -7,6 +7,7 @@ import UserDrawerV2 from './UserDrawerV2';
 import HeatmapLayer from './HeatmapLayer';
 import MapViewToggle from './MapViewToggle';
 import HeatmapLegend from './HeatmapLegend';
+import FindNearestJobButton from './FindNearestJobButton';
 import { Job } from '@shared/schema';
 import { 
   MapContainer, 
