@@ -80,14 +80,15 @@ const Header = () => {
           </nav>
         </div>
         <div className="flex items-center space-x-4">
-          {/* Show post job button for all users (even non-logged in) in the header */}
+          {user && <NotificationPopover className="hidden md:flex" />}
+          
+          {/* Post Job Button - Next to User Drawer Button */}
           <Link href="/post-job">
-            <div className="hidden md:flex text-white bg-emerald-600 hover:bg-emerald-700 font-medium py-2 px-4 rounded-md">
-              Post a Job
+            <div className="flex text-white bg-emerald-600 hover:bg-emerald-700 font-medium py-2 px-4 rounded-md">
+              + Post Job
             </div>
           </Link>
           
-          {user && <NotificationPopover className="hidden md:flex" />}
           {user ? (
             <div className="cursor-pointer" onClick={(e) => {
               e.stopPropagation();
