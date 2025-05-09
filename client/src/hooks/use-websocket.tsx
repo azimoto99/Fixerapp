@@ -56,7 +56,7 @@ export function useWebSocket() {
             toast({
               title: 'Stripe Account Update',
               description: data.message || 'Your Stripe account status has changed',
-              variant: data.status === 'requires_information' ? 'warning' : 'default',
+              variant: data.status === 'requires_information' ? 'destructive' : 'default',
             });
           }
           

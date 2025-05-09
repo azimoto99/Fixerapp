@@ -20,6 +20,7 @@ import NotificationsPage from "@/pages/notifications-page";
 import ResetPassword from "@/pages/ResetPassword";
 import { AuthProvider } from "@/hooks/use-auth";
 import { NotificationProvider } from "@/hooks/use-notifications";
+import { RealTimeNotificationProvider } from "@/providers/notification-provider";
 import { ProtectedRoute } from "@/lib/protected-route";
 import { useAuth } from "@/hooks/use-auth";
 import { StripeConnectCheck, StripeRequirementsCheck } from "@/components/stripe";
@@ -109,11 +110,11 @@ function App() {
         <TooltipProvider>
           <SimpleToastProvider>
             <AuthProvider>
-              <NotificationProvider>
+              <RealTimeNotificationProvider>
                 <OnboardingProvider>
                   <AuthenticatedContent />
                 </OnboardingProvider>
-              </NotificationProvider>
+              </RealTimeNotificationProvider>
             </AuthProvider>
           </SimpleToastProvider>
         </TooltipProvider>
