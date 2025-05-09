@@ -2,6 +2,7 @@ import { Router, Request, Response } from 'express';
 import Stripe from 'stripe';
 import { storage } from './storage';
 import { createHmac } from 'crypto';
+import { getNotificationService } from './notification-service';
 
 // Initialize Stripe
 if (!process.env.STRIPE_SECRET_KEY) {
@@ -173,6 +174,35 @@ async function handlePaymentIntentSucceeded(paymentIntent: Stripe.PaymentIntent)
       }
     }
     
+    // Send real-time notification if notification service is available
+    const notificationService = getNotificationService();
+    if (notificationService) {
+      // Send notification to the job poster
+      if (payment.jobId) {
+        const job = await storage.getJob(payment.jobId);
+        if (job) {
+          notificationService.sendPaymentNotification(
+            payment.jobId,
+            'completed',
+            payment.amount,
+            job.posterId,
+            'payment'
+          );
+          
+          // If worker exists, send notification to them too
+          if (job.workerId) {
+            notificationService.sendPaymentNotification(
+              payment.jobId,
+              'completed',
+              payment.amount,
+              job.workerId,
+              'payment'
+            );
+          }
+        }
+      }
+    }
+    
     console.log(`Successfully processed payment_intent.succeeded for payment ${payment.id}`);
   } catch (error: any) {
     console.error('Error handling payment_intent.succeeded:', error);
@@ -214,6 +244,21 @@ async function handlePaymentIntentFailed(paymentIntent: Stripe.PaymentIntent) {
           linkType: 'payment',
           linkId: payment.id
         });
+      }
+    }
+    
+    // Send real-time notification if notification service is available
+    const notificationService = getNotificationService();
+    if (notificationService && payment.jobId) {
+      const job = await storage.getJob(payment.jobId);
+      if (job) {
+        notificationService.sendPaymentNotification(
+          payment.jobId,
+          'failed',
+          payment.amount,
+          job.posterId,
+          'payment'
+        );
       }
     }
     
@@ -271,6 +316,19 @@ async function handleTransferCreated(transfer: Stripe.Transfer) {
       linkId: earning.id
     });
     
+    // Send real-time notification if notification service is available
+    const notificationService = getNotificationService();
+    if (notificationService) {
+      const job = await storage.getJob(earning.jobId);
+      notificationService.sendPaymentNotification(
+        earning.jobId,
+        'processing',
+        earning.netAmount,
+        earning.workerId,
+        'payout' // This is a payout notification
+      );
+    }
+    
     console.log(`Successfully processed transfer.created for earning ${earning.id}`);
   } catch (error: any) {
     console.error('Error handling transfer.created:', error);
@@ -321,6 +379,18 @@ async function handleTransferPaid(transfer: Stripe.Transfer) {
       linkId: earning.id
     });
     
+    // Send real-time notification if notification service is available
+    const notificationService = getNotificationService();
+    if (notificationService) {
+      notificationService.sendPaymentNotification(
+        earning.jobId,
+        'paid',
+        earning.netAmount,
+        earning.workerId,
+        'payout' // This is a payout notification
+      );
+    }
+    
     console.log(`Successfully processed transfer.paid for earning ${earning.id}`);
   } catch (error: any) {
     console.error('Error handling transfer.paid:', error);
@@ -369,6 +439,18 @@ async function handleTransferFailed(transfer: Stripe.Transfer) {
     // Also notify an admin if available
     // This would require implementing an admin notification system
     
+    // Send real-time notification if notification service is available
+    const notificationService = getNotificationService();
+    if (notificationService) {
+      notificationService.sendPaymentNotification(
+        earning.jobId,
+        'failed',
+        earning.netAmount,
+        earning.workerId,
+        'payout' // This is a payout notification
+      );
+    }
+    
     console.log(`Successfully processed transfer.failed for earning ${earning.id}`);
   } catch (error: any) {
     console.error('Error handling transfer.failed:', error);
@@ -413,6 +495,20 @@ async function handleAccountUpdated(account: Stripe.Account) {
     
     // Update the user record
     await storage.updateUser(user.id, updateData);
+    
+    // Send real-time notification if notification service is available
+    const notificationService = getNotificationService();
+    if (notificationService && account.capabilities?.transfers === 'active') {
+      notificationService.sendAccountUpdateNotification(
+        user.id,
+        'verified'
+      );
+    } else if (notificationService && account.requirements?.currently_due?.length) {
+      notificationService.sendAccountUpdateNotification(
+        user.id,
+        'requires_information'
+      );
+    }
     
     console.log(`Successfully processed account.updated for user ${user.id}`);
   } catch (error: any) {
