@@ -24,13 +24,15 @@ export class DatabaseStorage implements IStorage {
   sessionStore: session.Store;
 
   constructor() {
-    // Initialize session store but don't create tables, leave that to FixedDatabaseStorage
+    // Initialize session store with better configuration
     this.sessionStore = new PostgresSessionStore({ 
       pool,
-      // Don't attempt to create the table here to avoid conflicts
-      createTableIfMissing: false,
-      // Turn off session pruning here as it's handled by FixedDatabaseStorage
-      pruneSessionInterval: false 
+      // Always ensure the table exists
+      createTableIfMissing: true,
+      // Set proper pruning interval (every 24 hours)
+      pruneSessionInterval: 86400000,
+      // Set a long session lifetime for better persistence (30 days)
+      ttl: 30 * 24 * 60 * 60
     });
   }
   
