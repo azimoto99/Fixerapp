@@ -38,6 +38,22 @@ To enable direct payments to workers:
    - OAuth settings: Configure your redirect URI (typically `https://yourapp.com/stripe/connect/callback`)
    - Capabilities: Enable "Transfers" and "Standard payouts"
 
+### Important: Worker Connect Account Capabilities
+
+For transfers to work properly, each worker's Connect account must have the proper capabilities enabled:
+
+1. When creating Connect accounts, make sure to request the "transfers" capability
+2. Guide workers through the full onboarding process, including:
+   - Business details verification
+   - Identity verification
+   - Bank account setup
+
+If you encounter errors like "Your destination account needs to have at least one of the following capabilities enabled: transfers," this indicates the worker's account onboarding is incomplete. You'll need to:
+
+1. Check the account status via the Stripe Dashboard
+2. Provide the worker with their account link to complete the onboarding process
+3. Monitor the account status via webhooks to know when they're ready to receive payments
+
 ## Step 4: Configure Webhooks
 
 Webhooks are crucial for receiving payment status updates:
