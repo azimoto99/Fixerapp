@@ -143,10 +143,10 @@ const UserDrawerV2: React.FC<UserDrawerProps> = ({
 
       {/* Drawer overlay and container */}
       {isOpen && (
-        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-[99998] animate-in fade-in duration-200">
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-[999998] animate-in fade-in duration-200">
           <div
             ref={drawerRef}
-            className="fixed top-0 right-0 bottom-0 w-[320px] bg-background shadow-lg z-[99999] transform transition-transform duration-300 animate-in slide-in-from-right overflow-hidden"
+            className="fixed top-0 right-0 bottom-0 w-[320px] bg-background shadow-lg z-[999999] transform transition-transform duration-300 animate-in slide-in-from-right overflow-hidden"
           >
             {/* Drawer header */}
             <div className="p-4 border-b">

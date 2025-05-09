@@ -332,6 +332,7 @@ const MapSection: React.FC<MapSectionProps> = ({ jobs, selectedJob, onSelectJob,
             height: 100%;
             width: 100%;
             touch-action: manipulation;
+            z-index: 1;
           }
           .custom-job-marker {
             background: none;
@@ -547,7 +548,7 @@ const MapSection: React.FC<MapSectionProps> = ({ jobs, selectedJob, onSelectJob,
 
 
         {/* Map controls and overlay - fixed actions on top */}
-        <div className="absolute top-0 right-0 z-[900] w-full">
+        <div className="absolute top-0 right-0 z-[9000] w-full">
           {/* Floating control panel */}
           <div className="bg-background/70 backdrop-blur-md border-b border-border/20 dark:border-border/20 shadow-sm px-4 py-2">
             <div className="flex justify-between items-center">
