@@ -1,10 +1,11 @@
 import { useState } from 'react';
-import { PlusCircle, Trash2, Clock, MapPin, CreditCard, Check, X } from 'lucide-react';
+import { PlusCircle, Trash2, Clock, MapPin, CreditCard, Check, X, Ruler } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Card, CardContent } from '@/components/ui/card';
+import { Slider } from '@/components/ui/slider';
 import AddressAutocomplete from '@/components/AddressAutocomplete';
 import { cn } from '@/lib/utils';
 import { InsertTask } from '@shared/schema';
@@ -38,6 +39,8 @@ export type TaskItemProps = {
   latitude?: number;
   longitude?: number;
   bonusAmount?: number;
+  // New field for distance radius (in miles) around the task location
+  locationRadius?: number;
 };
 
 type TaskEditorProps = {
@@ -51,6 +54,7 @@ export default function TaskEditor({ tasks, setTasks }: TaskEditorProps) {
   const [showTimeSelector, setShowTimeSelector] = useState(false);
   const [showLocationSelector, setShowLocationSelector] = useState(false);
   const [showBonusSelector, setShowBonusSelector] = useState(false);
+  const [showRadiusSelector, setShowRadiusSelector] = useState(false);
   const [selectedTime, setSelectedTime] = useState<string>('');
   const [bonusAmount, setBonusAmount] = useState<number>(0);
 
@@ -63,7 +67,8 @@ export default function TaskEditor({ tasks, setTasks }: TaskEditorProps) {
       isOptional: false,
       dueTime: selectedTime ? new Date(`2000-01-01T${selectedTime}`) : null,
       location: '',
-      bonusAmount: 0
+      bonusAmount: 0,
+      locationRadius: 0
     };
     
     setTasks([...tasks, newTask]);
@@ -119,6 +124,13 @@ export default function TaskEditor({ tasks, setTasks }: TaskEditorProps) {
     );
     setTasks(updatedTasks);
   };
+  
+  const updateTaskLocationRadius = (index: number, radius: number) => {
+    const updatedTasks = tasks.map((task, i) => 
+      i === index ? { ...task, locationRadius: radius } : task
+    );
+    setTasks(updatedTasks);
+  };
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter' && !e.shiftKey) {
@@ -171,6 +183,13 @@ export default function TaskEditor({ tasks, setTasks }: TaskEditorProps) {
                       <div className="flex items-center gap-1 text-xs bg-muted px-2 py-1 rounded-full">
                         <MapPin className="h-3 w-3" />
                         <span className="truncate max-w-[150px]">{task.location}</span>
+                      </div>
+                    )}
+                    
+                    {task.location && task.locationRadius && task.locationRadius > 0 && (
+                      <div className="flex items-center gap-1 text-xs bg-blue-500/10 text-blue-700 px-2 py-1 rounded-full">
+                        <Ruler className="h-3 w-3" />
+                        <span>Within {task.locationRadius} mile{task.locationRadius !== 1 ? 's' : ''}</span>
                       </div>
                     )}
                     
@@ -235,6 +254,18 @@ export default function TaskEditor({ tasks, setTasks }: TaskEditorProps) {
                       <MapPin className="h-3 w-3 mr-1" />
                       {task.location ? 'Edit Location' : 'Add Location'}
                     </Button>
+                    
+                    {task.location && (
+                      <Button 
+                        variant="outline" 
+                        size="sm"
+                        className={`h-8 text-xs ${showRadiusSelector ? 'bg-primary/10' : ''}`}
+                        onClick={() => setShowRadiusSelector(!showRadiusSelector)}
+                      >
+                        <Ruler className="h-3 w-3 mr-1" />
+                        {task.locationRadius ? `${task.locationRadius} mile radius` : 'Add Radius'}
+                      </Button>
+                    )}
                     
                     {task.isOptional && (
                       <Button 
@@ -327,6 +358,35 @@ export default function TaskEditor({ tasks, setTasks }: TaskEditorProps) {
                       >
                         <X className="h-4 w-4" />
                       </Button>
+                    </div>
+                  )}
+                  
+                  {showRadiusSelector && task.location && (
+                    <div className="space-y-2 pb-2">
+                      <div className="flex justify-between items-center">
+                        <span className="text-sm">Location Radius: {task.locationRadius || 0} miles</span>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="h-8 w-8 p-0"
+                          onClick={() => {
+                            setShowRadiusSelector(false);
+                          }}
+                        >
+                          <X className="h-4 w-4" />
+                        </Button>
+                      </div>
+                      <Slider
+                        defaultValue={[task.locationRadius || 0]}
+                        max={50}
+                        min={0}
+                        step={1}
+                        className="w-full"
+                        onValueChange={(value) => updateTaskLocationRadius(index, value[0])}
+                      />
+                      <p className="text-xs text-muted-foreground">
+                        Set how far from the exact location the task can be completed (0 = exact location required)
+                      </p>
                     </div>
                   )}
                   
