@@ -794,11 +794,27 @@ export class DatabaseStorage implements IStorage {
       .orderBy(desc(earnings.dateEarned));
   }
   
-  async getAllEarningsByStatus(status: string): Promise<Earning[]> {
+  async getAllEarningsByStatus(statusList: string[]): Promise<Earning[]> {
+    if (!statusList || statusList.length === 0) {
+      return [];
+    }
+
+    // If there's only one status, use simpler query
+    if (statusList.length === 1) {
+      return db
+        .select()
+        .from(earnings)
+        .where(eq(earnings.status, statusList[0]))
+        .orderBy(desc(earnings.dateEarned));
+    }
+    
+    // Build OR conditions for multiple statuses
+    const statusConditions = statusList.map(status => eq(earnings.status, status));
+    
     return db
       .select()
       .from(earnings)
-      .where(eq(earnings.status, status))
+      .where(or(...statusConditions))
       .orderBy(desc(earnings.dateEarned));
   }
 
