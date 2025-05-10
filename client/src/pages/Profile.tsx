@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import React, { useState } from 'react';
 import { Link, useLocation } from 'wouter';
 import { useQuery } from '@tanstack/react-query';
 import { useAuth } from '@/hooks/useAuth';
@@ -157,13 +157,13 @@ export default function Profile() {
                 </TabsTrigger>
                 <TabsTrigger value="payments">
                   <span className="flex items-center gap-1">
-                    <Wallet className="h-3.5 w-3.5" />
+                    {React.createElement(Wallet, { className: "h-3.5 w-3.5" })}
                     Payments
                   </span>
                 </TabsTrigger>
                 <TabsTrigger value="earnings">
                   <span className="flex items-center gap-1">
-                    <DollarSign className="h-3.5 w-3.5" />
+                    {React.createElement(DollarSign, { className: "h-3.5 w-3.5" })}
                     {user.accountType === 'worker' ? 'Earnings' : 'Income'}
                   </span>
                 </TabsTrigger>
