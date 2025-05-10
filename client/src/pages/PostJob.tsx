@@ -10,6 +10,7 @@ import { apiRequest } from '@/lib/queryClient';
 import { useGeolocation } from '@/lib/geolocation';
 
 import Header from '@/components/Header';
+import MobileNav from '@/components/MobileNav';
 import PaymentDetailsForm from '@/components/PaymentDetailsForm';
 import AddressAutocomplete from '@/components/AddressAutocomplete';
 import TaskEditor, { TaskItemProps } from '@/components/TaskEditor';
@@ -252,7 +253,7 @@ export default function PostJob() {
     <div className="min-h-screen flex flex-col bg-background">
       <Header />
       
-      <main className="flex-1">
+      <main className="flex-1 pb-16 md:pb-0">
         <div className="max-w-3xl mx-auto py-6 sm:px-6 lg:px-8">
           <div className="bg-card shadow rounded-lg p-6">
             <h1 className="text-2xl font-bold text-foreground mb-6">Post a New Job</h1>
