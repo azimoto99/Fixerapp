@@ -35,6 +35,27 @@ export const users = pgTable("users", {
   stripeRepresentativeTitle: text("stripe_representative_title"), // Title of the representative for Stripe
   stripeRepresentativeRequirementsComplete: boolean("stripe_representative_requirements_complete").default(false), // Whether all representative details have been provided
   stripeBankingDetailsComplete: boolean("stripe_banking_details_complete").default(false), // Whether banking details have been provided
+  // Contact preferences 
+  contactPreferences: jsonb("contact_preferences").default({
+    email: true,
+    sms: false,
+    push: true
+  }), // User's preferences for notifications
+  // Availability settings
+  availability: jsonb("availability").default({
+    weekdays: [true, true, true, true, true],
+    weekend: [false, false],
+    hourStart: 9,
+    hourEnd: 17
+  }), // User's weekly availability schedule
+  // Verification status
+  emailVerified: boolean("email_verified").default(false),
+  phoneVerified: boolean("phone_verified").default(false),
+  identityVerified: boolean("identity_verified").default(false),
+  verificationToken: text("verification_token"), // Token for email verification
+  verificationTokenExpiry: timestamp("verification_token_expiry"), // Expiry for the verification token
+  phoneVerificationCode: text("phone_verification_code"), // SMS verification code
+  phoneVerificationExpiry: timestamp("phone_verification_expiry"), // Expiry for SMS verification code
 }, (table) => {
   // Create a unique constraint on the combination of email and accountType
   // This allows the same email to have multiple accounts with different types
@@ -248,7 +269,24 @@ export type User = typeof users.$inferSelect & {
   requiresStripeTerms?: boolean; // Virtual field to check if user needs to accept Stripe TOS
   requiresStripeRepresentative?: boolean; // Virtual field to check if user needs to provide representative info
   requiresStripeBankingDetails?: boolean; // Virtual field to check if user needs to provide banking details
+  profileCompletionPercentage?: number; // Virtual field showing profile completion status
 };
+
+// Contact preferences type for better TypeScript support
+export type ContactPreferences = {
+  email: boolean;
+  sms: boolean;
+  push: boolean;
+};
+
+// Availability type for better TypeScript support
+export type Availability = {
+  weekdays: boolean[];
+  weekend: boolean[];
+  hourStart: number;
+  hourEnd: number;
+};
+
 export type InsertUser = z.infer<typeof insertUserSchema> & {
   requiresProfileCompletion?: boolean | null; // Virtual field, not in DB
   needsAccountType?: boolean | null; // Virtual field, not in DB
@@ -256,6 +294,8 @@ export type InsertUser = z.infer<typeof insertUserSchema> & {
   requiresStripeTerms?: boolean; // Virtual field for Stripe TOS
   requiresStripeRepresentative?: boolean; // Virtual field for Stripe representative
   requiresStripeBankingDetails?: boolean; // Virtual field for Stripe banking details
+  contactPreferences?: ContactPreferences; // Optional contact preferences
+  availability?: Availability; // Optional availability settings
 };
 
 export type Job = typeof jobs.$inferSelect;
