@@ -3,6 +3,7 @@ import { useForm } from 'react-hook-form';
 import { z } from 'zod';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useAuth } from '@/hooks/use-auth';
+import logoImg from '@/assets/logo.png';
 
 import {
   Card,
@@ -57,7 +58,7 @@ export default function Login({ onModeChange }: LoginProps) {
         <div className="flex justify-center">
           <div className="bg-gray-100 p-5 rounded-xl shadow-sm">
             <img 
-              src="/src/assets/logo.png" 
+              src={logoImg} 
               alt="Fixer" 
               className="h-28 w-auto" 
             />
