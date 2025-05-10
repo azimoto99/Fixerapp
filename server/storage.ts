@@ -32,15 +32,11 @@ import {
 } from "@shared/schema";
 
 import session from "express-session";
-import { db } from "./db";
-import { eq, and, or, like, desc, asc, isNotNull, isNull, sql } from "drizzle-orm";
-import connectPg from "connect-pg-simple";
-import { pool } from "./db";
 
 // Storage interface for all CRUD operations
 export interface IStorage {
   // Session store for authentication
-  sessionStore: session.Store;
+  sessionStore?: session.Store;
   
   // User operations
   getAllUsers(): Promise<User[]>;
@@ -66,21 +62,6 @@ export interface IStorage {
     responseTime?: number;
   }): Promise<User | undefined>;
   getUsersWithSkills(skills: string[]): Promise<User[]>;
-  
-  // Stripe-specific methods
-  updateStripeCustomerId(userId: number, stripeCustomerId: string): Promise<User | undefined>;
-  updateStripeConnectAccount(userId: number, connectAccountId: string, connectAccountStatus: string): Promise<User | undefined>;
-  updateUserStripeInfo(userId: number, stripeInfo: { 
-    stripeCustomerId?: string;
-    stripeConnectAccountId?: string;
-    stripeConnectAccountStatus?: string;
-    stripeTermsAccepted?: boolean;
-    stripeTermsAcceptedAt?: Date;
-    stripeRepresentativeName?: string;
-    stripeRepresentativeTitle?: string;
-    stripeRepresentativeRequirementsComplete?: boolean;
-    stripeBankingDetailsComplete?: boolean;
-  }): Promise<User | undefined>;
   
   // Job operations
   getJob(id: number): Promise<Job | undefined>;
@@ -127,10 +108,8 @@ export interface IStorage {
   getEarning(id: number): Promise<Earning | undefined>;
   getEarningsForWorker(workerId: number): Promise<Earning[]>;
   getEarningsForJob(jobId: number): Promise<Earning[]>;
-  getAllEarningsByStatus(statusList: string[]): Promise<Earning[]>;
   createEarning(earning: InsertEarning): Promise<Earning>;
   updateEarningStatus(id: number, status: string, datePaid?: Date): Promise<Earning | undefined>;
-  updateEarningTransferId(id: number, transferId: string): Promise<Earning | undefined>;
   
   // Payment operations
   getPayment(id: number): Promise<Payment | undefined>;
@@ -162,17 +141,53 @@ export interface IStorage {
   notifyNearbyWorkers(jobId: number, radiusMiles: number): Promise<number>; // Returns count of notifications sent
 }
 
-export class DatabaseStorage implements IStorage {
-  sessionStore: session.Store;
+export class MemStorage implements IStorage {
+  private users: Map<number, User>;
+  private jobs: Map<number, Job>;
+  private applications: Map<number, Application>;
+  private reviews: Map<number, Review>;
+  private tasks: Map<number, Task>;
+  private earnings: Map<number, Earning>;
+  private payments: Map<number, Payment>;
+  private badges: Map<number, Badge>;
+  private userBadges: Map<number, UserBadge>;
+  private notifications: Map<number, Notification>;
   
+  private userIdCounter: number;
+  private jobIdCounter: number;
+  private applicationIdCounter: number;
+  private reviewIdCounter: number;
+  private taskIdCounter: number;
+  private earningIdCounter: number;
+  private paymentIdCounter: number;
+  private badgeIdCounter: number;
+  private userBadgeIdCounter: number;
+  private notificationIdCounter: number;
+
   constructor() {
-    // Initialize PostgreSQL session store
-    const PostgresSessionStore = connectPg(session);
-    this.sessionStore = new PostgresSessionStore({ 
-      pool, 
-      createTableIfMissing: true,
-      tableName: 'session'
-    });
+    this.users = new Map();
+    this.jobs = new Map();
+    this.applications = new Map();
+    this.reviews = new Map();
+    this.tasks = new Map();
+    this.earnings = new Map();
+    this.payments = new Map();
+    this.badges = new Map();
+    this.userBadges = new Map();
+    this.notifications = new Map();
+    
+    this.userIdCounter = 1;
+    this.jobIdCounter = 1;
+    this.applicationIdCounter = 1;
+    this.reviewIdCounter = 1;
+    this.taskIdCounter = 1;
+    this.earningIdCounter = 1;
+    this.paymentIdCounter = 1;
+    this.badgeIdCounter = 1;
+    this.userBadgeIdCounter = 1;
+    this.notificationIdCounter = 1;
+    
+    // No sample data - never initialize any sample data
   }
 
   // Helper function to calculate distance between two points in miles
@@ -188,194 +203,105 @@ export class DatabaseStorage implements IStorage {
     return R * c;
   }
 
+  // No sample data in this implementation
+
   // User operations
   async getAllUsers(): Promise<User[]> {
-    const result = await db.select().from(users);
-    return result.map(user => this.addVirtualFields(user));
+    return Array.from(this.users.values());
   }
   
   async getUser(id: number): Promise<User | undefined> {
-    const [user] = await db.select().from(users).where(eq(users.id, id));
-    if (!user) return undefined;
-    return this.addVirtualFields(user);
+    return this.users.get(id);
   }
 
   async getUserByUsername(username: string): Promise<User | undefined> {
-    const [user] = await db.select().from(users).where(eq(users.username, username));
-    if (!user) return undefined;
-    return this.addVirtualFields(user);
+    return Array.from(this.users.values()).find(
+      (user) => user.username === username
+    );
   }
   
   async getUserByUsernameAndType(username: string, accountType: string): Promise<User | undefined> {
-    const [user] = await db
-      .select()
-      .from(users)
-      .where(
-        and(
-          eq(users.username, username),
-          eq(users.accountType, accountType)
-        )
-      );
-    if (!user) return undefined;
-    return this.addVirtualFields(user);
+    return Array.from(this.users.values()).find(
+      (user) => user.username === username && user.accountType === accountType
+    );
   }
 
   async createUser(insertUser: InsertUser): Promise<User> {
+    const id = this.userIdCounter++;
+    const lastActive = new Date();
+    const rating = 0;
+    const completedJobs = 0;
+    const successRate = 0;
+    const responseTime = 0;
     const skills = insertUser.skills || [];
-    const now = new Date();
+    const skillsVerified = {};
+    const badgeIds = [];
     
-    // Ensure we don't pass virtual fields to the database
-    const { 
-      requiresProfileCompletion, 
-      needsAccountType, 
+    const user: User = { 
+      ...insertUser, 
+      id, 
+      lastActive, 
+      rating,
+      completedJobs,
+      successRate,
+      responseTime,
+      skills,
       skillsVerified,
-      requiresStripeTerms,
-      requiresStripeRepresentative,
-      requiresStripeBankingDetails,
-      ...dbInsertUser 
-    } = insertUser;
+      badgeIds,
+      stripeCustomerId: null,
+      stripeConnectAccountId: null
+    };
     
-    const [user] = await db
-      .insert(users)
-      .values({
-        ...dbInsertUser,
-        skills,
-        lastActive: now,
-        rating: 0
-      })
-      .returning();
-    
-    return this.addVirtualFields(user);
+    this.users.set(id, user);
+    return user;
   }
 
   async updateUser(id: number, data: Partial<InsertUser> & { 
     stripeConnectAccountId?: string, 
     stripeConnectAccountStatus?: string,
-    stripeCustomerId?: string,
-    stripeTermsAccepted?: boolean,
-    stripeTermsAcceptedAt?: Date,
-    stripeRepresentativeName?: string,
-    stripeRepresentativeTitle?: string,
-    stripeRepresentativeRequirementsComplete?: boolean,
-    stripeBankingDetailsComplete?: boolean
+    stripeCustomerId?: string 
   }): Promise<User | undefined> {
-    // Remove virtual fields
-    const { 
-      requiresProfileCompletion, 
-      needsAccountType, 
-      skillsVerified,
-      requiresStripeTerms,
-      requiresStripeRepresentative,
-      requiresStripeBankingDetails,
-      ...dbUpdateData 
-    } = data;
+    const user = this.users.get(id);
+    if (!user) return undefined;
     
-    const [updatedUser] = await db
-      .update(users)
-      .set({
-        ...dbUpdateData,
-        lastActive: new Date()
-      })
-      .where(eq(users.id, id))
-      .returning();
-    
-    if (!updatedUser) return undefined;
-    return this.addVirtualFields(updatedUser);
-  }
-  
-  // Helper method to add virtual fields to user objects
-  private addVirtualFields(user: typeof users.$inferSelect): User {
-    // Calculate whether profile completion is needed
-    const requiresProfileCompletion = 
-      !user.fullName || 
-      !user.email || 
-      !user.location ||
-      (user.accountType === 'worker' && (!user.skills || user.skills.length === 0));
-      
-    // Check if user needs to set account type (pending)
-    const needsAccountType = user.accountType === 'pending';
-    
-    // For stripe connect users (workers), determine what they need to complete
-    const requiresStripeTerms = 
-      user.accountType === 'worker' && 
-      (!user.stripeTermsAccepted || !user.stripeTermsAcceptedAt);
-      
-    const requiresStripeRepresentative = 
-      user.accountType === 'worker' && 
-      (!user.stripeRepresentativeName || !user.stripeRepresentativeTitle);
-      
-    const requiresStripeBankingDetails = 
-      user.accountType === 'worker' && 
-      !user.stripeBankingDetailsComplete;
-    
-    // Check if user can receive payouts via Stripe Connect
-    const canReceivePayouts = 
-      user.accountType === 'worker' && 
-      user.stripeConnectAccountId !== null && 
-      user.stripeTransfersEnabled === true;
-    
-    const enhanced: User = {
-      ...user,
-      requiresProfileCompletion,
-      needsAccountType,
-      skillsVerified: {},
-      requiresStripeTerms,
-      requiresStripeRepresentative,
-      requiresStripeBankingDetails,
-      canReceivePayouts
-    };
-    
-    return enhanced;
+    const updatedUser = { ...user, ...data };
+    this.users.set(id, updatedUser);
+    return updatedUser;
   }
   
   async uploadProfileImage(userId: number, imageData: string): Promise<User | undefined> {
-    const [updatedUser] = await db
-      .update(users)
-      .set({ avatarUrl: imageData })
-      .where(eq(users.id, userId))
-      .returning();
-      
-    if (!updatedUser) return undefined;
-    return this.addVirtualFields(updatedUser);
+    const user = this.users.get(userId);
+    if (!user) return undefined;
+    
+    // Store image data directly as URL (could be a base64 string)
+    const updatedUser = { ...user, avatarUrl: imageData };
+    this.users.set(userId, updatedUser);
+    return updatedUser;
   }
   
   async updateUserSkills(userId: number, skills: string[]): Promise<User | undefined> {
-    const [updatedUser] = await db
-      .update(users)
-      .set({ skills })
-      .where(eq(users.id, userId))
-      .returning();
-      
-    if (!updatedUser) return undefined;
-    return this.addVirtualFields(updatedUser);
+    const user = this.users.get(userId);
+    if (!user) return undefined;
+    
+    // Update skills array
+    const updatedUser = { ...user, skills };
+    this.users.set(userId, updatedUser);
+    return updatedUser;
   }
   
   async verifyUserSkill(userId: number, skill: string, isVerified: boolean): Promise<User | undefined> {
-    // First get the user to access their current skills verification status
-    const user = await this.getUser(userId);
+    const user = this.users.get(userId);
     if (!user) return undefined;
     
-    // We'll store skill verification in the metadata field in the database
-    // First, get any existing metadata
-    const [updatedUser] = await db
-      .update(users)
-      .set({
-        // Set the lastActive timestamp as well
-        lastActive: new Date()
-      })
-      .where(eq(users.id, userId))
-      .returning();
-      
-    if (!updatedUser) return undefined;
-    
-    // Update the virtual field in the returned object
+    // Create a copy of the existing skills verification map or initialize if not exists
     const skillsVerified = { ...(user.skillsVerified || {}) };
+    
+    // Update the verification status for the specified skill
     skillsVerified[skill] = isVerified;
     
-    const enhanced = this.addVirtualFields(updatedUser);
-    enhanced.skillsVerified = skillsVerified;
-    
-    return enhanced;
+    const updatedUser = { ...user, skillsVerified };
+    this.users.set(userId, updatedUser);
+    return updatedUser;
   }
   
   async updateUserMetrics(userId: number, metrics: {
@@ -383,83 +309,35 @@ export class DatabaseStorage implements IStorage {
     successRate?: number;
     responseTime?: number;
   }): Promise<User | undefined> {
-    // Get the user first
-    const user = await this.getUser(userId);
+    const user = this.users.get(userId);
     if (!user) return undefined;
     
-    // Only update fields that were provided
-    const updateData: Partial<User> = {};
+    const updatedUser = { 
+      ...user,
+      completedJobs: metrics.completedJobs !== undefined ? metrics.completedJobs : user.completedJobs,
+      successRate: metrics.successRate !== undefined ? metrics.successRate : user.successRate,
+      responseTime: metrics.responseTime !== undefined ? metrics.responseTime : user.responseTime,
+    };
     
-    // In a real implementation, we'd store these in the database 
-    // For now, we'll just update the virtual fields
-    const enhanced = { ...user };
-    
-    if (metrics.completedJobs !== undefined) {
-      enhanced.completedJobs = metrics.completedJobs;
-    }
-    
-    if (metrics.successRate !== undefined) {
-      enhanced.successRate = metrics.successRate;
-    }
-    
-    if (metrics.responseTime !== undefined) {
-      enhanced.responseTime = metrics.responseTime;
-    }
-    
-    return enhanced;
+    this.users.set(userId, updatedUser);
+    return updatedUser;
   }
   
   async getUsersWithSkills(skills: string[]): Promise<User[]> {
     if (!skills.length) return [];
     
-    // In PostgreSQL, we can use the array operator @> to check if one array contains another
-    // But we need to build a condition for "any of these skills" rather than "all of these skills"
-    const usersWithSkills = await db
-      .select()
-      .from(users)
-      .where(
-        // Check if user has at least one of the required skills
-        // This uses PostgreSQL's array overlap operator &&
-        sql`${users.skills} && ${sql.array(skills, 'text')}`
-      );
+    return Array.from(this.users.values()).filter(user => {
+      // Skip users with no skills
+      if (!user.skills || !user.skills.length) return false;
       
-    return usersWithSkills.map(user => this.addVirtualFields(user));
-  }
-  
-  // Stripe-specific methods
-  async updateStripeCustomerId(userId: number, stripeCustomerId: string): Promise<User | undefined> {
-    return this.updateUser(userId, { stripeCustomerId });
-  }
-  
-  async updateStripeConnectAccount(userId: number, connectAccountId: string, connectAccountStatus: string): Promise<User | undefined> {
-    return this.updateUser(userId, { 
-      stripeConnectAccountId: connectAccountId,
-      stripeConnectAccountStatus: connectAccountStatus
+      // Check if user has at least one of the required skills
+      return skills.some(skill => user.skills?.includes(skill));
     });
-  }
-  
-  async updateUserStripeInfo(userId: number, stripeInfo: { 
-    stripeCustomerId?: string;
-    stripeConnectAccountId?: string;
-    stripeConnectAccountStatus?: string;
-    stripeTermsAccepted?: boolean;
-    stripeTermsAcceptedAt?: Date;
-    stripeRepresentativeName?: string;
-    stripeRepresentativeTitle?: string;
-    stripeRepresentativeRequirementsComplete?: boolean;
-    stripeBankingDetailsComplete?: boolean;
-  }): Promise<User | undefined> {
-    return this.updateUser(userId, stripeInfo);
   }
 
   // Job operations
   async getJob(id: number): Promise<Job | undefined> {
-    const [job] = await db
-      .select()
-      .from(jobs)
-      .where(eq(jobs.id, id));
-      
-    return job;
+    return this.jobs.get(id);
   }
 
   async getJobs(filters?: {
@@ -469,126 +347,92 @@ export class DatabaseStorage implements IStorage {
     workerId?: number;
     search?: string;
   }): Promise<Job[]> {
-    let query = db.select().from(jobs);
+    let jobList = Array.from(this.jobs.values());
     
     if (filters) {
-      let conditions = [];
-      
       if (filters.category) {
-        conditions.push(eq(jobs.category, filters.category));
+        jobList = jobList.filter(job => job.category === filters.category);
       }
       
       if (filters.status) {
-        conditions.push(eq(jobs.status, filters.status));
+        jobList = jobList.filter(job => job.status === filters.status);
       }
       
       if (filters.posterId) {
-        conditions.push(eq(jobs.posterId, filters.posterId));
+        jobList = jobList.filter(job => job.posterId === filters.posterId);
       }
       
       if (filters.workerId) {
-        if (filters.workerId) {
-          conditions.push(eq(jobs.workerId, filters.workerId));
-        } else {
-          conditions.push(isNull(jobs.workerId));
-        }
+        jobList = jobList.filter(job => job.workerId === filters.workerId);
       }
       
-      // Apply all conditions
-      if (conditions.length > 0) {
-        query = query.where(and(...conditions));
-      }
-      
-      // Handle search separately as it uses LIKE and is more complex
       if (filters.search) {
-        const searchLower = `%${filters.search.toLowerCase()}%`;
-        // Use a separate query for search
-        query = db
-          .select()
-          .from(jobs)
-          .where(
-            or(
-              like(sql`LOWER(${jobs.title})`, searchLower),
-              like(sql`LOWER(${jobs.description})`, searchLower),
-              like(sql`LOWER(${jobs.category})`, searchLower)
-            )
-          );
-        
-        // If we have other conditions, add them to the search query
-        if (conditions.length > 0) {
-          query = query.where(and(...conditions));
-        }
+        const searchLower = filters.search.toLowerCase();
+        jobList = jobList.filter(job => 
+          job.title.toLowerCase().includes(searchLower) ||
+          job.description.toLowerCase().includes(searchLower) ||
+          job.category.toLowerCase().includes(searchLower)
+        );
       }
     }
     
     // Sort by date posted (newest first)
-    return query.orderBy(desc(jobs.datePosted));
+    return jobList.sort((a, b) => 
+      new Date(b.datePosted).getTime() - new Date(a.datePosted).getTime()
+    );
   }
 
   async createJob(insertJob: InsertJob): Promise<Job> {
+    const id = this.jobIdCounter++;
+    const datePosted = new Date();
+    const workerId = null;
     const serviceFee = 2.5; // Service fee is fixed at $2.50
-    const totalAmount = insertJob.paymentType === 'fixed' ? 
-      insertJob.paymentAmount + serviceFee : insertJob.paymentAmount;
+    const totalAmount = insertJob.paymentType === 'fixed' ? insertJob.paymentAmount + serviceFee : insertJob.paymentAmount;
     const status = insertJob.status || 'open'; // Default status is 'open'
     
     // Make sure boolean values are defined
-    const equipmentProvided = insertJob.equipmentProvided === undefined ? 
-      false : insertJob.equipmentProvided;
+    const equipmentProvided = insertJob.equipmentProvided === undefined ? false : insertJob.equipmentProvided;
     
-    const [job] = await db
-      .insert(jobs)
-      .values({
-        ...insertJob,
-        datePosted: new Date(),
-        workerId: null,
-        serviceFee,
-        totalAmount,
-        status,
-        equipmentProvided,
-        // Ensure location description is valid
-        locationDescription: insertJob.locationDescription || null
-      })
-      .returning();
+    const job: Job = { 
+      ...insertJob, 
+      id, 
+      datePosted, 
+      workerId, 
+      serviceFee, 
+      totalAmount,
+      status,
+      equipmentProvided
+    };
     
+    this.jobs.set(id, job);
     return job;
   }
 
   async updateJob(id: number, data: Partial<InsertJob>): Promise<Job | undefined> {
-    // First get the existing job
-    const job = await this.getJob(id);
+    const job = this.jobs.get(id);
     if (!job) return undefined;
     
-    let updateData: any = { ...data };
+    let updatedJob = { ...job, ...data };
     
     // Recalculate total amount and service fee if payment information has been updated
     if (data.paymentAmount !== undefined || data.paymentType !== undefined) {
       const paymentType = data.paymentType || job.paymentType;
-      const paymentAmount = data.paymentAmount !== undefined ? 
-        data.paymentAmount : job.paymentAmount;
+      const paymentAmount = data.paymentAmount !== undefined ? data.paymentAmount : job.paymentAmount;
       const serviceFee = 2.5; // Fixed service fee
       
-      updateData.serviceFee = serviceFee;
-      updateData.totalAmount = paymentType === 'fixed' ? 
-        paymentAmount + serviceFee : paymentAmount;
+      updatedJob = {
+        ...updatedJob,
+        serviceFee,
+        totalAmount: paymentType === 'fixed' ? paymentAmount + serviceFee : paymentAmount
+      };
     }
     
-    // Update the job
-    const [updatedJob] = await db
-      .update(jobs)
-      .set(updateData)
-      .where(eq(jobs.id, id))
-      .returning();
-    
+    this.jobs.set(id, updatedJob);
     return updatedJob;
   }
 
   async deleteJob(id: number): Promise<boolean> {
-    const result = await db
-      .delete(jobs)
-      .where(eq(jobs.id, id));
-      
-    // Return true if at least one row was affected
-    return !!result;
+    return this.jobs.delete(id);
   }
 
   async getJobsNearLocation(
@@ -596,23 +440,14 @@ export class DatabaseStorage implements IStorage {
     longitude: number, 
     radiusMiles: number
   ): Promise<Job[]> {
-    // Get all jobs
-    const allJobs = await db
-      .select()
-      .from(jobs);
+    const jobs = Array.from(this.jobs.values());
     
-    // Filter jobs that have valid coordinates
-    const jobsWithCoordinates = allJobs.filter(job => 
-      job.latitude !== null && job.longitude !== null
-    );
-    
-    // Filter jobs by distance
-    return jobsWithCoordinates.filter(job => {
+    return jobs.filter(job => {
       const distance = this.calculateDistance(
         latitude, 
         longitude, 
-        job.latitude!, // Non-null assertion since we filtered
-        job.longitude! // Non-null assertion since we filtered
+        job.latitude, 
+        job.longitude
       );
       return distance <= radiusMiles;
     });
@@ -779,347 +614,273 @@ export class DatabaseStorage implements IStorage {
   
   // Earnings operations
   async getEarning(id: number): Promise<Earning | undefined> {
-    const [earning] = await db
-      .select()
-      .from(earnings)
-      .where(eq(earnings.id, id));
-      
-    return earning;
+    return this.earnings.get(id);
   }
 
   async getEarningsForWorker(workerId: number): Promise<Earning[]> {
-    return db
-      .select()
-      .from(earnings)
-      .where(eq(earnings.workerId, workerId))
-      .orderBy(desc(earnings.dateEarned));
+    return Array.from(this.earnings.values())
+      .filter(earning => earning.workerId === workerId)
+      .sort((a, b) => new Date(b.dateEarned).getTime() - new Date(a.dateEarned).getTime());
   }
 
   async getEarningsForJob(jobId: number): Promise<Earning[]> {
-    return db
-      .select()
-      .from(earnings)
-      .where(eq(earnings.jobId, jobId))
-      .orderBy(desc(earnings.dateEarned));
-  }
-  
-  async getAllEarningsByStatus(statusList: string[]): Promise<Earning[]> {
-    if (!statusList || statusList.length === 0) {
-      return [];
-    }
-
-    // If there's only one status, use simpler query
-    if (statusList.length === 1) {
-      return db
-        .select()
-        .from(earnings)
-        .where(eq(earnings.status, statusList[0]))
-        .orderBy(desc(earnings.dateEarned));
-    }
-    
-    // Build OR conditions for multiple statuses
-    const statusConditions = statusList.map(status => eq(earnings.status, status));
-    
-    return db
-      .select()
-      .from(earnings)
-      .where(or(...statusConditions))
-      .orderBy(desc(earnings.dateEarned));
+    return Array.from(this.earnings.values())
+      .filter(earning => earning.jobId === jobId)
+      .sort((a, b) => new Date(b.dateEarned).getTime() - new Date(a.dateEarned).getTime());
   }
 
   async createEarning(earning: InsertEarning): Promise<Earning> {
+    const id = this.earningIdCounter++;
+    const dateEarned = new Date();
+    const datePaid = null;
+    const status = "pending";  // Initial status is always "pending"
     const serviceFee = earning.serviceFee || 2.5; // Default service fee is $2.50
     
-    const [newEarning] = await db
-      .insert(earnings)
-      .values({
-        ...earning,
-        status: "pending",
-        dateEarned: new Date(),
-        datePaid: null,
-        transferId: null,
-        description: earning.description || null,
-        serviceFee
-      })
-      .returning();
-      
+    const newEarning: Earning = {
+      ...earning,
+      id,
+      dateEarned,
+      datePaid,
+      status,
+      serviceFee
+    };
+    this.earnings.set(id, newEarning);
     return newEarning;
   }
 
   async updateEarningStatus(id: number, status: string, datePaid?: Date): Promise<Earning | undefined> {
-    const [updatedEarning] = await db
-      .update(earnings)
-      .set({ 
-        status,
-        datePaid: status === 'paid' ? (datePaid || new Date()) : null
-      })
-      .where(eq(earnings.id, id))
-      .returning();
-      
-    return updatedEarning;
-  }
-  
-  // Update an earning with a Stripe transfer ID
-  async updateEarningTransferId(id: number, transferId: string): Promise<Earning | undefined> {
-    const [updatedEarning] = await db
-      .update(earnings)
-      .set({ transferId })
-      .where(eq(earnings.id, id))
-      .returning();
-      
+    const earning = this.earnings.get(id);
+    if (!earning) return undefined;
+    
+    const updatedEarning: Earning = {
+      ...earning,
+      status,
+      datePaid: status === "paid" ? (datePaid || new Date()) : earning.datePaid
+    };
+    this.earnings.set(id, updatedEarning);
     return updatedEarning;
   }
   
   // Payment operations
   async getPayment(id: number): Promise<Payment | undefined> {
-    const [payment] = await db
-      .select()
-      .from(payments)
-      .where(eq(payments.id, id));
-      
-    return payment;
+    return this.payments.get(id);
   }
   
   async getPaymentByTransactionId(transactionId: string): Promise<Payment | undefined> {
-    const [payment] = await db
-      .select()
-      .from(payments)
-      .where(eq(payments.transactionId, transactionId));
-      
-    return payment;
+    return Array.from(this.payments.values())
+      .find(payment => payment.transactionId === transactionId);
   }
 
   async getPaymentsForUser(userId: number): Promise<Payment[]> {
-    return db
-      .select()
-      .from(payments)
-      .where(eq(payments.userId, userId))
-      .orderBy(desc(payments.createdAt));
+    return Array.from(this.payments.values())
+      .filter(payment => payment.userId === userId)
+      .sort((a, b) => {
+        // Use createdAt instead of dateInitiated
+        const dateA = b.createdAt ? new Date(b.createdAt).getTime() : 0;
+        const dateB = a.createdAt ? new Date(a.createdAt).getTime() : 0;
+        return dateA - dateB;
+      });
   }
 
   async createPayment(payment: InsertPayment): Promise<Payment> {
-    const [newPayment] = await db
-      .insert(payments)
-      .values({
-        ...payment,
-        status: "pending",
-        createdAt: new Date(),
-        transactionId: null
-      })
-      .returning();
-      
+    const id = this.paymentIdCounter++;
+    const createdAt = new Date();
+    const status = "pending";
+    const transactionId = null;
+    
+    const newPayment: Payment = {
+      ...payment,
+      id,
+      createdAt,
+      status,
+      transactionId
+    };
+    this.payments.set(id, newPayment);
     return newPayment;
   }
 
   async updatePaymentStatus(id: number, status: string, transactionId?: string): Promise<Payment | undefined> {
-    const updateData: any = { status };
+    const payment = this.payments.get(id);
+    if (!payment) return undefined;
     
-    if (transactionId) {
-      updateData.transactionId = transactionId;
-    }
-    
-    const [updatedPayment] = await db
-      .update(payments)
-      .set(updateData)
-      .where(eq(payments.id, id))
-      .returning();
-      
+    const updatedPayment: Payment = {
+      ...payment,
+      status,
+      transactionId: transactionId || payment.transactionId
+    };
+    this.payments.set(id, updatedPayment);
     return updatedPayment;
   }
   
   // Badge operations
   async getBadge(id: number): Promise<Badge | undefined> {
-    const [badge] = await db
-      .select()
-      .from(badges)
-      .where(eq(badges.id, id));
-      
-    return badge;
+    return this.badges.get(id);
   }
   
   async getAllBadges(): Promise<Badge[]> {
-    return db
-      .select()
-      .from(badges);
+    return Array.from(this.badges.values());
   }
   
   async getBadgesByCategory(category: string): Promise<Badge[]> {
-    return db
-      .select()
-      .from(badges)
-      .where(eq(badges.category, category));
+    return Array.from(this.badges.values())
+      .filter(badge => badge.category === category);
   }
   
   async createBadge(badge: InsertBadge): Promise<Badge> {
-    const [newBadge] = await db
-      .insert(badges)
-      .values({
-        ...badge,
-        createdAt: new Date()
-      })
-      .returning();
-      
+    const id = this.badgeIdCounter++;
+    const createdAt = new Date();
+    
+    const newBadge: Badge = {
+      ...badge,
+      id,
+      createdAt
+    };
+    
+    this.badges.set(id, newBadge);
     return newBadge;
   }
   
   // User badge operations
   async getUserBadges(userId: number): Promise<UserBadge[]> {
-    return db
-      .select()
-      .from(userBadges)
-      .where(eq(userBadges.userId, userId));
+    return Array.from(this.userBadges.values())
+      .filter(userBadge => userBadge.userId === userId);
   }
   
   async awardBadge(userBadge: InsertUserBadge): Promise<UserBadge> {
-    // Check if the user already has this badge
-    const existingBadges = await this.getUserBadges(userBadge.userId);
-    const alreadyHasBadge = existingBadges.some(badge => 
-      badge.badgeId === userBadge.badgeId
-    );
+    const id = this.userBadgeIdCounter++;
+    const earnedAt = new Date();
     
-    if (alreadyHasBadge) {
-      // Just return the existing badge
-      return existingBadges.find(badge => badge.badgeId === userBadge.badgeId)!;
+    const newUserBadge: UserBadge = {
+      ...userBadge,
+      id,
+      earnedAt
+    };
+    
+    this.userBadges.set(id, newUserBadge);
+    
+    // Also update user's badgeIds array
+    const user = this.users.get(userBadge.userId);
+    if (user) {
+      const badgeIds = [...(user.badgeIds || [])];
+      
+      // Check if badge ID already exists in user's badges
+      if (!badgeIds.includes(userBadge.badgeId.toString())) {
+        badgeIds.push(userBadge.badgeId.toString());
+        const updatedUser = { ...user, badgeIds };
+        this.users.set(user.id, updatedUser);
+      }
     }
     
-    // Add the new badge
-    const [newUserBadge] = await db
-      .insert(userBadges)
-      .values({
-        ...userBadge,
-        earnedAt: new Date()
-      })
-      .returning();
-      
-    // We'll track badge IDs in user virtual fields when retrieving the user
     return newUserBadge;
   }
   
   async revokeBadge(userId: number, badgeId: number): Promise<boolean> {
-    const result = await db
-      .delete(userBadges)
-      .where(
-        and(
-          eq(userBadges.userId, userId),
-          eq(userBadges.badgeId, badgeId)
-        )
-      );
-      
-    // Return true if at least one row was deleted
-    return !!result;
+    // Find and remove the user badge entry
+    const userBadgeEntries = Array.from(this.userBadges.entries());
+    let removed = false;
+    
+    for (const [key, userBadge] of userBadgeEntries) {
+      if (userBadge.userId === userId && userBadge.badgeId === badgeId) {
+        this.userBadges.delete(key);
+        removed = true;
+      }
+    }
+    
+    // Also update user's badgeIds array if found
+    if (removed) {
+      const user = this.users.get(userId);
+      if (user && user.badgeIds && user.badgeIds.length) {
+        const badgeIds = user.badgeIds.filter(id => id !== badgeId.toString());
+        const updatedUser = { ...user, badgeIds };
+        this.users.set(userId, updatedUser);
+      }
+    }
+    
+    return removed;
   }
 
   // Notification operations
   async getNotifications(userId: number, options?: { isRead?: boolean, limit?: number }): Promise<Notification[]> {
-    let queryBuilder = db
-      .select()
-      .from(notifications)
-      .where(eq(notifications.userId, userId));
+    let notifications = Array.from(this.notifications.values())
+      .filter(notification => notification.userId === userId);
     
     // Filter by read status if specified
     if (options && options.isRead !== undefined) {
-      queryBuilder = queryBuilder.where(eq(notifications.isRead, options.isRead));
+      notifications = notifications.filter(notification => notification.isRead === options.isRead);
     }
     
-    // Order by created date
-    queryBuilder = queryBuilder.orderBy(desc(notifications.createdAt));
+    // Sort by createdAt (newest first)
+    notifications = notifications.sort((a, b) => 
+      new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+    );
     
     // Apply limit if specified
     if (options && options.limit) {
-      queryBuilder = queryBuilder.limit(options.limit);
+      notifications = notifications.slice(0, options.limit);
     }
     
-    return await queryBuilder;
+    return notifications;
   }
   
   async getNotification(id: number): Promise<Notification | undefined> {
-    const [notification] = await db
-      .select()
-      .from(notifications)
-      .where(eq(notifications.id, id));
-      
-    return notification;
+    return this.notifications.get(id);
   }
   
   async createNotification(notification: InsertNotification): Promise<Notification> {
-    const [newNotification] = await db
-      .insert(notifications)
-      .values({
-        ...notification,
-        createdAt: new Date(),
-        isRead: false,
-        // Ensure metadata is valid JSON or null
-        metadata: notification.metadata || null,
-        // Ensure sourceId and sourceType are not undefined
-        sourceId: notification.sourceId || null,
-        sourceType: notification.sourceType || null
-      })
-      .returning();
-      
+    const id = this.notificationIdCounter++;
+    const createdAt = new Date();
+    const isRead = false;
+    
+    const newNotification: Notification = {
+      ...notification,
+      id,
+      createdAt,
+      isRead
+    };
+    
+    this.notifications.set(id, newNotification);
     return newNotification;
   }
   
   async markNotificationAsRead(id: number): Promise<Notification | undefined> {
-    const [updatedNotification] = await db
-      .update(notifications)
-      .set({ isRead: true })
-      .where(eq(notifications.id, id))
-      .returning();
-      
+    const notification = this.notifications.get(id);
+    if (!notification) return undefined;
+    
+    const updatedNotification = { ...notification, isRead: true };
+    this.notifications.set(id, updatedNotification);
     return updatedNotification;
   }
   
   async markAllNotificationsAsRead(userId: number): Promise<number> {
-    const result = await db
-      .update(notifications)
-      .set({ isRead: true })
-      .where(
-        and(
-          eq(notifications.userId, userId),
-          eq(notifications.isRead, false)
-        )
-      )
-      .returning();
+    const notifications = Array.from(this.notifications.values())
+      .filter(notification => notification.userId === userId && !notification.isRead);
     
-    // Return count of affected rows
-    return result.length;
+    let count = 0;
+    for (const notification of notifications) {
+      const updatedNotification = { ...notification, isRead: true };
+      this.notifications.set(notification.id, updatedNotification);
+      count++;
+    }
+    
+    return count;
   }
   
   async deleteNotification(id: number): Promise<boolean> {
-    const result = await db
-      .delete(notifications)
-      .where(eq(notifications.id, id))
-      .returning();
-      
-    // Return true if at least one row was affected
-    return result.length > 0;
+    return this.notifications.delete(id);
   }
   
   // Specialized notification methods
   async notifyNearbyWorkers(jobId: number, radiusMiles: number): Promise<number> {
-    // First get the job
-    const [job] = await db
-      .select()
-      .from(jobs)
-      .where(eq(jobs.id, jobId));
-      
+    const job = this.jobs.get(jobId);
     if (!job) return 0;
     
     // Get all users with worker account type or those who haven't selected an account type yet
-    const workers = await db
-      .select()
-      .from(users)
-      .where(
-        or(
-          eq(users.accountType, 'worker'),
-          isNull(users.accountType)
-        )
-      );
+    const workers = Array.from(this.users.values())
+      .filter(user => user.accountType === 'worker' || !user.accountType);
     
-    // Find workers within the radius who have location data
+    // Find workers within the radius
     const nearbyWorkers = workers.filter(worker => {
-      if (!worker.latitude || !worker.longitude || 
-          !job.latitude || !job.longitude) return false;
+      if (!worker.latitude || !worker.longitude) return false;
       
       const distance = this.calculateDistance(
         job.latitude,

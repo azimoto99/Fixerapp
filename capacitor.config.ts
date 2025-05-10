@@ -7,6 +7,7 @@ const config: CapacitorConfig = {
   server: {
     androidScheme: 'https',
     iosScheme: 'https',
+    hostname: 'workspace.azimoto9.repl.co',
     cleartext: true
   },
   android: {

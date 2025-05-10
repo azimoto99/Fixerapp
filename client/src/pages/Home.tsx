@@ -60,8 +60,8 @@ const WorkerDashboard = () => {
     });
   };
 
-  const handleSelectJob = (job: Job | null) => {
-    setSelectedJob(job || undefined);
+  const handleSelectJob = (job: Job) => {
+    setSelectedJob(job);
   };
 
   const handleViewChange = (newView: 'list' | 'map') => {
@@ -72,31 +72,13 @@ const WorkerDashboard = () => {
     setShowPostedJobs(!showPostedJobs);
   };
 
-  // Track if user has manually closed a job
-  const [userClosedJob, setUserClosedJob] = useState(false);
-  
-  // Only auto-select the first job on initial load, not after user closes a job
+  // Initial data loading
   useEffect(() => {
-    // Only auto-select if we have jobs, no selected job, and user hasn't manually closed a job
-    if (jobs && jobs.length > 0 && !selectedJob && !userClosedJob) {
+    // If we have jobs and no selected job, select the first one
+    if (jobs && jobs.length > 0 && !selectedJob) {
       setSelectedJob(jobs[0]);
     }
-  }, [jobs, selectedJob, userClosedJob]);
-  
-  // Override the standard handleSelectJob to track when user closes a job
-  const handleSelectJobWithTracking = (job: Job | null) => {
-    // If job is null/undefined and we had a previously selected job, user is closing it
-    if (!job && selectedJob) {
-      setUserClosedJob(true);
-    }
-    // If user selects a new job, they're no longer in "closed job" state
-    else if (job) {
-      setUserClosedJob(false);
-    }
-    
-    // Call the original handler
-    handleSelectJob(job);
-  };
+  }, [jobs, selectedJob]);
 
   if (isLoading) {
     return (
@@ -199,7 +181,7 @@ const WorkerDashboard = () => {
         <MapSection 
           jobs={jobs || []}
           selectedJob={selectedJob}
-          onSelectJob={handleSelectJobWithTracking}
+          onSelectJob={handleSelectJob}
           searchCoordinates={searchParams.coordinates}
         />
         

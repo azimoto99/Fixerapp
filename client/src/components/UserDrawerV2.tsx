@@ -16,7 +16,6 @@ import { useAuth } from '@/hooks/use-auth';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { Separator } from "@/components/ui/separator";
-import { useQuery } from '@tanstack/react-query';
 import ProfileContent from './drawer-contents/ProfileContent';
 import EarningsContent from './drawer-contents/EarningsContent';
 import ReviewsContent from './drawer-contents/ReviewsContent';
@@ -43,22 +42,6 @@ const UserDrawerV2: React.FC<UserDrawerProps> = ({
   const [activeTab, setActiveTab] = useState<string>("profile");
   const [isOpen, setIsOpen] = useState(externalIsOpen || false);
   const [, navigate] = useLocation();
-  
-  // Fetch actual data to determine which tabs should be shown
-  const { data: reviewsData } = useQuery<any[]>({
-    queryKey: [`/api/reviews/user/${user?.id}`],
-    enabled: !!user,
-  });
-  
-  const { data: earningsData } = useQuery<any[]>({
-    queryKey: [`/api/earnings/worker/${user?.id}`],
-    enabled: !!user && user.accountType === 'worker',
-  });
-  
-  const { data: paymentsData } = useQuery<any[]>({
-    queryKey: [`/api/payments/user/${user?.id}`],
-    enabled: !!user,
-  });
   
   // Listen for external close requests
   useEffect(() => {
@@ -229,43 +212,39 @@ const UserDrawerV2: React.FC<UserDrawerProps> = ({
                     <span className="text-xs">Profile</span>
                   </button>
                   
-                  {/* Reviews - only show if there are reviews */}
-                  {(reviewsData && reviewsData.length > 0) && (
-                    <button 
-                      onClick={() => setActiveTab("reviews")}
-                      className={cn(
-                        "flex flex-col items-center justify-center w-14 h-14 rounded-lg",
-                        activeTab === "reviews" 
-                          ? "bg-emerald-600/10 text-emerald-600" 
-                          : "hover:bg-emerald-600/5 text-gray-600"
-                      )}
-                      title="Reviews"
-                    >
-                      <StarIcon className="h-5 w-5 mb-1" />
-                      <span className="text-xs">Reviews</span>
-                    </button>
-                  )}
+                  {/* Reviews */}
+                  <button 
+                    onClick={() => setActiveTab("reviews")}
+                    className={cn(
+                      "flex flex-col items-center justify-center w-14 h-14 rounded-lg",
+                      activeTab === "reviews" 
+                        ? "bg-emerald-600/10 text-emerald-600" 
+                        : "hover:bg-emerald-600/5 text-gray-600"
+                    )}
+                    title="Reviews"
+                  >
+                    <StarIcon className="h-5 w-5 mb-1" />
+                    <span className="text-xs">Reviews</span>
+                  </button>
 
                   <Separator className="my-2 w-10" />
 
                   {/* Financial sections */}
-                  {(paymentsData && paymentsData.length > 0) && (
-                    <button 
-                      onClick={() => setActiveTab("payments")}
-                      className={cn(
-                        "flex flex-col items-center justify-center w-14 h-14 rounded-lg",
-                        activeTab === "payments" 
-                          ? "bg-emerald-600/10 text-emerald-600" 
-                          : "hover:bg-emerald-600/5 text-gray-600"
-                      )}
-                      title="Payments"
-                    >
-                      <CreditCard className="h-5 w-5 mb-1" />
-                      <span className="text-xs">Payments</span>
-                    </button>
-                  )}
+                  <button 
+                    onClick={() => setActiveTab("payments")}
+                    className={cn(
+                      "flex flex-col items-center justify-center w-14 h-14 rounded-lg",
+                      activeTab === "payments" 
+                        ? "bg-emerald-600/10 text-emerald-600" 
+                        : "hover:bg-emerald-600/5 text-gray-600"
+                    )}
+                    title="Payments"
+                  >
+                    <CreditCard className="h-5 w-5 mb-1" />
+                    <span className="text-xs">Payments</span>
+                  </button>
                   
-                  {user.accountType === 'worker' && earningsData && earningsData.length > 0 && (
+                  {user.accountType === 'worker' && (
                     <button 
                       onClick={() => setActiveTab("earnings")}
                       className={cn(

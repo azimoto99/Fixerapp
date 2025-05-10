@@ -1,13 +1,9 @@
 module.exports = function(api) {
   api.cache(true);
   return {
-    presets: [
-      '@babel/preset-env',
-      '@babel/preset-react',
-      '@babel/preset-typescript'
-    ],
+    presets: ['babel-preset-expo'],
     plugins: [
-      // Standard plugins for React development
+      // Add any Babel plugins here
     ],
   };
 };

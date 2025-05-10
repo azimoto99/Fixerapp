@@ -98,15 +98,6 @@ export default function Login({ onModeChange }: LoginProps) {
                 )}
               />
               
-              <div className="flex justify-end mb-2">
-                <span 
-                  className="text-xs text-primary-600 hover:text-primary-500 cursor-pointer"
-                  onClick={() => navigate('/reset-password')}
-                >
-                  Forgot password?
-                </span>
-              </div>
-
               <Button type="submit" className="w-full" disabled={loginMutation.isPending}>
                 {loginMutation.isPending ? 'Logging in...' : 'Log In'}
               </Button>

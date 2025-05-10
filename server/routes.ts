@@ -4,8 +4,6 @@ import { storage } from "./storage";
 import { z } from "zod";
 import Stripe from "stripe";
 import { filterJobContent, validatePaymentAmount } from "./content-filter";
-import { initNotificationService } from "./notification-service";
-import { createWebhookRouter } from "./webhooks";
 import { 
   insertUserSchema, 
   insertJobSchema, 
@@ -21,8 +19,6 @@ import {
   BADGE_CATEGORIES
 } from "@shared/schema";
 import { setupAuth } from "./auth";
-import { setupStripeRoutes } from "./stripe";
-import { setupPasswordReset } from "./password-reset";
 
 // Initialize Stripe with the secret key
 if (!process.env.STRIPE_SECRET_KEY) {
@@ -146,239 +142,12 @@ async function isStripeAuthenticated(req: Request, res: Response, next: Function
   return res.status(401).json({ message: "Unauthorized - Please login again" });
 }
 
-// Import payout routes
-import payoutRouter from './payout-routes';
-
 export async function registerRoutes(app: Express): Promise<Server> {
   // Set up authentication
   setupAuth(app);
-  
-  // Set up password reset
-  setupPasswordReset(app);
 
   // Create API router
   const apiRouter = express.Router();
-  
-  // Payment endpoints for the JobPaymentForm component
-  apiRouter.post("/payments/setup-intent", isAuthenticated, async (req: Request, res: Response) => {
-    try {
-      // Redirect to the Stripe create-setup-intent endpoint
-      const response = await stripe.setupIntents.create({
-        customer: req.user?.stripeCustomerId,
-        usage: 'off_session',
-      });
-      
-      res.json({ clientSecret: response.client_secret });
-    } catch (error: any) {
-      console.error('Error creating setup intent:', error);
-      res.status(500).json({ message: error.message });
-    }
-  });
-
-  apiRouter.post("/payments/process", isAuthenticated, async (req: Request, res: Response) => {
-    try {
-      const { jobId, paymentMethodId, amount, description, saveCard } = req.body;
-      
-      if (!jobId || !paymentMethodId) {
-        return res.status(400).json({ message: "Job ID and payment method ID are required" });
-      }
-
-      // Get the job to check if it exists and get details
-      const job = await storage.getJob(Number(jobId));
-      if (!job) {
-        return res.status(404).json({ message: "Job not found" });
-      }
-      
-      // Validate the user is authorized to make payment for this job
-      if (job.posterId !== req.user.id) {
-        return res.status(403).json({ 
-          message: "You are not authorized to make payment for this job" 
-        });
-      }
-
-      // Create or use existing customer
-      let customerId = req.user.stripeCustomerId;
-      if (!customerId) {
-        const customer = await stripe.customers.create({
-          email: req.user.email,
-          name: req.user.fullName,
-          metadata: {
-            userId: req.user.id.toString()
-          }
-        });
-        
-        customerId = customer.id;
-        
-        // Update user with Stripe customer ID
-        await storage.updateUser(req.user.id, { 
-          stripeCustomerId: customerId 
-        });
-      }
-      
-      // If saveCard is true, save the payment method to the customer
-      if (saveCard) {
-        await stripe.paymentMethods.attach(paymentMethodId, {
-          customer: customerId,
-        });
-      }
-      
-      // Create the payment intent
-      const actualAmount = amount || job.totalAmount;
-      const paymentIntent = await stripe.paymentIntents.create({
-        amount: Math.round(actualAmount * 100), // Convert to cents
-        currency: 'usd',
-        customer: customerId,
-        payment_method: paymentMethodId,
-        off_session: true,
-        confirm: true,
-        metadata: {
-          jobId: job.id.toString(),
-          userId: req.user.id.toString(),
-          jobTitle: job.title
-        }
-      });
-      
-      // Create a payment record in our database
-      const payment = await storage.createPayment({
-        userId: req.user.id,
-        amount: actualAmount,
-        type: 'job_payment',
-        status: paymentIntent.status === 'succeeded' ? 'completed' : 'pending',
-        paymentMethod: 'stripe',
-        transactionId: paymentIntent.id,
-        jobId: job.id,
-        description: description || `Payment for job: ${job.title}`,
-        metadata: { paymentIntentId: paymentIntent.id }
-      });
-      
-      // If payment succeeded, update job and create an earning record if applicable
-      if (paymentIntent.status === 'succeeded') {
-        // If job is assigned, update it to "in progress"
-        if (job.status === 'assigned') {
-          await storage.updateJob(job.id, { status: 'in_progress' });
-        }
-        
-        // If worker is assigned, create an earning record for them
-        if (job.workerId) {
-          const serviceFee = job.serviceFee || 2.5;
-          const netAmount = job.paymentAmount - serviceFee;
-          
-          await storage.createEarning({
-            jobId: job.id,
-            workerId: job.workerId,
-            amount: job.paymentAmount,
-            serviceFee: serviceFee,
-            netAmount: netAmount,
-            status: 'pending'
-          });
-        }
-      }
-      
-      res.json({ 
-        success: true,
-        status: paymentIntent.status,
-        paymentId: payment.id
-      });
-    } catch (error: any) {
-      console.error('Error processing payment:', error);
-      res.status(500).json({ message: error.message });
-    }
-  });
-
-  apiRouter.post("/payments/process-saved", isAuthenticated, async (req: Request, res: Response) => {
-    try {
-      const { jobId, paymentMethodId, amount, description } = req.body;
-      
-      if (!jobId || !paymentMethodId) {
-        return res.status(400).json({ message: "Job ID and payment method ID are required" });
-      }
-
-      // Get the job to check if it exists and get details
-      const job = await storage.getJob(Number(jobId));
-      if (!job) {
-        return res.status(404).json({ message: "Job not found" });
-      }
-      
-      // Validate the user is authorized to make payment for this job
-      if (job.posterId !== req.user.id) {
-        return res.status(403).json({ 
-          message: "You are not authorized to make payment for this job" 
-        });
-      }
-
-      // Ensure user has a Stripe customer ID
-      if (!req.user.stripeCustomerId) {
-        return res.status(400).json({ message: "No payment methods found for this user" });
-      }
-      
-      // Create the payment intent with the saved method
-      const actualAmount = amount || job.totalAmount;
-      const paymentIntent = await stripe.paymentIntents.create({
-        amount: Math.round(actualAmount * 100), // Convert to cents
-        currency: 'usd',
-        customer: req.user.stripeCustomerId,
-        payment_method: paymentMethodId,
-        off_session: true,
-        confirm: true,
-        metadata: {
-          jobId: job.id.toString(),
-          userId: req.user.id.toString(),
-          jobTitle: job.title
-        }
-      });
-      
-      // Create a payment record in our database
-      const payment = await storage.createPayment({
-        userId: req.user.id,
-        amount: actualAmount,
-        type: 'job_payment',
-        status: paymentIntent.status === 'succeeded' ? 'completed' : 'pending',
-        paymentMethod: 'stripe',
-        transactionId: paymentIntent.id,
-        jobId: job.id,
-        description: description || `Payment for job: ${job.title}`,
-        metadata: { paymentIntentId: paymentIntent.id }
-      });
-      
-      // If payment succeeded, update job and create an earning record if applicable
-      if (paymentIntent.status === 'succeeded') {
-        // If job is assigned, update it to "in progress"
-        if (job.status === 'assigned') {
-          await storage.updateJob(job.id, { status: 'in_progress' });
-        }
-        
-        // If worker is assigned, create an earning record for them
-        if (job.workerId) {
-          const serviceFee = job.serviceFee || 2.5;
-          const netAmount = actualAmount - serviceFee;
-          
-          await storage.createEarning({
-            jobId: job.id,
-            workerId: job.workerId,
-            amount: actualAmount,
-            serviceFee: serviceFee,
-            netAmount: netAmount,
-            status: 'pending'
-          });
-        }
-      }
-      
-      res.json({ 
-        success: true,
-        status: paymentIntent.status,
-        paymentId: payment.id
-      });
-    } catch (error: any) {
-      console.error('Error processing payment with saved method:', error);
-      res.status(500).json({ message: error.message });
-    }
-  });
-
-  // Set up Stripe routes
-  setupStripeRoutes(apiRouter);
-  
-  // Mount payout routes for worker payments
-  apiRouter.use('/payments', payoutRouter);
 
   // Handle account type setting (always worker now)
   apiRouter.post("/set-account-type", async (req: Request, res: Response) => {
@@ -2455,102 +2224,50 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post("/webhook/stripe", express.raw({type: 'application/json'}), async (req: Request, res: Response) => {
     const sig = req.headers['stripe-signature'];
     
-    // First, validate that webhook signature exists if we're in production
-    if (process.env.NODE_ENV === 'production' && !process.env.STRIPE_WEBHOOK_SECRET) {
-      console.error('Stripe webhook secret is required in production mode');
-      // Don't expose this detail in the response for security
-      return res.status(500).send('Configuration error');
-    }
-    
-    // Check that signature header exists in secured environments
-    if (process.env.STRIPE_WEBHOOK_SECRET && !sig) {
-      console.error('Stripe signature missing from webhook request');
-      return res.status(400).send('Missing stripe-signature header');
-    }
-    
     try {
       // Parse the event - with or without webhook secret
       let event;
-      
       if (process.env.STRIPE_WEBHOOK_SECRET) {
-        try {
-          // If we have a webhook secret, verify the signature
-          event = stripe.webhooks.constructEvent(
-            req.body, 
-            sig as string, 
-            process.env.STRIPE_WEBHOOK_SECRET
-          );
-          console.log(`Webhook received: ${event.type}`);
-        } catch (err) {
-          console.error(`Webhook signature verification failed: ${(err as Error).message}`);
-          return res.status(400).send(`Webhook signature verification failed: ${(err as Error).message}`);
-        }
+        // If we have a webhook secret, verify the signature
+        event = stripe.webhooks.constructEvent(
+          req.body, 
+          sig as string, 
+          process.env.STRIPE_WEBHOOK_SECRET
+        );
       } else {
-        // Without webhook secret, just parse the event (only in development)
-        try {
-          event = JSON.parse(req.body.toString());
-          console.log(`Unverified webhook received: ${event.type} (NO SIGNATURE VERIFICATION - dev mode only)`);
-        } catch (err) {
-          console.error(`Webhook parsing failed: ${(err as Error).message}`);
-          return res.status(400).send('Webhook parsing failed');
-        }
+        // Without webhook secret, just parse the event
+        event = JSON.parse(req.body.toString());
       }
       
-      // Process events in a try/catch block with specific error handling for each type
-      try {
-        // Handle different payment events
-        if (event.type === 'payment_intent.succeeded') {
-          await handleSuccessfulPayment(event.data.object);
-        } 
-        else if (event.type === 'payment_intent.payment_failed') {
-          await handleFailedPayment(event.data.object);
-        }
-        else if (event.type === 'payment_intent.canceled') {
-          await handleCanceledPayment(event.data.object);
-        }
-        // Connect account events 
-        else if (event.type === 'account.updated') {
-          await handleConnectAccountUpdate(event.data.object);
-        }
-        else if (event.type === 'account.application.authorized') {
-          await handleConnectAccountAuthorized(event.data.object);
-        }
-        else if (event.type === 'account.application.deauthorized') {
-          await handleConnectAccountDeauthorized(event.data.object);
-        }
-        else if (event.type === 'transfer.created' || event.type === 'transfer.paid' || event.type === 'transfer.failed') {
-          await handleTransferEvent(event.data.object, event.type);
-        }
-        else if (event.type === 'charge.succeeded') {
-          console.log(`Charge succeeded: ${event.data.object.id} for amount ${event.data.object.amount}`);
-        } 
-        else if (event.type.startsWith('customer.subscription.')) {
-          console.log(`Subscription event: ${event.type} for subscription ${event.data.object.id}`);
-        }
-        else if (event.type.startsWith('payment_method.')) {
-          console.log(`Payment method event: ${event.type} for method ${event.data.object.id}`);
-        }
-        else {
-          // Log unhandled event types for monitoring
-          console.log(`Received unhandled Stripe webhook event type: ${event.type}`);
-        }
-        
-        // Return success response
-        return res.json({received: true, event: event.type});
-      } catch (eventError) {
-        // Log specific event processing error but don't fail the webhook
-        // This ensures Stripe doesn't continue to retry the webhook
-        console.error(`Error processing webhook event ${event.type}:`, eventError);
-        return res.status(200).json({
-          received: true,
-          error: `Error processing ${event.type} event: ${(eventError as Error).message}`,
-          eventType: event.type
-        });
+      // Handle different payment events
+      if (event.type === 'payment_intent.succeeded') {
+        await handleSuccessfulPayment(event.data.object);
+      } 
+      else if (event.type === 'payment_intent.payment_failed') {
+        await handleFailedPayment(event.data.object);
       }
+      else if (event.type === 'payment_intent.canceled') {
+        await handleCanceledPayment(event.data.object);
+      }
+      // Connect account events 
+      else if (event.type === 'account.updated') {
+        await handleConnectAccountUpdate(event.data.object);
+      }
+      else if (event.type === 'account.application.authorized') {
+        await handleConnectAccountAuthorized(event.data.object);
+      }
+      else if (event.type === 'account.application.deauthorized') {
+        await handleConnectAccountDeauthorized(event.data.object);
+      }
+      else if (event.type === 'transfer.created' || event.type === 'transfer.paid') {
+        await handleTransferEvent(event.data.object, event.type);
+      }
+      
+      // Return success response
+      res.json({received: true});
     } catch (error) {
-      // This catch handles any general webhook processing errors
-      console.error('Critical webhook error:', error);
-      return res.status(400).send(`Webhook Error: ${(error as Error).message}`);
+      console.error('Webhook error:', error);
+      res.status(400).send(`Webhook Error: ${(error as Error).message}`);
     }
   });
   
@@ -2613,38 +2330,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
                   console.log(`Successfully transferred $${netAmount} to worker ${job.workerId} (Connect account: ${worker.stripeConnectAccountId})`);
                   
                   // Update the earning record to mark it as paid
-                  await storage.updateEarningStatus(earning.id, 'processing', new Date());
-                  
-                  // Create notification for worker that payment is being processed
-                  await storage.createNotification({
-                    userId: job.workerId,
-                    type: "payment_processing",
-                    title: "Payment Processing",
-                    message: `Your payment of $${netAmount.toFixed(2)} for job "${job.title}" is being processed.`,
-                    isRead: false,
-                    sourceType: "job",
-                    sourceId: job.id,
-                    metadata: {
-                      transferId: transfer.id,
-                      amount: netAmount,
-                      jobTitle: job.title
-                    }
-                  });
-                  
-                  // Create notification for job poster
-                  await storage.createNotification({
-                    userId: job.posterId,
-                    type: "payment_sent",
-                    title: "Payment Sent",
-                    message: `Your payment of $${job.totalAmount.toFixed(2)} for job "${job.title}" has been processed.`,
-                    isRead: false,
-                    sourceType: "job",
-                    sourceId: job.id,
-                    metadata: {
-                      paymentId: payment.id.toString(),
-                      amount: job.totalAmount
-                    }
-                  });
+                  await storage.updateEarningStatus(earning.id, 'paid', new Date());
                 } catch (transferError) {
                   console.error(`Error transferring to Connect account: ${(transferError as Error).message}`);
                   // We don't want to fail the whole transaction if the transfer fails
@@ -2717,39 +2403,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
                 
                 console.log(`Successfully transferred $${netAmount} to worker ${job.workerId} (Connect account: ${worker.stripeConnectAccountId})`);
                 
-                // Update the earning record to mark it as processing
-                await storage.updateEarningStatus(earning.id, 'processing', new Date());
-                
-                // Create notification for worker that payment is being processed
-                await storage.createNotification({
-                  userId: job.workerId,
-                  type: "payment_processing",
-                  title: "Payment Processing",
-                  message: `Your payment of $${netAmount.toFixed(2)} for job "${job.title}" is being processed.`,
-                  isRead: false,
-                  sourceType: "job",
-                  sourceId: job.id,
-                  metadata: {
-                    transferId: transfer.id,
-                    amount: netAmount,
-                    jobTitle: job.title
-                  }
-                });
-                
-                // Create notification for job poster
-                await storage.createNotification({
-                  userId: job.posterId,
-                  type: "payment_sent", 
-                  title: "Payment Sent",
-                  message: `Your payment for job "${job.title}" has been processed.`,
-                  isRead: false,
-                  sourceType: "job",
-                  sourceId: job.id,
-                  metadata: {
-                    paymentId: createdPayment.id.toString(),
-                    amount: job.totalAmount
-                  }
-                });
+                // Update the earning record to mark it as paid
+                await storage.updateEarningStatus(earning.id, 'paid', new Date());
               } catch (transferError) {
                 console.error(`Error transferring to Connect account: ${(transferError as Error).message}`);
                 // We don't want to fail the whole transaction if the transfer fails
@@ -2815,68 +2470,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       
       // Update the user's account status based on the Connect account details
-      const previousStatus = user.stripeConnectAccountStatus;
-      const newStatus = getConnectAccountStatus(account);
+      const accountStatus = getConnectAccountStatus(account);
       
       // Update the user in the database with the new status
       await storage.updateUser(user.id, {
-        stripeConnectAccountStatus: newStatus
+        stripeConnectAccountStatus: accountStatus
       });
       
-      console.log(`Updated Connect account status for user ${user.id} from ${previousStatus} to ${newStatus}`);
-      
-      // Handle status transitions with notifications
-      if (previousStatus !== newStatus) {
-        // Create a notification for the user about the status change
-        let notificationTitle = "";
-        let notificationMessage = "";
-        
-        if (newStatus === 'active' && previousStatus !== 'active') {
-          notificationTitle = "Stripe Connect Account Activated";
-          notificationMessage = "Your Stripe Connect account is now active. You can now receive payments for completed jobs.";
-          
-          // Create notification in database
-          await storage.createNotification({
-            userId: user.id,
-            type: "stripe_account_update",
-            title: notificationTitle,
-            message: notificationMessage,
-            isRead: false,
-            sourceType: "stripe",
-            sourceId: null,
-          });
-        } 
-        else if (newStatus === 'disabled' && previousStatus === 'active') {
-          notificationTitle = "Stripe Connect Account Restricted";
-          notificationMessage = "Your Stripe Connect account has been restricted. Please check your Stripe dashboard for more information.";
-          
-          // Create notification in database
-          await storage.createNotification({
-            userId: user.id,
-            type: "stripe_account_update",
-            title: notificationTitle,
-            message: notificationMessage,
-            isRead: false,
-            sourceType: "stripe",
-            sourceId: null,
-          });
-        }
-        else if (newStatus === 'incomplete' && (previousStatus === 'active' || previousStatus === 'disabled')) {
-          notificationTitle = "Stripe Connect Account Needs Attention";
-          notificationMessage = "Your Stripe Connect account requires additional information. Please go to the Payments dashboard to complete your profile.";
-          
-          // Create notification in database
-          await storage.createNotification({
-            userId: user.id,
-            type: "stripe_account_update",
-            title: notificationTitle,
-            message: notificationMessage,
-            isRead: false,
-            sourceType: "stripe",
-            sourceId: null,
-          });
-        }
-      }
+      console.log(`Updated Connect account status for user ${user.id} to ${accountStatus}`);
     } catch (error) {
       console.error(`Error handling Connect account update: ${(error as Error).message}`);
     }
@@ -2953,7 +2554,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   async function handleTransferEvent(transfer: Stripe.Transfer, eventType: string) {
     try {
       // Extract metadata from transfer (job ID, worker ID, earning ID)
-      const { jobId, workerId, earningId, paymentId } = transfer.metadata || {};
+      const { jobId, workerId, earningId } = transfer.metadata || {};
       
       if (!jobId || !workerId || !earningId) {
         console.log(`Transfer ${transfer.id} doesn't have required metadata, ignoring`);
@@ -2964,7 +2565,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const jobIdInt = parseInt(jobId);
       const workerIdInt = parseInt(workerId);
       const earningIdInt = parseInt(earningId);
-      const paymentIdInt = paymentId ? parseInt(paymentId) : null;
       
       // Get the earning record
       const earning = await storage.getEarning(earningIdInt);
@@ -2973,104 +2573,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
         console.error(`No earning found with ID: ${earningIdInt}`);
         return;
       }
-
-      // Get the worker to notify them about the transfer
-      const worker = await storage.getUser(workerIdInt);
-      if (!worker) {
-        console.error(`No worker found with ID: ${workerIdInt}`);
-        return;
-      }
-      
-      // Get the job to include details in notifications
-      const job = await storage.getJob(jobIdInt);
-      if (!job) {
-        console.error(`No job found with ID: ${jobIdInt}`);
-        return;
-      }
       
       // Update the earning status based on the transfer event
       if (eventType === 'transfer.paid') {
         // Transfer has been paid out to the worker's bank account
         await storage.updateEarningStatus(earningIdInt, 'paid', new Date());
         console.log(`Earning ${earningIdInt} for job ${jobIdInt} marked as paid via webhook`);
-        
-        // Create a notification for the worker
-        await storage.createNotification({
-          userId: workerIdInt,
-          type: 'payment_received',
-          title: 'Payment Received',
-          message: `Your payment of $${(transfer.amount / 100).toFixed(2)} for job "${job.title}" has been sent to your bank account.`,
-          isRead: false,
-          sourceType: 'job',
-          sourceId: jobIdInt,
-          metadata: {
-            transferId: transfer.id,
-            amount: transfer.amount / 100,
-            jobTitle: job.title,
-            paymentDate: new Date().toISOString()
-          }
-        });
-
       } else if (eventType === 'transfer.created') {
         // Transfer has been created but not yet paid out
         await storage.updateEarningStatus(earningIdInt, 'processing');
         console.log(`Earning ${earningIdInt} for job ${jobIdInt} marked as processing via webhook`);
-        
-        // Create a notification for the worker
-        await storage.createNotification({
-          userId: workerIdInt,
-          type: 'payment_processing',
-          title: 'Payment Processing',
-          message: `Your payment of $${(transfer.amount / 100).toFixed(2)} for job "${job.title}" is being processed.`,
-          isRead: false,
-          sourceType: 'job',
-          sourceId: jobIdInt,
-          metadata: {
-            transferId: transfer.id,
-            amount: transfer.amount / 100,
-            jobTitle: job.title
-          }
-        });
-      } else if (eventType === 'transfer.failed') {
-        // Transfer failed - handle appropriately
-        await storage.updateEarningStatus(earningIdInt, 'failed');
-        console.log(`Earning ${earningIdInt} for job ${jobIdInt} marked as failed via webhook`);
-        
-        // Create a notification for the worker about the failed transfer
-        await storage.createNotification({
-          userId: workerIdInt,
-          type: 'payment_failed',
-          title: 'Payment Failed',
-          message: `There was an issue processing your payment of $${(transfer.amount / 100).toFixed(2)} for job "${job.title}". Our team is looking into it.`,
-          isRead: false,
-          sourceType: 'job',
-          sourceId: jobIdInt,
-          metadata: {
-            transferId: transfer.id,
-            amount: transfer.amount / 100,
-            jobTitle: job.title,
-            errorDate: new Date().toISOString()
-          }
-        });
-        
-        // TODO: In a production app, also notify admins about the failed transfer
-      }
-      
-      // If there's a job ID, update the job to indicate payment status
-      if (job) {
-        let paymentStatus = '';
-        
-        if (eventType === 'transfer.paid') {
-          paymentStatus = 'paid';
-        } else if (eventType === 'transfer.created') {
-          paymentStatus = 'processing';
-        } else if (eventType === 'transfer.failed') {
-          paymentStatus = 'failed';
-        }
-        
-        if (paymentStatus) {
-          await storage.updateJob(jobIdInt, { paymentStatus });
-        }
       }
     } catch (error) {
       console.error(`Error handling transfer event: ${(error as Error).message}`);
@@ -3335,36 +2847,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
   
-  // Earnings endpoints
-  apiRouter.get("/earnings/worker", isAuthenticated, async (req: Request, res: Response) => {
-    try {
-      if (req.user.accountType !== 'worker') {
-        return res.status(403).json({ 
-          message: "Forbidden: Only worker accounts can access earnings data" 
-        });
-      }
-      
-      // Fetch the worker's earnings
-      const earnings = await storage.getEarningsForWorker(req.user.id);
-      
-      // For each earning, fetch the associated job details
-      const earningsWithJobDetails = await Promise.all(
-        earnings.map(async (earning) => {
-          const job = await storage.getJob(earning.jobId);
-          return {
-            ...earning,
-            job: job || undefined
-          };
-        })
-      );
-      
-      res.json(earningsWithJobDetails);
-    } catch (error) {
-      console.error("Error fetching worker earnings:", error);
-      res.status(500).json({ message: "Server error: " + (error as Error).message });
-    }
-  });
-
   // Create notification endpoint for direct creation (admin/system only)
   apiRouter.post("/notifications", isAuthenticated, async (req: Request, res: Response) => {
     try {
@@ -3397,20 +2879,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Mount Stripe webhook endpoint
-  // This needs to be before the API router to handle raw bodies correctly
-  app.use("/api/webhooks/stripe", createWebhookRouter());
-
   // Mount the API router under /api prefix
   app.use("/api", apiRouter);
 
-  // Health check endpoints are already defined in server/index.ts
-
   const httpServer = createServer(app);
-  
-  // Initialize the notification service with real-time WebSocket support
-  const notificationService = initNotificationService(httpServer);
-  console.log('Notification service initialized for real-time payment events');
-  
   return httpServer;
 }

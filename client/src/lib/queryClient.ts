@@ -64,21 +64,6 @@ export async function apiRequest(
     
     clearTimeout(timeoutId);
     
-    // Check for special headers related to authentication
-    const userId = res.headers.get('X-User-ID');
-    if (userId) {
-      // Store userId in localStorage for WebSocket authentication
-      localStorage.setItem('userId', userId);
-      console.log('User ID stored for WebSocket auth:', userId);
-    }
-    
-    // Check for logout header
-    if (res.headers.get('X-Clear-User-ID') === 'true') {
-      // Clear userId from localStorage
-      localStorage.removeItem('userId');
-      console.log('User ID cleared from localStorage');
-    }
-    
     await throwIfResNotOk(res);
     return res;
   } catch (error) {
@@ -125,21 +110,11 @@ export const getQueryFn: <T>(options: {
     } catch (error) {
       console.error(`Query error for ${queryKey[0]}:`, error);
       
-      // Return empty array or null for unauthorized if that behavior is requested
+      // Return empty array for unauthorized if that behavior is requested
       if (error instanceof Error && 
-          (error.message.includes('Authentication failed') ||
-           error.message.includes('Not authenticated') || 
-           error.message.includes('Unauthorized')) && 
+          error.message.includes('Authentication failed') && 
           unauthorizedBehavior === "returnEmptyArray") {
         return [] as unknown as T;
-      }
-      
-      if (error instanceof Error && 
-          (error.message.includes('Authentication failed') ||
-           error.message.includes('Not authenticated') || 
-           error.message.includes('Unauthorized')) && 
-          unauthorizedBehavior === "returnNull") {
-        return null as unknown as T;
       }
       
       throw error;

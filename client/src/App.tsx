@@ -14,13 +14,10 @@ import TransactionHistory from "@/pages/TransactionHistory";
 import CompleteProfile from "@/pages/CompleteProfile";
 import Checkout from "@/pages/Checkout";
 import PaymentConfirmation from "@/pages/PaymentConfirmation";
-import PaymentsDashboard from "@/pages/PaymentsDashboard";
-
+import StripeTest from "@/pages/StripeTest";
 import NotificationsPage from "@/pages/notifications-page";
-import ResetPassword from "@/pages/ResetPassword";
 import { AuthProvider } from "@/hooks/use-auth";
 import { NotificationProvider } from "@/hooks/use-notifications";
-import { RealTimeNotificationProvider } from "@/providers/notification-provider";
 import { ProtectedRoute } from "@/lib/protected-route";
 import { useAuth } from "@/hooks/use-auth";
 import { StripeConnectCheck, StripeRequirementsCheck } from "@/components/stripe";
@@ -29,7 +26,7 @@ import { ThemeProvider } from "@/components/theme";
 import { OnboardingProvider } from "@/components/onboarding/OnboardingProvider";
 import ContextualTips from "@/components/onboarding/ContextualTips";
 import { SimpleToastProvider } from "@/hooks/use-simple-toast";
-
+import ExpoConnectGuide from "@/components/ExpoConnectGuide";
 import { useEffect } from "react";
 
 // Redirect component for old routes
@@ -66,14 +63,13 @@ function RouterWithAuth() {
       <ProtectedRoute path="/transactions" component={TransactionHistory} />
       <ProtectedRoute path="/checkout" component={Checkout} />
       <ProtectedRoute path="/payment-confirmation" component={PaymentConfirmation} />
-      <ProtectedRoute path="/payments" component={PaymentsDashboard} />
-      <ProtectedRoute path="/payments/dashboard" component={PaymentsDashboard} />
+      <ProtectedRoute path="/stripe-test" component={StripeTest} />
       <ProtectedRoute path="/notifications" component={NotificationsPage} />
+      {/* Payment dashboard is not accessible as there are no job posters */}
       <Route path="/auth" component={AuthPage} />
       <Route path="/login" component={RedirectToAuth} />
       <Route path="/register" component={RedirectToAuth} />
       <Route path="/auth/callback" component={() => <div>Processing authentication...</div>} />
-      <Route path="/reset-password" component={ResetPassword} />
       {/* Account type selection is no longer needed */}
       <Route path="/complete-profile" component={CompleteProfile} />
       <Route component={NotFound} />
@@ -97,6 +93,7 @@ function AuthenticatedContent() {
       )}
       {/* Contextual tips will track user actions and show tooltips at the right moments */}
       {user && <ContextualTips />}
+      {/* ExpoConnectGuide button removed from UI - use ./expo-connect.sh in console instead */}
       <Toaster />
     </>
   );
@@ -109,11 +106,11 @@ function App() {
         <TooltipProvider>
           <SimpleToastProvider>
             <AuthProvider>
-              <RealTimeNotificationProvider>
+              <NotificationProvider>
                 <OnboardingProvider>
                   <AuthenticatedContent />
                 </OnboardingProvider>
-              </RealTimeNotificationProvider>
+              </NotificationProvider>
             </AuthProvider>
           </SimpleToastProvider>
         </TooltipProvider>
