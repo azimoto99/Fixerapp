@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, Suspense } from 'react';
 import { useQuery, useMutation } from '@tanstack/react-query';
 import { apiRequest, queryClient } from '@/lib/queryClient';
 import { useAuth } from '@/hooks/use-auth';
@@ -65,6 +65,7 @@ import {
   Check as CheckIcon,
   XCircle,
 } from 'lucide-react';
+import WorkerHistory from './WorkerHistory';
 
 interface ApplicationsManagerProps {
   userId: number;
@@ -470,7 +471,7 @@ const ApplicationsManager: React.FC<ApplicationsManagerProps> = ({
 
       {/* Application Details Dialog */}
       <Dialog open={viewApplicationDetails} onOpenChange={setViewApplicationDetails}>
-        <DialogContent className="sm:max-w-md">
+        <DialogContent className="sm:max-w-2xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Application Details</DialogTitle>
             <DialogDescription>
@@ -549,10 +550,28 @@ const ApplicationsManager: React.FC<ApplicationsManagerProps> = ({
                   </span>
                 </div>
               </div>
+              
+              {/* Worker History (only shown to poster) */}
+              {userMode === 'poster' && selectedApplication.workerId && (
+                <div className="space-y-1.5 mt-6">
+                  <h3 className="font-medium">Worker History & Reviews</h3>
+                  <p className="text-xs text-muted-foreground mb-2">
+                    Review this worker's past jobs and ratings to help you make an informed decision
+                  </p>
+                  {/* Import and use the WorkerHistory component */}
+                  <Suspense fallback={
+                    <div className="h-64 flex items-center justify-center">
+                      <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                    </div>
+                  }>
+                    <WorkerHistory workerId={selectedApplication.workerId} />
+                  </Suspense>
+                </div>
+              )}
             </div>
           )}
           
-          <DialogFooter className="flex sm:justify-between">
+          <DialogFooter className="flex sm:justify-between mt-4">
             <Button variant="outline" onClick={() => setViewApplicationDetails(false)}>
               Close
             </Button>
