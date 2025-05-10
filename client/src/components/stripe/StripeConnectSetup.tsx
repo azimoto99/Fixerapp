@@ -195,22 +195,57 @@ const StripeConnectSetup: React.FC<StripeConnectSetupProps> = ({ compact = false
   // Get status badge props based on account status
   const getStatusBadge = () => {
     if (!accountStatus) {
-      return { text: 'Not Connected', variant: 'outline', icon: <XCircle className="h-4 w-4 mr-1" /> };
+      return { 
+        text: 'Not Connected', 
+        variant: 'outline', 
+        iconComponent: XCircle,
+        iconProps: { className: "h-4 w-4 mr-1" }
+      };
     }
     
     switch (accountStatus.accountStatus) {
       case 'active':
-        return { text: 'Active', variant: 'default', icon: <CheckCircle className="h-4 w-4 mr-1" /> };
+        return { 
+          text: 'Active', 
+          variant: 'default', 
+          iconComponent: CheckCircle,
+          iconProps: { className: "h-4 w-4 mr-1" }
+        };
       case 'incomplete':
-        return { text: 'Incomplete', variant: 'warning', icon: <AlertCircle className="h-4 w-4 mr-1" /> };
+        return { 
+          text: 'Incomplete', 
+          variant: 'warning', 
+          iconComponent: AlertCircle,
+          iconProps: { className: "h-4 w-4 mr-1" }
+        };
       case 'pending':
-        return { text: 'Pending Verification', variant: 'secondary', icon: <Loader2 className="h-4 w-4 mr-1 animate-spin" /> };
+        return { 
+          text: 'Pending Verification', 
+          variant: 'secondary', 
+          iconComponent: Loader2,
+          iconProps: { className: "h-4 w-4 mr-1 animate-spin" }
+        };
       case 'restricted':
-        return { text: 'Restricted', variant: 'destructive', icon: <AlertCircle className="h-4 w-4 mr-1" /> };
+        return { 
+          text: 'Restricted', 
+          variant: 'destructive', 
+          iconComponent: AlertCircle,
+          iconProps: { className: "h-4 w-4 mr-1" }
+        };
       case 'disabled':
-        return { text: 'Disabled', variant: 'destructive', icon: <XCircle className="h-4 w-4 mr-1" /> };
+        return { 
+          text: 'Disabled', 
+          variant: 'destructive', 
+          iconComponent: XCircle,
+          iconProps: { className: "h-4 w-4 mr-1" }
+        };
       default:
-        return { text: accountStatus.accountStatus, variant: 'outline', icon: <AlertCircle className="h-4 w-4 mr-1" /> };
+        return { 
+          text: accountStatus.accountStatus, 
+          variant: 'outline', 
+          iconComponent: AlertCircle,
+          iconProps: { className: "h-4 w-4 mr-1" }
+        };
     }
   };
   
@@ -231,7 +266,7 @@ const StripeConnectSetup: React.FC<StripeConnectSetupProps> = ({ compact = false
           <div className="flex justify-between items-center">
             <CardTitle className="text-lg">Payment Account</CardTitle>
             <Badge variant={statusBadge.variant as any} className="flex items-center">
-              {statusBadge.icon}
+              {statusBadge.iconComponent && <statusBadge.iconComponent {...statusBadge.iconProps} />}
               {statusBadge.text}
             </Badge>
           </div>
@@ -306,12 +341,15 @@ const StripeConnectSetup: React.FC<StripeConnectSetupProps> = ({ compact = false
       <CardHeader>
         <div className="flex justify-between items-center">
           <CardTitle>Stripe Connect Account</CardTitle>
-          {!isLoading && (
-            <Badge variant={getStatusBadge().variant as any} className="flex items-center">
-              {getStatusBadge().icon}
-              {getStatusBadge().text}
-            </Badge>
-          )}
+          {!isLoading && (() => {
+            const badge = getStatusBadge();
+            return (
+              <Badge variant={badge.variant as any} className="flex items-center">
+                {badge.iconComponent && <badge.iconComponent {...badge.iconProps} />}
+                {badge.text}
+              </Badge>
+            );
+          })()}
         </div>
         <CardDescription>
           Your payment account status and details
