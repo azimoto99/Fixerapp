@@ -257,28 +257,38 @@ const JobDetailPage: React.FC = () => {
         )}
         
         {isPoster && job.status === 'completed' && (
-          <Dialog open={payDialogOpen} onOpenChange={setPayDialogOpen}>
-            <DialogTrigger asChild>
-              <Button>
-                <DollarSign className="h-4 w-4 mr-2" />
-                Pay Worker
-              </Button>
-            </DialogTrigger>
-            <DialogContent className="sm:max-w-md">
-              <DialogHeader>
-                <DialogTitle>Make Payment</DialogTitle>
-                <DialogDescription>
-                  Pay the worker for completing this job
-                </DialogDescription>
-              </DialogHeader>
-              <JobPaymentForm 
-                jobId={jobId} 
-                workerId={job.workerId} 
-                onSuccess={handlePaymentSuccess} 
-                isExistingJob={true}
-              />
-            </DialogContent>
-          </Dialog>
+          <>
+            <Dialog open={payDialogOpen} onOpenChange={setPayDialogOpen}>
+              <DialogTrigger asChild>
+                <Button variant="outline">
+                  <DollarSign className="h-4 w-4 mr-2" />
+                  Custom Payment
+                </Button>
+              </DialogTrigger>
+              <DialogContent className="sm:max-w-md">
+                <DialogHeader>
+                  <DialogTitle>Make Payment</DialogTitle>
+                  <DialogDescription>
+                    Pay the worker for completing this job
+                  </DialogDescription>
+                </DialogHeader>
+                <JobPaymentForm 
+                  jobId={jobId} 
+                  workerId={job.workerId} 
+                  onSuccess={handlePaymentSuccess} 
+                  isExistingJob={true}
+                />
+              </DialogContent>
+            </Dialog>
+            
+            <Button 
+              onClick={() => navigate(`/checkout/${job.paymentAmount}/${jobId}`)}
+              className="bg-green-600 hover:bg-green-700"
+            >
+              <DollarSign className="h-4 w-4 mr-2" />
+              Pay ${job.paymentAmount}
+            </Button>
+          </>
         )}
         
         {isWorker && job.status === 'assigned' && (
