@@ -18,6 +18,9 @@ externalPort = 80
 localPort = 8081
 externalPort = 8081
 
+[env]
+REPLIT_DISABLE_PACKAGE_LAYER = "1"
+
 [workflows]
 runButton = "Project"
 
