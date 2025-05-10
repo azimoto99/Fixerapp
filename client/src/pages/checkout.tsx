@@ -1,29 +1,28 @@
-import { useEffect, useState } from 'react';
-import { useRoute, useLocation } from 'wouter';
-import { useQuery } from '@tanstack/react-query';
-import { apiRequest } from '@/lib/queryClient';
-import { useToast } from '@/hooks/use-toast';
+import { useStripe, Elements, PaymentElement, useElements } from '@stripe/react-stripe-js';
 import { loadStripe } from '@stripe/stripe-js';
-import { Elements, PaymentElement, useStripe, useElements } from '@stripe/react-stripe-js';
-import { Button } from '@/components/ui/button';
+import { useEffect, useState } from 'react';
+import { useLocation, useParams } from 'wouter';
+import { apiRequest } from "@/lib/queryClient";
+import { useToast } from "@/hooks/use-toast";
+import { useAuth } from '@/hooks/use-auth';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
 import { Loader2, ArrowLeft, CreditCard, AlertCircle } from 'lucide-react';
-import { formatCurrency } from '@/lib/utils';
 
-// Load Stripe outside of component
+// Make sure to call `loadStripe` outside of a component's render to avoid
+// recreating the `Stripe` object on every render.
 if (!import.meta.env.VITE_STRIPE_PUBLIC_KEY) {
   throw new Error('Missing required Stripe key: VITE_STRIPE_PUBLIC_KEY');
 }
 const stripePromise = loadStripe(import.meta.env.VITE_STRIPE_PUBLIC_KEY);
 
-// The payment form component that uses Stripe Elements
-const CheckoutForm = ({ amount, jobId }: { amount: number; jobId: number }) => {
-  const [, setLocation] = useLocation();
+const CheckoutForm = ({ amount, jobId }: { amount: number, jobId: number }) => {
   const stripe = useStripe();
   const elements = useElements();
   const [isProcessing, setIsProcessing] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const { toast } = useToast();
+  const [, navigate] = useLocation();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -36,7 +35,6 @@ const CheckoutForm = ({ amount, jobId }: { amount: number; jobId: number }) => {
     setErrorMessage(null);
 
     try {
-      // Confirm payment with Stripe
       const { error, paymentIntent } = await stripe.confirmPayment({
         elements,
         confirmParams: {
@@ -49,113 +47,146 @@ const CheckoutForm = ({ amount, jobId }: { amount: number; jobId: number }) => {
         setErrorMessage(error.message || 'An error occurred during payment');
         setIsProcessing(false);
       } else if (paymentIntent && paymentIntent.status === 'succeeded') {
-        // Payment succeeded locally - redirect to success page
         toast({
           title: 'Payment Successful',
-          description: `Your payment of ${formatCurrency(amount)} has been processed.`,
+          description: 'Your payment has been processed successfully',
         });
-        
-        setLocation('/payment-success');
+        navigate('/payment-success?payment_intent=' + paymentIntent.id);
       }
     } catch (err) {
       console.error('Payment error:', err);
-      setErrorMessage((err as Error).message || 'An error occurred during payment');
+      setErrorMessage((err as Error).message || 'An error occurred');
       setIsProcessing(false);
     }
   };
 
   return (
-    <form onSubmit={handleSubmit}>
-      <div className="space-y-4">
-        <PaymentElement />
+    <form onSubmit={handleSubmit} className="space-y-6">
+      <PaymentElement />
       
-        {errorMessage && (
-          <div className="rounded-md bg-destructive/10 p-3 text-destructive flex items-start">
-            <AlertCircle className="h-5 w-5 mr-2 mt-0.5 flex-shrink-0" />
-            <div>{errorMessage}</div>
-          </div>
+      {errorMessage && (
+        <div className="rounded-md bg-destructive/10 p-3 text-destructive flex items-start">
+          <AlertCircle className="h-5 w-5 mr-2 mt-0.5 flex-shrink-0" />
+          <div>{errorMessage}</div>
+        </div>
+      )}
+      
+      <Button
+        type="submit"
+        disabled={isProcessing || !stripe || !elements}
+        className="w-full"
+      >
+        {isProcessing ? (
+          <>
+            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+            Processing...
+          </>
+        ) : (
+          <>
+            <CreditCard className="mr-2 h-4 w-4" />
+            Pay ${amount.toFixed(2)}
+          </>
         )}
-        
-        <Button 
-          type="submit" 
-          className="w-full"
-          disabled={isProcessing || !stripe || !elements}
-        >
-          {isProcessing ? (
-            <>
-              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-              Processing...
-            </>
-          ) : (
-            `Pay ${formatCurrency(amount)}`
-          )}
-        </Button>
-      </div>
+      </Button>
     </form>
   );
 };
 
-// The main Checkout component
 export default function Checkout() {
-  const [, setLocation] = useLocation();
-  const [_, params] = useRoute<{ amount: string, jobId: string }>('/checkout/:amount/:jobId');
-  const [clientSecret, setClientSecret] = useState<string | null>(null);
+  const params = useParams();
+  const [, navigate] = useLocation();
+  const { user, isLoading: isLoadingAuth } = useAuth();
+  const [clientSecret, setClientSecret] = useState("");
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const { toast } = useToast();
 
-  // Parse parameters
-  const amount = params ? parseFloat(params.amount) : 0;
-  const jobId = params ? parseInt(params.jobId) : 0;
+  // Extract amount and jobId from URL parameters
+  const amount = params.amount ? parseFloat(params.amount) : 0;
+  const jobId = params.jobId ? parseInt(params.jobId, 10) : 0;
 
-  // Create payment intent
-  const { isLoading, error } = useQuery({
-    queryKey: ['/api/create-payment-intent', amount, jobId],
-    queryFn: async () => {
+  useEffect(() => {
+    if (isLoadingAuth) return;
+    
+    if (!user) {
+      toast({
+        title: "Authentication Required",
+        description: "Please log in to complete this payment",
+        variant: "destructive",
+      });
+      navigate("/login");
+      return;
+    }
+    
+    if (!amount || !jobId) {
+      setError("Invalid payment information. Please go back and try again.");
+      setIsLoading(false);
+      return;
+    }
+
+    // Create PaymentIntent as soon as the page loads
+    const fetchPaymentIntent = async () => {
       try {
-        const res = await apiRequest('POST', '/api/create-payment-intent', {
-          amount,
-          jobId,
+        const res = await apiRequest("POST", "/api/create-payment-intent", { 
+          amount: amount,
+          jobId: jobId
         });
-
+        
         if (!res.ok) {
-          throw new Error('Failed to create payment intent');
+          const errorData = await res.json();
+          throw new Error(errorData.message || "Failed to create payment intent");
         }
-
+        
         const data = await res.json();
         setClientSecret(data.clientSecret);
-        return data;
       } catch (err) {
-        console.error('Error creating payment intent:', err);
-        toast({
-          title: 'Error',
-          description: 'Failed to initialize payment. Please try again later.',
-          variant: 'destructive',
-        });
-        throw err;
+        console.error("Payment intent error:", err);
+        setError((err as Error).message || "Could not process payment. Please try again later.");
+      } finally {
+        setIsLoading(false);
       }
-    },
-    enabled: amount > 0 && jobId > 0,
-  });
+    };
 
-  // If parameters are invalid, show error
-  if (!params || amount <= 0 || jobId <= 0) {
+    fetchPaymentIntent();
+  }, [amount, jobId, user, isLoadingAuth, navigate, toast]);
+
+  const handleBack = () => {
+    navigate(`/jobs/${jobId}`);
+  };
+
+  if (isLoadingAuth || isLoading) {
+    return (
+      <div className="h-screen flex items-center justify-center">
+        <div className="text-center">
+          <Loader2 className="w-12 h-12 animate-spin mx-auto text-primary mb-4" />
+          <p className="text-muted-foreground">Preparing payment...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
     return (
       <div className="container max-w-md mx-auto py-12">
         <Card>
           <CardHeader>
-            <CardTitle>Invalid Checkout</CardTitle>
+            <CardTitle>Payment Error</CardTitle>
             <CardDescription>
-              The checkout information provided is invalid.
+              There was a problem setting up your payment
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="bg-destructive/10 rounded-md p-4 text-destructive">
-              <p>Please ensure you have a valid amount and job ID to proceed with checkout.</p>
+            <div className="rounded-md bg-destructive/10 p-4 text-destructive mb-4">
+              <div className="flex items-start">
+                <AlertCircle className="h-5 w-5 mr-2 mt-0.5 flex-shrink-0" />
+                <div>{error}</div>
+              </div>
             </div>
           </CardContent>
           <CardFooter>
-            <Button onClick={() => setLocation('/')} className="w-full">
-              <ArrowLeft className="h-4 w-4 mr-2" />
-              Return to Home
+            <Button onClick={handleBack} variant="outline" className="w-full">
+              <ArrowLeft className="mr-2 h-4 w-4" />
+              Return to Job
             </Button>
           </CardFooter>
         </Card>
@@ -163,65 +194,39 @@ export default function Checkout() {
     );
   }
 
+  // Make SURE to wrap the form in <Elements> which provides the stripe context.
   return (
     <div className="container max-w-md mx-auto py-12">
       <Card>
         <CardHeader>
-          <Button 
-            variant="ghost" 
-            size="sm" 
-            className="mb-2 -ml-2 w-fit"
-            onClick={() => setLocation(`/job/${jobId}`)}
-          >
-            <ArrowLeft className="h-4 w-4 mr-2" />
-            Back to Job
-          </Button>
-          <CardTitle>Checkout</CardTitle>
+          <CardTitle>Complete Your Payment</CardTitle>
           <CardDescription>
-            Complete your payment to confirm your job
+            Secure payment for job #{jobId}
           </CardDescription>
         </CardHeader>
-        
         <CardContent>
-          <div className="mb-6">
-            <div className="flex items-center justify-between mb-2">
-              <span className="text-muted-foreground">Amount:</span>
-              <span className="font-medium">{formatCurrency(amount)}</span>
-            </div>
-            <div className="flex items-center justify-between mb-4">
-              <span className="text-muted-foreground">Payment method:</span>
-              <span className="flex items-center">
-                <CreditCard className="h-4 w-4 mr-1 text-primary" />
-                Credit Card
-              </span>
-            </div>
-          </div>
-
-          {isLoading ? (
-            <div className="flex items-center justify-center py-8">
-              <Loader2 className="h-8 w-8 animate-spin text-primary" />
-            </div>
-          ) : error ? (
-            <div className="rounded-md bg-destructive/10 p-4 text-destructive">
-              <div className="flex items-center">
-                <AlertCircle className="h-5 w-5 mr-2" />
-                <span>Error initializing payment</span>
-              </div>
-              <Button
-                variant="outline"
-                size="sm"
-                className="mt-2"
-                onClick={() => window.location.reload()}
-              >
-                Try Again
-              </Button>
-            </div>
-          ) : clientSecret ? (
+          {clientSecret ? (
             <Elements stripe={stripePromise} options={{ clientSecret }}>
               <CheckoutForm amount={amount} jobId={jobId} />
             </Elements>
-          ) : null}
+          ) : (
+            <div className="flex items-center justify-center py-6">
+              <Loader2 className="h-8 w-8 animate-spin text-primary" />
+            </div>
+          )}
         </CardContent>
+        <CardFooter>
+          <Button 
+            onClick={handleBack} 
+            variant="ghost" 
+            size="sm" 
+            className="w-full mt-2"
+            disabled={isLoading}
+          >
+            <ArrowLeft className="mr-2 h-4 w-4" />
+            Return to job
+          </Button>
+        </CardFooter>
       </Card>
     </div>
   );
