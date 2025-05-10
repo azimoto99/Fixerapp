@@ -68,18 +68,33 @@ export function ProfileEditor({ user, onCancel }: ProfileEditorProps) {
   const [activeTab, setActiveTab] = useState<string>("basic");
 
   // Build default values for form, including new fields
+  // Define contact preferences with fallbacks
   const defaultContactPreferences: ContactPreferences = {
-    email: user.contactPreferences?.email ?? true,
-    sms: user.contactPreferences?.sms ?? false,
-    push: user.contactPreferences?.push ?? true,
+    email: true,
+    sms: false,
+    push: true
   };
+  
+  if (user.contactPreferences) {
+    if (typeof user.contactPreferences.email === 'boolean') defaultContactPreferences.email = user.contactPreferences.email;
+    if (typeof user.contactPreferences.sms === 'boolean') defaultContactPreferences.sms = user.contactPreferences.sms;
+    if (typeof user.contactPreferences.push === 'boolean') defaultContactPreferences.push = user.contactPreferences.push;
+  }
 
+  // Define availability with fallbacks
   const defaultAvailability: Availability = {
-    weekdays: user.availability?.weekdays ?? [true, true, true, true, true],
-    weekend: user.availability?.weekend ?? [false, false],
-    hourStart: user.availability?.hourStart ?? 9,
-    hourEnd: user.availability?.hourEnd ?? 17,
+    weekdays: [true, true, true, true, true],
+    weekend: [false, false],
+    hourStart: 9,
+    hourEnd: 17
   };
+  
+  if (user.availability) {
+    if (Array.isArray(user.availability.weekdays)) defaultAvailability.weekdays = user.availability.weekdays;
+    if (Array.isArray(user.availability.weekend)) defaultAvailability.weekend = user.availability.weekend;
+    if (typeof user.availability.hourStart === 'number') defaultAvailability.hourStart = user.availability.hourStart;
+    if (typeof user.availability.hourEnd === 'number') defaultAvailability.hourEnd = user.availability.hourEnd;
+  }
 
   const form = useForm<ProfileFormValues>({
     resolver: zodResolver(profileFormSchema),
@@ -175,7 +190,37 @@ export function ProfileEditor({ user, onCancel }: ProfileEditorProps) {
                       {!user.emailVerified && (
                         <div className="mt-1 text-sm text-orange-600 flex items-center">
                           <span className="mr-2">Not verified</span>
-                          <Button size="sm" variant="outline" type="button" className="h-7 text-xs">
+                          <Button 
+                            size="sm" 
+                            variant="outline" 
+                            type="button" 
+                            className="h-7 text-xs"
+                            onClick={() => {
+                              apiRequest(
+                                'POST',
+                                `/api/users/${user.id}/send-email-verification`,
+                                {}
+                              )
+                              .then(response => response.json())
+                              .then(data => {
+                                toast({
+                                  title: 'Verification Email Sent',
+                                  description: 'Please check your email for a verification link.',
+                                });
+                                // In development mode, show the verification link in the console
+                                if (process.env.NODE_ENV === 'development') {
+                                  console.log('Verification URL (development only):', data.verificationUrl);
+                                }
+                              })
+                              .catch(error => {
+                                toast({
+                                  title: 'Error',
+                                  description: error.message || 'Failed to send verification email',
+                                  variant: 'destructive',
+                                });
+                              });
+                            }}
+                          >
                             Verify Email
                           </Button>
                         </div>
@@ -202,7 +247,67 @@ export function ProfileEditor({ user, onCancel }: ProfileEditorProps) {
                       {field.value && !user.phoneVerified && (
                         <div className="mt-1 text-sm text-orange-600 flex items-center">
                           <span className="mr-2">Not verified</span>
-                          <Button size="sm" variant="outline" type="button" className="h-7 text-xs">
+                          <Button 
+                            size="sm" 
+                            variant="outline" 
+                            type="button" 
+                            className="h-7 text-xs"
+                            onClick={() => {
+                              apiRequest(
+                                'POST',
+                                `/api/users/${user.id}/send-phone-verification`,
+                                { phone: field.value }
+                              )
+                              .then(response => response.json())
+                              .then(data => {
+                                toast({
+                                  title: 'Verification Code Sent',
+                                  description: 'Please check your phone for a verification code.',
+                                });
+                                
+                                // Show a dialog to enter verification code
+                                const code = prompt('Enter the verification code sent to your phone:');
+                                if (code) {
+                                  // Submit verification code
+                                  apiRequest(
+                                    'POST',
+                                    `/api/users/${user.id}/verify-phone`,
+                                    { code, phone: field.value }
+                                  )
+                                  .then(response => {
+                                    if (response.ok) {
+                                      toast({
+                                        title: 'Phone Verified',
+                                        description: 'Your phone number has been verified successfully.',
+                                      });
+                                      // Update user cache with verified phone
+                                      queryClient.setQueryData(['/api/user'], oldData => {
+                                        return { ...oldData, phoneVerified: true };
+                                      });
+                                    } else {
+                                      return response.json().then(error => {
+                                        throw new Error(error.message || 'Verification failed');
+                                      });
+                                    }
+                                  })
+                                  .catch(error => {
+                                    toast({
+                                      title: 'Verification Failed',
+                                      description: error.message || 'Failed to verify phone number',
+                                      variant: 'destructive',
+                                    });
+                                  });
+                                }
+                              })
+                              .catch(error => {
+                                toast({
+                                  title: 'Error',
+                                  description: error.message || 'Failed to send verification code',
+                                  variant: 'destructive',
+                                });
+                              });
+                            }}
+                          >
                             Verify Phone
                           </Button>
                         </div>

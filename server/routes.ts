@@ -4,6 +4,7 @@ import { storage } from "./storage";
 import { z } from "zod";
 import Stripe from "stripe";
 import { filterJobContent, validatePaymentAmount } from "./content-filter";
+import * as crypto from 'crypto';
 import { 
   insertUserSchema, 
   insertJobSchema, 
