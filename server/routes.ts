@@ -2945,6 +2945,63 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Payment Status Endpoint - To fetch payment details after completion
+  app.get("/api/payment-status/:paymentIntentId", isAuthenticated, async (req: Request, res: Response) => {
+    try {
+      const { paymentIntentId } = req.params;
+      
+      if (!paymentIntentId) {
+        return res.status(400).json({ message: "Missing payment intent ID" });
+      }
+      
+      // Retrieve the payment intent from Stripe
+      const paymentIntent = await stripe.paymentIntents.retrieve(paymentIntentId);
+      
+      if (!paymentIntent) {
+        return res.status(404).json({ message: "Payment not found" });
+      }
+      
+      // Find our internal payment record
+      const payment = await storage.getPaymentByTransactionId(paymentIntentId);
+      
+      // If payment exists in our system, update its status if needed
+      if (payment && payment.status !== paymentIntent.status) {
+        await storage.updatePaymentStatus(payment.id, paymentIntent.status);
+      }
+      
+      // Get the job details for the response
+      let jobTitle = "Job";
+      let jobId = 0;
+      
+      if (paymentIntent.metadata && paymentIntent.metadata.jobId) {
+        jobId = parseInt(paymentIntent.metadata.jobId);
+        
+        // Try to get the job title from our database
+        if (jobId) {
+          const job = await storage.getJob(jobId);
+          if (job) {
+            jobTitle = job.title;
+          } else if (paymentIntent.metadata.jobTitle) {
+            // Use metadata job title as fallback
+            jobTitle = paymentIntent.metadata.jobTitle;
+          }
+        }
+      }
+      
+      // Return the payment details needed for the success page
+      res.json({
+        id: paymentIntentId,
+        status: paymentIntent.status,
+        amount: paymentIntent.amount,
+        jobId: jobId,
+        jobTitle: jobTitle
+      });
+    } catch (error) {
+      console.error("Error retrieving payment status:", error);
+      res.status(500).json({ message: "Error retrieving payment status: " + (error as Error).message });
+    }
+  });
+
   // Mount the API router under /api prefix
   app.use("/api", apiRouter);
 
