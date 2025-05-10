@@ -10,19 +10,30 @@ import { runAllMigrations } from "./migrations/run-migrations";
 
 const app = express();
 
-// Critical health check endpoint for deployment
-// This needs to be one of the first middleware to ensure immediate responses
-app.use((req, res, next) => {
-  // If it's a health check request (often from load balancers)
-  if (req.path === '/' && 
-     (req.get('User-Agent')?.includes('ELB-HealthChecker') || 
+// CRITICAL: Root path health check for deployment
+// This must be the first middleware to ensure it always responds
+// quickly and reliably for deployment health checks
+app.get('/', (req, res, next) => {
+  // Fast path for health checkers (matching User-Agent)
+  if (req.get('User-Agent')?.includes('HealthChecker') || 
       req.get('User-Agent')?.includes('GoogleHC') ||
       req.get('x-health-check') === '1' ||
-      req.query.health === '1')) {
-    // Respond immediately with 200 OK
+      req.query.health === '1') {
     return res.status(200).send('OK');
   }
-  // Otherwise continue with normal request handling
+  
+  // Also handle any bare request to root with no Accept header
+  // This catches Replit Deployments health checks
+  if (!req.get('Accept') || req.get('Accept') === '*/*') {
+    return res.status(200).send('OK');
+  }
+  
+  // If this is an API health check
+  if (req.query.health_check === '1') {
+    return res.status(200).send('OK');
+  }
+  
+  // Otherwise continue with normal request handling (HTML, etc.)
   next();
 });
 
