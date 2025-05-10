@@ -2880,6 +2880,71 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Payment Intent Creation for Checkout
+  app.post("/api/create-payment-intent", isAuthenticated, async (req: Request, res: Response) => {
+    try {
+      const { amount, jobId } = req.body;
+      
+      if (!amount || typeof amount !== 'number' || amount <= 0) {
+        return res.status(400).json({ message: "Invalid amount" });
+      }
+      
+      if (!jobId || typeof jobId !== 'number') {
+        return res.status(400).json({ message: "Invalid job ID" });
+      }
+      
+      // Get the job to verify it exists
+      const job = await storage.getJob(jobId);
+      if (!job) {
+        return res.status(404).json({ message: "Job not found" });
+      }
+      
+      // Validate payment amount
+      const amountValidation = validatePaymentAmount(amount);
+      if (!amountValidation.isApproved) {
+        return res.status(400).json({ message: amountValidation.reason || "Invalid payment amount" });
+      }
+      
+      // Convert to cents for Stripe
+      const amountInCents = Math.round(amount * 100);
+      
+      const paymentIntent = await stripe.paymentIntents.create({
+        amount: amountInCents,
+        currency: "usd",
+        metadata: {
+          jobId: jobId.toString(),
+          userId: req.user.id.toString(),
+          jobTitle: job.title,
+        },
+        description: `Payment for job: ${job.title} (ID: ${jobId})`,
+      });
+      
+      // Create a pending payment record in our database
+      await storage.createPayment({
+        userId: req.user.id,
+        amount: amount,
+        currency: "usd",
+        status: "pending",
+        jobId: jobId,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+        metadata: {
+          paymentIntentId: paymentIntent.id,
+          description: `Payment for job: ${job.title}`,
+        }
+      });
+      
+      res.json({ 
+        clientSecret: paymentIntent.client_secret,
+        amount: amount,
+        jobId: jobId
+      });
+    } catch (error) {
+      console.error("Error creating payment intent:", error);
+      res.status(500).json({ message: "Error creating payment intent: " + (error as Error).message });
+    }
+  });
+
   // Mount the API router under /api prefix
   app.use("/api", apiRouter);
 
