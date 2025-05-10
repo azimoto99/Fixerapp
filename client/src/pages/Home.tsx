@@ -189,9 +189,9 @@ const WorkerDashboard = () => {
         <PostedJobsButton />
         <PostedJobsDrawer />
         
-        {/* Square search box at the very bottom of the screen */}
-        <div className="absolute bottom-0 left-0 right-0 z-[500]">
-          <div className="bg-card border border-border shadow-lg">
+        {/* Square search box at the very bottom of the screen with no space */}
+        <div className="fixed bottom-0 left-0 right-0 z-[500] w-full">
+          <div className="bg-card border-t border-border shadow-lg">
             <div className="p-2">
               <JobSearch onSearch={handleSearch} />
             </div>

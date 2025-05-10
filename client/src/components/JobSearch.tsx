@@ -180,10 +180,10 @@ const JobSearch: React.FC<JobSearchProps> = memo(({ onSearch }) => {
     <div className="w-full">
       <form onSubmit={handleSubmit}>
         <div className="flex flex-col">
-          {/* Enhanced search bar with modern styling */}
-          <div className="flex items-center bg-background/70 backdrop-blur-sm rounded-full p-1 border border-border/50 hover:border-primary/40 transition-colors shadow-sm">
+          {/* Square search bar with modern styling */}
+          <div className="flex items-center bg-background/90 backdrop-blur-sm p-2 border border-border hover:border-primary/40 transition-colors shadow-sm">
             {/* Mode indicator icon */}
-            <div className="flex items-center justify-center h-8 w-8 ml-1 text-primary">
+            <div className="flex items-center justify-center h-8 w-8 text-primary">
               {searchMode === 'location' ? <MapPin size={16} /> : <Book size={16} />}
             </div>
 
@@ -209,7 +209,7 @@ const JobSearch: React.FC<JobSearchProps> = memo(({ onSearch }) => {
                 type="button"
                 size="sm"
                 variant="ghost"
-                className="rounded-full w-8 h-8 p-0"
+                className="w-8 h-8 p-0"
                 onClick={() => setQuery('')}
                 title="Clear search"
               >
@@ -222,7 +222,7 @@ const JobSearch: React.FC<JobSearchProps> = memo(({ onSearch }) => {
               type="button"
               size="sm"
               variant="ghost"
-              className="rounded-full w-8 h-8 p-0"
+              className="w-8 h-8 p-0"
               onClick={toggleSearchMode}
               title={searchMode === 'location' ? 'Switch to keyword search' : 'Switch to location search'}
             >
@@ -236,7 +236,7 @@ const JobSearch: React.FC<JobSearchProps> = memo(({ onSearch }) => {
             <Button
               type="submit"
               size="sm"
-              className="rounded-full w-8 h-8 p-0 bg-primary hover:bg-primary/90"
+              className="w-8 h-8 p-0 bg-primary hover:bg-primary/90"
               disabled={isSearching}
             >
               {isSearching ? 
@@ -250,7 +250,7 @@ const JobSearch: React.FC<JobSearchProps> = memo(({ onSearch }) => {
               type="button"
               size="sm"
               variant={category ? "default" : "ghost"}
-              className={`rounded-full w-8 h-8 p-0 ml-1 
+              className={`w-8 h-8 p-0 ml-1 
                 ${category ? 'bg-primary hover:bg-primary/90' : 'hover:bg-secondary'}`}
               onClick={() => setShowCategories(!showCategories)}
               title="Filter by category"
@@ -266,7 +266,7 @@ const JobSearch: React.FC<JobSearchProps> = memo(({ onSearch }) => {
                     type="button"
                     size="sm"
                     variant={showRadiusFilter ? "default" : "ghost"}
-                    className={`rounded-full w-8 h-8 p-0 ml-1 
+                    className={`w-8 h-8 p-0 ml-1 
                       ${showRadiusFilter ? 'bg-primary hover:bg-primary/90' : 'hover:bg-secondary'}`}
                     title="Set search radius"
                   >
@@ -309,9 +309,9 @@ const JobSearch: React.FC<JobSearchProps> = memo(({ onSearch }) => {
                 animate-in slide-in-from-top duration-300 ease-in-out"
             >
               <div 
-                className={`px-2 py-1 rounded-full text-xs cursor-pointer whitespace-nowrap transition-all ${
+                className={`px-2 py-1 text-xs cursor-pointer whitespace-nowrap transition-all ${
                   category === '' 
-                    ? 'bg-primary text-primary-foreground font-medium shadow-sm scale-105' 
+                    ? 'bg-primary text-primary-foreground font-medium shadow-sm' 
                     : 'bg-secondary/50 text-secondary-foreground hover:bg-secondary'
                 }`}
                 onClick={() => handleCategorySelect('')}
@@ -321,9 +321,9 @@ const JobSearch: React.FC<JobSearchProps> = memo(({ onSearch }) => {
               {JOB_CATEGORIES.map((cat) => (
                 <div
                   key={cat}
-                  className={`px-2 py-1 rounded-full text-xs cursor-pointer whitespace-nowrap transition-all ${
+                  className={`px-2 py-1 text-xs cursor-pointer whitespace-nowrap transition-all ${
                     category === cat 
-                      ? 'bg-primary text-primary-foreground font-medium shadow-sm scale-105' 
+                      ? 'bg-primary text-primary-foreground font-medium shadow-sm' 
                       : 'bg-secondary/50 text-secondary-foreground hover:bg-secondary'
                   }`}
                   onClick={() => handleCategorySelect(cat)}
