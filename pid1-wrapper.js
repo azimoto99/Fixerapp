@@ -42,16 +42,20 @@ function forwardSignalToChildren(signal) {
 
 // Reap zombie processes (critical function of PID1 in containers)
 process.on('SIGCHLD', () => {
+  // Different Node.js versions have different waitpid implementations
   let pid;
   try {
-    // In Node.js, we have to explicitly wait for child processes
-    // This is equivalent to waitpid(-1, NULL, WNOHANG) in C
-    pid = process.waitpid(-1, { options: 0 });
-  } catch (err) {
-    // waitpid may not be available or process was already reaped
-    if (err.code !== 'ECHILD') {
-      console.error('Error reaping child process:', err);
+    if (typeof process.waitpid === 'function') {
+      // Node.js 19+
+      pid = process.waitpid(-1, { options: 0 });
+    } else {
+      // Older Node.js versions already auto-reap children
+      // But we still need to update our tracking when a child exits
+      // This is handled by the 'exit' event on the child process
     }
+  } catch (err) {
+    // Ignore common issues with waitpid
+    console.error('Error reaping child process:', err);
   }
   
   if (pid && runningProcesses.has(pid)) {
