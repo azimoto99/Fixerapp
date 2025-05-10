@@ -9,6 +9,30 @@ import createSessionsTable from "./create-sessions-table";
 import { runAllMigrations } from "./migrations/run-migrations";
 
 const app = express();
+
+// Critical health check endpoint for deployment
+// This needs to be one of the first middleware to ensure immediate responses
+app.use((req, res, next) => {
+  // If it's a health check request (often from load balancers)
+  if (req.path === '/' && 
+     (req.get('User-Agent')?.includes('ELB-HealthChecker') || 
+      req.get('User-Agent')?.includes('GoogleHC') ||
+      req.get('x-health-check') === '1' ||
+      req.query.health === '1')) {
+    // Respond immediately with 200 OK
+    return res.status(200).send('OK');
+  }
+  // Otherwise continue with normal request handling
+  next();
+});
+
+// Also add a dedicated health check endpoint
+app.get("/health", (_req, res) => {
+  // Simple health check that returns 200 OK
+  res.status(200).json({ status: "ok", timestamp: new Date().toISOString() });
+});
+
+// Standard middleware
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
 
@@ -82,18 +106,7 @@ app.use((req, res, next) => {
     serveStatic(app);
   }
 
-  // Root health check endpoint for Cloud Run
-  app.get('/', (_req, res) => {
-    res.status(200).send('OK');
-  });
-
-  // Additional health check endpoint
-  app.get('/health', (_req, res) => {
-    res.status(200).json({ 
-      status: 'ok',
-      timestamp: new Date().toISOString()
-    });
-  });
+  // Health check endpoints are already defined at the top of the file
 
   const port = process.env.PORT || 5000;
   const host = '0.0.0.0';
