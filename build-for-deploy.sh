@@ -168,6 +168,7 @@ NODE_ENV=production npx esbuild server/health-check.js --platform=node --package
 # Ensure scripts are executable
 chmod +x ../start.sh
 chmod +x ../health-monitor.sh
+chmod +x ../pid1-wrapper.js
 
 # Copy the build output and scripts back to the main directory
 cd ..
@@ -175,5 +176,7 @@ mkdir -p dist
 cp -r deploy-build/dist/* dist/
 cp start.sh dist/
 cp health-monitor.sh dist/
+cp pid1-wrapper.js dist/
+cp Procfile dist/
 
 echo "Build completed! The 'dist' directory contains the deployment-ready files."
