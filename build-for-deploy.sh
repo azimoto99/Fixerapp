@@ -163,7 +163,13 @@ echo "Building the project..."
 NODE_ENV=production npm install --legacy-peer-deps
 NODE_ENV=production npx vite build
 NODE_ENV=production npx esbuild server/index.ts --platform=node --packages=external --bundle --format=esm --outdir=dist
+# Make sure health-check.js is properly compiled as an ES module
 NODE_ENV=production npx esbuild server/health-check.js --platform=node --packages=external --bundle --format=esm --outdir=dist
+# Create a .js.meta file to ensure it's treated as an ES module
+echo '{"type": "module"}' > dist/health-check.js.meta
+
+# Also build a CommonJS version as a fallback
+NODE_ENV=production npx esbuild server/health-check.cjs --platform=node --packages=external --bundle --format=cjs --outdir=dist
 
 # Ensure scripts are executable
 chmod +x ../start.sh

@@ -49,10 +49,22 @@ cleanup() {
 # Function to start health check server
 start_health_check_server() {
   echo "Starting health check server (fallback)..."
-  # Run fallback health check server in the background
+  
+  # First try the ESM version
   node dist/health-check.js &
   HEALTH_PID=$!
-  echo "Health check server started with PID: $HEALTH_PID"
+  echo "Health check server (ESM) started with PID: $HEALTH_PID"
+  
+  # Wait a moment to see if it stays running
+  sleep 1
+  
+  # If it failed, try the CommonJS version
+  if ! kill -0 $HEALTH_PID 2>/dev/null; then
+    echo "ESM version failed, trying CommonJS version..."
+    node dist/health-check.cjs &
+    HEALTH_PID=$!
+    echo "Health check server (CJS) started with PID: $HEALTH_PID"
+  fi
 }
 
 # Set up signal handling
