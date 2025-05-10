@@ -84,7 +84,8 @@ const StripeConnectCheck: React.FC<StripeConnectCheckProps> = ({
         // First check authentication again right before making the request
         const authCheck = await apiRequest('GET', '/api/stripe/check-auth');
         if (!authCheck.ok) {
-          throw new Error('Authentication check failed');
+          console.log('Authentication check failed, returning null');
+          return null; // Gracefully handle auth failure
         }
         
         const res = await apiRequest('GET', '/api/stripe/connect/account-status');
@@ -92,7 +93,8 @@ const StripeConnectCheck: React.FC<StripeConnectCheckProps> = ({
           if (res.status === 404) {
             return null; // No account found is a valid scenario
           }
-          throw new Error(`Failed to get account status: ${res.status}`);
+          console.log(`Failed to get account status: ${res.status}, returning null`);
+          return null; // Gracefully handle other failures
         }
         return await res.json();
       } catch (error) {
@@ -101,7 +103,7 @@ const StripeConnectCheck: React.FC<StripeConnectCheckProps> = ({
           return null;
         }
         console.error("Error fetching Stripe Connect status:", error);
-        throw error;
+        return null; // Return null instead of throwing to prevent crashes
       }
     },
     // Only run if we should check this user and auth is verified
