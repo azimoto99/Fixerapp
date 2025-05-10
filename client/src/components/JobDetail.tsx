@@ -11,11 +11,14 @@ import ReviewForm from './ReviewForm';
 import ReviewsList from './ReviewsList';
 import PaymentNotification from './PaymentNotification';
 import JobPayment from './JobPayment';
+import ApplicationForm from './applications/ApplicationForm';
+import WorkerHistory from './applications/WorkerHistory';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
-import { Loader2, CheckCircle2, MessageCircle, Star, X } from 'lucide-react';
+import { Loader2, CheckCircle2, MessageCircle, Star, X, BriefcaseBusiness, UserCheck } from 'lucide-react';
 import { useMutation, useQuery } from '@tanstack/react-query';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { StripeConnectRequired } from '@/components/stripe';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 
 interface JobDetailProps {
   job: Job;
@@ -30,6 +33,9 @@ const JobDetail: React.FC<JobDetailProps> = ({ job, distance = 0.5, onClose }) =
   const [showReviewForm, setShowReviewForm] = useState(false);
   const [activeTab, setActiveTab] = useState<string>('details');
   const [showStripeConnectRequired, setShowStripeConnectRequired] = useState(false);
+  const [showApplicationForm, setShowApplicationForm] = useState(false);
+  const [showWorkerHistory, setShowWorkerHistory] = useState(false);
+  const [selectedWorkerId, setSelectedWorkerId] = useState<number | null>(null);
   
   const {
     id: jobId,
