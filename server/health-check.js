@@ -4,7 +4,7 @@
  */
 
 // Simple Express server that only responds to health check requests
-const express = require('express');
+import express from 'express';
 const app = express();
 
 // Health check endpoint

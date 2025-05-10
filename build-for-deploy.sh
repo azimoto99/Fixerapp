@@ -163,10 +163,17 @@ echo "Building the project..."
 NODE_ENV=production npm install --legacy-peer-deps
 NODE_ENV=production npx vite build
 NODE_ENV=production npx esbuild server/index.ts --platform=node --packages=external --bundle --format=esm --outdir=dist
+NODE_ENV=production npx esbuild server/health-check.js --platform=node --packages=external --bundle --format=esm --outdir=dist
 
-# Copy the build output back to the main directory
+# Ensure scripts are executable
+chmod +x ../start.sh
+chmod +x ../health-monitor.sh
+
+# Copy the build output and scripts back to the main directory
 cd ..
 mkdir -p dist
 cp -r deploy-build/dist/* dist/
+cp start.sh dist/
+cp health-monitor.sh dist/
 
 echo "Build completed! The 'dist' directory contains the deployment-ready files."
