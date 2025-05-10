@@ -61,7 +61,8 @@ function RouterWithAuth() {
       <ProtectedRoute path="/job/:id" component={JobDetailPage} />
       <ProtectedRoute path="/earnings" component={EarningsPage} />
       <ProtectedRoute path="/transactions" component={TransactionHistory} />
-      <ProtectedRoute path="/checkout" component={Checkout} />
+      <ProtectedRoute path="/checkout/:amount/:jobId" component={Checkout} />
+      <ProtectedRoute path="/payment-success" component={PaymentConfirmation} />
       <ProtectedRoute path="/payment-confirmation" component={PaymentConfirmation} />
       <ProtectedRoute path="/stripe-test" component={StripeTest} />
       <ProtectedRoute path="/notifications" component={NotificationsPage} />

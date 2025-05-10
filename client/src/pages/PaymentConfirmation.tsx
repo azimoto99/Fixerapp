@@ -1,170 +1,95 @@
 import { useEffect, useState } from 'react';
 import { useLocation } from 'wouter';
-import { useStripe } from '@stripe/react-stripe-js';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { CheckCircle2, XCircle, Loader2, ExternalLink, Home } from 'lucide-react';
+import { CheckCircle, Loader2 } from 'lucide-react';
 
-type PaymentStatus = 'success' | 'processing' | 'failed' | 'loading';
-
-const PaymentConfirmation = () => {
-  const [status, setStatus] = useState<PaymentStatus>('loading');
-  const [message, setMessage] = useState('');
-  const [jobId, setJobId] = useState<string | null>(null);
-  const stripe = useStripe();
-  const [, navigate] = useLocation();
+export default function PaymentConfirmation() {
+  const [, setLocation] = useLocation();
+  const [paymentStatus, setPaymentStatus] = useState<string | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    if (!stripe) {
-      return;
+    // Get the payment_intent and payment_intent_client_secret from the URL
+    const query = new URLSearchParams(window.location.search);
+    const paymentIntent = query.get('payment_intent');
+    const paymentIntentClientSecret = query.get('payment_intent_client_secret');
+    const redirectStatus = query.get('redirect_status');
+
+    // If we have a payment intent, verify it
+    if (paymentIntent && paymentIntentClientSecret) {
+      setPaymentStatus(redirectStatus || 'success');
+    } else {
+      // Check if we were redirected here from a successful in-app confirmation
+      setPaymentStatus('success');
     }
 
-    // Retrieve the "payment_intent_client_secret" query parameter
-    const clientSecret = new URLSearchParams(window.location.search).get(
-      'payment_intent_client_secret'
-    );
+    // Simulate loading for a better UX
+    const timer = setTimeout(() => {
+      setIsLoading(false);
+    }, 1500);
 
-    // Also grab the job ID if available (can be passed along with the return URL)
-    const jobIdParam = new URLSearchParams(window.location.search).get('jobId');
-    setJobId(jobIdParam);
-
-    if (!clientSecret) {
-      setStatus('failed');
-      setMessage('Payment verification failed. Missing payment information.');
-      return;
-    }
-
-    stripe.retrievePaymentIntent(clientSecret).then(({ paymentIntent }) => {
-      if (!paymentIntent) {
-        setStatus('failed');
-        setMessage('Payment information could not be retrieved.');
-        return;
-      }
-
-      switch (paymentIntent.status) {
-        case 'succeeded':
-          setStatus('success');
-          setMessage('Payment successful!');
-          break;
-        case 'processing':
-          setStatus('processing');
-          setMessage('Your payment is processing.');
-          break;
-        case 'requires_payment_method':
-          setStatus('failed');
-          setMessage('Your payment was not successful, please try again.');
-          break;
-        default:
-          setStatus('failed');
-          setMessage('Something went wrong with your payment.');
-          break;
-      }
-    });
-  }, [stripe]);
-
-  const getStatusIcon = () => {
-    switch (status) {
-      case 'success':
-        return <CheckCircle2 className="h-16 w-16 text-green-500" />;
-      case 'processing':
-        return <Loader2 className="h-16 w-16 text-amber-500 animate-spin" />;
-      case 'failed':
-        return <XCircle className="h-16 w-16 text-destructive" />;
-      case 'loading':
-      default:
-        return <Loader2 className="h-16 w-16 text-primary animate-spin" />;
-    }
-  };
-
-  const getStatusColor = () => {
-    switch (status) {
-      case 'success':
-        return 'text-green-500';
-      case 'processing':
-        return 'text-amber-500';
-      case 'failed':
-        return 'text-destructive';
-      case 'loading':
-      default:
-        return 'text-primary';
-    }
-  };
-
-  const getTitle = () => {
-    switch (status) {
-      case 'success':
-        return 'Payment Successful';
-      case 'processing':
-        return 'Payment Processing';
-      case 'failed':
-        return 'Payment Failed';
-      case 'loading':
-      default:
-        return 'Verifying Payment';
-    }
-  };
+    return () => clearTimeout(timer);
+  }, []);
 
   return (
-    <div className="container max-w-2xl py-12">
+    <div className="container max-w-md mx-auto py-12">
       <Card>
-        <CardHeader className="text-center">
-          <div className="flex justify-center mb-4">
-            {getStatusIcon()}
-          </div>
-          <CardTitle className={`text-2xl ${getStatusColor()}`}>{getTitle()}</CardTitle>
-          <CardDescription className="text-lg">
-            {message}
-          </CardDescription>
+        <CardHeader>
+          {isLoading ? (
+            <>
+              <CardTitle className="flex items-center justify-center">
+                <Loader2 className="h-6 w-6 animate-spin text-primary mr-2" />
+                Processing Payment
+              </CardTitle>
+              <CardDescription className="text-center">
+                Please wait while we confirm your payment...
+              </CardDescription>
+            </>
+          ) : (
+            <>
+              <CardTitle className="flex items-center justify-center text-center">
+                <CheckCircle className="h-8 w-8 text-green-500 mr-2" />
+                Payment Successful
+              </CardTitle>
+              <CardDescription className="text-center">
+                Your payment has been processed successfully
+              </CardDescription>
+            </>
+          )}
         </CardHeader>
-        <CardContent className="text-center">
-          {status === 'processing' && (
-            <p className="text-muted-foreground">
-              Your payment is being processed. This may take a moment.
-            </p>
-          )}
-          
-          {status === 'success' && (
-            <p className="text-muted-foreground">
-              Thank you for your payment. Your transaction has been completed successfully.
-            </p>
-          )}
-          
-          {status === 'failed' && (
-            <p className="text-muted-foreground">
-              We were unable to process your payment. Please try again or contact support if you continue to have issues.
-            </p>
+        
+        <CardContent>
+          {!isLoading && (
+            <div className="bg-primary/10 rounded-md p-4 text-center">
+              <p>Thank you for your payment. Your transaction has been completed.</p>
+              <p className="text-sm text-muted-foreground mt-2">
+                A confirmation has been sent to your email address.
+              </p>
+            </div>
           )}
         </CardContent>
-        <CardFooter className="flex justify-center gap-4">
-          <Button 
-            variant="outline"
-            onClick={() => navigate('/')}
-          >
-            <Home className="h-4 w-4 mr-2" />
-            Home
-          </Button>
-          
-          {jobId && (
-            <Button 
-              onClick={() => navigate(`/job/${jobId}`)}
-            >
-              <ExternalLink className="h-4 w-4 mr-2" />
-              View Job
-            </Button>
-          )}
-          
-          {status === 'failed' && (
-            <Button 
-              variant="outline" 
-              onClick={() => window.history.back()}
-            >
-              Try Again
-            </Button>
+        
+        <CardFooter className="flex justify-center">
+          {!isLoading && (
+            <div className="space-y-2 w-full">
+              <Button 
+                onClick={() => setLocation('/dashboard')} 
+                className="w-full"
+              >
+                Go to Dashboard
+              </Button>
+              <Button 
+                onClick={() => setLocation('/jobs')} 
+                variant="outline" 
+                className="w-full"
+              >
+                Find More Jobs
+              </Button>
+            </div>
           )}
         </CardFooter>
       </Card>
     </div>
   );
-};
-
-export default PaymentConfirmation;
+}

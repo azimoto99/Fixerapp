@@ -101,7 +101,7 @@ const PaymentForm = ({
       const { error, paymentIntent } = await stripe.confirmPayment({
         elements,
         confirmParams: {
-          return_url: window.location.origin + '/payment-confirmation',
+          return_url: window.location.origin + '/payment-success',
         },
         redirect: 'if_required',
       });
@@ -241,10 +241,10 @@ const JobPaymentForm: React.FC<JobPaymentFormProps> = ({
 
   // Create a payment intent when component mounts
   const { isLoading, error } = useQuery({
-    queryKey: ['/api/stripe/create-payment-intent', jobId],
+    queryKey: ['/api/create-payment-intent', jobId],
     queryFn: async () => {
       try {
-        const res = await apiRequest('POST', '/api/stripe/create-payment-intent', {
+        const res = await apiRequest('POST', '/api/create-payment-intent', {
           amount: 100, // Initial amount - will be updated by form
           jobId,
           workerId,
