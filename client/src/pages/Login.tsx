@@ -56,9 +56,9 @@ export default function Login({ onModeChange }: LoginProps) {
       <div className="text-center mb-8">
         <div className="flex justify-center">
           <img 
-            src="/src/assets/logo-with-text-white.svg" 
+            src="/src/assets/logo.png" 
             alt="Fixer" 
-            className="h-24 w-auto" 
+            className="h-28 w-auto" 
           />
         </div>
       </div>
