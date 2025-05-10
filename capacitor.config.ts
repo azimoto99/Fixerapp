@@ -7,8 +7,7 @@ const config: CapacitorConfig = {
   server: {
     androidScheme: 'https',
     iosScheme: 'https',
-    hostname: 'workspace.azimoto9.repl.co',
-    cleartext: true
+    hostname: 'app.fixerapp.com'
   },
   android: {
     buildOptions: {
