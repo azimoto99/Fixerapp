@@ -457,6 +457,202 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
   
+  // Email verification endpoints
+  // Send email verification
+  apiRouter.post("/users/:id/send-email-verification", isAuthenticated, async (req: Request, res: Response) => {
+    try {
+      const id = parseInt(req.params.id);
+      
+      // Ensure the authenticated user is verifying their own email
+      if (req.user.id !== id) {
+        return res.status(403).json({ 
+          message: "Forbidden: You can only verify your own email" 
+        });
+      }
+      
+      // Generate a verification token
+      const token = crypto.randomBytes(32).toString('hex');
+      const expiry = new Date();
+      expiry.setHours(expiry.getHours() + 24); // Token valid for 24 hours
+      
+      // Update the user with the verification token
+      const user = await storage.getUser(id);
+      if (!user) {
+        return res.status(404).json({ message: "User not found" });
+      }
+      
+      const updatedUser = await storage.updateUser(id, {
+        verificationToken: token,
+        verificationTokenExpiry: expiry
+      });
+      
+      if (!updatedUser) {
+        return res.status(404).json({ message: "Failed to update user" });
+      }
+      
+      // In a real application, you would send an email with the verification link
+      // For demo purposes, we'll just return the token in the response
+      const verificationUrl = `${process.env.APP_URL || 'http://localhost:5000'}/verify-email?token=${token}`;
+      
+      // TODO: In a production app, we would send an actual email here
+      // sendEmail(user.email, 'Verify your email', verificationUrl);
+      
+      res.json({ 
+        message: "Verification email sent",
+        // Only for development, remove in production:
+        verificationUrl,
+        token
+      });
+    } catch (error) {
+      res.status(400).json({ message: (error as Error).message });
+    }
+  });
+  
+  // Verify email with token
+  apiRouter.post("/verify-email", async (req: Request, res: Response) => {
+    try {
+      const schema = z.object({
+        token: z.string()
+      });
+      
+      const { token } = schema.parse(req.body);
+      
+      // Find user with this token and verify it's not expired
+      const now = new Date();
+      
+      // Get all users and find the one with matching token
+      const users = await storage.getAllUsers();
+      const user = users.find(u => 
+        u.verificationToken === token && 
+        u.verificationTokenExpiry && 
+        new Date(u.verificationTokenExpiry) > now
+      );
+      
+      if (!user) {
+        return res.status(400).json({ message: "Invalid or expired verification token" });
+      }
+      
+      // Mark email as verified and clear the token
+      const updatedUser = await storage.updateUser(user.id, {
+        emailVerified: true,
+        verificationToken: null,
+        verificationTokenExpiry: null
+      });
+      
+      if (!updatedUser) {
+        return res.status(404).json({ message: "Failed to update user" });
+      }
+      
+      res.json({ message: "Email successfully verified" });
+    } catch (error) {
+      res.status(400).json({ message: (error as Error).message });
+    }
+  });
+  
+  // Phone verification endpoints
+  // Send SMS verification code
+  apiRouter.post("/users/:id/send-phone-verification", isAuthenticated, async (req: Request, res: Response) => {
+    try {
+      const id = parseInt(req.params.id);
+      
+      // Ensure the authenticated user is verifying their own phone
+      if (req.user.id !== id) {
+        return res.status(403).json({ 
+          message: "Forbidden: You can only verify your own phone number" 
+        });
+      }
+      
+      const user = await storage.getUser(id);
+      if (!user) {
+        return res.status(404).json({ message: "User not found" });
+      }
+      
+      if (!user.phone) {
+        return res.status(400).json({ message: "User does not have a phone number" });
+      }
+      
+      // Generate a verification code (6 digits)
+      const verificationCode = Math.floor(100000 + Math.random() * 900000).toString();
+      const expiry = new Date();
+      expiry.setMinutes(expiry.getMinutes() + 10); // Code valid for 10 minutes
+      
+      // Update the user with the verification code
+      const updatedUser = await storage.updateUser(id, {
+        phoneVerificationCode: verificationCode,
+        phoneVerificationExpiry: expiry
+      });
+      
+      if (!updatedUser) {
+        return res.status(404).json({ message: "Failed to update user" });
+      }
+      
+      // In a real application, you would send an SMS with the verification code
+      // For demo purposes, we'll just return the code in the response
+      
+      // TODO: In a production app, we would send an actual SMS here
+      // sendSMS(user.phone, `Your verification code is: ${verificationCode}`);
+      
+      res.json({ 
+        message: "Verification SMS sent",
+        // Only for development, remove in production:
+        verificationCode 
+      });
+    } catch (error) {
+      res.status(400).json({ message: (error as Error).message });
+    }
+  });
+  
+  // Verify phone with code
+  apiRouter.post("/users/:id/verify-phone", isAuthenticated, async (req: Request, res: Response) => {
+    try {
+      const id = parseInt(req.params.id);
+      
+      // Ensure the authenticated user is verifying their own phone
+      if (req.user.id !== id) {
+        return res.status(403).json({ 
+          message: "Forbidden: You can only verify your own phone number" 
+        });
+      }
+      
+      const schema = z.object({
+        code: z.string().length(6, "Verification code must be 6 digits")
+      });
+      
+      const { code } = schema.parse(req.body);
+      
+      const user = await storage.getUser(id);
+      if (!user) {
+        return res.status(404).json({ message: "User not found" });
+      }
+      
+      const now = new Date();
+      
+      if (
+        !user.phoneVerificationCode || 
+        !user.phoneVerificationExpiry ||
+        new Date(user.phoneVerificationExpiry) < now ||
+        user.phoneVerificationCode !== code
+      ) {
+        return res.status(400).json({ message: "Invalid or expired verification code" });
+      }
+      
+      // Mark phone as verified and clear the code
+      const updatedUser = await storage.updateUser(id, {
+        phoneVerified: true,
+        phoneVerificationCode: null,
+        phoneVerificationExpiry: null
+      });
+      
+      if (!updatedUser) {
+        return res.status(404).json({ message: "Failed to update user" });
+      }
+      
+      res.json({ message: "Phone number successfully verified" });
+    } catch (error) {
+      res.status(400).json({ message: (error as Error).message });
+    }
+  });
+  
   // User skills endpoints
   apiRouter.post("/users/:id/skills", isAuthenticated, async (req: Request, res: Response) => {
     try {
