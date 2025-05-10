@@ -201,39 +201,20 @@ const MapSection: React.FC<MapSectionProps> = ({ jobs, selectedJob, onSelectJob,
     }
   }, [selectedJob, previousSelectedJobId]);
   
-  // Calculate job positions (in a real app, this would come from the server)
+  // Use actual job coordinates from database
   const jobPositions = useMemo(() => {
-    if (!position) return [];
+    if (!jobs || jobs.length === 0) return [];
     
-    // Extract latitude and longitude regardless of position format
-    let lat: number, lng: number;
-    
-    if (Array.isArray(position)) {
-      [lat, lng] = position;
-    } else if ('lat' in position && 'lng' in position) {
-      lat = position.lat;
-      lng = position.lng;
-    } else {
-      // Fallback for any other case - we shouldn't get here normally
-      return [];
-    }
-    
-    // In a real app, the jobs would have actual lat/lng coordinates
-    // For demo purposes, we'll generate positions within 2 miles of the user
-    return jobs.map((job, index) => {
-      // Random offset within ~2 miles (0.03 degrees is roughly 2 miles)
-      const latOffset = (Math.random() - 0.5) * 0.03;
-      const lngOffset = (Math.random() - 0.5) * 0.03;
-      
-      return {
+    return jobs
+      .filter(job => job.latitude && job.longitude) // Only use jobs with coordinates
+      .map(job => ({
         job,
         position: [
-          lat + latOffset,
-          lng + lngOffset
+          job.latitude,
+          job.longitude
         ] as LatLngExpression
-      };
-    });
-  }, [jobs, position]);
+      }));
+  }, [jobs]);
   
   // If no user location yet, show loading
   if (!position) {
