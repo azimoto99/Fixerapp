@@ -84,11 +84,13 @@ export default function Register({ onModeChange }: RegisterProps) {
     <div className="w-full max-w-md">
       <div className="text-center mb-8">
         <div className="flex justify-center">
-          <img 
-            src="/src/assets/logo.png" 
-            alt="Fixer" 
-            className="h-28 w-auto" 
-          />
+          <div className="bg-gray-100 p-5 rounded-xl shadow-sm">
+            <img 
+              src="/src/assets/logo.png" 
+              alt="Fixer" 
+              className="h-28 w-auto" 
+            />
+          </div>
         </div>
       </div>
       
