@@ -82,10 +82,16 @@ const Header = () => {
         <div className="flex items-center space-x-4">
           {user && <NotificationPopover className="hidden md:flex" />}
           
-          {/* Post Job Button - Next to User Drawer Button */}
+          {/* Post Job+ Button - Between Notification and User Drawer */}
           <Link href="/post-job">
-            <div className="flex text-white bg-emerald-600 hover:bg-emerald-700 font-medium py-2 px-4 rounded-md">
-              + Post Job
+            <div className="flex text-white bg-emerald-600 hover:bg-emerald-700 font-medium py-2 px-4 rounded-md shadow-md transition-all hover:shadow-lg transform hover:-translate-y-0.5">
+              <span className="flex items-center">
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-1" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <line x1="12" y1="5" x2="12" y2="19"></line>
+                  <line x1="5" y1="12" x2="19" y2="12"></line>
+                </svg>
+                Post Job+
+              </span>
             </div>
           </Link>
           

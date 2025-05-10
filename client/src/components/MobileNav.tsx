@@ -20,11 +20,11 @@ const MobileNav: React.FC = () => {
             </div>
           </Link>
           
-          {/* Always show post job for all users */}
+          {/* Enhanced Post Job+ Button */}
           <Link href="/post-job">
             <div className={`group flex flex-col items-center py-3 px-2 cursor-pointer ${location === '/post-job' ? 'text-emerald-600 border-t-2 border-emerald-600' : 'text-foreground'}`}>
               <i className="ri-add-circle-line text-xl"></i>
-              <span className={`text-xs mt-1 ${location === '/post-job' ? 'font-medium' : ''}`}>Post Job</span>
+              <span className={`text-xs mt-1 ${location === '/post-job' ? 'font-medium' : ''}`}>Post Job+</span>
             </div>
           </Link>
           
