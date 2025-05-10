@@ -14,7 +14,7 @@ import JobPayment from './JobPayment';
 import ApplicationForm from './applications/ApplicationForm';
 import WorkerHistory from './applications/WorkerHistory';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
-import { Loader2, CheckCircle2, MessageCircle, Star, X, BriefcaseBusiness, UserCheck, History, XCircle, SendHorizonal } from 'lucide-react';
+import { Loader2, CheckCircle2, MessageCircle, Star, X, BriefcaseBusiness, UserCheck, ClipboardCheck, XCircle, Send } from 'lucide-react';
 import { useMutation, useQuery } from '@tanstack/react-query';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { StripeConnectRequired } from '@/components/stripe';
@@ -543,7 +543,7 @@ const JobDetail: React.FC<JobDetailProps> = ({ job, distance = 0.5, onClose }) =
                               variant="outline"
                               onClick={() => handleViewWorkerHistory(application.workerId)}
                             >
-                              <History className="h-3 w-3 mr-1" />
+                              <ClipboardCheck className="h-3 w-3 mr-1" />
                               View History
                             </Button>
                           </div>
@@ -606,7 +606,7 @@ const JobDetail: React.FC<JobDetailProps> = ({ job, distance = 0.5, onClose }) =
                       </>
                     ) : (
                       <>
-                        <SendHorizonal className="h-4 w-4 mr-2" />
+                        <Send className="h-4 w-4 mr-2" />
                         Apply for this Job
                       </>
                     )}
