@@ -54,11 +54,12 @@ export default function Login({ onModeChange }: LoginProps) {
   return (
     <div className="w-full max-w-md">
       <div className="text-center mb-8">
-        <div className="inline-flex items-center">
-          <svg className="h-8 w-8 text-primary-600" viewBox="0 0 24 24" fill="currentColor">
-            <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"></path>
-          </svg>
-          <span className="ml-2 text-2xl font-bold text-primary-600">Fixer</span>
+        <div className="flex justify-center">
+          <img 
+            src="/src/assets/logo-white.svg" 
+            alt="Fixer" 
+            className="h-16 w-auto" 
+          />
         </div>
       </div>
       
