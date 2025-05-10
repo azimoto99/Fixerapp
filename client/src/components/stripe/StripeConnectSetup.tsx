@@ -266,7 +266,7 @@ const StripeConnectSetup: React.FC<StripeConnectSetupProps> = ({ compact = false
           <div className="flex justify-between items-center">
             <CardTitle className="text-lg">Payment Account</CardTitle>
             <Badge variant={statusBadge.variant as any} className="flex items-center">
-              {statusBadge.iconComponent && <statusBadge.iconComponent {...statusBadge.iconProps} />}
+              {statusBadge.iconComponent && React.createElement(statusBadge.iconComponent, statusBadge.iconProps)}
               {statusBadge.text}
             </Badge>
           </div>
@@ -345,7 +345,7 @@ const StripeConnectSetup: React.FC<StripeConnectSetupProps> = ({ compact = false
             const badge = getStatusBadge();
             return (
               <Badge variant={badge.variant as any} className="flex items-center">
-                {badge.iconComponent && <badge.iconComponent {...badge.iconProps} />}
+                {badge.iconComponent && React.createElement(badge.iconComponent, badge.iconProps)}
                 {badge.text}
               </Badge>
             );
