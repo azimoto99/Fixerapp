@@ -568,6 +568,9 @@ export default function PostJob() {
           </div>
         </div>
       </main>
+      
+      {/* Add Mobile Navigation */}
+      <MobileNav />
     </div>
   );
 }
