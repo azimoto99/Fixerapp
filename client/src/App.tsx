@@ -74,6 +74,7 @@ function RouterWithAuth() {
       <ProtectedRoute path="/checkout/:amount/:jobId" component={Checkout} />
       <ProtectedRoute path="/payment-success" component={PaymentConfirmation} />
       <ProtectedRoute path="/payment-confirmation" component={PaymentConfirmation} />
+      <ProtectedRoute path="/payment-methods" component={PaymentMethods} />
       <ProtectedRoute path="/stripe-test" component={StripeTest} />
       <ProtectedRoute path="/notifications" component={NotificationsPage} />
       {/* Payment dashboard is not accessible as there are no job posters */}

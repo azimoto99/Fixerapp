@@ -1,220 +1,110 @@
 import { type ClassValue, clsx } from "clsx";
 import { twMerge } from "tailwind-merge";
+import { Home, Briefcase, HeartPulse, GraduationCap, PackageOpen, PaintBucket, DumbbellIcon, Car, Wrench, Leaf, Coffee, Baby, Zap, Wrench as WrenchPlumbing, Construction, Scissors, Pencil } from "lucide-react";
 
+/**
+ * Utility for conditionally joining Tailwind CSS classes
+ * Uses clsx for conditional logic and tailwind-merge to handle conflicting classes
+ */
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
 }
 
 /**
- * Format a Date object to a readable time string
- * @param date - The Date object to format
- * @param forInput - If true, return in format for time input (HH:MM), otherwise return readable format
- * @returns Formatted time string
+ * Format currency in USD
  */
-export function formatTime(date: Date, forInput: boolean = false): string {
-  if (!date) return '';
-  
-  try {
-    if (forInput) {
-      return date.toTimeString().slice(0, 5); // HH:MM format for inputs
-    }
-    
-    return new Intl.DateTimeFormat('en-US', {
-      hour: 'numeric',
-      minute: 'numeric',
-      hour12: true
-    }).format(date);
-  } catch (error) {
-    console.error("Error formatting time:", error);
-    return '';
-  }
-}
-
-/**
- * Format a price to USD
- * @param price - The price to format
- * @returns Formatted price string
- */
-export function formatPrice(price: number): string {
-  return new Intl.NumberFormat('en-US', {
-    style: 'currency',
+export function formatCurrency(amount: number) {
+  return new Intl.NumberFormat('en-US', { 
+    style: 'currency', 
     currency: 'USD',
-  }).format(price);
+    minimumFractionDigits: 2
+  }).format(amount);
 }
 
 /**
- * Format a price to USD (alias for formatPrice for backward compatibility)
- * @param amount - The amount to format
- * @returns Formatted currency string
+ * Format a distance in miles
  */
-export function formatCurrency(amount: number): string {
-  return formatPrice(amount);
+export function formatDistance(miles: number) {
+  return `${miles.toFixed(1)} mi`;
 }
 
 /**
- * Format a date to a human-readable string
- * @param date - The date to format
- * @param includeTime - Whether to include the time in the formatted string
- * @returns Formatted date string
+ * Format a date/time
  */
-export function formatDate(date: Date | string | number, includeTime: boolean = false): string {
-  if (!date) return '';
-  
-  const dateObj = typeof date === 'string' || typeof date === 'number' ? new Date(date) : date;
-  
-  try {
-    const options: Intl.DateTimeFormatOptions = { 
-      month: 'short',
-      day: 'numeric',
-      year: 'numeric',
-    };
-    
-    if (includeTime) {
-      options.hour = 'numeric';
-      options.minute = '2-digit';
-      options.hour12 = true;
-    }
-    
-    return new Intl.DateTimeFormat('en-US', options).format(dateObj);
-  } catch (error) {
-    console.error("Error formatting date:", error);
-    return '';
-  }
+export function formatDateTime(date: Date | string | number) {
+  const dateObj = new Date(date);
+  return new Intl.DateTimeFormat('en-US', {
+    year: 'numeric',
+    month: 'short',
+    day: 'numeric',
+    hour: 'numeric',
+    minute: '2-digit',
+    hour12: true
+  }).format(dateObj);
 }
 
 /**
- * Format a date and time to a human-readable string (alias for formatDate with includeTime=true)
- * @param date - The date to format
- * @returns Formatted date and time string
+ * Format a date
  */
-export function formatDateTime(date: Date | string | number): string {
-  return formatDate(date, true);
+export function formatDate(date: Date | string | number) {
+  const dateObj = new Date(date);
+  return new Intl.DateTimeFormat('en-US', {
+    year: 'numeric',
+    month: 'short',
+    day: 'numeric'
+  }).format(dateObj);
 }
 
 /**
- * Calculate distance between two points in miles
- * @param lat1 - Latitude of first point
- * @param lon1 - Longitude of first point
- * @param lat2 - Latitude of second point
- * @param lon2 - Longitude of second point
- * @returns Distance in miles
+ * Get category icon
  */
-export function calculateDistance(
-  lat1: number, 
-  lon1: number, 
-  lat2: number, 
-  lon2: number
-): number {
-  // Haversine formula
-  const R = 3958.8; // Radius of the Earth in miles
-  const dLat = (lat2 - lat1) * Math.PI / 180;
-  const dLon = (lon2 - lon1) * Math.PI / 180;
-  const a = 
-    Math.sin(dLat/2) * Math.sin(dLat/2) +
-    Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * 
-    Math.sin(dLon/2) * Math.sin(dLon/2);
-  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
-  const distance = R * c; // Distance in miles
-  
-  return Math.round(distance * 10) / 10; // Round to 1 decimal place
-}
-
-/**
- * Format a distance to a human-readable string
- * @param distance - The distance in miles
- * @returns Formatted distance string
- */
-export function formatDistance(distance: number): string {
-  if (distance < 0.1) {
-    return "< 0.1 miles";
-  } else if (distance < 1) {
-    // Format fraction of a mile
-    const formatted = Math.round(distance * 10) / 10;
-    return `${formatted} miles`;
-  } else {
-    // Format distances of 1 mile or more
-    return `${parseFloat(distance.toFixed(1))} miles`;
-  }
-}
-
-/**
- * Get a human-readable time ago string
- * @param date - The date to calculate time ago from
- * @returns Human-readable time ago string
- */
-export function getTimeAgo(date: Date | string | number): string {
-  const dateObj = typeof date === 'string' || typeof date === 'number' ? new Date(date) : date;
-  const now = new Date();
-  const seconds = Math.floor((now.getTime() - dateObj.getTime()) / 1000);
-  
-  let interval = Math.floor(seconds / 31536000); // years
-  if (interval >= 1) {
-    return interval === 1 ? "1 year ago" : `${interval} years ago`;
-  }
-  
-  interval = Math.floor(seconds / 2592000); // months
-  if (interval >= 1) {
-    return interval === 1 ? "1 month ago" : `${interval} months ago`;
-  }
-  
-  interval = Math.floor(seconds / 86400); // days
-  if (interval >= 1) {
-    return interval === 1 ? "1 day ago" : `${interval} days ago`;
-  }
-  
-  interval = Math.floor(seconds / 3600); // hours
-  if (interval >= 1) {
-    return interval === 1 ? "1 hour ago" : `${interval} hours ago`;
-  }
-  
-  interval = Math.floor(seconds / 60); // minutes
-  if (interval >= 1) {
-    return interval === 1 ? "1 minute ago" : `${interval} minutes ago`;
-  }
-  
-  return "just now";
-}
-
-/**
- * Get an icon for a job category
- * @param category - The job category
- * @returns Icon name without the 'ri-' prefix
- */
-export function getCategoryIcon(category: string): string {
-  const iconMap: Record<string, string> = {
-    "Home Maintenance": "home-gear-line",
-    "Cleaning": "brush-line",
-    "Delivery": "truck-line",
-    "Event Help": "calendar-event-line",
-    "Moving": "luggage-cart-line",
-    "Tech Support": "computer-line",
-    "Shopping": "shopping-cart-line",
-    "Pet Care": "footprint-line",
-    "Tutoring": "book-open-line",
-    "Other": "question-line"
+export function getCategoryIcon(category: string) {
+  const icons: Record<string, any> = {
+    'Cleaning': Home,
+    'Pet Care': HeartPulse,
+    'Tutoring': GraduationCap,
+    'Organization': PackageOpen,
+    'Decoration': PaintBucket,
+    'Heavy Lifting': DumbbellIcon,
+    'Driving': Car,
+    'Computer Repair': Wrench,
+    'Gardening': Leaf,
+    'Cooking': Coffee,
+    'Child Care': Baby,
+    'Electrical': Zap,
+    'Plumbing': WrenchPlumbing,
+    'Carpentry': Construction,
+    'Haircut': Scissors,
+    'Writing': Pencil,
+    'Other': Briefcase
   };
   
-  return iconMap[category] || "briefcase-line";
+  return icons[category] || Briefcase;
 }
 
 /**
- * Get a color for a job category
- * @param category - The job category
- * @returns Tailwind color class
+ * Get category color
  */
-export function getCategoryColor(category: string): string {
-  const colorMap: Record<string, string> = {
-    "Home Maintenance": "text-blue-500",
-    "Cleaning": "text-green-500",
-    "Delivery": "text-yellow-500",
-    "Event Help": "text-purple-500",
-    "Moving": "text-orange-500",
-    "Tech Support": "text-cyan-500",
-    "Shopping": "text-pink-500",
-    "Pet Care": "text-teal-500",
-    "Tutoring": "text-indigo-500",
-    "Other": "text-gray-500"
+export function getCategoryColor(category: string) {
+  const colors: Record<string, string> = {
+    'Cleaning': 'bg-blue-100 text-blue-800',
+    'Pet Care': 'bg-pink-100 text-pink-800',
+    'Tutoring': 'bg-purple-100 text-purple-800',
+    'Organization': 'bg-indigo-100 text-indigo-800',
+    'Decoration': 'bg-orange-100 text-orange-800',
+    'Heavy Lifting': 'bg-gray-100 text-gray-800',
+    'Driving': 'bg-green-100 text-green-800',
+    'Computer Repair': 'bg-teal-100 text-teal-800',
+    'Gardening': 'bg-emerald-100 text-emerald-800',
+    'Cooking': 'bg-amber-100 text-amber-800',
+    'Child Care': 'bg-rose-100 text-rose-800',
+    'Electrical': 'bg-yellow-100 text-yellow-800',
+    'Plumbing': 'bg-cyan-100 text-cyan-800',
+    'Carpentry': 'bg-stone-100 text-stone-800',
+    'Haircut': 'bg-violet-100 text-violet-800',
+    'Writing': 'bg-slate-100 text-slate-800',
+    'Other': 'bg-gray-100 text-gray-800'
   };
   
-  return colorMap[category] || "text-primary";
+  return colors[category] || 'bg-gray-100 text-gray-800';
 }
