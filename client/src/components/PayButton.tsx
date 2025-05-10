@@ -23,8 +23,8 @@ const PayButton: React.FC<PayButtonProps> = ({
   const [, navigate] = useLocation();
 
   const handlePayClick = () => {
-    // Redirect to the new checkout page with job ID and amount as URL parameters
-    navigate(`/checkout?jobId=${jobId}&amount=${amount}`);
+    // Redirect to the new checkout page with amount and job ID as URL parameters
+    navigate(`/checkout/${amount}/${jobId}`);
   };
 
   return (
