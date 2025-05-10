@@ -3,7 +3,6 @@ import { useLocation } from 'wouter';
 import { useAuth } from '@/hooks/use-auth';
 import Login from './Login';
 import Register from './Register';
-import DirectConnect from '@/components/DirectConnect';
 
 // Define wrapper components to add onModeChange prop
 const LoginWithMode = (props: any) => {
@@ -33,9 +32,6 @@ export default function AuthPage() {
   
   return (
     <div className="flex min-h-screen">
-      {/* DirectConnect Bar */}
-      <DirectConnect />
-      
       {/* Left Side - Auth Form */}
       <div className="w-full lg:w-1/2 flex items-center justify-center p-6">
         {mode === 'login' ? (
@@ -50,7 +46,7 @@ export default function AuthPage() {
         <div className="max-w-md">
           <h1 className="text-4xl font-bold mb-6">Welcome to Fixer</h1>
           <p className="text-xl mb-8">
-            Your one-stop platform for finding gig work opportunities or posting jobs in your local area.
+            The ultimate platform connecting skilled workers with local job opportunities.
           </p>
           
           <div className="space-y-4">
@@ -62,8 +58,8 @@ export default function AuthPage() {
                 </svg>
               </div>
               <div>
-                <h3 className="font-semibold text-lg">Geolocation Job Matching</h3>
-                <p className="text-white/80">Find jobs within a 2-mile radius of your current location</p>
+                <h3 className="font-semibold text-lg">Smart Location Matching</h3>
+                <p className="text-white/80">Connect with nearby opportunities using our intelligent location-based system</p>
               </div>
             </div>
             
@@ -74,8 +70,8 @@ export default function AuthPage() {
                 </svg>
               </div>
               <div>
-                <h3 className="font-semibold text-lg">Skill-Based Matching</h3>
-                <p className="text-white/80">Get matched with the perfect jobs based on your verified skills</p>
+                <h3 className="font-semibold text-lg">Professional Growth</h3>
+                <p className="text-white/80">Build your reputation with verified skills and grow your career</p>
               </div>
             </div>
             
@@ -86,8 +82,8 @@ export default function AuthPage() {
                 </svg>
               </div>
               <div>
-                <h3 className="font-semibold text-lg">Easy Payments</h3>
-                <p className="text-white/80">Request payments when your earnings reach $10, with simple transaction tracking</p>
+                <h3 className="font-semibold text-lg">Secure Payments</h3>
+                <p className="text-white/80">Receive payments through our trusted payment system with clear tracking</p>
               </div>
             </div>
           </div>
