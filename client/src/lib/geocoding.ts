@@ -30,10 +30,7 @@ export async function geocodeAddress(address: string): Promise<GeocodingResult> 
 
     console.log("Attempting to geocode address:", address);
     
-    // In a development environment, some geocoding services might block requests
-    // Let's provide an alternative approach with a fallback for common locations
-    
-    // First try with OpenStreetMap's Nominatim service
+    // Use OpenStreetMap's Nominatim service for geocoding
     try {
       const response = await fetch(
         `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(address)}&limit=1`,
@@ -71,18 +68,8 @@ export async function geocodeAddress(address: string): Promise<GeocodingResult> 
       console.warn("Error using Nominatim:", e);
     }
     
-    // Try multiple geocoding approaches if initial one fails
-    // For a production app, consider using a paid geocoding service with better reliability
-    // Or implementing additional geocoding providers as fallbacks
-    try {
-      // You could add alternative geocoding service calls here
-      console.log("Primary geocoding service failed, no fallbacks available");
-    } catch (innerError) {
-      console.error("All geocoding approaches failed:", innerError);
-    }
-    
-    // If all geocoding approaches fail, return an error
-    console.error("All geocoding approaches failed");
+    // If geocoding fails, return an error
+    console.error("Geocoding service failed to find location");
     return {
       latitude: 0,
       longitude: 0,

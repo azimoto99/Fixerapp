@@ -166,11 +166,9 @@ const JobSearch: React.FC<JobSearchProps> = memo(({ onSearch }) => {
         category: selectedCategory, 
         searchMode,
         // Pass existing coordinates if we have them and are in location mode
-        ...(searchMode === 'location' && lastSearchLocation && {
-          coordinates: {
-            latitude: 0, // We'd use stored coordinates in a real implementation
-            longitude: 0
-          }
+        ...(searchMode === 'location' && locationCoordinates && {
+          coordinates: locationCoordinates,
+          radiusMiles
         })
       });
     }, 100);

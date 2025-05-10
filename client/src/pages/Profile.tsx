@@ -257,8 +257,23 @@ export default function Profile() {
                       </div>
                     ) : (
                       <div className="space-y-4">
-                        {/* This would render list of jobs or applications */}
-                        <p className="text-gray-500 text-center py-4">No data to display</p>
+                        {userJobs.map((job) => (
+                          <div key={job.id} className="border border-border p-4 rounded-md hover:border-primary/50 transition-colors">
+                            <div className="flex justify-between items-start">
+                              <div>
+                                <h3 className="font-medium">{job.title}</h3>
+                                <p className="text-sm text-muted-foreground line-clamp-2 mb-2">{job.description}</p>
+                                <div className="flex items-center space-x-2 text-xs">
+                                  <span className="px-2 py-0.5 bg-secondary rounded-full">{job.category}</span>
+                                  <span className="text-muted-foreground">{job.location}</span>
+                                </div>
+                              </div>
+                              <Link href={`/jobs/${job.id}`}>
+                                <Button size="sm" variant="outline">View Details</Button>
+                              </Link>
+                            </div>
+                          </div>
+                        ))}
                       </div>
                     )}
                   </CardContent>
