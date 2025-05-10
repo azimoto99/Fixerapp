@@ -570,7 +570,7 @@ const MapSection: React.FC<MapSectionProps> = ({ jobs, selectedJob, onSelectJob,
         {/* Bottom card for job details - DoorDash-style slide-up panel */}
         {showJobDetail && selectedJob && (
           <div 
-            className="absolute bottom-0 left-0 right-0 z-[500] max-h-[70%] overflow-y-auto 
+            className="absolute bottom-0 left-0 right-0 z-[900] max-h-[70%] overflow-y-auto 
                       bg-card rounded-t-xl shadow-xl animate-slide-up job-detail-panel border-t border-x border-border"
             style={{ filter: 'drop-shadow(0 -10px 8px rgb(0 0 0 / 0.04))' }}
             onTouchStart={(e) => {
