@@ -123,19 +123,20 @@ export default function Checkout() {
   const { toast } = useToast();
 
   useEffect(() => {
-    // Extract jobId and amount from URL params
-    const params = new URLSearchParams(window.location.search);
-    const jobIdParam = params.get('jobId');
-    const amountParam = params.get('amount');
-
+    // Extract amount and jobId from URL path params
+    const pathParts = window.location.pathname.split('/');
+    // Format is /checkout/amount/jobId
+    const amountParam = pathParts[2];  // /checkout/:amount/:jobId
+    const jobIdParam = pathParts[3];   // /checkout/:amount/:jobId
+    
     if (!jobIdParam || !amountParam) {
-      setError('Missing required parameters: jobId and amount');
+      setError('Missing required parameters: amount and jobId');
       setIsLoading(false);
       return;
     }
 
-    const parsedJobId = parseInt(jobIdParam);
     const parsedAmount = parseFloat(amountParam);
+    const parsedJobId = parseInt(jobIdParam);
 
     if (isNaN(parsedJobId) || isNaN(parsedAmount)) {
       setError('Invalid parameters: jobId must be a number and amount must be a valid price');
@@ -147,7 +148,7 @@ export default function Checkout() {
     setAmount(parsedAmount);
 
     // Create PaymentIntent as soon as the page loads
-    apiRequest("POST", "/api/stripe/create-payment-intent", { 
+    apiRequest("POST", "/api/create-payment-intent", { 
       jobId: parsedJobId,
       amount: parsedAmount
     })

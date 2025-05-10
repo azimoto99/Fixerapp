@@ -282,11 +282,15 @@ const JobDetailPage: React.FC = () => {
             </Dialog>
             
             <Button 
-              onClick={() => navigate(`/checkout/${job.paymentAmount}/${jobId}`)}
+              onClick={() => {
+                // Make sure payment amount is a number and not undefined
+                const amount = job.paymentAmount || 0;
+                navigate(`/checkout/${amount}/${jobId}`);
+              }}
               className="bg-green-600 hover:bg-green-700"
             >
               <DollarSign className="h-4 w-4 mr-2" />
-              Pay ${job.paymentAmount}
+              Pay ${job.paymentAmount || 0}
             </Button>
           </>
         )}
