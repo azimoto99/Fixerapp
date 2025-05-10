@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { 
   X, User, StarIcon, Home, Settings, CreditCard, LogOut, BarChart2, LayoutDashboard,
   Mail, Phone, MapPin, Briefcase, FileText, Pencil, Calendar, DollarSign, CheckCircle, 
-  Clock, AlertCircle, ThumbsUp, Award, ShieldCheck, Cog, Zap, Moon, Sun
+  Clock, AlertCircle, ThumbsUp, Award, ShieldCheck, Cog, Zap, Moon, Sun, Info
 } from "lucide-react";
 import { useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
@@ -12,6 +12,7 @@ import { Label } from "@/components/ui/label";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/hooks/use-auth";
 import { useSimpleToast } from "@/hooks/use-simple-toast";
+import { apiRequest } from "@/lib/queryClient";
 import Portal from "./Portal";
 
 // Professional content components with vector UX
@@ -121,273 +122,567 @@ const ProfileContent = ({ user }: any) => (
   </div>
 );
 
-const EarningsContent = ({ userId }: any) => (
-  <div className="space-y-6">
-    <h2 className="text-xl font-semibold mb-4">Earnings</h2>
-    
-    <div className="flex gap-2">
-      <div className="flex-1 border rounded-lg p-4 bg-emerald-600/5">
-        <div className="flex items-center gap-2 text-sm font-medium text-emerald-600 mb-2">
-          <DollarSign className="h-4 w-4" />
-          <span>This Month</span>
-        </div>
-        <p className="text-2xl font-bold">$827.50</p>
-        <p className="text-xs text-muted-foreground">8 jobs completed</p>
-      </div>
-      
-      <div className="flex-1 border rounded-lg p-4">
-        <div className="flex items-center gap-2 text-sm font-medium text-muted-foreground mb-2">
-          <Calendar className="h-4 w-4" />
-          <span>Total</span>
-        </div>
-        <p className="text-2xl font-bold">$4,235.75</p>
-        <p className="text-xs text-muted-foreground">45 jobs total</p>
-      </div>
-    </div>
-    
-    <div className="border rounded-lg">
-      <div className="p-3 border-b">
-        <h3 className="font-medium">Recent Earnings</h3>
-      </div>
-      
-      <div className="divide-y">
-        {[
-          { job: "Lawn Mowing - Highland Park", date: "May 5, 2025", amount: 85, status: "Paid" },
-          { job: "Furniture Assembly", date: "May 3, 2025", amount: 120, status: "Paid" },
-          { job: "House Cleaning", date: "Apr 28, 2025", amount: 95, status: "Paid" },
-          { job: "Moving Help", date: "Apr 25, 2025", amount: 110, status: "Processing" }
-        ].map((earning, index) => (
-          <div key={index} className="p-3 flex items-center justify-between">
-            <div>
-              <p className="font-medium text-sm">{earning.job}</p>
-              <p className="text-xs text-muted-foreground">{earning.date}</p>
-            </div>
-            <div className="flex flex-col items-end">
-              <p className="font-semibold">${earning.amount}</p>
-              <div className={cn(
-                "text-xs flex items-center gap-1",
-                earning.status === "Paid" ? "text-emerald-600" : "text-amber-500"
-              )}>
-                {earning.status === "Paid" ? 
-                  <CheckCircle className="h-3 w-3" /> : 
-                  <Clock className="h-3 w-3" />
-                }
-                <span>{earning.status}</span>
-              </div>
-            </div>
-          </div>
-        ))}
-      </div>
-    </div>
-    
-    <Button className="w-full" variant="outline" size="sm">
-      View All Earnings
-    </Button>
-  </div>
-);
-
-const PaymentsContent = ({ userId }: any) => (
-  <div className="space-y-6">
-    <h2 className="text-xl font-semibold mb-4">Payments</h2>
-    
-    <div className="bg-muted/20 rounded-lg p-4 border">
-      <div className="flex items-center justify-between mb-3">
-        <div className="flex items-center gap-2">
-          <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center">
-            <CreditCard className="h-4 w-4 text-primary" />
-          </div>
-          <div>
-            <p className="font-medium text-sm">Payment Methods</p>
-            <p className="text-xs text-muted-foreground">Manage your payment sources</p>
-          </div>
-        </div>
-        <Button size="sm" variant="ghost">
-          <Pencil className="h-3.5 w-3.5" />
-        </Button>
-      </div>
-      
-      <div className="rounded-md bg-background p-3 border mb-2 flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <CreditCard className="h-5 w-5 text-muted-foreground" />
-          <div>
-            <p className="font-medium text-sm">•••• 4242</p>
-            <p className="text-xs text-muted-foreground">Visa - Expires 05/28</p>
-          </div>
-        </div>
-        <div className="flex items-center">
-          <span className="text-xs bg-emerald-600/10 text-emerald-600 px-2 py-0.5 rounded-full">Default</span>
-        </div>
-      </div>
-      
-      <Button variant="outline" size="sm" className="w-full mt-2">
-        <Zap className="h-3.5 w-3.5 mr-2" />
-        Add Payment Method
-      </Button>
-    </div>
-    
-    <div className="border rounded-lg">
-      <div className="p-3 border-b flex items-center justify-between">
-        <h3 className="font-medium">Recent Transactions</h3>
-        <span className="text-xs text-muted-foreground">View All</span>
-      </div>
-      
-      <div className="divide-y">
-        {[
-          { service: "Premium Membership", date: "May 1, 2025", amount: 19.99, status: "Successful" },
-          { service: "Lawn Service", date: "Apr 22, 2025", amount: 85.00, status: "Successful" },
-          { service: "Home Cleaning", date: "Apr 15, 2025", amount: 120.00, status: "Failed" },
-          { service: "Dog Walking", date: "Apr 10, 2025", amount: 15.00, status: "Refunded" }
-        ].map((transaction, index) => (
-          <div key={index} className="p-3 flex items-center justify-between">
-            <div>
-              <p className="font-medium text-sm">{transaction.service}</p>
-              <p className="text-xs text-muted-foreground">{transaction.date}</p>
-            </div>
-            <div className="flex flex-col items-end">
-              <p className="font-semibold">
-                {transaction.status === "Refunded" ? "+" : "-"}${transaction.amount.toFixed(2)}
-              </p>
-              <div className={cn(
-                "text-xs flex items-center gap-1",
-                transaction.status === "Successful" ? "text-emerald-600" : 
-                transaction.status === "Failed" ? "text-red-500" : 
-                "text-amber-500"
-              )}>
-                {transaction.status === "Successful" ? 
-                  <CheckCircle className="h-3 w-3" /> : 
-                transaction.status === "Failed" ?
-                  <AlertCircle className="h-3 w-3" /> :
-                  <Clock className="h-3 w-3" />
-                }
-                <span>{transaction.status}</span>
-              </div>
-            </div>
-          </div>
-        ))}
-      </div>
-    </div>
-    
-    <Button variant="outline" size="sm" className="w-full">
-      Manage Payment Settings
-    </Button>
-  </div>
-);
-
-const ReviewsContent = ({ userId }: any) => (
-  <div className="space-y-6">
-    <h2 className="text-xl font-semibold mb-4">Reviews</h2>
-    
-    <div className="flex items-center justify-between">
-      <div className="flex items-center gap-2">
-        <div className="w-14 h-14 bg-primary/10 rounded-full flex items-center justify-center">
-          <StarIcon className="h-7 w-7 text-yellow-500 fill-yellow-500" />
-        </div>
-        <div>
-          <div className="text-2xl font-bold">4.8</div>
-          <div className="text-xs text-muted-foreground">Based on 23 reviews</div>
-        </div>
-      </div>
-      
-      <div className="flex gap-1 items-center">
-        <div className="flex">
-          {[1, 2, 3, 4, 5].map((star) => (
-            <StarIcon
-              key={star}
-              className="h-4 w-4 text-yellow-500 fill-yellow-500"
-            />
-          ))}
-        </div>
-      </div>
-    </div>
-    
-    <div className="border rounded-lg p-4">
-      <div className="flex items-center justify-between mb-4">
-        <h3 className="font-medium">Recent Reviews</h3>
-        <Button size="sm" variant="ghost" className="text-xs h-8">
-          View All
-        </Button>
-      </div>
-      
-      <div className="space-y-4">
-        {[
-          { 
-            name: "Sarah Johnson", 
-            date: "May 5, 2025", 
-            rating: 5,
-            comment: "Austin was amazing! Showed up on time and did a fantastic job with my lawn. Would definitely hire again.",
-            jobTitle: "Lawn Mowing"
-          },
-          { 
-            name: "Michael Chen", 
-            date: "Apr 28, 2025", 
-            rating: 4,
-            comment: "Great furniture assembly job. Everything was put together correctly and they cleaned up afterward.",
-            jobTitle: "Furniture Assembly"
-          },
-          { 
-            name: "Jessica Williams", 
-            date: "Apr 15, 2025", 
-            rating: 5,
-            comment: "Excellent cleaning service! My apartment hasn't been this clean in months.",
-            jobTitle: "House Cleaning"
+const EarningsContent = ({ userId }: any) => {
+  const [earnings, setEarnings] = useState<any[]>([]);
+  const [monthlyStats, setMonthlyStats] = useState({
+    amount: 0,
+    count: 0
+  });
+  const [totalStats, setTotalStats] = useState({
+    amount: 0,
+    count: 0
+  });
+  const [isLoading, setIsLoading] = useState(true);
+  
+  // Fetch earnings data when component mounts
+  useEffect(() => {
+    const fetchEarningsData = async () => {
+      try {
+        setIsLoading(true);
+        
+        // Fetch earnings for user
+        const earningsRes = await apiRequest('GET', `/api/earnings/worker/${userId}`);
+        if (earningsRes.ok) {
+          const earningsData = await earningsRes.json();
+          setEarnings(earningsData || []);
+          
+          // Calculate stats
+          if (earningsData && earningsData.length > 0) {
+            // Get current month and year
+            const now = new Date();
+            const currentMonth = now.getMonth();
+            const currentYear = now.getFullYear();
+            
+            // Filter for current month and calculate total
+            const thisMonthEarnings = earningsData.filter((earning: any) => {
+              const earningDate = new Date(earning.createdAt);
+              return earningDate.getMonth() === currentMonth && earningDate.getFullYear() === currentYear;
+            });
+            
+            const monthlyTotal = thisMonthEarnings.reduce(
+              (sum: number, earning: any) => sum + earning.amount, 
+              0
+            );
+            
+            const totalAmount = earningsData.reduce(
+              (sum: number, earning: any) => sum + earning.amount, 
+              0
+            );
+            
+            setMonthlyStats({
+              amount: monthlyTotal,
+              count: thisMonthEarnings.length
+            });
+            
+            setTotalStats({
+              amount: totalAmount,
+              count: earningsData.length
+            });
           }
-        ].map((review, index) => (
-          <div key={index} className="p-4 border rounded-lg">
-            <div className="flex items-center justify-between mb-2">
-              <div className="flex items-center gap-2">
-                <div className="w-8 h-8 rounded-full bg-emerald-600/10 flex items-center justify-center text-emerald-600">
-                  {review.name.charAt(0)}
-                </div>
-                <div>
-                  <p className="font-medium text-sm">{review.name}</p>
-                  <p className="text-xs text-muted-foreground">{review.date}</p>
-                </div>
+        }
+      } catch (error) {
+        console.error('Error fetching earnings data:', error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    
+    if (userId) {
+      fetchEarningsData();
+    }
+  }, [userId]);
+  
+  // Format date for display
+  const formatDate = (dateString: string) => {
+    if (!dateString) return "";
+    const date = new Date(dateString);
+    return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+  };
+  
+  // Format currency for display
+  const formatCurrency = (amount: number) => {
+    return `$${(amount / 100).toFixed(2)}`;
+  };
+  
+  return (
+    <div className="space-y-6">
+      <h2 className="text-xl font-semibold mb-4">Earnings</h2>
+      
+      {isLoading ? (
+        <div className="flex justify-center py-8">
+          <div className="w-8 h-8 border-2 border-primary border-t-transparent rounded-full animate-spin"></div>
+        </div>
+      ) : (
+        <>
+          <div className="flex gap-2">
+            <div className="flex-1 border rounded-lg p-4 bg-emerald-600/5">
+              <div className="flex items-center gap-2 text-sm font-medium text-emerald-600 mb-2">
+                <DollarSign className="h-4 w-4" />
+                <span>This Month</span>
               </div>
-              <div className="flex">
-                {[1, 2, 3, 4, 5].map((star) => (
-                  <StarIcon
-                    key={star}
-                    className={cn(
-                      "h-3.5 w-3.5",
-                      star <= review.rating ? "text-yellow-500 fill-yellow-500" : "text-gray-300"
-                    )}
-                  />
+              <p className="text-2xl font-bold">{formatCurrency(monthlyStats.amount)}</p>
+              <p className="text-xs text-muted-foreground">
+                {monthlyStats.count} job{monthlyStats.count !== 1 ? 's' : ''} completed
+              </p>
+            </div>
+            
+            <div className="flex-1 border rounded-lg p-4">
+              <div className="flex items-center gap-2 text-sm font-medium text-muted-foreground mb-2">
+                <Calendar className="h-4 w-4" />
+                <span>Total</span>
+              </div>
+              <p className="text-2xl font-bold">{formatCurrency(totalStats.amount)}</p>
+              <p className="text-xs text-muted-foreground">
+                {totalStats.count} job{totalStats.count !== 1 ? 's' : ''} total
+              </p>
+            </div>
+          </div>
+          
+          <div className="border rounded-lg">
+            <div className="p-3 border-b">
+              <h3 className="font-medium">Recent Earnings</h3>
+            </div>
+            
+            {earnings.length > 0 ? (
+              <div className="divide-y">
+                {earnings.slice(0, 4).map((earning, index) => (
+                  <div key={index} className="p-3 flex items-center justify-between">
+                    <div>
+                      <p className="font-medium text-sm">{earning.jobTitle || `Job #${earning.jobId}`}</p>
+                      <p className="text-xs text-muted-foreground">{formatDate(earning.createdAt)}</p>
+                    </div>
+                    <div className="flex flex-col items-end">
+                      <p className="font-semibold">{formatCurrency(earning.amount)}</p>
+                      <div className={cn(
+                        "text-xs flex items-center gap-1",
+                        earning.status === "paid" ? "text-emerald-600" : "text-amber-500"
+                      )}>
+                        {earning.status === "paid" ? 
+                          <CheckCircle className="h-3 w-3" /> : 
+                          <Clock className="h-3 w-3" />
+                        }
+                        <span className="capitalize">{earning.status}</span>
+                      </div>
+                    </div>
+                  </div>
                 ))}
               </div>
+            ) : (
+              <div className="text-center py-8 text-sm text-muted-foreground">
+                No earnings recorded yet
+              </div>
+            )}
+          </div>
+          
+          <Button 
+            className="w-full" 
+            variant="outline" 
+            size="sm"
+            onClick={() => window.location.href = '/earnings'}
+          >
+            View All Earnings
+          </Button>
+        </>
+      )}
+    </div>
+  );
+};
+
+const PaymentsContent = ({ userId }: any) => {
+  const [paymentMethods, setPaymentMethods] = useState<any[]>([]);
+  const [transactions, setTransactions] = useState<any[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  
+  // Fetch payment methods and transactions when component mounts
+  useEffect(() => {
+    const fetchPaymentData = async () => {
+      try {
+        setIsLoading(true);
+        
+        // Fetch payment methods
+        const methodsRes = await apiRequest('GET', `/api/stripe/payment-methods`);
+        if (methodsRes.ok) {
+          const methodsData = await methodsRes.json();
+          setPaymentMethods(methodsData.paymentMethods || []);
+        }
+        
+        // Fetch transactions/payments
+        const paymentsRes = await apiRequest('GET', `/api/payments/user/${userId}`);
+        if (paymentsRes.ok) {
+          const paymentsData = await paymentsRes.json();
+          setTransactions(paymentsData.slice(0, 4) || []); // Show only 4 most recent
+        }
+      } catch (error) {
+        console.error('Error fetching payment data:', error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    
+    if (userId) {
+      fetchPaymentData();
+    }
+  }, [userId]);
+  
+  // Helper function to format card number display
+  const formatCardDisplay = (card: any) => {
+    return `•••• ${card.last4}`;
+  };
+  
+  // Helper function to get payment status display elements
+  const getStatusDisplay = (status: string) => {
+    const normalizedStatus = status.toLowerCase();
+    
+    const statusConfig = {
+      completed: { icon: <CheckCircle className="h-3 w-3" />, color: "text-emerald-600", label: "Completed" },
+      successful: { icon: <CheckCircle className="h-3 w-3" />, color: "text-emerald-600", label: "Successful" },
+      pending: { icon: <Clock className="h-3 w-3" />, color: "text-amber-500", label: "Pending" },
+      processing: { icon: <Clock className="h-3 w-3" />, color: "text-amber-500", label: "Processing" },
+      failed: { icon: <AlertCircle className="h-3 w-3" />, color: "text-red-500", label: "Failed" },
+      refunded: { icon: <Clock className="h-3 w-3" />, color: "text-amber-500", label: "Refunded" }
+    };
+    
+    // Default fallback if status not recognized
+    const defaultStatus = { icon: <Info className="h-3 w-3" />, color: "text-muted-foreground", label: status };
+    
+    // Return appropriate display config based on status
+    const displayConfig = (statusConfig as any)[normalizedStatus] || defaultStatus;
+    
+    return {
+      icon: displayConfig.icon,
+      colorClass: displayConfig.color,
+      label: displayConfig.label
+    };
+  };
+  
+  // Format date for display
+  const formatDate = (dateString: string) => {
+    if (!dateString) return "";
+    const date = new Date(dateString);
+    return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+  };
+  
+  // Format amount for display
+  const formatAmount = (amount: number) => {
+    return `$${(amount / 100).toFixed(2)}`;
+  };
+  
+  return (
+    <div className="space-y-6">
+      <h2 className="text-xl font-semibold mb-4">Payments</h2>
+      
+      <div className="bg-muted/20 rounded-lg p-4 border">
+        <div className="flex items-center justify-between mb-3">
+          <div className="flex items-center gap-2">
+            <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center">
+              <CreditCard className="h-4 w-4 text-primary" />
             </div>
-            <div className="text-sm">{review.comment}</div>
-            <div className="mt-2 text-xs bg-muted inline-flex items-center px-2 py-1 rounded-full">
-              <Briefcase className="h-3 w-3 mr-1" />
-              {review.jobTitle}
+            <div>
+              <p className="font-medium text-sm">Payment Methods</p>
+              <p className="text-xs text-muted-foreground">Manage your payment sources</p>
             </div>
           </div>
-        ))}
-      </div>
-    </div>
-    
-    <div className="border rounded-lg p-4">
-      <div className="flex items-center gap-2 mb-3">
-        <Award className="h-5 w-5 text-emerald-600" />
-        <h3 className="font-medium">Badges Earned</h3>
+          <Button size="sm" variant="ghost" onClick={() => window.location.href = '/payment-methods'}>
+            <Pencil className="h-3.5 w-3.5" />
+          </Button>
+        </div>
+        
+        {isLoading ? (
+          <div className="flex justify-center py-4">
+            <div className="w-6 h-6 border-2 border-primary border-t-transparent rounded-full animate-spin"></div>
+          </div>
+        ) : paymentMethods.length > 0 ? (
+          <>
+            {paymentMethods.map((method, index) => (
+              <div key={index} className="rounded-md bg-background p-3 border mb-2 flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <CreditCard className="h-5 w-5 text-muted-foreground" />
+                  <div>
+                    <p className="font-medium text-sm">{formatCardDisplay(method.card)}</p>
+                    <p className="text-xs text-muted-foreground">
+                      {method.card.brand} - Expires {method.card.exp_month}/{method.card.exp_year.toString().slice(-2)}
+                    </p>
+                  </div>
+                </div>
+                {method.isDefault && (
+                  <div className="flex items-center">
+                    <span className="text-xs bg-emerald-600/10 text-emerald-600 px-2 py-0.5 rounded-full">Default</span>
+                  </div>
+                )}
+              </div>
+            ))}
+          </>
+        ) : (
+          <div className="text-center py-4 text-sm text-muted-foreground">
+            No payment methods added yet
+          </div>
+        )}
+        
+        <Button 
+          variant="outline" 
+          size="sm" 
+          className="w-full mt-2"
+          onClick={() => window.location.href = '/payment-methods'}
+        >
+          <Zap className="h-3.5 w-3.5 mr-2" />
+          {paymentMethods.length > 0 ? 'Manage Payment Methods' : 'Add Payment Method'}
+        </Button>
       </div>
       
-      <div className="flex flex-wrap gap-2">
-        <div className="flex items-center gap-1 border px-3 py-1.5 rounded-full bg-primary/5">
-          <ShieldCheck className="h-4 w-4 text-primary" />
-          <span className="text-xs font-medium">Top Rated</span>
+      <div className="border rounded-lg">
+        <div className="p-3 border-b flex items-center justify-between">
+          <h3 className="font-medium">Recent Transactions</h3>
+          <span 
+            className="text-xs text-muted-foreground cursor-pointer hover:text-foreground"
+            onClick={() => window.location.href = '/payment-dashboard'}
+          >
+            View All
+          </span>
         </div>
-        <div className="flex items-center gap-1 border px-3 py-1.5 rounded-full bg-emerald-600/5">
-          <CheckCircle className="h-4 w-4 text-emerald-600" />
-          <span className="text-xs font-medium">Verified</span>
-        </div>
-        <div className="flex items-center gap-1 border px-3 py-1.5 rounded-full bg-yellow-500/5">
-          <ThumbsUp className="h-4 w-4 text-yellow-500" />
-          <span className="text-xs font-medium">Highly Recommended</span>
-        </div>
+        
+        {isLoading ? (
+          <div className="flex justify-center py-8">
+            <div className="w-6 h-6 border-2 border-primary border-t-transparent rounded-full animate-spin"></div>
+          </div>
+        ) : transactions.length > 0 ? (
+          <div className="divide-y">
+            {transactions.map((transaction, index) => {
+              const status = getStatusDisplay(transaction.status);
+              const isRefund = transaction.type === 'refund';
+              
+              return (
+                <div key={index} className="p-3 flex items-center justify-between">
+                  <div>
+                    <p className="font-medium text-sm">{transaction.description || `Payment #${transaction.id}`}</p>
+                    <p className="text-xs text-muted-foreground">{formatDate(transaction.createdAt)}</p>
+                  </div>
+                  <div className="flex flex-col items-end">
+                    <p className="font-semibold">
+                      {isRefund ? '+' : '-'}{formatAmount(transaction.amount)}
+                    </p>
+                    <div className={cn("text-xs flex items-center gap-1", status.colorClass)}>
+                      {status.icon}
+                      <span>{status.label}</span>
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        ) : (
+          <div className="text-center py-6 text-sm text-muted-foreground">
+            No transaction history yet
+          </div>
+        )}
       </div>
+      
+      <Button 
+        variant="outline" 
+        size="sm" 
+        className="w-full"
+        onClick={() => window.location.href = '/payment-dashboard'}
+      >
+        Manage Payment Settings
+      </Button>
     </div>
-  </div>
-);
+  );
+};
+
+const ReviewsContent = ({ userId }: any) => {
+  const [reviews, setReviews] = useState<any[]>([]);
+  const [badges, setBadges] = useState<any[]>([]); 
+  const [userRating, setUserRating] = useState<number>(0);
+  const [reviewCount, setReviewCount] = useState<number>(0);
+  const [isLoading, setIsLoading] = useState(true);
+  
+  // Fetch reviews and badges when component mounts
+  useEffect(() => {
+    const fetchUserReviewData = async () => {
+      try {
+        setIsLoading(true);
+        
+        // Fetch user reviews
+        const reviewsRes = await apiRequest('GET', `/api/reviews/user/${userId}`);
+        if (reviewsRes.ok) {
+          const reviewsData = await reviewsRes.json();
+          setReviews(reviewsData || []);
+          
+          // Calculate average rating
+          if (reviewsData && reviewsData.length > 0) {
+            const totalRating = reviewsData.reduce((sum: number, review: any) => sum + review.rating, 0);
+            setUserRating(totalRating / reviewsData.length);
+            setReviewCount(reviewsData.length);
+          }
+        }
+        
+        // Fetch user badges
+        const badgesRes = await apiRequest('GET', `/api/users/${userId}/badges`);
+        if (badgesRes.ok) {
+          const badgesData = await badgesRes.json();
+          setBadges(badgesData || []);
+        }
+      } catch (error) {
+        console.error('Error fetching user review data:', error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    
+    if (userId) {
+      fetchUserReviewData();
+    }
+  }, [userId]);
+  
+  // Format date for display
+  const formatDate = (dateString: string) => {
+    if (!dateString) return "";
+    const date = new Date(dateString);
+    return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+  };
+  
+  return (
+    <div className="space-y-6">
+      <h2 className="text-xl font-semibold mb-4">Reviews</h2>
+      
+      {isLoading ? (
+        <div className="flex justify-center py-8">
+          <div className="w-8 h-8 border-2 border-primary border-t-transparent rounded-full animate-spin"></div>
+        </div>
+      ) : (
+        <>
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <div className="w-14 h-14 bg-primary/10 rounded-full flex items-center justify-center">
+                <StarIcon className="h-7 w-7 text-yellow-500 fill-yellow-500" />
+              </div>
+              <div>
+                <div className="text-2xl font-bold">{userRating ? userRating.toFixed(1) : 'No ratings'}</div>
+                <div className="text-xs text-muted-foreground">
+                  {reviewCount > 0 ? `Based on ${reviewCount} review${reviewCount !== 1 ? 's' : ''}` : 'No reviews yet'}
+                </div>
+              </div>
+            </div>
+            
+            {userRating > 0 && (
+              <div className="flex gap-1 items-center">
+                <div className="flex">
+                  {[1, 2, 3, 4, 5].map((star) => (
+                    <StarIcon
+                      key={star}
+                      className={cn(
+                        "h-4 w-4",
+                        star <= Math.round(userRating) 
+                          ? "text-yellow-500 fill-yellow-500" 
+                          : "text-gray-300"
+                      )}
+                    />
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+          
+          <div className="border rounded-lg p-4">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="font-medium">Recent Reviews</h3>
+              {reviews.length > 3 && (
+                <Button 
+                  size="sm" 
+                  variant="ghost" 
+                  className="text-xs h-8"
+                  onClick={() => window.location.href = `/profile/${userId}/reviews`}
+                >
+                  View All
+                </Button>
+              )}
+            </div>
+            
+            {reviews.length > 0 ? (
+              <div className="space-y-4">
+                {reviews.slice(0, 3).map((review, index) => (
+                  <div key={index} className="p-4 border rounded-lg">
+                    <div className="flex items-center justify-between mb-2">
+                      <div className="flex items-center gap-2">
+                        <div className="w-8 h-8 rounded-full bg-emerald-600/10 flex items-center justify-center text-emerald-600">
+                          {review.reviewerName ? review.reviewerName.charAt(0) : 'U'}
+                        </div>
+                        <div>
+                          <p className="font-medium text-sm">{review.reviewerName || 'Anonymous User'}</p>
+                          <p className="text-xs text-muted-foreground">{formatDate(review.createdAt)}</p>
+                        </div>
+                      </div>
+                      <div className="flex">
+                        {[1, 2, 3, 4, 5].map((star) => (
+                          <StarIcon
+                            key={star}
+                            className={cn(
+                              "h-3.5 w-3.5",
+                              star <= review.rating ? "text-yellow-500 fill-yellow-500" : "text-gray-300"
+                            )}
+                          />
+                        ))}
+                      </div>
+                    </div>
+                    <div className="text-sm">{review.comment}</div>
+                    {review.jobTitle && (
+                      <div className="mt-2 text-xs bg-muted inline-flex items-center px-2 py-1 rounded-full">
+                        <Briefcase className="h-3 w-3 mr-1" />
+                        {review.jobTitle}
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="text-center py-8 text-sm text-muted-foreground">
+                No reviews yet
+              </div>
+            )}
+          </div>
+          
+          <div className="border rounded-lg p-4">
+            <div className="flex items-center gap-2 mb-3">
+              <Award className="h-5 w-5 text-emerald-600" />
+              <h3 className="font-medium">Badges Earned</h3>
+            </div>
+            
+            {badges.length > 0 ? (
+              <div className="flex flex-wrap gap-2">
+                {badges.map((badge, index) => (
+                  <div 
+                    key={index} 
+                    className={cn(
+                      "flex items-center gap-1 border px-3 py-1.5 rounded-full",
+                      badge.category === 'Reputation' ? "bg-primary/5" :
+                      badge.category === 'Skill Mastery' ? "bg-emerald-600/5" :
+                      badge.category === 'Job Completion' ? "bg-yellow-500/5" :
+                      "bg-muted/50"
+                    )}
+                  >
+                    {badge.category === 'Reputation' ? (
+                      <ShieldCheck className="h-4 w-4 text-primary" />
+                    ) : badge.category === 'Skill Mastery' ? (
+                      <CheckCircle className="h-4 w-4 text-emerald-600" />
+                    ) : badge.category === 'Job Completion' ? (
+                      <ThumbsUp className="h-4 w-4 text-yellow-500" />
+                    ) : (
+                      <Award className="h-4 w-4 text-blue-500" />
+                    )}
+                    <span className="text-xs font-medium">{badge.name}</span>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="text-center py-2 text-sm text-muted-foreground">
+                No badges earned yet
+              </div>
+            )}
+          </div>
+        </>
+      )}
+    </div>
+  );
+};
 
 const SettingsContent = ({ user }: any) => {
   const [darkMode, setDarkMode] = useState(() => {
