@@ -1,1 +1,1 @@
-web: node pid1-wrapper.js
+web: node pid1-wrapper.js ./start.sh

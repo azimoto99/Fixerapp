@@ -1,6 +1,7 @@
 #!/bin/bash
 
 # More reliable startup script with proper signal handling
+# This script is wrapped by pid1-wrapper.js when in a containerized environment
 
 # Prepare the environment
 echo "Setting environment for production..."

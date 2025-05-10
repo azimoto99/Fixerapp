@@ -3404,6 +3404,23 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Mount the API router under /api prefix
   app.use("/api", apiRouter);
 
+  // Root endpoint for deployment health checks
+  // This is critical - deployment health checks go to the / endpoint by default
+  // Use middleware to intercept requests for health checks
+  app.use((req, res, next) => {
+    // If it's a health check request (often from load balancers)
+    if (req.path === '/' && 
+       (req.get('User-Agent')?.includes('ELB-HealthChecker') || 
+        req.get('User-Agent')?.includes('GoogleHC') ||
+        req.get('x-health-check') === '1' ||
+        req.query.health === '1')) {
+      // Respond immediately with 200 OK
+      return res.status(200).send('OK');
+    }
+    // Otherwise continue with normal request handling
+    next();
+  });
+
   // Health check endpoint for deployment autoscaling
   app.get("/health", (_req, res) => {
     // Simple health check that returns 200 OK

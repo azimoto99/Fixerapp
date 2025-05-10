@@ -34,8 +34,10 @@ app.get('/health', (req, res) => {
 });
 
 // Fallback root endpoint that also returns 200 OK for additional health checks
+// This route is critical - deployment health checks go to / by default
 app.get('/', (req, res) => {
-  res.status(200).send('Health check server is running');
+  // Immediate 200 response - critical for deployment health checks
+  res.status(200).send('OK');
 });
 
 // Start the server on the same port as the main application
