@@ -156,16 +156,7 @@ const ReviewsContent: React.FC<ReviewsContentProps> = ({ userId }) => {
                         <span className="text-sm font-medium">{getUserName(review.reviewerId) || 'Client'}</span>
                       </div>
                       
-                      <div className="flex items-center space-x-2 text-muted-foreground">
-                        <div className="flex items-center text-xs">
-                          <ThumbsUp className="h-3 w-3 mr-1" />
-                          <span>{Math.floor(Math.random() * 5)}</span>
-                        </div>
-                        <div className="flex items-center text-xs">
-                          <MessageSquare className="h-3 w-3 mr-1" />
-                          <span>{Math.floor(Math.random() * 3)}</span>
-                        </div>
-                      </div>
+                      {/* Reactions removed */}
                     </div>
                   </div>
                 </CardContent>

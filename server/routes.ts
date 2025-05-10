@@ -19,6 +19,7 @@ import {
   BADGE_CATEGORIES
 } from "@shared/schema";
 import { setupAuth } from "./auth";
+import { URL } from "url";
 
 // Initialize Stripe with the secret key
 if (!process.env.STRIPE_SECRET_KEY) {
