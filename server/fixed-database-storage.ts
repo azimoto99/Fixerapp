@@ -69,6 +69,15 @@ export class FixedDatabaseStorage implements IStorage {
       return undefined;
     }
   }
+  
+  async getUserByEmail(email: string) {
+    try {
+      return await this.storage.getUserByEmail(email);
+    } catch (error) {
+      console.error(`Error in getUserByEmail(${email}):`, error);
+      return undefined;
+    }
+  }
 
   async createUser(user: any) {
     try {
