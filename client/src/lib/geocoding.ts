@@ -71,43 +71,23 @@ export async function geocodeAddress(address: string): Promise<GeocodingResult> 
       console.warn("Error using Nominatim:", e);
     }
     
-    // Fallback for common locations for demo purposes
-    // This isn't ideal but helps when geocoding services block requests
-    const commonLocations: Record<string, {lat: number, lon: number, name: string}> = {
-      'new york': { lat: 40.7128, lon: -74.0060, name: 'New York, NY, USA' },
-      'los angeles': { lat: 34.0522, lon: -118.2437, name: 'Los Angeles, CA, USA' },
-      'chicago': { lat: 41.8781, lon: -87.6298, name: 'Chicago, IL, USA' },
-      'san francisco': { lat: 37.7749, lon: -122.4194, name: 'San Francisco, CA, USA' },
-      'seattle': { lat: 47.6062, lon: -122.3321, name: 'Seattle, WA, USA' },
-      'austin': { lat: 30.2672, lon: -97.7431, name: 'Austin, TX, USA' },
-      'boston': { lat: 42.3601, lon: -71.0589, name: 'Boston, MA, USA' },
-      'london': { lat: 51.5074, lon: -0.1278, name: 'London, UK' },
-      'paris': { lat: 48.8566, lon: 2.3522, name: 'Paris, France' },
-      'tokyo': { lat: 35.6762, lon: 139.6503, name: 'Tokyo, Japan' },
-    };
-    
-    // Try to match with a common location
-    const normalizedInput = address.toLowerCase().trim();
-    for (const [key, location] of Object.entries(commonLocations)) {
-      if (normalizedInput.includes(key)) {
-        console.log("Using fallback location for:", key);
-        return {
-          latitude: location.lat,
-          longitude: location.lon,
-          displayName: location.name,
-          success: true
-        };
-      }
+    // Try multiple geocoding approaches if initial one fails
+    // For a production app, consider using a paid geocoding service with better reliability
+    // Or implementing additional geocoding providers as fallbacks
+    try {
+      // You could add alternative geocoding service calls here
+      console.log("Primary geocoding service failed, no fallbacks available");
+    } catch (innerError) {
+      console.error("All geocoding approaches failed:", innerError);
     }
     
-    // If all else fails, return a sample location for demo purposes
-    // This should be removed in production
-    console.warn("Using sample coordinates for development purposes");
+    // If all geocoding approaches fail, return an error
+    console.error("All geocoding approaches failed");
     return {
-      latitude: 40.7128, // New York (default fallback)
-      longitude: -74.0060,
-      displayName: "Sample Location (for demo)",
-      success: true
+      latitude: 0,
+      longitude: 0,
+      success: false,
+      error: "Unable to find location coordinates. Please try a different address or location."
     };
   } catch (error) {
     console.error('Geocoding error:', error);

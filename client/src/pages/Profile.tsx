@@ -310,7 +310,6 @@ export default function Profile() {
                       <div className="space-y-2">
                         <h3 className="text-sm font-medium text-gray-500 mb-4">Recent Transactions</h3>
                         
-                        {/* Add some sample payments with future pagination */}
                         <div className="rounded-md border">
                           <div className="divide-y">
                             <div className="flex items-center justify-between p-4">
