@@ -14,7 +14,7 @@ import JobPayment from './JobPayment';
 import ApplicationForm from './applications/ApplicationForm';
 import WorkerHistory from './applications/WorkerHistory';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
-import { Loader2, CheckCircle2, MessageCircle, Star, X, BriefcaseBusiness, UserCheck } from 'lucide-react';
+import { Loader2, CheckCircle2, MessageCircle, Star, X, BriefcaseBusiness, UserCheck, History, XCircle, SendHorizonal } from 'lucide-react';
 import { useMutation, useQuery } from '@tanstack/react-query';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { StripeConnectRequired } from '@/components/stripe';
@@ -90,8 +90,24 @@ const JobDetail: React.FC<JobDetailProps> = ({ job, distance = 0.5, onClose }) =
     enabled: !!(user && isJobCompleted && (isAssignedWorker || isJobPoster)),
   });
   
-  // Apply for job mutation
-  const handleApply = async () => {
+  // Check if user has already applied to this job
+  const { data: userApplications } = useQuery({
+    queryKey: ['/api/applications/worker', user?.id],
+    enabled: !!user && user.accountType === 'worker',
+  });
+
+  const hasAlreadyApplied = userApplications && Array.isArray(userApplications) 
+    ? userApplications.some((app: any) => app.jobId === job.id)
+    : false;
+
+  // Query to get applications for job (only for job posters)
+  const { data: jobApplications } = useQuery({
+    queryKey: ['/api/applications/job', job.id],
+    enabled: !!user && isJobPoster && status === 'open',
+  });
+
+  // Apply for job helpers
+  const openApplicationForm = async () => {
     if (!user) {
       toast({
         title: "Login Required",
@@ -110,6 +126,15 @@ const JobDetail: React.FC<JobDetailProps> = ({ job, distance = 0.5, onClose }) =
       return;
     }
     
+    // Check if the user has already applied
+    if (hasAlreadyApplied) {
+      toast({
+        title: "Already Applied",
+        description: "You have already applied for this job",
+      });
+      return;
+    }
+    
     // Check if user has a Stripe Connect account
     try {
       const res = await apiRequest('GET', '/api/stripe/connect/account-status');
@@ -121,18 +146,8 @@ const JobDetail: React.FC<JobDetailProps> = ({ job, distance = 0.5, onClose }) =
         return;
       }
       
-      // If they have an active Connect account, proceed with application
-      setIsApplying(true);
-      await apiRequest('POST', '/api/applications', {
-        jobId: job.id,
-        workerId: user.id,
-        message: "I'm interested in this job!"
-      });
-      
-      toast({
-        title: "Application Submitted",
-        description: "Your application has been submitted successfully"
-      });
+      // If they have an active Connect account, show the application form
+      setShowApplicationForm(true);
     } catch (error: any) {
       // If the error is a 404 (no account), show the Stripe Connect setup
       if (error.status === 404) {
@@ -141,14 +156,78 @@ const JobDetail: React.FC<JobDetailProps> = ({ job, distance = 0.5, onClose }) =
       }
       
       toast({
+        title: "Error",
+        description: "There was an error checking your account status. Please try again.",
+        variant: "destructive"
+      });
+    }
+  };
+  
+  // Apply for job mutation
+  const handleApply = async (message: string) => {
+    try {
+      setIsApplying(true);
+      const response = await apiRequest('POST', '/api/applications', {
+        jobId: job.id,
+        workerId: user!.id,
+        message: message || null
+      });
+      
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || 'Failed to submit application');
+      }
+      
+      // Close the form and show success message
+      setShowApplicationForm(false);
+      
+      toast({
+        title: "Application Submitted",
+        description: "Your job application has been submitted successfully!"
+      });
+      
+      // Refresh the applications data
+      queryClient.invalidateQueries({ queryKey: ['/api/applications/worker', user?.id] });
+    } catch (error: any) {
+      const errorMessage = error.message || "There was an error submitting your application. Please try again.";
+      
+      toast({
         title: "Application Failed",
-        description: "There was an error submitting your application. Please try again.",
+        description: errorMessage,
         variant: "destructive"
       });
     } finally {
       setIsApplying(false);
     }
   };
+  
+  // Handle viewing worker history
+  const handleViewWorkerHistory = (workerId: number) => {
+    setSelectedWorkerId(workerId);
+    setShowWorkerHistory(true);
+  };
+  
+  // Handle application status updates
+  const updateApplicationStatus = useMutation({
+    mutationFn: async ({ applicationId, status }: { applicationId: number, status: string }) => {
+      const res = await apiRequest('PATCH', `/api/applications/${applicationId}`, { status });
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/applications/job', job.id] });
+      toast({
+        title: "Application Updated",
+        description: "The application status has been updated"
+      });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Error",
+        description: error.message,
+        variant: "destructive"
+      });
+    }
+  });
   
   // Complete job mutation
   const completeJobMutation = useMutation({
@@ -246,7 +325,7 @@ const JobDetail: React.FC<JobDetailProps> = ({ job, distance = 0.5, onClose }) =
             setShowStripeConnectRequired(false);
             // After setup, try to apply again after a small delay
             setTimeout(() => {
-              handleApply();
+              openApplicationForm();
             }, 500);
           }}
           onSkip={() => setShowStripeConnectRequired(false)}
@@ -260,6 +339,38 @@ const JobDetail: React.FC<JobDetailProps> = ({ job, distance = 0.5, onClose }) =
           onDismiss={() => setShowPaymentNotification(false)}
         />
       )}
+      
+      {/* Application form dialog */}
+      <Dialog open={showApplicationForm} onOpenChange={setShowApplicationForm}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Apply for Job</DialogTitle>
+          </DialogHeader>
+          <ApplicationForm 
+            jobId={job.id}
+            onSuccess={() => {
+              setShowApplicationForm(false);
+              // Refresh applications data
+              queryClient.invalidateQueries({ 
+                queryKey: ['/api/applications/worker', user?.id] 
+              });
+            }}
+            onCancel={() => setShowApplicationForm(false)}
+          />
+        </DialogContent>
+      </Dialog>
+      
+      {/* Worker history dialog */}
+      <Dialog open={showWorkerHistory} onOpenChange={setShowWorkerHistory}>
+        <DialogContent className="sm:max-w-xl">
+          <DialogHeader>
+            <DialogTitle>Worker History</DialogTitle>
+          </DialogHeader>
+          {selectedWorkerId && (
+            <WorkerHistory workerId={selectedWorkerId} />
+          )}
+        </DialogContent>
+      </Dialog>
       
       {showReviewForm ? (
         <div className="p-4">
@@ -407,6 +518,105 @@ const JobDetail: React.FC<JobDetailProps> = ({ job, distance = 0.5, onClose }) =
                       setShowReviewForm(true);
                     }}
                   />
+                </div>
+              )}
+              
+              {/* Applications Manager for job poster */}
+              {isJobPoster && status === 'open' && (
+                <div className="mb-4">
+                  <h4 className="text-sm font-semibold text-foreground mb-2">Applications</h4>
+                  
+                  {jobApplications && Array.isArray(jobApplications) && jobApplications.length > 0 ? (
+                    <div className="space-y-3">
+                      {jobApplications.map((application: any) => (
+                        <div 
+                          key={application.id} 
+                          className="p-3 border border-border rounded-md bg-card/50"
+                        >
+                          <div className="flex justify-between items-start">
+                            <div>
+                              <div className="font-medium">{application.workerName || 'Anonymous Worker'}</div>
+                              <div className="text-sm text-muted-foreground mt-1">{application.message || 'No message provided'}</div>
+                            </div>
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => handleViewWorkerHistory(application.workerId)}
+                            >
+                              <History className="h-3 w-3 mr-1" />
+                              View History
+                            </Button>
+                          </div>
+                          
+                          <div className="flex gap-2 mt-3">
+                            <Button
+                              size="sm"
+                              className="flex-1"
+                              onClick={() => updateApplicationStatus.mutate({
+                                applicationId: application.id,
+                                status: 'accepted'
+                              })}
+                              disabled={updateApplicationStatus.isPending}
+                            >
+                              <CheckCircle2 className="h-3 w-3 mr-1" />
+                              Accept
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              className="flex-1"
+                              onClick={() => updateApplicationStatus.mutate({
+                                applicationId: application.id,
+                                status: 'rejected'
+                              })}
+                              disabled={updateApplicationStatus.isPending}
+                            >
+                              <XCircle className="h-3 w-3 mr-1" />
+                              Decline
+                            </Button>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="text-center py-4 text-sm text-muted-foreground">
+                      No applications yet. Workers will apply to your job soon!
+                    </div>
+                  )}
+                </div>
+              )}
+              
+              {/* Apply button for workers */}
+              {!isJobPoster && !isAssignedWorker && status === 'open' && user?.accountType === 'worker' && (
+                <div className="mb-4">
+                  <Button 
+                    className="w-full"
+                    onClick={openApplicationForm}
+                    disabled={isApplying || hasAlreadyApplied}
+                  >
+                    {isApplying ? (
+                      <>
+                        <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                        Applying...
+                      </>
+                    ) : hasAlreadyApplied ? (
+                      <>
+                        <CheckCircle2 className="h-4 w-4 mr-2" />
+                        Already Applied
+                      </>
+                    ) : (
+                      <>
+                        <SendHorizonal className="h-4 w-4 mr-2" />
+                        Apply for this Job
+                      </>
+                    )}
+                  </Button>
+                  
+                  {hasAlreadyApplied && (
+                    <p className="text-xs text-muted-foreground text-center mt-1">
+                      You've already applied to this job. The job poster will review your application soon.
+                    </p>
+                  )}
                 </div>
               )}
               
