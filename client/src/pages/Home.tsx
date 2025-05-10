@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import Header from '@/components/Header';
-// Mobile Nav removed as requested
+import MobileNav from '@/components/MobileNav';
 import JobSearch from '@/components/JobSearch';
 import ViewToggle from '@/components/ViewToggle';
 import JobListSection from '@/components/JobListSection';
@@ -190,7 +190,7 @@ const WorkerDashboard = () => {
         <PostedJobsDrawer />
         
         {/* Square search box at the very bottom of the screen with no space */}
-        <div className="fixed bottom-0 left-0 right-0 z-[500] w-full">
+        <div className="fixed bottom-0 left-0 right-0 z-[50] w-full">
           <div className="bg-card border-t border-border shadow-lg">
             <div className="p-2">
               <JobSearch onSearch={handleSearch} />
@@ -331,7 +331,8 @@ export default function Home() {
         )}
       </main>
       
-      {/* Mobile nav removed as requested */}
+      {/* Mobile nav with Post Job+ button */}
+      {(!user || user.accountType === 'worker') && <MobileNav />}
       
       {/* New job button now integrated in the MapSection component */}
     </div>
