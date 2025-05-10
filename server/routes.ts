@@ -521,13 +521,26 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Find user with this token and verify it's not expired
       const now = new Date();
       
-      // Get all users and find the one with matching token
+      // Check for user with matching token
       const users = await storage.getAllUsers();
-      const user = users.find(u => 
+      let user = users.find(u => 
         u.verificationToken === token && 
         u.verificationTokenExpiry && 
         new Date(u.verificationTokenExpiry) > now
       );
+      
+      // If no user found by token, try to find by email (for newer implementations)
+      if (!user && req.body.email) {
+        user = await storage.getUserByEmail(req.body.email);
+        // Verify the token matches for this user
+        if (user && (
+          user.verificationToken !== token || 
+          !user.verificationTokenExpiry || 
+          new Date(user.verificationTokenExpiry) <= now
+        )) {
+          user = undefined; // Token invalid or expired
+        }
+      }
       
       if (!user) {
         return res.status(400).json({ message: "Invalid or expired verification token" });
