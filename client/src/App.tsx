@@ -12,7 +12,7 @@ import AuthPage from "@/pages/auth-page";
 import NotFound from "@/pages/not-found";
 import TransactionHistory from "@/pages/TransactionHistory";
 import CompleteProfile from "@/pages/CompleteProfile";
-import Checkout from "@/pages/Checkout";
+import Checkout from "@/pages/checkout";
 import PaymentConfirmation from "@/pages/PaymentConfirmation";
 import StripeTest from "@/pages/StripeTest";
 import NotificationsPage from "@/pages/notifications-page";

@@ -25,9 +25,13 @@ export default function AuthPage() {
     }
   }, [user, isLoading, navigate]);
 
-  // If still loading, show nothing to prevent flash
+  // If still loading, show a proper loading indicator
   if (isLoading) {
-    return null;
+    return (
+      <div className="h-screen flex items-center justify-center">
+        <div className="animate-spin w-8 h-8 border-4 border-primary border-t-transparent rounded-full" aria-label="Loading"/>
+      </div>
+    );
   }
   
   return (
