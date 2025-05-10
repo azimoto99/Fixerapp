@@ -412,7 +412,7 @@ const StripeConnectSetup: React.FC<StripeConnectSetupProps> = ({ compact = false
                 <div className="border rounded-md p-3 mt-4 bg-muted/40">
                   <h4 className="text-sm font-medium mb-2">Requirements</h4>
                   
-                  {accountStatus.requirements.currentlyDue?.length > 0 && (
+                  {accountStatus.requirements.currentlyDue && accountStatus.requirements.currentlyDue.length > 0 && (
                     <div className="mb-3">
                       <div className="text-xs font-medium text-amber-600 mb-1">Currently Due:</div>
                       <ul className="text-xs list-disc list-inside space-y-1 text-muted-foreground">
@@ -439,7 +439,7 @@ const StripeConnectSetup: React.FC<StripeConnectSetupProps> = ({ compact = false
                     </div>
                   )}
                   
-                  {accountStatus.requirements.eventuallyDue?.length > 0 && (
+                  {accountStatus.requirements.eventuallyDue && accountStatus.requirements.eventuallyDue.length > 0 && (
                     <div className="mb-3">
                       <div className="text-xs font-medium text-blue-600 mb-1">Eventually Due:</div>
                       <ul className="text-xs list-disc list-inside space-y-1 text-muted-foreground">
@@ -466,7 +466,7 @@ const StripeConnectSetup: React.FC<StripeConnectSetupProps> = ({ compact = false
                     </div>
                   )}
                   
-                  {accountStatus.requirements.pendingVerification?.length > 0 && (
+                  {accountStatus.requirements.pendingVerification && accountStatus.requirements.pendingVerification.length > 0 && (
                     <div>
                       <div className="text-xs font-medium text-orange-600 mb-1">Pending Verification:</div>
                       <ul className="text-xs list-disc list-inside space-y-1 text-muted-foreground">
