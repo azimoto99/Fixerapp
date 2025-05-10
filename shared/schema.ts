@@ -63,6 +63,7 @@ export const jobs = pgTable("jobs", {
   dateNeeded: timestamp("date_needed").notNull(),
   requiredSkills: text("required_skills").array(), // Skills needed for the job
   equipmentProvided: boolean("equipment_provided").notNull().default(false),
+  autoAccept: boolean("auto_accept").notNull().default(false), // Auto accept applications
 });
 
 // Applications for jobs
@@ -179,12 +180,14 @@ export const insertJobSchema = createInsertSchema(jobs).omit({
   workerId: true,
   serviceFee: true,
   totalAmount: true,
+  autoAccept: true, // Will be explicitly set in the form
 }).extend({
   paymentAmount: z.number().min(10, "Minimum payment amount is $10"),
   // Allow dateNeeded to be a string which will be converted to a Date on the server
   dateNeeded: z.union([z.string(), z.date()]).transform(val => 
     typeof val === 'string' ? new Date(val) : val
   ),
+  autoAccept: z.boolean().default(false),
 });
 
 export const insertApplicationSchema = createInsertSchema(applications).omit({

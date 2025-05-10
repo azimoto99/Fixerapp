@@ -471,7 +471,10 @@ export class MemStorage implements IStorage {
   async createApplication(insertApplication: InsertApplication): Promise<Application> {
     const id = this.applicationIdCounter++;
     const dateApplied = new Date();
-    const status = "pending";
+    
+    // Check if the job has auto-accept enabled
+    const job = await this.getJob(insertApplication.jobId);
+    const status = job && job.autoAccept ? "accepted" : "pending";
     
     // Ensure message is null when undefined
     const message = insertApplication.message === undefined ? null : insertApplication.message;
@@ -484,6 +487,31 @@ export class MemStorage implements IStorage {
       message
     };
     this.applications.set(id, application);
+    
+    // If auto-accept is enabled, also update the job to assign this worker
+    if (job && job.autoAccept && status === "accepted") {
+      await this.updateJob(job.id, { 
+        workerId: insertApplication.workerId,
+        status: "assigned"
+      });
+      
+      // Create a notification for the worker
+      const notificationData: InsertNotification = {
+        userId: insertApplication.workerId,
+        title: "Application Accepted",
+        message: `Your application for job "${job.title}" was automatically accepted.`,
+        type: "application_accepted",
+        sourceId: job.id,
+        sourceType: "job"
+      };
+      
+      try {
+        await this.createNotification(notificationData);
+      } catch (error) {
+        console.error("Failed to create notification", error);
+      }
+    }
+    
     return application;
   }
 
@@ -536,29 +564,27 @@ export class MemStorage implements IStorage {
   async getTasksForJob(jobId: number): Promise<Task[]> {
     return Array.from(this.tasks.values())
       .filter(task => task.jobId === jobId)
-      .sort((a, b) => a.orderIndex - b.orderIndex);
+      .sort((a, b) => a.position - b.position);
   }
 
   async createTask(task: InsertTask): Promise<Task> {
     const id = this.taskIdCounter++;
-    const createdAt = new Date();
     const completedAt = null;
     const completedBy = null;
     
-    // Get the max order index for tasks in this job and add 1
+    // Get the max position for tasks in this job and add 1
     const tasksForJob = await this.getTasksForJob(task.jobId);
-    const orderIndex = tasksForJob.length === 0 
+    const position = tasksForJob.length === 0 
       ? 0 
-      : Math.max(...tasksForJob.map(t => t.orderIndex)) + 1;
+      : Math.max(...tasksForJob.map(t => t.position)) + 1;
     
     const newTask: Task = {
       ...task,
       id,
-      createdAt,
       completedAt,
       completedBy,
       isCompleted: false,
-      orderIndex
+      position
     };
     this.tasks.set(id, newTask);
     return newTask;
