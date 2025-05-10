@@ -14,6 +14,7 @@ import TransactionHistory from "@/pages/TransactionHistory";
 import CompleteProfile from "@/pages/CompleteProfile";
 import Checkout from "@/pages/checkout";
 import PaymentConfirmation from "@/pages/PaymentConfirmation";
+import PaymentMethods from "@/pages/PaymentMethods";
 import StripeTest from "@/pages/StripeTest";
 import NotificationsPage from "@/pages/notifications-page";
 import { AuthProvider } from "@/hooks/use-auth";
