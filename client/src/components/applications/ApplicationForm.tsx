@@ -1,33 +1,12 @@
 import React, { useState } from 'react';
-import { useMutation } from '@tanstack/react-query';
-import { apiRequest, queryClient } from '@/lib/queryClient';
-import { useForm } from 'react-hook-form';
-import { zodResolver } from '@hookform/resolvers/zod';
-import { z } from 'zod';
+import { apiRequest } from '@/lib/queryClient';
 import { useAuth } from '@/hooks/use-auth';
 import { useToast } from '@/hooks/use-toast';
-import {
-  Form,
-  FormControl,
-  FormDescription,
-  FormField,
-  FormItem,
-  FormLabel,
-  FormMessage,
-} from '@/components/ui/form';
+import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
-import { AlertCircle, Loader2, Send } from 'lucide-react';
-import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-
-// Define the form schema
-const applicationFormSchema = z.object({
-  message: z.string()
-    .min(10, 'Your message should be at least 10 characters')
-    .max(1000, 'Your message exceeds the maximum length of 1000 characters'),
-});
-
-type ApplicationFormValues = z.infer<typeof applicationFormSchema>;
+import { AlertCircle, Loader2 } from 'lucide-react';
+import { Card } from '@/components/ui/card';
 
 interface ApplicationFormProps {
   jobId: number;
@@ -36,141 +15,151 @@ interface ApplicationFormProps {
   className?: string;
 }
 
-const ApplicationForm: React.FC<ApplicationFormProps> = ({
-  jobId,
-  onSuccess,
+const ApplicationForm: React.FC<ApplicationFormProps> = ({ 
+  jobId, 
+  onSuccess, 
   onCancel,
-  className = '',
+  className = '', 
 }) => {
   const { user } = useAuth();
   const { toast } = useToast();
+  const [message, setMessage] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // Initialize form with default values
-  const form = useForm<ApplicationFormValues>({
-    resolver: zodResolver(applicationFormSchema),
-    defaultValues: {
-      message: '',
-    },
-  });
-
-  // Create application mutation
-  const createApplicationMutation = useMutation({
-    mutationFn: async (values: ApplicationFormValues) => {
-      if (!user) {
-        throw new Error('You must be logged in to apply for a job');
-      }
-
-      const applicationData = {
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    if (!user) {
+      setError('You must be logged in to apply for jobs');
+      return;
+    }
+    
+    if (user.accountType !== 'worker') {
+      setError('Only worker accounts can apply for jobs');
+      return;
+    }
+    
+    setIsSubmitting(true);
+    setError(null);
+    
+    try {
+      const response = await apiRequest('POST', '/api/applications', {
         jobId,
         workerId: user.id,
-        message: values.message,
-      };
-
-      const res = await apiRequest('POST', '/api/applications', applicationData);
+        message: message.trim() || null
+      });
       
-      if (!res.ok) {
-        const errorData = await res.json();
+      if (!response.ok) {
+        const errorData = await response.json();
         throw new Error(errorData.message || 'Failed to submit application');
       }
       
-      return res.json();
-    },
-    onSuccess: () => {
       toast({
         title: 'Application Submitted',
-        description: 'Your job application has been submitted successfully.',
+        description: 'Your job application has been submitted successfully!',
       });
       
-      // Invalidate applications query to refresh data
-      queryClient.invalidateQueries({ queryKey: ['/api/applications/worker'] });
-      
-      // Call success callback if provided
       if (onSuccess) {
         onSuccess();
       }
-    },
-    onError: (error: Error) => {
-      setError(error.message);
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'An unexpected error occurred';
+      setError(errorMessage);
+      
       toast({
         title: 'Application Failed',
-        description: `Failed to submit application: ${error.message}`,
+        description: errorMessage,
         variant: 'destructive',
       });
-    },
-  });
-
-  // Form submission handler
-  const onSubmit = async (values: ApplicationFormValues) => {
-    setError(null);
-    await createApplicationMutation.mutateAsync(values);
+    } finally {
+      setIsSubmitting(false);
+    }
   };
-
+  
+  // Create a function to check for Stripe Connect account
+  const checkStripeConnectStatus = async (): Promise<boolean> => {
+    try {
+      // Check if user has a Stripe Connect account
+      const res = await apiRequest('GET', '/api/stripe/connect/account-status');
+      
+      if (!res.ok) {
+        return false;
+      }
+      
+      const accountStatus = await res.json();
+      return accountStatus && accountStatus.accountStatus === 'active';
+    } catch (error) {
+      console.error('Failed to check Stripe Connect status:', error);
+      return false;
+    }
+  };
+  
+  // Helper to get placeholder text based on current context
+  const getMessagePlaceholder = () => {
+    if (!user) {
+      return 'Please login to apply for this job';
+    }
+    
+    if (user.accountType !== 'worker') {
+      return 'Only worker accounts can apply for jobs';
+    }
+    
+    return 'Introduce yourself and explain why you\'re a good fit for this job. Include any relevant experience or qualifications.';
+  };
+  
   return (
     <div className={className}>
-      {error && (
-        <Alert variant="destructive" className="mb-4">
-          <AlertCircle className="h-4 w-4" />
-          <AlertTitle>Error</AlertTitle>
-          <AlertDescription>{error}</AlertDescription>
-        </Alert>
-      )}
-      
-      <Form {...form}>
-        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-          <FormField
-            control={form.control}
-            name="message"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Your Message</FormLabel>
-                <FormControl>
-                  <Textarea
-                    placeholder="Introduce yourself and explain why you're a good fit for this job..."
-                    className="min-h-[120px]"
-                    {...field}
-                  />
-                </FormControl>
-                <FormDescription>
-                  Provide details about your experience and why you're interested in this job.
-                </FormDescription>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
+      <form onSubmit={handleSubmit}>
+        <div className="space-y-3">
+          <div>
+            <Label htmlFor="message">Application Message</Label>
+            <Textarea
+              id="message"
+              placeholder={getMessagePlaceholder()}
+              value={message}
+              onChange={(e) => setMessage(e.target.value)}
+              className="h-32 resize-none mt-1.5"
+              disabled={isSubmitting || !user || user.accountType !== 'worker'}
+            />
+          </div>
           
-          <div className="flex justify-between pt-2">
+          {error && (
+            <div className="bg-destructive/10 p-3 rounded-md text-sm text-destructive flex items-start gap-2">
+              <AlertCircle className="h-5 w-5 mt-0.5 flex-shrink-0" />
+              <div>{error}</div>
+            </div>
+          )}
+          
+          <div className="flex justify-end gap-2 pt-2">
             {onCancel && (
-              <Button
-                type="button"
-                variant="outline"
+              <Button 
+                type="button" 
+                variant="outline" 
                 onClick={onCancel}
-                disabled={createApplicationMutation.isPending}
+                disabled={isSubmitting}
               >
                 Cancel
               </Button>
             )}
             
-            <Button
+            <Button 
               type="submit"
-              disabled={createApplicationMutation.isPending}
-              className={onCancel ? '' : 'ml-auto'}
+              disabled={isSubmitting || !user || user.accountType !== 'worker'}
+              className="bg-primary hover:bg-primary/90"
             >
-              {createApplicationMutation.isPending ? (
+              {isSubmitting ? (
                 <>
                   <Loader2 className="h-4 w-4 mr-2 animate-spin" />
                   Submitting...
                 </>
               ) : (
-                <>
-                  <Send className="h-4 w-4 mr-2" />
-                  Submit Application
-                </>
+                'Submit Application'
               )}
             </Button>
           </div>
-        </form>
-      </Form>
+        </div>
+      </form>
     </div>
   );
 };

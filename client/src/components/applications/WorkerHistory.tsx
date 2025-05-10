@@ -1,255 +1,256 @@
 import React from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { apiRequest } from '@/lib/queryClient';
-import { format } from 'date-fns';
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from '@/components/ui/card';
-import {
-  Tabs,
-  TabsContent,
-  TabsList,
-  TabsTrigger,
-} from '@/components/ui/tabs';
-import { Separator } from '@/components/ui/separator';
-import { Badge } from '@/components/ui/badge';
+import { formatDistanceToNow } from 'date-fns';
+import { Star, Clock, BriefcaseBusiness, Award, AlertTriangle } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Star, ThumbsUp, Clock, Calendar, X, CheckSquare, AlertTriangle } from 'lucide-react';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { Badge } from '@/components/ui/badge';
+import { Progress } from '@/components/ui/progress';
+import { Separator } from '@/components/ui/separator';
 
 interface WorkerHistoryProps {
   workerId: number;
   className?: string;
 }
 
-const WorkerHistory: React.FC<WorkerHistoryProps> = ({ workerId, className = '' }) => {
-  // Fetch worker's job history
-  const { data: jobHistory, isLoading: isLoadingHistory } = useQuery({
-    queryKey: ['/api/workers/job-history', workerId],
-    queryFn: async () => {
-      const res = await apiRequest('GET', `/api/workers/${workerId}/job-history`);
-      if (!res.ok) throw new Error('Failed to fetch job history');
-      return res.json();
-    },
+const WorkerHistory: React.FC<WorkerHistoryProps> = ({ workerId, className }) => {
+  // Fetch worker's user profile
+  const { data: worker, isLoading: isWorkerLoading } = useQuery({
+    queryKey: ['/api/users', workerId],
+    enabled: !!workerId
   });
 
-  // Fetch worker's reviews
-  const { data: reviews, isLoading: isLoadingReviews } = useQuery({
-    queryKey: ['/api/workers/reviews', workerId],
-    queryFn: async () => {
-      const res = await apiRequest('GET', `/api/workers/${workerId}/reviews`);
-      if (!res.ok) throw new Error('Failed to fetch reviews');
-      return res.json();
-    },
+  // Fetch past jobs that the worker has completed
+  const { data: pastJobs, isLoading: isJobsLoading } = useQuery({
+    queryKey: ['/api/jobs/worker', workerId, 'completed'],
+    enabled: !!workerId
   });
 
-  // Calculate worker stats
-  const stats = React.useMemo(() => {
-    if (!jobHistory) return {
-      totalJobs: 0,
-      completedJobs: 0,
-      completionRate: 0,
-      averageRating: 0,
-      onTimeRate: 0,
-    };
+  // Fetch reviews for the worker
+  const { data: reviews, isLoading: isReviewsLoading } = useQuery({
+    queryKey: ['/api/reviews/user', workerId],
+    enabled: !!workerId
+  });
 
-    const total = jobHistory.length;
-    const completed = jobHistory.filter((job: any) => job.status === 'completed').length;
-    const completionRate = total > 0 ? (completed / total) * 100 : 0;
-    
-    let totalRating = 0;
-    let ratingCount = 0;
-    let onTimeCount = 0;
-    
-    if (reviews && reviews.length > 0) {
-      reviews.forEach((review: any) => {
-        if (review.rating) {
-          totalRating += review.rating;
-          ratingCount++;
-        }
-        if (review.onTime) {
-          onTimeCount++;
-        }
-      });
+  const isLoading = isWorkerLoading || isJobsLoading || isReviewsLoading;
+
+  // Calculate metrics and stats
+  const calculateMetrics = () => {
+    if (!worker || !pastJobs || !reviews) {
+      return {
+        completedJobs: 0,
+        successRate: 0,
+        averageRating: 0,
+        responseTime: 0
+      };
     }
-    
-    const averageRating = ratingCount > 0 ? totalRating / ratingCount : 0;
-    const onTimeRate = reviews && reviews.length > 0 ? (onTimeCount / reviews.length) * 100 : 0;
 
+    const completedJobs = pastJobs.length;
+    const averageRating = reviews.length > 0 
+      ? reviews.reduce((acc, review) => acc + review.rating, 0) / reviews.length 
+      : 0;
+    
     return {
-      totalJobs: total,
-      completedJobs: completed,
-      completionRate,
-      averageRating,
-      onTimeRate,
+      completedJobs,
+      successRate: worker.successRate || 0,
+      averageRating: averageRating || worker.rating || 0,
+      responseTime: worker.responseTime || 0
     };
-  }, [jobHistory, reviews]);
-
-  // Render job status badge
-  const getJobStatusBadge = (status: string) => {
-    switch (status) {
-      case 'completed':
-        return <Badge className="bg-green-600"><CheckSquare className="h-3 w-3 mr-1" /> Completed</Badge>;
-      case 'in_progress':
-        return <Badge variant="secondary"><Clock className="h-3 w-3 mr-1" /> In Progress</Badge>;
-      case 'cancelled':
-        return <Badge variant="destructive"><X className="h-3 w-3 mr-1" /> Cancelled</Badge>;
-      default:
-        return <Badge variant="outline">{status}</Badge>;
-    }
   };
-  
-  // Format date
-  const formatDate = (dateString: string) => {
-    if (!dateString) return 'N/A';
-    return format(new Date(dateString), 'MMM d, yyyy');
+
+  const metrics = calculateMetrics();
+  const hasReviews = reviews && reviews.length > 0;
+  const hasPastJobs = pastJobs && pastJobs.length > 0;
+
+  // Render star rating
+  const renderStars = (rating: number) => {
+    return (
+      <div className="flex items-center">
+        {[...Array(5)].map((_, i) => (
+          <Star 
+            key={i} 
+            className={`h-4 w-4 ${i < Math.round(rating) ? 'text-yellow-500 fill-yellow-500' : 'text-gray-300'}`} 
+          />
+        ))}
+        <span className="ml-1 text-sm">{rating.toFixed(1)}</span>
+      </div>
+    );
+  };
+
+  // Render loading skeleton
+  if (isLoading) {
+    return (
+      <div className={className}>
+        <Card>
+          <CardHeader>
+            <Skeleton className="h-6 w-36" />
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="flex items-center space-x-3">
+              <Skeleton className="h-10 w-10 rounded-full" />
+              <div className="space-y-2">
+                <Skeleton className="h-4 w-24" />
+                <Skeleton className="h-3 w-32" />
+              </div>
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <Skeleton className="h-16 w-full" />
+              <Skeleton className="h-16 w-full" />
+              <Skeleton className="h-16 w-full" />
+              <Skeleton className="h-16 w-full" />
+            </div>
+            <Skeleton className="h-28 w-full" />
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
+  // Format worker's skill badges
+  const renderSkills = () => {
+    if (!worker || !worker.skills || worker.skills.length === 0) {
+      return <div className="text-sm text-muted-foreground">No skills listed</div>;
+    }
+
+    return (
+      <div className="flex flex-wrap gap-1 mt-1">
+        {worker.skills.map((skill, index) => (
+          <Badge key={index} variant="outline" className="text-xs">
+            {skill}
+            {worker.skillsVerified && worker.skillsVerified[skill] && (
+              <Award className="h-3 w-3 ml-1 text-primary" />
+            )}
+          </Badge>
+        ))}
+      </div>
+    );
   };
 
   return (
     <div className={className}>
-      <Tabs defaultValue="jobs">
-        <TabsList className="grid w-full grid-cols-2">
-          <TabsTrigger value="jobs">Job History</TabsTrigger>
-          <TabsTrigger value="reviews">Reviews</TabsTrigger>
-        </TabsList>
-        
-        {/* Stats summary */}
-        <div className="grid grid-cols-3 gap-2 my-4">
-          <div className="bg-muted rounded-md p-3 text-center">
-            <div className="text-sm text-muted-foreground">Completion Rate</div>
-            <div className="text-xl font-semibold mt-1">
-              {isLoadingHistory ? (
-                <Skeleton className="h-6 w-16 mx-auto" />
-              ) : (
-                `${stats.completionRate.toFixed(0)}%`
-              )}
-            </div>
-          </div>
-          <div className="bg-muted rounded-md p-3 text-center">
-            <div className="text-sm text-muted-foreground">Avg. Rating</div>
-            <div className="text-xl font-semibold mt-1 flex items-center justify-center">
-              {isLoadingReviews ? (
-                <Skeleton className="h-6 w-16 mx-auto" />
-              ) : (
-                <>
-                  {stats.averageRating.toFixed(1)}
-                  <Star className="h-4 w-4 text-yellow-500 ml-1" />
-                </>
-              )}
-            </div>
-          </div>
-          <div className="bg-muted rounded-md p-3 text-center">
-            <div className="text-sm text-muted-foreground">On-Time Rate</div>
-            <div className="text-xl font-semibold mt-1">
-              {isLoadingReviews ? (
-                <Skeleton className="h-6 w-16 mx-auto" />
-              ) : (
-                `${stats.onTimeRate.toFixed(0)}%`
-              )}
-            </div>
-          </div>
-        </div>
-        
-        {/* Jobs tab */}
-        <TabsContent value="jobs" className="space-y-4">
-          {isLoadingHistory ? (
-            Array(3).fill(0).map((_, index) => (
-              <div key={index} className="border rounded-md p-4 space-y-2">
-                <Skeleton className="h-5 w-3/4" />
-                <Skeleton className="h-4 w-1/4" />
-                <Skeleton className="h-4 w-1/2" />
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-lg">Worker History</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          {/* Worker profile */}
+          {worker && (
+            <div className="flex items-center space-x-3">
+              <Avatar className="h-12 w-12">
+                <AvatarImage src={worker.avatarUrl || undefined} alt={worker.fullName} />
+                <AvatarFallback>{worker.fullName.charAt(0)}</AvatarFallback>
+              </Avatar>
+              <div>
+                <div className="font-medium">{worker.fullName}</div>
+                <div className="text-sm text-muted-foreground">
+                  Member since {formatDistanceToNow(new Date(worker.createdAt || Date.now()), { addSuffix: true })}
+                </div>
+                {renderSkills()}
               </div>
-            ))
-          ) : !jobHistory || jobHistory.length === 0 ? (
-            <div className="text-center py-6 text-muted-foreground border rounded-md">
-              <AlertTriangle className="h-12 w-12 mx-auto mb-2 text-yellow-500 opacity-60" />
-              <p>This worker has no job history yet</p>
             </div>
-          ) : (
-            jobHistory.map((job: any) => (
-              <div key={job.id} className="border rounded-md p-4">
-                <div className="flex justify-between items-start">
-                  <div>
-                    <h3 className="font-medium">{job.title}</h3>
-                    <div className="text-sm text-muted-foreground mt-1 flex items-center gap-3">
-                      <span className="flex items-center gap-1">
-                        <Calendar className="h-3 w-3" />
-                        {formatDate(job.dateCompleted || job.datePosted)}
-                      </span>
-                      {job.category && (
-                        <Badge variant="outline" className="capitalize">{job.category}</Badge>
-                      )}
+          )}
+
+          {/* Performance metrics */}
+          <div className="grid grid-cols-2 gap-3">
+            <div className="rounded-lg border p-2">
+              <div className="text-sm text-muted-foreground mb-1">Completed Jobs</div>
+              <div className="flex items-center">
+                <BriefcaseBusiness className="h-5 w-5 mr-1 text-primary" />
+                <span className="text-lg font-semibold">{metrics.completedJobs}</span>
+              </div>
+            </div>
+            
+            <div className="rounded-lg border p-2">
+              <div className="text-sm text-muted-foreground mb-1">Success Rate</div>
+              <div>
+                <div className="flex justify-between items-center mb-1">
+                  <span className="text-lg font-semibold">{metrics.successRate}%</span>
+                </div>
+                <Progress value={metrics.successRate} className="h-2" />
+              </div>
+            </div>
+            
+            <div className="rounded-lg border p-2">
+              <div className="text-sm text-muted-foreground mb-1">Average Rating</div>
+              <div>
+                {renderStars(metrics.averageRating)}
+              </div>
+            </div>
+            
+            <div className="rounded-lg border p-2">
+              <div className="text-sm text-muted-foreground mb-1">Response Time</div>
+              <div className="flex items-center">
+                <Clock className="h-5 w-5 mr-1 text-primary" />
+                <span className="text-lg font-semibold">{metrics.responseTime} min</span>
+              </div>
+            </div>
+          </div>
+
+          <Separator />
+
+          {/* Recent reviews */}
+          <div>
+            <h3 className="text-sm font-medium mb-2">Recent Reviews</h3>
+            
+            {!hasReviews && (
+              <div className="text-center py-3 text-sm text-muted-foreground">
+                No reviews yet
+              </div>
+            )}
+            
+            {hasReviews && (
+              <div className="space-y-3">
+                {reviews.slice(0, 3).map((review) => (
+                  <div key={review.id} className="rounded-lg border p-3">
+                    <div className="flex justify-between items-start">
+                      <div className="font-medium">{review.title}</div>
+                      <div>{renderStars(review.rating)}</div>
+                    </div>
+                    <p className="text-sm mt-1">{review.content}</p>
+                    <div className="text-xs text-muted-foreground mt-2">
+                      {formatDistanceToNow(new Date(review.dateCreated), { addSuffix: true })}
                     </div>
                   </div>
-                  {getJobStatusBadge(job.status)}
-                </div>
-                {job.description && (
-                  <p className="text-sm mt-2 line-clamp-2 text-muted-foreground">
-                    {job.description}
-                  </p>
-                )}
+                ))}
               </div>
-            ))
-          )}
-        </TabsContent>
-        
-        {/* Reviews tab */}
-        <TabsContent value="reviews" className="space-y-4">
-          {isLoadingReviews ? (
-            Array(3).fill(0).map((_, index) => (
-              <div key={index} className="border rounded-md p-4 space-y-2">
-                <Skeleton className="h-5 w-1/4" />
-                <div className="flex gap-1 my-1">
-                  {Array(5).fill(0).map((_, i) => (
-                    <Skeleton key={i} className="h-4 w-4 rounded-full" />
-                  ))}
-                </div>
-                <Skeleton className="h-4 w-full" />
-                <Skeleton className="h-4 w-3/4" />
+            )}
+          </div>
+
+          {/* Job history */}
+          <div>
+            <h3 className="text-sm font-medium mb-2">Job History</h3>
+            
+            {!hasPastJobs && (
+              <div className="text-center py-3 text-sm text-muted-foreground">
+                No completed jobs yet
               </div>
-            ))
-          ) : !reviews || reviews.length === 0 ? (
-            <div className="text-center py-6 text-muted-foreground border rounded-md">
-              <AlertTriangle className="h-12 w-12 mx-auto mb-2 text-yellow-500 opacity-60" />
-              <p>This worker has no reviews yet</p>
+            )}
+            
+            {hasPastJobs && (
+              <div className="space-y-2">
+                {pastJobs.slice(0, 3).map((job) => (
+                  <div key={job.id} className="rounded-lg border p-2 text-sm">
+                    <div className="font-medium">{job.title}</div>
+                    <div className="text-xs text-muted-foreground">
+                      {formatDistanceToNow(new Date(job.dateCompleted || job.datePosted), { addSuffix: true })}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
+          {!hasPastJobs && !hasReviews && (
+            <div className="bg-yellow-50 dark:bg-yellow-900/20 rounded-lg p-3 flex items-start gap-2">
+              <AlertTriangle className="h-5 w-5 text-yellow-600 dark:text-yellow-500 mt-0.5" />
+              <div className="text-sm text-yellow-700 dark:text-yellow-400">
+                This worker has not completed any jobs or received reviews yet.
+              </div>
             </div>
-          ) : (
-            reviews.map((review: any) => (
-              <div key={review.id} className="border rounded-md p-4">
-                <div className="flex justify-between items-start">
-                  <h3 className="font-medium">{review.jobTitle || 'Job Review'}</h3>
-                  <Badge variant="outline" className="flex items-center gap-1">
-                    {review.onTime ? (
-                      <><ThumbsUp className="h-3 w-3" /> On Time</>
-                    ) : (
-                      <><Clock className="h-3 w-3" /> Delayed</>
-                    )}
-                  </Badge>
-                </div>
-                
-                <div className="flex items-center mt-1 mb-2">
-                  {Array(5).fill(0).map((_, i) => (
-                    <Star
-                      key={i}
-                      className={`h-4 w-4 ${i < review.rating ? 'text-yellow-500 fill-yellow-500' : 'text-muted-foreground/30'}`}
-                    />
-                  ))}
-                  <span className="ml-2 text-sm text-muted-foreground">
-                    {formatDate(review.dateCreated)}
-                  </span>
-                </div>
-                
-                <p className="text-sm">
-                  {review.comment || <span className="italic text-muted-foreground">No comment provided</span>}
-                </p>
-              </div>
-            ))
           )}
-        </TabsContent>
-      </Tabs>
+        </CardContent>
+      </Card>
     </div>
   );
 };
