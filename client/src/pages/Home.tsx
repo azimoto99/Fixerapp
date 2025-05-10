@@ -189,10 +189,10 @@ const WorkerDashboard = () => {
         <PostedJobsButton />
         <PostedJobsDrawer />
         
-        {/* DoorDash-style floating search box at bottom */}
-        <div className="absolute bottom-6 left-1/2 transform -translate-x-1/2 z-[500]">
-          <div className="bg-card border border-border rounded-full shadow-lg" style={{ width: '90vw', maxWidth: '400px' }}>
-            <div className="p-1.5">
+        {/* Square search box at the very bottom of the screen */}
+        <div className="absolute bottom-0 left-0 right-0 z-[500]">
+          <div className="bg-card border border-border shadow-lg">
+            <div className="p-2">
               <JobSearch onSearch={handleSearch} />
             </div>
           </div>
