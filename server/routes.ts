@@ -2467,7 +2467,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
   
-  apiRouter.post("/stripe/create-setup-intent", isAuthenticated, async (req: Request, res: Response) => {
+  apiRouter.post("/create-setup-intent", isAuthenticated, async (req: Request, res: Response) => {
     try {
       // Make sure we have a customer ID
       let customerId = req.user.stripeCustomerId;

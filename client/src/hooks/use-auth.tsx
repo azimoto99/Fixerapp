@@ -43,9 +43,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     data: user,
     error,
     isLoading,
+    refetch
   } = useQuery<UserWithFlags | undefined, Error>({
     queryKey: ["/api/user"],
     queryFn: getQueryFn({ on401: "returnNull" }),
+    staleTime: 60000, // 1 minute
+    refetchOnWindowFocus: true,
+    refetchOnMount: true,
   });
 
   const loginMutation = useMutation({
@@ -110,6 +114,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           .then(res => {
             if (res.ok) {
               console.log('Session verified after login');
+              // Manually refetch to ensure the auth context is updated
+              refetch();
+              // Redirect to home page
+              setLocation('/');
             } else {
               console.warn('Session verification failed after login:', res.status);
             }
