@@ -75,10 +75,12 @@ export function ProfileEditor({ user, onCancel }: ProfileEditorProps) {
     push: true
   };
   
-  if (user.contactPreferences) {
-    if (typeof user.contactPreferences.email === 'boolean') defaultContactPreferences.email = user.contactPreferences.email;
-    if (typeof user.contactPreferences.sms === 'boolean') defaultContactPreferences.sms = user.contactPreferences.sms;
-    if (typeof user.contactPreferences.push === 'boolean') defaultContactPreferences.push = user.contactPreferences.push;
+  // Parse contact preferences if present, ensuring proper type validation
+  const userContactPrefs = user.contactPreferences as ContactPreferences | undefined;
+  if (userContactPrefs) {
+    if (typeof userContactPrefs.email === 'boolean') defaultContactPreferences.email = userContactPrefs.email;
+    if (typeof userContactPrefs.sms === 'boolean') defaultContactPreferences.sms = userContactPrefs.sms;
+    if (typeof userContactPrefs.push === 'boolean') defaultContactPreferences.push = userContactPrefs.push;
   }
 
   // Define availability with fallbacks
@@ -89,11 +91,13 @@ export function ProfileEditor({ user, onCancel }: ProfileEditorProps) {
     hourEnd: 17
   };
   
-  if (user.availability) {
-    if (Array.isArray(user.availability.weekdays)) defaultAvailability.weekdays = user.availability.weekdays;
-    if (Array.isArray(user.availability.weekend)) defaultAvailability.weekend = user.availability.weekend;
-    if (typeof user.availability.hourStart === 'number') defaultAvailability.hourStart = user.availability.hourStart;
-    if (typeof user.availability.hourEnd === 'number') defaultAvailability.hourEnd = user.availability.hourEnd;
+  // Parse availability settings if present, ensuring proper type validation
+  const userAvailability = user.availability as Availability | undefined;
+  if (userAvailability) {
+    if (Array.isArray(userAvailability.weekdays)) defaultAvailability.weekdays = userAvailability.weekdays;
+    if (Array.isArray(userAvailability.weekend)) defaultAvailability.weekend = userAvailability.weekend;
+    if (typeof userAvailability.hourStart === 'number') defaultAvailability.hourStart = userAvailability.hourStart;
+    if (typeof userAvailability.hourEnd === 'number') defaultAvailability.hourEnd = userAvailability.hourEnd;
   }
 
   const form = useForm<ProfileFormValues>({
@@ -281,8 +285,8 @@ export function ProfileEditor({ user, onCancel }: ProfileEditorProps) {
                                         description: 'Your phone number has been verified successfully.',
                                       });
                                       // Update user cache with verified phone
-                                      queryClient.setQueryData(['/api/user'], oldData => {
-                                        return { ...oldData, phoneVerified: true };
+                                      queryClient.setQueryData(['/api/user'], (oldData: any) => {
+                                        return oldData ? { ...oldData, phoneVerified: true } : { phoneVerified: true };
                                       });
                                     } else {
                                       return response.json().then(error => {
