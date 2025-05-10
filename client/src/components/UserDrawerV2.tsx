@@ -179,9 +179,9 @@ const UserDrawerV2: React.FC<UserDrawerProps> = ({
               </div>
             </div>
 
-            <div className="flex h-[calc(100vh-72px)]">
+            <div className="flex h-[calc(100vh-72px)] overflow-hidden">
               {/* Sidebar navigation */}
-              <div className="w-[72px] border-r bg-muted/30 py-4 flex flex-col items-center">
+              <div className="w-[72px] border-r bg-muted/30 py-4 flex flex-col items-center h-full overflow-y-auto">
                 <div className="flex flex-col items-center space-y-1">
                   {/* Main sections */}
                   <div className="mb-2 px-2 py-1 w-full">
@@ -290,7 +290,7 @@ const UserDrawerV2: React.FC<UserDrawerProps> = ({
                 </div>
 
                 {/* Logout at bottom */}
-                <div className="mt-auto">
+                <div className="mt-auto pb-4">
                   <Button 
                     variant="ghost" 
                     className="flex flex-col items-center justify-center w-14 h-14 rounded-lg hover:bg-red-100 hover:text-red-600"

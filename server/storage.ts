@@ -626,16 +626,16 @@ export class MemStorage implements IStorage {
       }
     }
     
-    // Update order indices
+    // Update positions
     const updatedTasks: Task[] = [];
     for (let i = 0; i < taskIds.length; i++) {
       const taskId = taskIds[i];
       const task = taskMap.get(taskId)!;
-      const updatedTask = await this.updateTask(taskId, { orderIndex: i });
+      const updatedTask = await this.updateTask(taskId, { position: i });
       updatedTasks.push(updatedTask!);
     }
     
-    return updatedTasks.sort((a, b) => a.orderIndex - b.orderIndex);
+    return updatedTasks.sort((a, b) => a.position - b.position);
   }
   
   // Earnings operations

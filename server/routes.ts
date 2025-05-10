@@ -231,6 +231,129 @@ export async function registerRoutes(app: Express): Promise<Server> {
   apiRouter.get("/skills", (_req: Request, res: Response) => {
     res.json(SKILLS);
   });
+  
+  // Worker history endpoints
+  // Get worker job history
+  apiRouter.get("/workers/:workerId/job-history", isAuthenticated, async (req: Request, res: Response) => {
+    try {
+      const workerId = parseInt(req.params.workerId);
+      if (isNaN(workerId)) {
+        return res.status(400).json({ message: "Invalid worker ID" });
+      }
+
+      // Get all jobs where this worker was hired
+      const completedJobs = await storage.getJobs({ 
+        workerId, 
+        status: "completed" 
+      });
+      
+      // For each job, get the associated review (if any)
+      const jobsWithReviews = await Promise.all(completedJobs.map(async (job) => {
+        const reviews = await storage.getReviewsForJob(job.id);
+        // Find the review left by the job poster (if any)
+        const posterReview = reviews.find(review => review.reviewerId === job.posterId);
+        
+        return {
+          ...job,
+          review: posterReview || null
+        };
+      }));
+      
+      res.json(jobsWithReviews);
+    } catch (error) {
+      console.error("Error fetching worker job history:", error);
+      res.status(500).json({ message: "Error fetching worker job history" });
+    }
+  });
+  
+  // Get all reviews for a worker
+  apiRouter.get("/workers/:workerId/reviews", isAuthenticated, async (req: Request, res: Response) => {
+    try {
+      const workerId = parseInt(req.params.workerId);
+      if (isNaN(workerId)) {
+        return res.status(400).json({ message: "Invalid worker ID" });
+      }
+      
+      // Get reviews where this worker is the subject
+      const reviews = await storage.getReviewsForUser(workerId);
+      
+      // For each review, get additional details about the reviewer and job
+      const enhancedReviews = await Promise.all(reviews.map(async (review) => {
+        const reviewer = await storage.getUser(review.reviewerId);
+        const job = review.jobId ? await storage.getJob(review.jobId) : null;
+        
+        return {
+          ...review,
+          reviewer: reviewer ? {
+            id: reviewer.id,
+            fullName: reviewer.fullName,
+            avatarUrl: reviewer.avatarUrl
+          } : null,
+          job: job ? {
+            id: job.id,
+            title: job.title,
+            category: job.category,
+            datePosted: job.datePosted
+          } : null
+        };
+      }));
+      
+      res.json(enhancedReviews);
+    } catch (error) {
+      console.error("Error fetching worker reviews:", error);
+      res.status(500).json({ message: "Error fetching worker reviews" });
+    }
+  });
+  
+  // Verify a worker's skill
+  apiRouter.post("/workers/:workerId/verify-skill", isAuthenticated, async (req: Request, res: Response) => {
+    try {
+      if (!req.user) {
+        return res.status(401).json({ message: "Unauthorized - Please login again" });
+      }
+      
+      const workerId = parseInt(req.params.workerId);
+      if (isNaN(workerId)) {
+        return res.status(400).json({ message: "Invalid worker ID" });
+      }
+      
+      const { skill, isVerified } = z.object({
+        skill: z.string(),
+        isVerified: z.boolean()
+      }).parse(req.body);
+      
+      // Only job posters who have completed a job with this worker can verify skills
+      const completedJobs = await storage.getJobs({
+        posterId: req.user.id,
+        workerId,
+        status: "completed"
+      });
+      
+      if (completedJobs.length === 0) {
+        return res.status(403).json({ 
+          message: "You can only verify skills of workers who have completed jobs for you" 
+        });
+      }
+      
+      // Update the skill verification
+      const updatedUser = await storage.verifyUserSkill(workerId, skill, isVerified);
+      
+      if (!updatedUser) {
+        return res.status(404).json({ message: "Worker not found" });
+      }
+      
+      // Remove sensitive information
+      const { password, ...sanitizedUser } = updatedUser;
+      
+      res.json({
+        message: `Skill ${isVerified ? 'verified' : 'verification removed'} successfully`,
+        user: sanitizedUser
+      });
+    } catch (error) {
+      console.error("Error verifying skill:", error);
+      res.status(500).json({ message: "Error verifying skill" });
+    }
+  });
 
   // User endpoints
   apiRouter.get("/users", async (_req: Request, res: Response) => {
