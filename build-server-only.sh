@@ -3,8 +3,9 @@ set -e
 
 echo "🔨 Building the server component only..."
 esbuild server/index.ts --platform=node --packages=external --bundle --format=esm --outdir=dist
-echo "🔍 Building health check script..."
+echo "🔍 Building health check scripts..."
 esbuild server/health-check.js --platform=node --packages=external --bundle --format=esm --outdir=dist
+esbuild server/health-check-module.js --platform=node --packages=external --bundle --format=esm --outdir=dist
 
 echo "📋 Creating package.json for production..."
 cat > dist/package.json << EOL

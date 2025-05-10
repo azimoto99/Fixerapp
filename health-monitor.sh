@@ -5,7 +5,8 @@ set -e
 # This script will check the health endpoint and start the fallback health check server if needed
 
 # Configuration
-HEALTH_CHECK_URL="http://localhost:${PORT:-5000}/health"
+# Using the root path for health checks to match Replit Deployments config
+HEALTH_CHECK_URL="http://localhost:${PORT:-5000}/"
 MAX_RETRIES=5
 RETRY_INTERVAL=5  # seconds
 MAX_STARTUP_WAIT=30  # seconds to wait for initial server startup
@@ -17,6 +18,18 @@ log() {
 
 # Function to check health endpoint
 check_health() {
+  # First try the Node.js health check module (more reliable)
+  if [ -f "dist/health-check-module.js" ]; then
+    NODE_ENV=production node dist/health-check-module.js > /dev/null 2>&1
+    if [ $? -eq 0 ]; then
+      log "Health check passed using module"
+      return 0
+    else
+      log "Health check failed using module"
+    fi
+  fi
+  
+  # Fallback to curl if module is not available or fails
   local response
   response=$(curl -s -o /dev/null -w "%{http_code}" $HEALTH_CHECK_URL 2>/dev/null || echo "000")
   if [ "$response" == "200" ]; then
