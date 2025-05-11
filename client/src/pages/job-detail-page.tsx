@@ -238,29 +238,7 @@ const JobDetailPage: React.FC = () => {
       
       {/* Action buttons */}
       <div className="flex flex-wrap gap-3 mb-6">
-        {!isPoster && !isWorker && !isCompleted && !hasApplied && (
-          <Dialog open={applyDialogOpen} onOpenChange={setApplyDialogOpen}>
-            <DialogTrigger asChild>
-              <Button>
-                <Send className="h-4 w-4 mr-2" />
-                Apply for Job
-              </Button>
-            </DialogTrigger>
-            <DialogContent className="sm:max-w-md">
-              <DialogHeader>
-                <DialogTitle>Apply for "{job.title}"</DialogTitle>
-                <DialogDescription>
-                  Tell the job poster why you're a good fit for this job
-                </DialogDescription>
-              </DialogHeader>
-              <ApplicationForm 
-                jobId={jobId} 
-                onSuccess={handleApplySuccess} 
-                onCancel={() => setApplyDialogOpen(false)} 
-              />
-            </DialogContent>
-          </Dialog>
-        )}
+        {/* Apply button moved to details tab to prevent duplication */}
         
         {hasApplied && !isWorker && !isCompleted && (
           <Button variant="outline" disabled>
