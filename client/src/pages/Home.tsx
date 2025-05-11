@@ -92,7 +92,7 @@ const WorkerDashboard = () => {
         {/* X button on the left side */}
         <button 
           onClick={togglePostedJobs}
-          className="absolute -left-12 top-4 bg-primary text-white shadow-lg rounded-full w-10 h-10 flex items-center justify-center transform transition-all hover:scale-105 active:scale-95 p-0"
+          className="absolute -left-12 top-4 bg-blue-600 text-white shadow-lg rounded-full w-10 h-10 flex items-center justify-center transform transition-all hover:scale-105 active:scale-95 p-0"
           aria-label="Close posted jobs panel"
         >
           <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -101,9 +101,9 @@ const WorkerDashboard = () => {
           </svg>
         </button>
         
-        <div className="px-4 py-3 border-b border-border">
+        <div className="bg-blue-600 text-white px-4 py-3 border-b border-blue-700">
           <div className="flex items-center justify-between">
-            <h3 className="text-lg font-medium text-card-foreground">My Posted Jobs</h3>
+            <h3 className="text-lg font-medium">My Posted Jobs</h3>
           </div>
         </div>
         
@@ -172,13 +172,13 @@ const WorkerDashboard = () => {
     );
   };
   
-  // My Posted Jobs button - positioned 80px from right (30px more to the left)
+  // My Posted Jobs button - positioned to the left of UserDrawer button
   const PostedJobsButton = () => {
     return (
-      <div className="fixed top-4 right-4 z-[var(--z-controls)]">
+      <div className="fixed top-4 right-16 z-[var(--z-controls)]">
         <Button 
           onClick={togglePostedJobs}
-          className="bg-primary text-white shadow-lg rounded-full w-10 h-10 flex items-center justify-center transition-all hover:scale-105 active:scale-95 p-0"
+          className="bg-blue-600 text-white shadow-lg rounded-full w-10 h-10 flex items-center justify-center transition-all hover:scale-105 active:scale-95 p-0"
           aria-label="My Posted Jobs"
         >
           <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M20 5H4a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2Z"></path><path d="M14 2v6"></path><path d="M10 2v6"></path><path d="M3 10h18"></path></svg>
