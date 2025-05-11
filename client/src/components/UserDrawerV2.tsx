@@ -170,38 +170,36 @@ const UserDrawerV2: React.FC<UserDrawerProps> = ({
             className="fixed top-0 right-0 bottom-0 w-[360px] bg-background shadow-lg transform transition-transform duration-300 animate-in slide-in-from-right overflow-hidden"
             style={{ zIndex: 100000 }}
           >
-            {/* Drawer header with elevated design */}
+            {/* Drawer header with elevated design - more compact */}
             <div className="bg-gradient-to-r from-primary to-primary/80 text-primary-foreground shadow-md">
-              <div className="px-6 pt-6 pb-5">
-                {/* Top bar with close button */}
-                <div className="flex justify-end mb-3">
-                  <button 
-                    onClick={closeDrawer}
-                    className="bg-primary-foreground/20 backdrop-blur-sm text-primary-foreground hover:bg-primary-foreground/30 rounded-full w-8 h-8 flex items-center justify-center transform transition-all hover:scale-105 active:scale-95 p-0"
-                    aria-label="Close menu"
-                  >
-                    <X className="h-4 w-4" />
-                  </button>
-                </div>
+              <div className="px-4 pt-3 pb-3 relative">
+                {/* Top bar with close button - absolute positioning */}
+                <button 
+                  onClick={closeDrawer}
+                  className="absolute top-2 right-2 bg-primary-foreground/20 backdrop-blur-sm text-primary-foreground hover:bg-primary-foreground/30 rounded-full w-6 h-6 flex items-center justify-center"
+                  aria-label="Close menu"
+                >
+                  <X className="h-3 w-3" />
+                </button>
                 
                 {/* User profile section */}
-                <div className="flex items-center gap-4">
-                  <Avatar className="h-16 w-16 border-2 border-primary-foreground/50">
+                <div className="flex items-center gap-3">
+                  <Avatar className="h-10 w-10 border border-primary-foreground/30">
                     <AvatarImage src={user.avatarUrl || undefined} alt={user.fullName} />
-                    <AvatarFallback className="bg-primary/80 text-primary-foreground text-lg">
+                    <AvatarFallback className="bg-primary/80 text-primary-foreground text-sm">
                       {user.fullName?.charAt(0) || 'U'}
                     </AvatarFallback>
                   </Avatar>
                   
                   <div>
-                    <div className="font-bold text-xl tracking-tight">{user.fullName}</div>
-                    <div className="text-sm text-primary-foreground/80 flex items-center gap-2 mt-1">
-                      <Badge variant="outline" className="font-normal capitalize text-xs bg-primary-foreground/10 hover:bg-primary-foreground/20 text-primary-foreground border-primary-foreground/20">
+                    <div className="font-medium text-base tracking-tight">{user.fullName}</div>
+                    <div className="text-xs text-primary-foreground/80 flex items-center gap-1.5">
+                      <Badge variant="outline" className="font-normal capitalize text-[10px] px-1.5 py-0 h-4 bg-primary-foreground/10 hover:bg-primary-foreground/20 text-primary-foreground border-primary-foreground/20">
                         {user.accountType}
                       </Badge>
                       {user.rating && user.rating > 0 && (
-                        <div className="flex items-center bg-primary-foreground/10 px-2 py-0.5 rounded text-xs">
-                          <StarIcon className="h-3 w-3 text-yellow-300 mr-1 inline" />
+                        <div className="flex items-center bg-primary-foreground/10 px-1.5 py-0 rounded text-[10px] h-4">
+                          <StarIcon className="h-2.5 w-2.5 text-yellow-300 mr-0.5 inline" />
                           <span>{user.rating.toFixed(1)}</span>
                         </div>
                       )}
@@ -209,28 +207,28 @@ const UserDrawerV2: React.FC<UserDrawerProps> = ({
                   </div>
                 </div>
                 
-                {/* Quick stats */}
-                <div className="grid grid-cols-3 gap-2 mt-4">
-                  <div className="bg-primary-foreground/10 rounded-lg p-2 text-center">
-                    <div className="text-xs text-primary-foreground/80">Jobs</div>
-                    <div className="text-lg font-semibold">{user.completedJobs || 0}</div>
+                {/* Quick stats - more compact */}
+                <div className="grid grid-cols-3 gap-1.5 mt-2">
+                  <div className="bg-primary-foreground/10 rounded p-1 text-center">
+                    <div className="text-[9px] text-primary-foreground/80">Jobs</div>
+                    <div className="text-sm font-medium">{user.completedJobs || 0}</div>
                   </div>
-                  <div className="bg-primary-foreground/10 rounded-lg p-2 text-center">
-                    <div className="text-xs text-primary-foreground/80">Rating</div>
-                    <div className="text-lg font-semibold flex items-center justify-center">
-                      <StarIcon className="h-4 w-4 text-yellow-300 mr-1" />
+                  <div className="bg-primary-foreground/10 rounded p-1 text-center">
+                    <div className="text-[9px] text-primary-foreground/80">Rating</div>
+                    <div className="text-sm font-medium flex items-center justify-center">
+                      <StarIcon className="h-3 w-3 text-yellow-300 mr-0.5" />
                       {user.rating?.toFixed(1) || '-'}
                     </div>
                   </div>
-                  <div className="bg-primary-foreground/10 rounded-lg p-2 text-center">
-                    <div className="text-xs text-primary-foreground/80">Success</div>
-                    <div className="text-lg font-semibold">{user.successRate ? `${user.successRate}%` : '-'}</div>
+                  <div className="bg-primary-foreground/10 rounded p-1 text-center">
+                    <div className="text-[9px] text-primary-foreground/80">Success</div>
+                    <div className="text-sm font-medium">{user.successRate ? `${user.successRate}%` : '-'}</div>
                   </div>
                 </div>
               </div>
             </div>
 
-            <div className="flex h-[calc(100vh-198px)] overflow-hidden">
+            <div className="flex h-[calc(100vh-150px)] overflow-hidden">
               {/* Enhanced sidebar navigation with tooltips */}
               <TooltipProvider>
                 <div className="w-[80px] border-r border-border bg-background/80 dark:bg-background py-4 flex flex-col items-center h-full overflow-y-auto">

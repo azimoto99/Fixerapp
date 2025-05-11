@@ -69,51 +69,51 @@ const ReviewsContent: React.FC<ReviewsContentProps> = ({ userId }) => {
   }));
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <h2 className="text-xl font-semibold">My Reviews</h2>
-        <Badge variant="outline">{reviews.length} total</Badge>
+    <div className="space-y-4">
+      <div className="flex items-center justify-between pb-1 border-b">
+        <h2 className="text-sm font-medium text-muted-foreground">My Reviews</h2>
+        <Badge variant="secondary" className="text-xs">{reviews.length} total</Badge>
       </div>
 
       {/* Rating summary */}
-      <Card>
-        <CardContent className="pt-6">
+      <div className="border rounded-lg overflow-hidden">
+        <div className="p-3">
           <div className="flex items-center justify-between">
             <div className="flex flex-col items-center">
-              <div className="text-4xl font-bold text-primary mb-1">{avgRating.toFixed(1)}</div>
-              <div className="flex items-center mb-1">
+              <div className="text-2xl font-bold text-primary">{avgRating.toFixed(1)}</div>
+              <div className="flex items-center my-0.5">
                 {[...Array(5)].map((_, i) => (
                   <Star
                     key={i}
-                    className={`h-4 w-4 ${
+                    className={`h-3 w-3 ${
                       i < Math.round(avgRating) ? 'text-amber-500 fill-amber-500' : 'text-gray-300'
                     }`}
                   />
                 ))}
               </div>
-              <p className="text-sm text-muted-foreground">Average rating</p>
+              <p className="text-xs text-muted-foreground">Average rating</p>
             </div>
             
-            <div className="flex-1 ml-6">
+            <div className="flex-1 ml-5">
               {ratingCounts.reverse().map(({ rating, count, percentage }) => (
                 <div key={rating} className="flex items-center mb-1">
-                  <div className="flex items-center w-16">
-                    <span className="text-sm mr-1">{rating}</span>
-                    <Star className="h-3 w-3 text-amber-500" />
+                  <div className="flex items-center w-10">
+                    <span className="text-xs mr-1">{rating}</span>
+                    <Star className="h-2.5 w-2.5 text-amber-500" />
                   </div>
-                  <div className="flex-1 h-2 bg-gray-200 rounded-full overflow-hidden">
+                  <div className="flex-1 h-1.5 bg-muted rounded-full overflow-hidden">
                     <div 
                       className="h-full bg-primary rounded-full"
                       style={{ width: `${percentage}%` }}
                     ></div>
                   </div>
-                  <span className="text-xs ml-2 w-8 text-right">{count}</span>
+                  <span className="text-xs ml-2 w-6 text-right">{count}</span>
                 </div>
               ))}
             </div>
           </div>
-        </CardContent>
-      </Card>
+        </div>
+      </div>
 
       {/* Reviews list */}
       <div className="space-y-4">
