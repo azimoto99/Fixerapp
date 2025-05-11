@@ -9,6 +9,22 @@ import { storage } from '../storage';
 import { z } from 'zod';
 import { v4 as uuidv4 } from 'uuid';
 
+// Type augmentation for express Request to include user property
+declare global {
+  namespace Express {
+    interface User {
+      id: number;
+      username?: string;
+      email?: string;
+      fullName?: string;
+      stripeConnectAccountId?: string;
+      stripeConnectAccountStatus?: string;
+      stripeCustomerId?: string;
+      accountType?: string;
+    }
+  }
+}
+
 // Initialize Stripe with the secret key
 if (!process.env.STRIPE_SECRET_KEY) {
   throw new Error("Missing required environment variable: STRIPE_SECRET_KEY");

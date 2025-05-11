@@ -3338,6 +3338,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // Mount the API router under /api prefix
   app.use("/api", apiRouter);
+  
+  // Use the centralized Stripe API router
+  app.use("/api/stripe", stripeRouter);
 
   const httpServer = createServer(app);
   return httpServer;
