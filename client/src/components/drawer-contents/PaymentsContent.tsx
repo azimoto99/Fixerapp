@@ -152,9 +152,6 @@ const PaymentsContent: React.FC<PaymentsContentProps> = ({ userId }) => {
     setMakePaymentOpen(false);
   };
 
-  // For navigation if needed
-  const [_, navigate] = useLocation();
-
   return (
     <div className="space-y-4">
       <Tabs defaultValue="history" value={activeTab} onValueChange={setActiveTab}>

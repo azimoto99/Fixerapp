@@ -25,15 +25,15 @@ const ReviewsContent: React.FC<ReviewsContentProps> = ({ userId }) => {
   
   // Helper function to get job details
   const getJobDetails = (jobId: number | null) => {
-    if (!jobId || !jobs) return { title: 'Job' };
-    return jobs.find(job => job.id === jobId) || { title: 'Job' };
+    if (!jobId || !jobs) return { title: `Job #${jobId || ''}` };
+    return jobs.find(job => job.id === jobId) || { title: `Job #${jobId}` };
   };
 
   // Helper function to get user name
   const getUserName = (userId: number | null) => {
-    if (!userId || !users) return 'User';
+    if (!userId || !users) return '';
     const user = users.find(user => user.id === userId);
-    return user ? user.fullName : 'User';
+    return user ? user.fullName : '';
   };
 
   if (isLoading) {
