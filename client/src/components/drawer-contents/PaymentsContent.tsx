@@ -159,35 +159,39 @@ const PaymentsContent: React.FC<PaymentsContentProps> = ({ userId }) => {
   };
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-3">
+      <div className="flex items-center justify-between pb-1 border-b">
+        <h2 className="text-sm font-medium text-muted-foreground">Payment Options</h2>
+      </div>
+      
       <Tabs defaultValue="history" value={activeTab} onValueChange={setActiveTab}>
-        <TabsList className="grid w-full grid-cols-3">
-          <TabsTrigger value="history">Payment History</TabsTrigger>
-          <TabsTrigger value="methods">Payment Methods</TabsTrigger>
-          <TabsTrigger value="setup">Account Setup</TabsTrigger>
+        <TabsList className="grid w-full grid-cols-3 h-7">
+          <TabsTrigger value="history" className="text-xs">History</TabsTrigger>
+          <TabsTrigger value="methods" className="text-xs">Methods</TabsTrigger>
+          <TabsTrigger value="setup" className="text-xs">Setup</TabsTrigger>
         </TabsList>
         
         {/* Payment History Tab */}
-        <TabsContent value="history" className="space-y-4 mt-4">
-          <Card>
-            <CardHeader className="pb-3">
+        <TabsContent value="history" className="space-y-3 mt-3">
+          <div className="border rounded-lg overflow-hidden">
+            <div className="p-3 pb-2 border-b">
               <div className="flex justify-between items-center">
                 <div>
-                  <CardTitle>Your Payments</CardTitle>
-                  <CardDescription>
+                  <h3 className="text-sm font-medium">Your Payments</h3>
+                  <p className="text-xs text-muted-foreground mt-0.5">
                     {user?.accountType === 'worker' 
-                      ? 'Track payments you\'ve received for completed jobs' 
-                      : 'View your payment history for jobs you\'ve posted'}
-                  </CardDescription>
+                      ? 'Payments received for completed jobs' 
+                      : 'History of payments to workers'}
+                  </p>
                 </div>
                 
                 {/* Make new payment button */}
                 {user?.accountType === 'poster' && (
                   <Dialog open={makePaymentOpen} onOpenChange={setMakePaymentOpen}>
                     <DialogTrigger asChild>
-                      <Button size="sm" className="ml-auto">
-                        <PlusCircle className="h-4 w-4 mr-2" />
-                        Make Payment
+                      <Button size="sm" className="ml-auto h-7 text-xs px-2.5">
+                        <PlusCircle className="h-3.5 w-3.5 mr-1.5" />
+                        Pay Worker
                       </Button>
                     </DialogTrigger>
                     <DialogContent className="sm:max-w-md">
@@ -202,17 +206,17 @@ const PaymentsContent: React.FC<PaymentsContentProps> = ({ userId }) => {
                   </Dialog>
                 )}
               </div>
-            </CardHeader>
-            <CardContent>
+            </div>
+            <div className="p-3">
               {payments && payments.length > 0 ? (
                 <div className="space-y-4">
-                  {/* Search and filter controls */}
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                    <div className="relative">
-                      <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
+                  {/* Search and filter controls - more compact */}
+                  <div className="flex flex-col sm:flex-row gap-2">
+                    <div className="relative flex-grow">
+                      <Search className="absolute left-2 top-1.5 h-3.5 w-3.5 text-muted-foreground" />
                       <Input
                         placeholder="Search payments..."
-                        className="pl-8"
+                        className="pl-7 h-7 text-xs py-1"
                         value={searchTerm}
                         onChange={(e) => setSearchTerm(e.target.value)}
                       />
@@ -222,15 +226,15 @@ const PaymentsContent: React.FC<PaymentsContentProps> = ({ userId }) => {
                       value={statusFilter}
                       onValueChange={(value) => setStatusFilter(value)}
                     >
-                      <SelectTrigger className="w-full">
-                        <SelectValue placeholder="Filter by status" />
+                      <SelectTrigger className="h-7 text-xs py-1 w-32">
+                        <SelectValue placeholder="Status" />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="all">All Statuses</SelectItem>
-                        <SelectItem value="completed">Completed</SelectItem>
-                        <SelectItem value="pending">Pending</SelectItem>
-                        <SelectItem value="processing">Processing</SelectItem>
-                        <SelectItem value="failed">Failed</SelectItem>
+                        <SelectItem value="all" className="text-xs">All Statuses</SelectItem>
+                        <SelectItem value="completed" className="text-xs">Completed</SelectItem>
+                        <SelectItem value="pending" className="text-xs">Pending</SelectItem>
+                        <SelectItem value="processing" className="text-xs">Processing</SelectItem>
+                        <SelectItem value="failed" className="text-xs">Failed</SelectItem>
                       </SelectContent>
                     </Select>
                   </div>
@@ -349,8 +353,8 @@ const PaymentsContent: React.FC<PaymentsContentProps> = ({ userId }) => {
                   )}
                 </div>
               )}
-            </CardContent>
-          </Card>
+            </div>
+          </div>
           
           {/* Payment details drawer */}
           <Drawer open={paymentDetailsOpen} onOpenChange={setPaymentDetailsOpen}>
