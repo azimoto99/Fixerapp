@@ -6,7 +6,7 @@ import JobSearch from '@/components/JobSearch';
 import ViewToggle from '@/components/ViewToggle';
 import JobListSection from '@/components/JobListSection';
 import MapSection from '@/components/MapSection';
-// NewJobButton is conditionally rendered based on location status
+import NewJobButton from '@/components/NewJobButton';
 
 import { useJobs } from '@/hooks/useJobs';
 import { Job } from '@shared/schema';
@@ -183,6 +183,9 @@ const WorkerDashboard = () => {
         {/* Worker can view jobs they've posted */}
         <PostedJobsButton />
         <PostedJobsDrawer />
+        
+        {/* Add the NewJobButton component to allow users to post jobs */}
+        <NewJobButton />
         
         {/* Square search box at the very bottom of the screen with no space */}
         <div className="fixed bottom-0 left-0 right-0 z-[50] w-full">
