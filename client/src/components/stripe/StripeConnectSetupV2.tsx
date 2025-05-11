@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useMutation, useQuery } from '@tanstack/react-query';
 import { apiRequest, queryClient } from '@/lib/queryClient';
 import { useToast } from '@/hooks/use-toast';
@@ -37,7 +37,26 @@ interface StripeConnectSetupProps {
 export default function StripeConnectSetupV2({ compact = false }: StripeConnectSetupProps) {
   const [acceptedTerms, setAcceptedTerms] = useState(false);
   const [activeTab, setActiveTab] = useState<string>('setup');
+  const [isDismissed, setIsDismissed] = useState(localStorage.getItem('stripe-connect-dismissed') === 'true');
   const { toast } = useToast();
+  
+  // Check localStorage when component mounts to update the state
+  useEffect(() => {
+    const checkDismissedStatus = () => {
+      const dismissedValue = localStorage.getItem('stripe-connect-dismissed') === 'true';
+      setIsDismissed(dismissedValue);
+    };
+    
+    // Check initially
+    checkDismissedStatus();
+    
+    // Set up listener for storage changes (in case changed in another tab)
+    window.addEventListener('storage', checkDismissedStatus);
+    
+    return () => {
+      window.removeEventListener('storage', checkDismissedStatus);
+    };
+  }, []);
   
   // Check Stripe Connect Account Status
   const { 
@@ -414,20 +433,41 @@ export default function StripeConnectSetupV2({ compact = false }: StripeConnectS
                       )}
                     </Button>
                     
-                    <Button 
-                      variant="link" 
-                      className="text-muted-foreground hover:text-blue-700 dark:hover:text-blue-400"
-                      onClick={() => {
-                        toast({
-                          title: "Setup Dismissed",
-                          description: "You can complete your Stripe Connect setup later from the Payments tab.",
-                        });
-                        // Store in local storage that user has seen this
-                        localStorage.setItem('stripe-connect-dismissed', 'true');
-                      }}
-                    >
-                      I'll set this up later
-                    </Button>
+                    <div className="flex flex-row justify-between items-center">
+                      <Button 
+                        variant="link" 
+                        className="text-muted-foreground hover:text-blue-700 dark:hover:text-blue-400"
+                        onClick={() => {
+                          toast({
+                            title: "Setup Dismissed",
+                            description: "You can complete your Stripe Connect setup later from the Payments tab.",
+                          });
+                          // Store in local storage that user has seen this
+                          localStorage.setItem('stripe-connect-dismissed', 'true');
+                          setIsDismissed(true);
+                        }}
+                      >
+                        I'll set this up later
+                      </Button>
+                      
+                      {isDismissed && (
+                        <Button 
+                          variant="link" 
+                          size="sm"
+                          className="text-xs text-primary"
+                          onClick={() => {
+                            localStorage.removeItem('stripe-connect-dismissed');
+                            setIsDismissed(false);
+                            toast({
+                              title: "Setup Reset",
+                              description: "Stripe Connect setup prompts will now appear again when needed.",
+                            });
+                          }}
+                        >
+                          Reset Dismissed Status
+                        </Button>
+                      )}
+                    </div>
                   </div>
                 </div>
               </div>
