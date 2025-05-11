@@ -115,21 +115,30 @@ const WorkerDashboard = () => {
           ) : postedJobs && postedJobs.length > 0 ? (
             <div className="space-y-3">
               {postedJobs.map((job: Job) => (
-                <div key={job.id} className="border border-border rounded-md p-3 hover:bg-secondary">
+                <div key={job.id} className="border border-border rounded-md p-3 hover:bg-secondary/30 transition-colors">
                   <h4 className="font-medium text-foreground">{job.title}</h4>
                   <p className="text-sm text-muted-foreground mt-1 line-clamp-2">{job.description}</p>
-                  <div className="flex items-center mt-2">
+                  <div className="flex items-center justify-between mt-2">
                     <span className={`px-2 py-0.5 text-xs rounded-full ${
                       job.status === 'open' ? 'bg-emerald-600 text-white' : 
                       job.status === 'assigned' ? 'bg-emerald-700 text-white' : 
-                      'bg-emerald-800 text-white'
+                      job.status === 'completed' ? 'bg-emerald-800 text-white' :
+                      'bg-emerald-600 text-white'
                     }`}>
-                      {job.status.charAt(0).toUpperCase() + job.status.slice(1)}
+                      {job.status ? job.status.charAt(0).toUpperCase() + job.status.slice(1) : 'Open'}
                     </span>
+                    {job.paymentAmount && (
+                      <span className="text-xs text-muted-foreground">
+                        ${job.paymentAmount} {job.paymentType === 'hourly' ? '/hr' : ''}
+                      </span>
+                    )}
                   </div>
-                  <div className="mt-3">
-                    <Button size="sm" variant="outline" asChild className="w-full">
+                  <div className="mt-3 flex gap-2">
+                    <Button size="sm" variant="outline" asChild className="flex-1">
                       <a href={`/job/${job.id}`}>View Details</a>
+                    </Button>
+                    <Button size="sm" variant="default" asChild className="flex-1">
+                      <a href={`/job/${job.id}`}>Manage</a>
                     </Button>
                   </div>
                 </div>
@@ -137,9 +146,24 @@ const WorkerDashboard = () => {
             </div>
           ) : (
             <div className="text-center py-8">
-              <p className="text-muted-foreground mb-4">You haven't posted any jobs yet.</p>
-              <Button className="bg-primary text-white hover:bg-primary/90" asChild>
-                <a href="/jobs/post">Post Your First Job</a>
+              <div className="w-16 h-16 bg-muted rounded-full flex items-center justify-center mx-auto mb-4">
+                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-muted-foreground">
+                  <path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"></path>
+                  <polyline points="14 2 14 8 20 8"></polyline>
+                  <line x1="12" y1="18" x2="12" y2="12"></line>
+                  <line x1="9" y1="15" x2="15" y2="15"></line>
+                </svg>
+              </div>
+              <h3 className="text-lg font-medium mb-2">No Jobs Posted Yet</h3>
+              <p className="text-muted-foreground mb-6">Create your first job listing to start finding workers</p>
+              <Button className="bg-primary hover:bg-primary/90" asChild>
+                <a href="/jobs/post">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="mr-2">
+                    <line x1="12" y1="5" x2="12" y2="19"></line>
+                    <line x1="5" y1="12" x2="19" y2="12"></line>
+                  </svg>
+                  Post Your First Job
+                </a>
               </Button>
             </div>
           )}
