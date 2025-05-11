@@ -1,12 +1,11 @@
 import React, { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Earning, Job, Application, Review } from '@shared/schema';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { Card, CardContent, CardFooter, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Progress } from '@/components/ui/progress';
 import { Button } from '@/components/ui/button';
-import StripeConnectSetup from '@/components/stripe/StripeConnectSetup';
 import {
   BarChart,
   Bar,
@@ -82,7 +81,43 @@ const EarningsContent: React.FC<EarningsContentProps> = ({ userId }) => {
   if (!earnings || earnings.length === 0) {
     return (
       <div className="space-y-6">
-        <StripeConnectSetup />
+        <Card className="bg-blue-50 dark:bg-blue-950/50 border-blue-200 dark:border-blue-800">
+          <CardHeader>
+            <CardTitle className="text-blue-800 dark:text-blue-300">Set Up Your Payment Account</CardTitle>
+            <CardDescription className="text-blue-700 dark:text-blue-400">
+              You'll need to set up Stripe Connect to receive payments for completed jobs
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="text-blue-800 dark:text-blue-300">
+            <p className="mb-4">Set up your payment account to:</p>
+            <ul className="list-disc list-inside space-y-1">
+              <li>Receive direct deposits to your bank account</li>
+              <li>Track all your earnings in one place</li>
+              <li>Get paid faster for completed jobs</li>
+            </ul>
+          </CardContent>
+          <CardFooter>
+            <Button 
+              className="bg-blue-600 hover:bg-blue-700"
+              onClick={() => {
+                // Function to switch to the payments tab
+                const paymentsTab = document.querySelector('[title="Payments"]');
+                if (paymentsTab) {
+                  (paymentsTab as HTMLElement).click();
+                  // Then switch to the setup subtab
+                  setTimeout(() => {
+                    const setupTab = document.querySelector('[value="setup"]');
+                    if (setupTab) {
+                      (setupTab as HTMLElement).click();
+                    }
+                  }, 100);
+                }
+              }}
+            >
+              Set Up Payment Account
+            </Button>
+          </CardFooter>
+        </Card>
         
         <div className="flex flex-col items-center justify-center text-center p-8">
           <div className="bg-primary/10 rounded-full p-4 mb-4">
@@ -164,7 +199,37 @@ const EarningsContent: React.FC<EarningsContentProps> = ({ userId }) => {
 
   return (
     <div className="space-y-6">
-      <StripeConnectSetup />
+      <Card className="bg-blue-50 dark:bg-blue-950/50 border-blue-200 dark:border-blue-800">
+        <CardHeader>
+          <CardTitle className="text-blue-800 dark:text-blue-300">Payment Account Status</CardTitle>
+        </CardHeader>
+        <CardContent className="text-blue-800 dark:text-blue-300">
+          <p className="mb-2">
+            Manage your Stripe Connect account settings in the Payments tab for more options.
+          </p>
+        </CardContent>
+        <CardFooter>
+          <Button 
+            variant="outline"
+            onClick={() => {
+              // Function to switch to the payments tab
+              const paymentsTab = document.querySelector('[title="Payments"]');
+              if (paymentsTab) {
+                (paymentsTab as HTMLElement).click();
+                // Then switch to the setup subtab
+                setTimeout(() => {
+                  const setupTab = document.querySelector('[value="setup"]');
+                  if (setupTab) {
+                    (setupTab as HTMLElement).click();
+                  }
+                }, 100);
+              }
+            }}
+          >
+            View Payment Settings
+          </Button>
+        </CardFooter>
+      </Card>
       
       <div className="flex items-center justify-between">
         <h2 className="text-xl font-semibold">Earnings Dashboard</h2>

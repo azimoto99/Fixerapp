@@ -298,8 +298,43 @@ export default function Profile() {
                         </Button>
                       </Link>
                     </CardHeader>
-                    <CardContent>
-                      <StripeConnectSetup compact={true} />
+                    <CardContent className="space-y-4">
+                      <Alert className="bg-blue-50 dark:bg-blue-950 border-blue-200 dark:border-blue-800">
+                        <div className="flex items-center">
+                          <Info className="h-5 w-5 mr-2 text-blue-600 dark:text-blue-400" />
+                          <span className="text-blue-800 dark:text-blue-300 font-medium">
+                            Payment setup is now managed in the Payments drawer
+                          </span>
+                        </div>
+                      </Alert>
+                      
+                      <div className="flex justify-center">
+                        <Button 
+                          className="bg-blue-600 hover:bg-blue-700"
+                          onClick={() => {
+                            // Close this drawer first by clicking outside
+                            document.body.click();
+                            
+                            // Wait a bit then open the Payments drawer
+                            setTimeout(() => {
+                              const paymentsButton = document.querySelector('[title="Payments"]');
+                              if (paymentsButton) {
+                                (paymentsButton as HTMLElement).click();
+                                
+                                // Then switch to the setup subtab
+                                setTimeout(() => {
+                                  const setupTab = document.querySelector('[value="setup"]');
+                                  if (setupTab) {
+                                    (setupTab as HTMLElement).click();
+                                  }
+                                }, 100);
+                              }
+                            }, 300);
+                          }}
+                        >
+                          Manage Payment Settings
+                        </Button>
+                      </div>
                     </CardContent>
                   </Card>
                   

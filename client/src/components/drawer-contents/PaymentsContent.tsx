@@ -40,7 +40,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Drawer, DrawerContent, DrawerDescription, DrawerHeader, DrawerTitle, DrawerTrigger, DrawerFooter } from '@/components/ui/drawer';
 import { Label } from '@/components/ui/label';
-import StripeConnectSetup from '@/components/stripe/StripeConnectSetup';
+import StripeConnectSetupV2 from '@/components/stripe/StripeConnectSetupV2';
 import PaymentDetailsCard from '@/components/payments/PaymentDetailsCard';
 import JobPaymentForm from '@/components/payments/JobPaymentForm';
 import PaymentMethodsManager from '@/components/payments/PaymentMethodsManager';
@@ -423,7 +423,7 @@ const PaymentsContent: React.FC<PaymentsContentProps> = ({ userId }) => {
             </CardHeader>
             <CardContent>
               <div className="space-y-4">
-                <StripeConnectSetup />
+                <StripeConnectSetupV2 />
                 
                 <div className="bg-blue-50 border border-blue-200 p-3 rounded-md text-blue-800 text-sm flex items-start dark:bg-blue-950 dark:border-blue-900 dark:text-blue-300">
                   <Info className="h-5 w-5 mr-2 mt-0.5 text-blue-600 flex-shrink-0 dark:text-blue-400" />
