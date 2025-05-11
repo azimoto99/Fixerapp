@@ -18,15 +18,19 @@ const JobCard: React.FC<JobCardProps> = memo(({ job, isSelected, onSelect }) => 
     category,
     paymentType,
     paymentAmount,
-    serviceFee = 2.50,
-    totalAmount = paymentAmount + serviceFee,
-    latitude,
-    longitude,
-    datePosted
+    location,
+    status,
+    datePosted,
+    dateNeeded
   } = job;
   
-  // Calculate distance (would be provided by the server in a real app)
-  const distance = Math.random() * 2; // Temporary random distance until we calculate it properly
+  // Calculate service fee and total amount based on payment amount
+  const serviceFee = paymentAmount ? Math.max(1.5, paymentAmount * 0.05) : 0;
+  const totalAmount = paymentAmount ? paymentAmount + serviceFee : 0;
+  
+  // Calculate proper distance if we have coordinates, otherwise use 0
+  // In a real app, this would come from the server with the job data
+  const distance = (job as any).distanceMiles || 0;
 
   const handleClick = (e: React.MouseEvent) => {
     e.preventDefault(); // Prevent navigation when clicking to select
@@ -44,14 +48,28 @@ const JobCard: React.FC<JobCardProps> = memo(({ job, isSelected, onSelect }) => 
         onClick={handleClick}
       >
         <div className="px-4 py-4 sm:px-6">
+          {/* Top section with category, title, and payment info */}
           <div className="flex items-center justify-between">
-            <div className="flex items-center">
+            <div className="flex items-center overflow-hidden">
               <div className="flex-shrink-0 bg-primary/10 rounded-md p-2 text-primary">
                 <i className={`ri-${categoryIcon} text-xl`}></i>
               </div>
-              <div className="ml-3">
-                <p className="text-sm font-medium text-primary">{category}</p>
-                <p className="text-sm font-medium text-foreground line-clamp-1">{title}</p>
+              <div className="ml-3 overflow-hidden">
+                <div className="flex items-center space-x-2">
+                  <p className="text-xs font-medium text-primary px-2 py-0.5 bg-primary/5 rounded-full">
+                    {category}
+                  </p>
+                  {status && (
+                    <Badge variant={
+                      status === 'open' ? 'outline' : 
+                      status === 'assigned' ? 'secondary' : 
+                      status === 'completed' ? 'default' : 'outline'
+                    } className="capitalize text-xs">
+                      {status}
+                    </Badge>
+                  )}
+                </div>
+                <p className="text-sm font-medium text-foreground line-clamp-1 mt-0.5">{title}</p>
               </div>
             </div>
             <div className="ml-2 flex-shrink-0 flex flex-col items-end">
@@ -61,23 +79,37 @@ const JobCard: React.FC<JobCardProps> = memo(({ job, isSelected, onSelect }) => 
               <div className="text-xs text-muted-foreground mt-1">
                 {paymentType === 'fixed' 
                   ? `Total: ${formatCurrency(totalAmount)}` 
-                  : `+${formatCurrency(serviceFee)} fee`}
+                  : `Est. fee: ${formatCurrency(serviceFee)}`}
               </div>
             </div>
           </div>
-          <div className="mt-2 sm:flex sm:justify-between">
-            <div className="sm:flex">
-              <p className="flex items-center text-sm text-muted-foreground">
-                <i className="ri-map-pin-line mr-1"></i>
-                {formatDistance(distance)}
-              </p>
+          
+          {/* Bottom section with location, date info */}
+          <div className="mt-2 grid grid-cols-2 gap-2">
+            <div className="flex items-center text-xs text-muted-foreground">
+              <i className="ri-map-pin-line mr-1"></i>
+              {location ? (
+                <span className="truncate">{location}</span>
+              ) : distance > 0 ? (
+                <span>{formatDistance(distance)}</span>
+              ) : (
+                <span>Remote</span>
+              )}
             </div>
-            <div className="mt-2 flex items-center text-sm text-muted-foreground sm:mt-0">
+            
+            <div className="flex items-center text-xs text-muted-foreground justify-end">
               <i className="ri-time-line mr-1"></i>
-              <p>
-                Posted {getTimeAgo(datePosted || new Date())}
-              </p>
+              <span>
+                {datePosted ? getTimeAgo(datePosted) : 'Recently posted'}
+              </span>
             </div>
+            
+            {dateNeeded && (
+              <div className="flex items-center text-xs text-muted-foreground col-span-2 mt-1">
+                <i className="ri-calendar-line mr-1"></i>
+                <span>Needed by {new Date(dateNeeded).toLocaleDateString()}</span>
+              </div>
+            )}
           </div>
         </div>
       </div>
