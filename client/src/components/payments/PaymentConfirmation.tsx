@@ -98,7 +98,7 @@ export default function PaymentConfirmation({
   const processPaymentMutation = useMutation({
     mutationFn: async () => {
       setIsProcessing(true);
-      const response = await apiRequest('POST', '/api/process-payment', {
+      const response = await apiRequest('POST', '/api/payments/process', {
         jobId,
         applicationId,
         workerId,
