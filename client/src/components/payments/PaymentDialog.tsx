@@ -3,15 +3,22 @@ import * as DialogPrimitive from "@radix-ui/react-dialog";
 import { X } from "lucide-react";
 import { cn } from "@/lib/utils";
 
-// Custom dialog with highest z-index priority
+// Root dialog component
 const PaymentDialog = DialogPrimitive.Root;
+
+// Dialog trigger component
 const PaymentDialogTrigger = DialogPrimitive.Trigger;
-const PaymentDialogClose = DialogPrimitive.Close;
 
-// Portal renders the dialog at the root of the document, ensuring it appears above all other elements
-const PaymentDialogPortal = DialogPrimitive.Portal;
+// Dialog portal component (renders content in a portal)
+const PaymentDialogPortal = ({
+  className,
+  ...props
+}: DialogPrimitive.DialogPortalProps) => (
+  <DialogPrimitive.Portal className={cn(className)} {...props} />
+);
+PaymentDialogPortal.displayName = DialogPrimitive.Portal.displayName;
 
-// Custom overlay with higher z-index than standard dialog
+// Dialog overlay component (background overlay)
 const PaymentDialogOverlay = React.forwardRef<
   React.ElementRef<typeof DialogPrimitive.Overlay>,
   React.ComponentPropsWithoutRef<typeof DialogPrimitive.Overlay>
@@ -19,15 +26,15 @@ const PaymentDialogOverlay = React.forwardRef<
   <DialogPrimitive.Overlay
     ref={ref}
     className={cn(
-      "fixed inset-0 z-[9999] bg-black/50 backdrop-blur-[2px] data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0",
+      "fixed inset-0 z-[60] bg-black/80 backdrop-blur-sm data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0",
       className
     )}
     {...props}
   />
 ));
-PaymentDialogOverlay.displayName = "PaymentDialogOverlay";
+PaymentDialogOverlay.displayName = DialogPrimitive.Overlay.displayName;
 
-// Content with higher z-index than standard dialog
+// Dialog content component (the actual modal)
 const PaymentDialogContent = React.forwardRef<
   React.ElementRef<typeof DialogPrimitive.Content>,
   React.ComponentPropsWithoutRef<typeof DialogPrimitive.Content>
@@ -37,7 +44,7 @@ const PaymentDialogContent = React.forwardRef<
     <DialogPrimitive.Content
       ref={ref}
       className={cn(
-        "fixed left-[50%] top-[50%] z-[10000] grid w-full max-w-lg translate-x-[-50%] translate-y-[-50%] gap-4 border bg-background p-6 shadow-lg duration-200 data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 data-[state=closed]:slide-out-to-left-1/2 data-[state=closed]:slide-out-to-top-[48%] data-[state=open]:slide-in-from-left-1/2 data-[state=open]:slide-in-from-top-[48%] sm:rounded-lg",
+        "fixed left-[50%] top-[50%] z-[70] grid w-full max-w-lg translate-x-[-50%] translate-y-[-50%] gap-4 border bg-background p-6 shadow-lg duration-200 data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 data-[state=closed]:slide-out-to-left-1/2 data-[state=closed]:slide-out-to-top-[48%] data-[state=open]:slide-in-from-left-1/2 data-[state=open]:slide-in-from-top-[48%] sm:rounded-lg md:w-full",
         className
       )}
       {...props}
@@ -50,8 +57,9 @@ const PaymentDialogContent = React.forwardRef<
     </DialogPrimitive.Content>
   </PaymentDialogPortal>
 ));
-PaymentDialogContent.displayName = "PaymentDialogContent";
+PaymentDialogContent.displayName = DialogPrimitive.Content.displayName;
 
+// Dialog header component
 const PaymentDialogHeader = ({
   className,
   ...props
@@ -66,6 +74,7 @@ const PaymentDialogHeader = ({
 );
 PaymentDialogHeader.displayName = "PaymentDialogHeader";
 
+// Dialog footer component
 const PaymentDialogFooter = ({
   className,
   ...props
@@ -80,21 +89,20 @@ const PaymentDialogFooter = ({
 );
 PaymentDialogFooter.displayName = "PaymentDialogFooter";
 
+// Dialog title component
 const PaymentDialogTitle = React.forwardRef<
   React.ElementRef<typeof DialogPrimitive.Title>,
   React.ComponentPropsWithoutRef<typeof DialogPrimitive.Title>
 >(({ className, ...props }, ref) => (
   <DialogPrimitive.Title
     ref={ref}
-    className={cn(
-      "text-lg font-semibold leading-none tracking-tight",
-      className
-    )}
+    className={cn("text-lg font-semibold leading-none tracking-tight", className)}
     {...props}
   />
 ));
-PaymentDialogTitle.displayName = "PaymentDialogTitle";
+PaymentDialogTitle.displayName = DialogPrimitive.Title.displayName;
 
+// Dialog description component
 const PaymentDialogDescription = React.forwardRef<
   React.ElementRef<typeof DialogPrimitive.Description>,
   React.ComponentPropsWithoutRef<typeof DialogPrimitive.Description>
@@ -105,13 +113,10 @@ const PaymentDialogDescription = React.forwardRef<
     {...props}
   />
 ));
-PaymentDialogDescription.displayName = "PaymentDialogDescription";
+PaymentDialogDescription.displayName = DialogPrimitive.Description.displayName;
 
 export {
   PaymentDialog,
-  PaymentDialogPortal,
-  PaymentDialogOverlay,
-  PaymentDialogClose,
   PaymentDialogTrigger,
   PaymentDialogContent,
   PaymentDialogHeader,

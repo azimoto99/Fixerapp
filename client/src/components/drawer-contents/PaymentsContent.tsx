@@ -48,7 +48,8 @@ import {
 // Custom Components
 import PaymentDetailsCard from '@/components/payments/PaymentDetailsCard';
 import JobPaymentForm from '@/components/payments/JobPaymentForm';
-import PaymentMethodsManager from '@/components/payments/PaymentMethodsManager';
+import { usePaymentDialog } from '@/components/payments/PaymentDialogManager';
+import PaymentMethodsList from '@/components/payments/PaymentMethodsList';
 
 interface PaymentsContentProps {
   userId: number;
@@ -614,7 +615,7 @@ const PaymentsContent: React.FC<PaymentsContentProps> = ({ userId }) => {
               </div>
             </div>
             <div className="p-3">
-              <PaymentMethodsManager userId={user?.id} />
+              <PaymentMethodsList />
             </div>
           </div>
         </TabsContent>
