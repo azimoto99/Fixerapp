@@ -72,13 +72,8 @@ const WorkerDashboard = () => {
     setShowPostedJobs(!showPostedJobs);
   };
 
-  // Initial data loading
-  useEffect(() => {
-    // If we have jobs and no selected job, select the first one
-    if (jobs && jobs.length > 0 && !selectedJob) {
-      setSelectedJob(jobs[0]);
-    }
-  }, [jobs, selectedJob]);
+  // We no longer auto-select the first job to avoid unwanted drawer opening
+  // This gives users full control over when job details are displayed
 
   if (isLoading) {
     return (

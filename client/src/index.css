@@ -302,34 +302,40 @@
     color: hsl(var(--primary-foreground)) !important;
   }
   
-  /* Custom styles for leaflet map popups against dark background */
+  /* Custom styles for leaflet map popups - adaptive for both light/dark modes */
   .leaflet-popup-content-wrapper {
-    background-color: rgba(255, 255, 255, 0.95);
+    background-color: hsl(var(--card));
+    color: hsl(var(--card-foreground));
     border-radius: 12px;
-    box-shadow: 0 3px 14px rgba(0, 0, 0, 0.5);
+    box-shadow: 0 3px 14px rgba(0, 0, 0, 0.2);
     border: 2px solid hsl(var(--primary) / 0.5);
   }
   
   .leaflet-popup-tip {
-    background-color: white;
-    box-shadow: 0 3px 14px rgba(0, 0, 0, 0.5);
+    background-color: hsl(var(--card));
+    box-shadow: 0 3px 14px rgba(0, 0, 0, 0.2);
     border: 1px solid hsl(var(--primary) / 0.5);
   }
   
   .leaflet-popup-content {
     margin: 10px 12px;
     font-weight: 500;
+    color: hsl(var(--foreground));
   }
   
-  /* Make map labels more vibrant */
-  .map-labels-layer {
+  /* Make map labels adaptive */
+  .dark .map-labels-layer {
     filter: brightness(1.4) saturate(1.5);
     mix-blend-mode: screen;
   }
   
-  /* Enhanced markers and UI elements for dark maps */
-  .leaflet-marker-icon {
+  /* Enhanced markers and UI elements - adaptive for both modes */
+  .dark .leaflet-marker-icon {
     filter: drop-shadow(0 0 3px rgba(255, 255, 255, 0.3));
+  }
+  
+  .light .leaflet-marker-icon {
+    filter: drop-shadow(0 0 3px rgba(0, 0, 0, 0.2));
   }
   
   /* Add a glow effect to job markers */
