@@ -1335,6 +1335,45 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
       }
       
+      // After job is created and payment is processed (if applicable),
+      // automatically notify nearby workers about this new opportunity
+      try {
+        // Default radius is 5 miles, but can be specified in the request
+        const radiusMiles = req.body.radiusMiles || 5;
+        
+        // Send notifications to nearby workers
+        const notificationCount = await storage.notifyNearbyWorkers(newJob.id, radiusMiles);
+        
+        // If notifications were sent, add this info to the response
+        if (notificationCount > 0) {
+          console.log(`Automatically notified ${notificationCount} workers about new job #${newJob.id}`);
+          
+          // Create a notification for the job poster confirming worker notifications
+          await storage.createNotification({
+            userId: req.user.id,
+            title: 'Workers Notified',
+            message: `${notificationCount} nearby workers have been notified about your job "${newJob.title}".`,
+            type: 'workers_notified',
+            sourceId: newJob.id,
+            sourceType: 'job',
+            metadata: {
+              count: notificationCount
+            }
+          });
+          
+          // Return the job with notification info
+          return res.status(201).json({
+            ...newJob,
+            workersNotified: notificationCount,
+            message: `Job created successfully. ${notificationCount} nearby workers have been notified.`
+          });
+        }
+      } catch (notifyError) {
+        console.error('Error notifying nearby workers:', notifyError);
+        // If notification fails, we still want to return the created job
+      }
+      
+      // If we reach here, either notifications weren't sent or there was an error
       res.status(201).json(newJob);
     } catch (error) {
       res.status(400).json({ message: (error as Error).message });
@@ -1478,6 +1517,24 @@ export async function registerRoutes(app: Express): Promise<Server> {
         completedAt: new Date()
       });
       
+      // Notify job poster that job has been completed
+      try {
+        await storage.createNotification({
+          userId: job.posterId,
+          title: 'Job Completed',
+          message: `Worker has marked job "${job.title}" as complete. All tasks have been finished.`,
+          type: 'job_completed',
+          sourceId: job.id,
+          sourceType: 'job',
+          metadata: {
+            jobId: job.id,
+            workerId: job.workerId
+          }
+        });
+      } catch (notifyError) {
+        console.error(`Error notifying job poster about completion:`, notifyError);
+      }
+      
       // Check if payment has already been processed for this job
       const existingEarnings = await storage.getEarningsForJob(id);
       
@@ -1524,12 +1581,65 @@ export async function registerRoutes(app: Express): Promise<Server> {
               
               // Update the earning record to mark it as paid
               await storage.updateEarningStatus(earning.id, 'paid', new Date());
+              
+              // Create notification for the worker about payment
+              await storage.createNotification({
+                userId: job.workerId,
+                title: 'Payment Received',
+                message: `You've received $${netAmount.toFixed(2)} for completing job "${job.title}"!`,
+                type: 'payment_received',
+                sourceId: job.id,
+                sourceType: 'job',
+                metadata: {
+                  amount: netAmount,
+                  jobId: job.id,
+                  earningId: earning.id,
+                  transferId: transfer.id
+                }
+              });
+              
+              // Create notification for the job poster about payment
+              await storage.createNotification({
+                userId: job.posterId,
+                title: 'Payment Sent to Worker',
+                message: `Payment of $${netAmount.toFixed(2)} has been automatically sent to the worker for job "${job.title}".`,
+                type: 'payment_sent',
+                sourceId: job.id,
+                sourceType: 'job',
+                metadata: {
+                  amount: netAmount,
+                  workerId: job.workerId,
+                  transferId: transfer.id
+                }
+              });
             }
           } catch (transferError) {
             console.error(`Error transferring to Connect account: ${(transferError as Error).message}`);
             // We don't want to fail the job completion if payment transfer fails
-            // The admin can manually transfer later
+            // Notify the worker about the payment issue
+            await storage.createNotification({
+              userId: job.workerId,
+              title: 'Payment Processing Issue',
+              message: `There was an issue processing your payment for job "${job.title}". Our team will resolve this shortly.`,
+              type: 'payment_issue',
+              sourceId: job.id,
+              sourceType: 'job'
+            });
           }
+        } else {
+          // Notify worker to set up Stripe Connect account if they don't have one
+          await storage.createNotification({
+            userId: job.workerId,
+            title: 'Setup Payment Account to Receive Funds',
+            message: `You've completed job "${job.title}" but need to set up a payment account to receive your earnings of $${netAmount.toFixed(2)}.`,
+            type: 'setup_payment_account',
+            sourceId: job.id,
+            sourceType: 'job',
+            metadata: {
+              earningId: earning.id,
+              amount: netAmount
+            }
+          });
         }
       }
       
@@ -1634,7 +1744,57 @@ export async function registerRoutes(app: Express): Promise<Server> {
         });
       }
       
+      // Update application status
       const updatedApplication = await storage.updateApplication(id, applicationData);
+      
+      // If application is being accepted, handle job assignment and payment setup
+      if (applicationData.status === 'accepted' && isJobPoster) {
+        try {
+          // Update the job to mark it as assigned to this worker
+          await storage.updateJob(job.id, {
+            status: 'assigned',
+            workerId: application.workerId
+          });
+          
+          // Create notification for the worker
+          await storage.createNotification({
+            userId: application.workerId,
+            title: 'Application Accepted',
+            message: `Your application for job "${job.title}" has been accepted!`,
+            type: 'application_accepted',
+            sourceId: job.id,
+            sourceType: 'job',
+            metadata: {
+              jobId: job.id,
+              applicationId: application.id
+            }
+          });
+          
+          // Get worker details
+          const worker = await storage.getUser(application.workerId);
+          
+          // Check if worker has Stripe Connect account for future payment
+          if (worker && worker.stripeConnectAccountId) {
+            console.log(`Worker ${worker.id} has Stripe Connect account ${worker.stripeConnectAccountId}, payment can be processed automatically when job completes`);
+          } else {
+            console.log(`Worker ${application.workerId} does not have a Stripe Connect account yet. They'll need to set one up to receive payments.`);
+            
+            // Notify worker to set up Stripe Connect if they don't have one
+            await storage.createNotification({
+              userId: application.workerId,
+              title: 'Payment Account Setup Required',
+              message: `To receive payment for your accepted job "${job.title}", please set up your payment account.`,
+              type: 'setup_payment_account',
+              sourceId: job.id,
+              sourceType: 'job'
+            });
+          }
+        } catch (error) {
+          console.error('Error handling application acceptance:', error);
+          // We still return success even if notifications fail
+        }
+      }
+      
       res.json(updatedApplication);
     } catch (error) {
       res.status(400).json({ message: (error as Error).message });
