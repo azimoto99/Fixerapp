@@ -116,6 +116,8 @@ export default function TaskManager({ jobId, editable = false, onComplete }: Tas
     position: 0,
     isOptional: false,
     bonusAmount: 0,
+    estimatedDuration: 30, // Default to 30 minutes
+    notes: '',
   };
   
   // Form setup
@@ -141,10 +143,12 @@ export default function TaskManager({ jobId, editable = false, onComplete }: Tas
         position: editingTask.position,
         isOptional: editingTask.isOptional,
         dueTime: editingTask.dueTime,
+        estimatedDuration: editingTask.estimatedDuration || 30,
         location: editingTask.location || '',
         latitude: editingTask.latitude,
         longitude: editingTask.longitude,
         bonusAmount: editingTask.bonusAmount || 0,
+        notes: editingTask.notes || '',
       });
       setOpenTaskForm(true);
     }
