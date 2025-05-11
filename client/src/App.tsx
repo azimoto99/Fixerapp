@@ -17,6 +17,7 @@ import PaymentConfirmation from "@/pages/PaymentConfirmation";
 import PaymentSettings from "@/pages/PaymentSettings";
 import StripeTester from "@/pages/StripeTester";
 import PaymentSuccess from "@/pages/payment-success";
+import PaymentsPage from "@/pages/payments-page";
 import NotificationsPage from "@/pages/notifications-page";
 import { AuthProvider } from "@/hooks/use-auth";
 import { NotificationProvider } from "@/hooks/use-notifications";
@@ -76,6 +77,8 @@ function RouterWithAuth() {
       <ProtectedRoute path="/payment-success" component={PaymentSuccess} />
       <ProtectedRoute path="/payment-confirmation" component={PaymentConfirmation} />
       <ProtectedRoute path="/payment-settings" component={PaymentSettings} />
+      {/* Consolidated payment management */}
+      <ProtectedRoute path="/payments" component={PaymentsPage} />
       {/* Removed redundant StripeTest route */}
       <ProtectedRoute path="/stripe-tester" component={StripeTester} />
       <ProtectedRoute path="/notifications" component={NotificationsPage} />

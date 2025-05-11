@@ -1,14 +1,15 @@
 /**
  * Stripe Transfers API
  * 
- * This file handles the creation and management of transfers between the platform
- * and connected accounts (workers) using Stripe Connect.
+ * This file handles transfers to worker Connect accounts,
+ * allowing job posters to pay workers for completed jobs.
  */
 
 import { Router, Request, Response } from 'express';
 import Stripe from 'stripe';
 import { storage } from '../storage';
 import { z } from 'zod';
+import { getOrCreateStripeCustomer } from './stripe-api';
 
 // Initialize Stripe with the secret key
 if (!process.env.STRIPE_SECRET_KEY) {
@@ -20,325 +21,413 @@ const stripe = new Stripe(process.env.STRIPE_SECRET_KEY, {
 });
 
 // Authentication middleware
-function isStripeAuthenticated(req: Request, res: Response, next: Function) {
+function isAuthenticated(req: Request, res: Response, next: Function) {
   if (!req.isAuthenticated()) {
-    return res.status(401).json({ message: "Not authenticated for Stripe operations" });
+    return res.status(401).json({ message: "Not authenticated" });
   }
-  
-  // Only allow admin operations for job posters (for now)
-  if (req.user.accountType !== 'poster' && !req.user.isAdmin) {
-    return res.status(403).json({ message: "Not authorized for transfer operations" });
-  }
-  
   next();
 }
 
-// Create a router for transfers
+// Authorization middleware for transfers
+// Only the job poster, worker, or admins can access transfer endpoints
+function isAuthorizedForTransfer(req: Request, res: Response, next: Function) {
+  if (!req.isAuthenticated()) {
+    return res.status(401).json({ message: "Not authenticated" });
+  }
+  
+  // Allow admins to access all transfers
+  if (req.user?.isAdmin) {
+    return next();
+  }
+  
+  // For routes with jobId parameter
+  const jobId = req.params.jobId 
+    ? parseInt(req.params.jobId) 
+    : req.body.jobId 
+      ? parseInt(req.body.jobId) 
+      : null;
+      
+  // For routes with workerId parameter
+  const workerId = req.params.workerId 
+    ? parseInt(req.params.workerId) 
+    : req.body.workerId 
+      ? parseInt(req.body.workerId) 
+      : null;
+  
+  // If this is the worker whose account is being transferred to
+  if (workerId && req.user?.id === workerId) {
+    return next();
+  }
+  
+  // If jobId is provided, check if this user is the job poster
+  if (jobId) {
+    storage.getJob(jobId)
+      .then(job => {
+        if (!job) {
+          return res.status(404).json({ message: "Job not found" });
+        }
+        
+        if (job.userId === req.user?.id) {
+          // This is the job poster
+          return next();
+        }
+        
+        // If this request is also specifying a worker, make sure it's the worker on the job
+        if (workerId && job.workerId === workerId) {
+          return next();
+        }
+        
+        return res.status(403).json({ message: "Not authorized to access this transfer" });
+      })
+      .catch(error => {
+        console.error("Error checking job ownership:", error);
+        return res.status(500).json({ message: "Error checking authorization" });
+      });
+  } else {
+    // If no jobId, only allow if this is the worker or an admin
+    if (workerId && req.user?.id === workerId) {
+      return next();
+    }
+    
+    return res.status(403).json({ message: "Not authorized to access this transfer" });
+  }
+}
+
 const transfersRouter = Router();
 
+// Transfer schema for input validation
+const transferSchema = z.object({
+  workerId: z.number().int().positive("Worker ID is required"),
+  jobId: z.number().int().positive("Job ID is required").optional(),
+  amount: z.number().min(1, "Amount must be at least $1"),
+  description: z.string().min(3, "Description is required").max(255),
+});
+
 /**
- * Create a transfer from the platform to a connected account
- * This is used to pay workers for completed jobs
+ * Create a transfer to a worker's Connect account
  */
-transfersRouter.post("/create", isStripeAuthenticated, async (req: Request, res: Response) => {
+transfersRouter.post('/create', isAuthenticated, async (req: Request, res: Response) => {
   try {
-    // Validate request
-    const schema = z.object({
-      workerId: z.number(),
-      jobId: z.number().optional(),
-      amount: z.number().min(1, "Minimum transfer amount is $1"),
-      description: z.string().optional(),
-    });
+    // Validate input
+    const validationResult = transferSchema.safeParse(req.body);
     
-    const validation = schema.safeParse(req.body);
-    if (!validation.success) {
+    if (!validationResult.success) {
       return res.status(400).json({ 
-        message: "Invalid request data", 
-        errors: validation.error.errors 
+        message: "Invalid input",
+        errors: validationResult.error.errors 
       });
     }
     
-    const { workerId, jobId, amount, description } = validation.data;
+    const { workerId, jobId, amount, description } = validationResult.data;
     
-    // Get the worker to check if they have a Connect account
+    // Get the worker
     const worker = await storage.getUser(workerId);
     if (!worker) {
       return res.status(404).json({ message: "Worker not found" });
     }
     
-    // Check if the worker has a Connect account
+    // Check if the worker has a connected account
     if (!worker.stripeConnectAccountId) {
       return res.status(400).json({ 
-        message: "Worker does not have a Stripe Connect account",
-        requiresConnect: true
+        message: "Worker does not have a Stripe Connect account set up" 
       });
     }
     
-    // Check if the Connect account is active
-    if (worker.stripeConnectAccountStatus !== 'active') {
-      return res.status(400).json({ 
-        message: "Worker's Stripe Connect account is not active",
-        accountStatus: worker.stripeConnectAccountStatus
-      });
-    }
-    
-    // If a job ID is provided, get the job to verify it exists
-    let job;
+    // If jobId is provided, verify job exists and worker is assigned
+    let job = null;
     if (jobId) {
       job = await storage.getJob(jobId);
       if (!job) {
         return res.status(404).json({ message: "Job not found" });
       }
       
-      // Check if the job is assigned to this worker
-      if (job.workerId !== workerId) {
-        return res.status(403).json({ 
-          message: "This job is not assigned to the specified worker" 
-        });
-      }
-      
-      // Check if the job is in a status that allows payment
-      if (job.status !== 'completed' && job.status !== 'in_progress') {
+      // If job has a workerId, make sure it matches the requested worker
+      if (job.workerId && job.workerId !== workerId) {
         return res.status(400).json({ 
-          message: `Cannot transfer payment for a job with status: ${job.status}` 
+          message: "Worker is not assigned to this job" 
         });
       }
     }
     
-    // Convert amount to cents for Stripe
-    const amountInCents = Math.round(amount * 100);
+    // Create or get a payment method for the job poster
+    const customerId = await getOrCreateStripeCustomer(req.user!.id);
     
-    // Create application fee amount (platform fee)
-    // Default to 5% fee for the platform
-    const feePercent = 0.05; // 5%
-    const applicationFeeAmount = Math.round(amountInCents * feePercent);
+    // Prepare metadata for the transfer
+    const metadata: Record<string, string> = {
+      userId: req.user!.id.toString(),
+      workerId: workerId.toString(),
+    };
     
-    // Create a transfer to the connected account
-    const transfer = await stripe.transfers.create({
-      amount: amountInCents - applicationFeeAmount, // Transfer amount after fee
-      currency: 'usd',
-      destination: worker.stripeConnectAccountId,
-      description: description || `Payment for ${jobId ? `job #${jobId}` : 'services'}`,
-      metadata: {
-        jobId: jobId ? jobId.toString() : '',
-        workerId: workerId.toString(),
-        platformFee: applicationFeeAmount.toString(),
-        totalAmount: amountInCents.toString(),
-      },
-    });
-    
-    // Create a payment record in our database
-    const payment = await storage.createPayment({
-      userId: req.user.id, // The user making the transfer (job poster)
-      workerId: workerId,
-      jobId: jobId,
-      amount: amount,
-      serviceFee: (amountInCents * feePercent) / 100, // Convert back to dollars
-      type: 'transfer',
-      status: 'completed',
-      paymentMethod: 'stripe',
-      transactionId: transfer.id,
-      description: description || `Payment for ${jobId ? `job #${jobId}` : 'services'}`,
-      metadata: {
-        transferId: transfer.id,
-        platformFee: applicationFeeAmount / 100, // Convert back to dollars
-      },
-    });
-    
-    // Create an earning record for the worker
-    const earning = await storage.createEarning({
-      workerId: workerId,
-      jobId: jobId,
-      amount: amount,
-      serviceFee: (amountInCents * feePercent) / 100, // Convert back to dollars
-      netAmount: (amountInCents - applicationFeeAmount) / 100, // Convert back to dollars
-      status: 'paid',
-      transactionId: transfer.id,
-    });
-    
-    // If this is for a job, update the job status to 'paid'
-    if (jobId && job) {
-      await storage.updateJob(jobId, { status: 'paid' });
+    if (jobId) {
+      metadata.jobId = jobId.toString();
     }
     
-    // Create a notification for the worker
-    await storage.createNotification({
-      userId: workerId,
-      title: 'Payment Received',
-      message: `You have received a payment of ${formatCurrency(amount)}`,
-      type: 'payment_received',
-      sourceId: payment.id,
-      sourceType: 'payment',
-      metadata: {
-        paymentId: payment.id,
-        amount: amount,
-        jobId: jobId,
-      },
+    // Create a payment intent for the charge
+    const paymentIntent = await stripe.paymentIntents.create({
+      amount: Math.round(amount * 100), // Convert to cents
+      currency: 'usd',
+      customer: customerId,
+      payment_method_types: ['card'],
+      confirm: false, // Don't confirm yet, just create the intent
+      description: description,
+      metadata: metadata,
     });
     
-    // Create a notification for the job poster
-    await storage.createNotification({
-      userId: req.user.id,
-      title: 'Payment Sent',
-      message: `Your payment of ${formatCurrency(amount)} has been sent to ${worker.fullName || worker.username}`,
-      type: 'payment_sent',
-      sourceId: payment.id,
-      sourceType: 'payment',
-      metadata: {
-        paymentId: payment.id,
-        amount: amount,
-        jobId: jobId,
-        workerId: workerId,
-      },
-    });
-    
-    // Return the transfer details
-    return res.json({
-      transferId: transfer.id,
-      paymentId: payment.id,
-      earningId: earning.id,
+    // Create a payment record for tracking
+    const payment = await storage.createPayment({
+      userId: req.user!.id,
+      workerId: workerId,
+      jobId: jobId || null,
       amount: amount,
-      fee: (amountInCents * feePercent) / 100,
-      netAmount: (amountInCents - applicationFeeAmount) / 100,
-      status: 'completed',
+      serviceFee: null, // We'll calculate this after payment is confirmed
+      type: 'payment',
+      status: 'pending',
+      paymentMethod: null, // Will be filled in after payment is confirmed
+      transactionId: paymentIntent.id,
+      description: description,
+      metadata: metadata,
+      stripeCustomerId: customerId,
+      stripeConnectAccountId: worker.stripeConnectAccountId,
+    });
+    
+    // Return the client secret for confirming the payment
+    res.json({
+      clientSecret: paymentIntent.client_secret,
+      paymentId: payment.id,
     });
   } catch (error) {
     console.error('Error creating transfer:', error);
-    return res.status(500).json({ 
-      message: 'Failed to create transfer', 
-      error: error instanceof Error ? error.message : String(error)
+    res.status(500).json({ 
+      message: 'Failed to create transfer',
+      error: error instanceof Error ? error.message : 'Unknown error',
     });
   }
 });
 
 /**
- * Get transfer details
+ * Transfer funds directly to a worker's Connect account
+ * This is an admin function or for job posters with a funded account balance
  */
-transfersRouter.get("/:id", isStripeAuthenticated, async (req: Request, res: Response) => {
+transfersRouter.post('/direct', isAuthenticated, async (req: Request, res: Response) => {
   try {
-    const transferId = req.params.id;
+    // Validate input
+    const validationResult = transferSchema.safeParse(req.body);
     
-    if (!transferId) {
-      return res.status(400).json({ message: "Transfer ID is required" });
+    if (!validationResult.success) {
+      return res.status(400).json({ 
+        message: "Invalid input",
+        errors: validationResult.error.errors 
+      });
     }
     
-    // Get the transfer from Stripe
-    const transfer = await stripe.transfers.retrieve(transferId);
+    const { workerId, jobId, amount, description } = validationResult.data;
     
-    // Find the payment in our database
-    const payment = await storage.getPaymentByTransactionId(transferId);
-    
-    // Return the combined data
-    return res.json({
-      transfer,
-      payment,
-    });
-  } catch (error) {
-    console.error('Error getting transfer details:', error);
-    return res.status(500).json({ 
-      message: 'Failed to get transfer details', 
-      error: error instanceof Error ? error.message : String(error)
-    });
-  }
-});
-
-/**
- * Get all transfers for a connected account (worker)
- */
-transfersRouter.get("/worker/:workerId", isStripeAuthenticated, async (req: Request, res: Response) => {
-  try {
-    const workerId = parseInt(req.params.workerId);
-    
-    if (isNaN(workerId)) {
-      return res.status(400).json({ message: "Invalid worker ID" });
-    }
-    
-    // Get the worker to check if they have a Connect account
+    // Get the worker
     const worker = await storage.getUser(workerId);
     if (!worker) {
       return res.status(404).json({ message: "Worker not found" });
     }
     
-    // Check if the worker has a Connect account
+    // Check if the worker has a connected account
     if (!worker.stripeConnectAccountId) {
       return res.status(400).json({ 
-        message: "Worker does not have a Stripe Connect account" 
+        message: "Worker does not have a Stripe Connect account set up" 
       });
     }
     
-    // Get all transfers for this connected account from Stripe
-    const transfers = await stripe.transfers.list({
+    // Authorization check: only admins or the job poster can do direct transfers
+    const isAdmin = req.user!.role === 'admin';
+    let isJobPoster = false;
+    
+    if (jobId) {
+      const job = await storage.getJob(jobId);
+      if (job && job.userId === req.user!.id) {
+        isJobPoster = true;
+      }
+    }
+    
+    if (!isAdmin && !isJobPoster) {
+      return res.status(403).json({ message: "Not authorized to perform direct transfers" });
+    }
+    
+    // Create metadata for the transfer
+    const metadata: Record<string, string> = {
+      userId: req.user!.id.toString(),
+      workerId: workerId.toString(),
+    };
+    
+    if (jobId) {
+      metadata.jobId = jobId.toString();
+    }
+    
+    // Perform the transfer
+    const transfer = await stripe.transfers.create({
+      amount: Math.round(amount * 100), // Convert to cents
+      currency: 'usd',
       destination: worker.stripeConnectAccountId,
-      limit: 100,
+      description: description,
+      metadata: metadata,
     });
     
-    // Get all earnings for this worker from our database
-    const earnings = await storage.getEarningsForWorker(workerId);
+    // Create a payment record for tracking
+    const payment = await storage.createPayment({
+      userId: req.user!.id,
+      workerId: workerId,
+      jobId: jobId || null,
+      amount: amount,
+      serviceFee: null,
+      type: 'transfer',
+      status: 'pending',
+      paymentMethod: null,
+      transactionId: transfer.id,
+      description: description,
+      metadata: metadata,
+      stripeCustomerId: null,
+      stripeConnectAccountId: worker.stripeConnectAccountId,
+    });
     
-    // Return the combined data
-    return res.json({
-      transfers: transfers.data,
-      earnings,
+    // If this is for a job, also create an earning record
+    if (jobId) {
+      try {
+        await storage.createEarning({
+          workerId: workerId,
+          jobId: jobId,
+          amount: amount,
+          netAmount: amount, // Direct transfers don't have fees
+          serviceFee: 0,
+          status: 'transferred',
+          dateEarned: new Date(),
+          transferId: transfer.id,
+          description: description,
+        });
+      } catch (err) {
+        console.error('Error creating earning record:', err);
+        // Don't fail the whole request if creating earning fails
+      }
+    }
+    
+    res.json({
+      success: true,
+      transfer: transfer,
+      paymentId: payment.id,
     });
   } catch (error) {
-    console.error('Error getting worker transfers:', error);
-    return res.status(500).json({ 
-      message: 'Failed to get worker transfers', 
-      error: error instanceof Error ? error.message : String(error)
+    console.error('Error performing direct transfer:', error);
+    res.status(500).json({ 
+      message: 'Failed to perform transfer',
+      error: error instanceof Error ? error.message : 'Unknown error',
     });
   }
 });
 
 /**
- * Get all transfers for a job
+ * Get transfers for a worker
  */
-transfersRouter.get("/job/:jobId", isStripeAuthenticated, async (req: Request, res: Response) => {
+transfersRouter.get('/worker/:workerId', isAuthorizedForTransfer, async (req: Request, res: Response) => {
+  try {
+    const workerId = parseInt(req.params.workerId);
+    
+    // Get the worker
+    const worker = await storage.getUser(workerId);
+    if (!worker) {
+      return res.status(404).json({ message: "Worker not found" });
+    }
+    
+    // Check if the worker has a connected account
+    if (!worker.stripeConnectAccountId) {
+      return res.json({ transfers: [], payments: [], earnings: [] });
+    }
+    
+    // Get transfers from Stripe
+    const transfers = await stripe.transfers.list({
+      destination: worker.stripeConnectAccountId,
+      limit: 100,
+    });
+    
+    // Get payment records from our database
+    const payments = await storage.getPaymentsForUser(workerId);
+    
+    // Get earnings records from our database
+    const earnings = await storage.getEarningsForWorker(workerId);
+    
+    res.json({
+      transfers: transfers.data,
+      payments: payments,
+      earnings: earnings,
+    });
+  } catch (error) {
+    console.error('Error getting worker transfers:', error);
+    res.status(500).json({ 
+      message: 'Failed to get transfers',
+      error: error instanceof Error ? error.message : 'Unknown error',
+    });
+  }
+});
+
+/**
+ * Get transfers for a job
+ */
+transfersRouter.get('/job/:jobId', isAuthorizedForTransfer, async (req: Request, res: Response) => {
   try {
     const jobId = parseInt(req.params.jobId);
     
-    if (isNaN(jobId)) {
-      return res.status(400).json({ message: "Invalid job ID" });
-    }
-    
-    // Get the job to verify it exists and check permissions
+    // Get the job
     const job = await storage.getJob(jobId);
     if (!job) {
       return res.status(404).json({ message: "Job not found" });
     }
     
-    // Only allow the job poster or the assigned worker to see payments
-    if (job.posterId !== req.user.id && job.workerId !== req.user.id) {
-      return res.status(403).json({ 
-        message: "You are not authorized to view payments for this job" 
-      });
+    // Check if the job has a worker assigned
+    if (!job.workerId) {
+      return res.json({ transfers: [], payments: [], earnings: [] });
     }
     
-    // Get all payments for this job from our database
+    // Get the worker
+    const worker = await storage.getUser(job.workerId);
+    if (!worker || !worker.stripeConnectAccountId) {
+      return res.json({ transfers: [], payments: [], earnings: [] });
+    }
+    
+    // Get payments for this job
     const payments = await storage.getPaymentsForJob(jobId);
     
-    // Get all earnings for this job from our database
+    // Get earnings for this job
     const earnings = await storage.getEarningsForJob(jobId);
     
-    // Return the combined data
-    return res.json({
-      payments,
-      earnings,
+    // Get transfer IDs from the payment records
+    const transferIds = payments
+      .filter(p => p.type === 'transfer' && p.transactionId)
+      .map(p => p.transactionId as string);
+    
+    // Get transfers from Stripe
+    let transfers: Stripe.Transfer[] = [];
+    
+    if (transferIds.length > 0) {
+      // Unfortunately Stripe doesn't support querying by multiple IDs,
+      // so we need to get them one by one
+      const transferPromises = transferIds.map(id => 
+        stripe.transfers.retrieve(id)
+          .catch(err => {
+            console.error(`Error retrieving transfer ${id}:`, err);
+            return null;
+          })
+      );
+      
+      transfers = (await Promise.all(transferPromises)).filter(t => t !== null) as Stripe.Transfer[];
+    }
+    
+    res.json({
+      transfers: transfers,
+      payments: payments,
+      earnings: earnings,
     });
   } catch (error) {
     console.error('Error getting job transfers:', error);
-    return res.status(500).json({ 
-      message: 'Failed to get job transfers', 
-      error: error instanceof Error ? error.message : String(error)
+    res.status(500).json({ 
+      message: 'Failed to get transfers',
+      error: error instanceof Error ? error.message : 'Unknown error',
     });
   }
 });
-
-// Helper function to format currency
-function formatCurrency(amount: number): string {
-  return new Intl.NumberFormat('en-US', {
-    style: 'currency',
-    currency: 'USD',
-  }).format(amount);
-}
 
 export default transfersRouter;
