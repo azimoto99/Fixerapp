@@ -566,4 +566,48 @@ stripeRouter.post("/confirm-payment", isStripeAuthenticated, async (req: Request
 });
 
 // Export the router
+// Helper functions to centralize Stripe customer creation and updates
+export async function getOrCreateStripeCustomer(userId: number): Promise<string> {
+  try {
+    // Get user from database
+    const user = await storage.getUser(userId);
+    if (!user) {
+      throw new Error(`User ${userId} not found`);
+    }
+    
+    // If user already has a Stripe customer ID, return it
+    if (user.stripeCustomerId) {
+      return user.stripeCustomerId;
+    }
+    
+    // Create a new Stripe customer
+    const customer = await stripe.customers.create({
+      email: user.email,
+      name: user.fullName || user.username,
+      metadata: {
+        userId: userId.toString(),
+        platform: "Fixer"
+      }
+    });
+    
+    // Save customer ID to user record
+    await storage.updateUser(userId, {
+      stripeCustomerId: customer.id
+    });
+    
+    return customer.id;
+  } catch (error) {
+    console.error("Error creating Stripe customer:", error);
+    throw error;
+  }
+}
+
+export async function updateUserStripeInfo(userId: number, data: {
+  stripeCustomerId?: string;
+  stripeConnectAccountId?: string;
+  stripeConnectAccountStatus?: string;
+}): Promise<User | undefined> {
+  return storage.updateUser(userId, data);
+}
+
 export default stripeRouter;
