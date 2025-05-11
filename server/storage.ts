@@ -115,6 +115,7 @@ export interface IStorage {
   // Payment operations
   getPayment(id: number): Promise<Payment | undefined>;
   getPaymentByTransactionId(transactionId: string): Promise<Payment | undefined>;
+  getPaymentByJobId(jobId: number): Promise<Payment | undefined>;
   getPaymentsForUser(userId: number): Promise<Payment[]>;
   createPayment(payment: InsertPayment): Promise<Payment>;
   updatePaymentStatus(id: number, status: string, transactionId?: string): Promise<Payment | undefined>;
@@ -708,6 +709,18 @@ export class MemStorage implements IStorage {
   async getPaymentByTransactionId(transactionId: string): Promise<Payment | undefined> {
     return Array.from(this.payments.values())
       .find(payment => payment.transactionId === transactionId);
+  }
+  
+  async getPaymentByJobId(jobId: number): Promise<Payment | undefined> {
+    // Find the most recent payment for this job (not a refund)
+    return Array.from(this.payments.values())
+      .filter(payment => payment.jobId === jobId && payment.type !== 'refund')
+      .sort((a, b) => {
+        // Sort by creation date, newest first
+        const dateA = b.createdAt ? new Date(b.createdAt).getTime() : 0;
+        const dateB = a.createdAt ? new Date(a.createdAt).getTime() : 0;
+        return dateA - dateB;
+      })[0]; // Get the first (most recent) payment
   }
 
   async getPaymentsForUser(userId: number): Promise<Payment[]> {

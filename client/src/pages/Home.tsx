@@ -35,6 +35,8 @@ const WorkerDashboard = () => {
   // Keep all useState calls together and in the same order every render
   const [view, setView] = useState<'list' | 'map'>('map');
   const [selectedJob, setSelectedJob] = useState<Job | undefined>(undefined);
+  const [cancelJobId, setCancelJobId] = useState<number | null>(null);
+  const [showCancelDialog, setShowCancelDialog] = useState(false);
   const [searchParams, setSearchParams] = useState({ 
     query: '', 
     category: '', 

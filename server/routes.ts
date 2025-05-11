@@ -1452,6 +1452,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   apiRouter.delete("/jobs/:id", isAuthenticated, async (req: Request, res: Response) => {
     try {
       const id = parseInt(req.params.id);
+      const withRefund = req.body.withRefund === true;
       
       // Get the job first to check ownership
       const job = await storage.getJob(id);
@@ -1466,8 +1467,60 @@ export async function registerRoutes(app: Express): Promise<Server> {
         });
       }
       
+      // If refund was requested and job has payment, process refund
+      if (withRefund && job.paymentType === 'fixed') {
+        try {
+          // Find associated payment for this job
+          const payment = await storage.getPaymentByJobId(id);
+          
+          if (payment && payment.stripePaymentIntentId) {
+            console.log(`Processing refund for job ${id} with payment ${payment.stripePaymentIntentId}`);
+            
+            // Initialize Stripe
+            const stripe = new Stripe(process.env.STRIPE_SECRET_KEY, {
+              apiVersion: '2025-04-30.basil' as any
+            });
+            
+            // Process refund through Stripe
+            const refund = await stripe.refunds.create({
+              payment_intent: payment.stripePaymentIntentId,
+              reason: 'requested_by_customer'
+            });
+            
+            // Record the refund in our database
+            await storage.createPayment({
+              userId: req.user.id,
+              amount: payment.amount,
+              serviceFee: payment.serviceFee,
+              type: 'refund',
+              status: 'succeeded',
+              paymentMethod: 'card',
+              transactionId: refund.id,
+              stripeRefundId: refund.id,
+              stripePaymentIntentId: payment.stripePaymentIntentId,
+              stripeCustomerId: payment.stripeCustomerId,
+              jobId: id,
+              description: `Refund for canceled job "${job.title}"`,
+            });
+            
+            console.log(`Refund processed successfully: ${refund.id}`);
+          }
+        } catch (refundError) {
+          console.error('Error processing refund:', refundError);
+          // Continue with job deletion even if refund fails
+          // This ensures jobs can still be canceled even if refund fails
+        }
+      }
+      
+      // Delete the job
       const success = await storage.deleteJob(id);
-      res.status(204).send();
+      
+      // Return a more informative response
+      return res.status(200).json({
+        success: true,
+        message: "Job successfully canceled",
+        refundProcessed: withRefund
+      });
     } catch (error) {
       res.status(400).json({ message: (error as Error).message });
     }
