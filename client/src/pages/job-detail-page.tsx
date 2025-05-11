@@ -463,9 +463,7 @@ const JobDetailPage: React.FC = () => {
               </CardHeader>
               <CardContent className="pt-0">
                 <ApplicationsManager 
-                  userId={user?.id || 0} 
-                  mode="poster"
-                  initialJobId={jobId}
+                  jobId={jobId}
                 />
               </CardContent>
             </Card>

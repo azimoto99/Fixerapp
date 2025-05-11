@@ -254,10 +254,20 @@ const ApplicationDetail = ({
 };
 
 interface ApplicationsManagerProps {
-  jobId: number;
+  jobId?: number;
+  userId?: number;
+  mode?: 'worker' | 'poster';
+  initialJobId?: number;
 }
 
-export default function ApplicationsManager({ jobId }: ApplicationsManagerProps) {
+export default function ApplicationsManager({ 
+  jobId, 
+  userId, 
+  mode = 'poster',
+  initialJobId 
+}: ApplicationsManagerProps) {
+  // If initialJobId is provided, use that (backwards compatibility)
+  const effectiveJobId = initialJobId || jobId;
   const { user } = useAuth();
   const { toast } = useToast();
   const queryClient = useQueryClient();
@@ -273,14 +283,26 @@ export default function ApplicationsManager({ jobId }: ApplicationsManagerProps)
     isError,
     error
   } = useQuery({
-    queryKey: ['/api/applications', jobId],
+    queryKey: ['/api/applications', effectiveJobId],
     queryFn: async () => {
-      const response = await apiRequest('GET', `/api/jobs/${jobId}/applications`);
+      if (!effectiveJobId) {
+        // If in worker mode without a job ID, fetch user's applications
+        if (mode === 'worker' && userId) {
+          const response = await apiRequest('GET', `/api/workers/${userId}/applications`);
+          if (!response.ok) {
+            throw new Error('Failed to fetch your applications');
+          }
+          return response.json() as Promise<JobApplication[]>;
+        }
+        return [];
+      }
+      const response = await apiRequest('GET', `/api/jobs/${effectiveJobId}/applications`);
       if (!response.ok) {
         throw new Error('Failed to fetch applications');
       }
       return response.json() as Promise<JobApplication[]>;
     },
+    enabled: mode === 'poster' ? !!effectiveJobId : true,
   });
   
   // Fetch job details
@@ -288,14 +310,16 @@ export default function ApplicationsManager({ jobId }: ApplicationsManagerProps)
     data: job,
     isLoading: isLoadingJob
   } = useQuery({
-    queryKey: ['/api/jobs', jobId],
+    queryKey: ['/api/jobs', effectiveJobId],
     queryFn: async () => {
-      const response = await apiRequest('GET', `/api/jobs/${jobId}`);
+      if (!effectiveJobId) return null;
+      const response = await apiRequest('GET', `/api/jobs/${effectiveJobId}`);
       if (!response.ok) {
         throw new Error('Failed to fetch job details');
       }
       return response.json();
     },
+    enabled: !!effectiveJobId,
   });
   
   // State for payment confirmation dialog
@@ -318,8 +342,8 @@ export default function ApplicationsManager({ jobId }: ApplicationsManagerProps)
       setProcessingId(applicationId);
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['/api/applications', jobId] });
-      queryClient.invalidateQueries({ queryKey: ['/api/jobs', jobId] });
+      queryClient.invalidateQueries({ queryKey: ['/api/applications', effectiveJobId] });
+      queryClient.invalidateQueries({ queryKey: ['/api/jobs', effectiveJobId] });
       toast({
         title: 'Worker hired!',
         description: 'The worker has been notified and can now start the job.',
