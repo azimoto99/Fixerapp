@@ -483,15 +483,21 @@ export class MemStorage implements IStorage {
     const job = await this.getJob(insertApplication.jobId);
     const status = job && job.autoAccept ? "accepted" : "pending";
     
-    // Ensure message is null when undefined
+    // Ensure nullable fields are properly handled
     const message = insertApplication.message === undefined ? null : insertApplication.message;
+    const hourlyRate = insertApplication.hourlyRate === undefined ? null : insertApplication.hourlyRate;
+    const expectedDuration = insertApplication.expectedDuration === undefined ? null : insertApplication.expectedDuration;
+    const coverLetter = insertApplication.coverLetter === undefined ? null : insertApplication.coverLetter;
     
     const application: Application = { 
       ...insertApplication, 
       id, 
       dateApplied, 
       status,
-      message
+      message,
+      hourlyRate,
+      expectedDuration,
+      coverLetter
     };
     this.applications.set(id, application);
     
