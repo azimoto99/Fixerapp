@@ -1,4 +1,4 @@
-import { runMigration } from '../migrations/001_add_missing_columns';
+import { runMigration } from '../migrations/001_add_missing_columns.js';
 
 async function runAllMigrations() {
   try {

@@ -1,7 +1,17 @@
-import { Pool } from '@neondatabase/serverless';
+import { Pool, neonConfig } from '@neondatabase/serverless';
 import { drizzle } from 'drizzle-orm/neon-serverless';
 import { sql } from 'drizzle-orm';
-import * as schema from '../shared/schema';
+import * as schema from '../shared/schema.js';
+import { fileURLToPath } from 'url';
+import path from 'path';
+import ws from 'ws';
+
+// Configure WebSocket for Neon
+neonConfig.webSocketConstructor = ws;
+
+// Get the current file name and directory
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 // Define columns to add if missing
 const columnsToAdd = [
@@ -37,7 +47,7 @@ const columnsToAdd = [
   }
 ];
 
-async function runMigration() {
+export async function runMigration() {
   if (!process.env.DATABASE_URL) {
     throw new Error('DATABASE_URL environment variable is not set');
   }
@@ -63,13 +73,15 @@ async function runMigration() {
         // Column doesn't exist, add it
         console.log(`Adding missing column: ${colInfo.table}.${colInfo.column}`);
         
-        const addColumnQuery = `
-          ALTER TABLE ${colInfo.table}
-          ADD COLUMN IF NOT EXISTS ${colInfo.column} ${colInfo.definition};
-          COMMENT ON COLUMN ${colInfo.table}.${colInfo.column} IS '${colInfo.description}';
-        `;
+        // Split into two queries to avoid syntax errors
+        const addColumnQuery = `ALTER TABLE ${colInfo.table} ADD COLUMN IF NOT EXISTS ${colInfo.column} ${colInfo.definition};`;
         
         await pool.query(addColumnQuery);
+        
+        // Add comment in a separate query
+        const commentQuery = `COMMENT ON COLUMN ${colInfo.table}.${colInfo.column} IS '${colInfo.description.replace(/'/g, "''")}';`;
+        
+        await pool.query(commentQuery);
         console.log(`Successfully added column: ${colInfo.table}.${colInfo.column}`);
       } else {
         console.log(`Column already exists: ${colInfo.table}.${colInfo.column}`);
@@ -83,8 +95,8 @@ async function runMigration() {
   await pool.end();
 }
 
-// Check if this file is being executed directly
-if (require.main === module) {
+// Run migration if this file is being executed directly
+if (import.meta.url === `file://${process.argv[1]}`) {
   runMigration()
     .then(() => {
       console.log('Migration script completed');
@@ -95,5 +107,3 @@ if (require.main === module) {
       process.exit(1);
     });
 }
-
-export { runMigration };
