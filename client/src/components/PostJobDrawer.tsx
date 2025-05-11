@@ -96,9 +96,9 @@ export default function PostJobDrawer({ isOpen, onOpenChange }: PostJobDrawerPro
       return;
     }
 
-    // If it's a fixed price job and we don't have a payment method yet
-    if (data.paymentType === 'fixed' && !data.paymentMethodId) {
-      console.log('Fixed price job requires payment method');
+    // All job types require a payment method
+    if (!data.paymentMethodId) {
+      console.log('Job posting requires payment method selection');
       
       // Store the pending job data
       setPendingJobData(data);
@@ -140,18 +140,19 @@ export default function PostJobDrawer({ isOpen, onOpenChange }: PostJobDrawerPro
     setIsSubmitting(true);
     
     try {
-      // For fixed-price jobs, first process the payment before creating the job
-      if (data.paymentType === 'fixed' && data.paymentMethodId) {
+      // Pre-authorize payment for all job types before creating the job
+      if (data.paymentMethodId) {
         let paymentSuccessful = false;
         let paymentError = null;
         let paymentResponse = null;
         
         try {
-          console.log('Processing payment for fixed-price job before creating job');
+          console.log(`Processing payment for ${data.paymentType} job before creating job`);
           // Pre-authorize payment but don't create the job yet
           paymentResponse = await apiRequest('POST', `/api/payments/preauthorize`, {
             paymentMethodId: data.paymentMethodId,
-            amount: data.paymentAmount
+            amount: data.paymentAmount,
+            paymentType: data.paymentType
           });
           
           if (!paymentResponse.ok) {

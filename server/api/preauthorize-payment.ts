@@ -19,11 +19,15 @@ export async function preauthorizePayment(req: Request, res: Response) {
     return res.status(401).json({ message: 'Not authenticated' });
   }
 
-  const { paymentMethodId, amount } = req.body;
+  const { paymentMethodId, amount, paymentType } = req.body;
 
   if (!paymentMethodId || !amount) {
     return res.status(400).json({ message: 'Missing required fields' });
   }
+  
+  // Log the payment type for debugging
+  console.log(`Preauthorizing payment for ${paymentType} job with amount ${amount}`);
+  
 
   try {
     // Create a payment intent with manual confirmation
@@ -38,6 +42,7 @@ export async function preauthorizePayment(req: Request, res: Response) {
       metadata: {
         userId: req.user.id.toString(),
         preauthorization: 'true',
+        paymentType: paymentType || 'fixed',
       },
     });
 
