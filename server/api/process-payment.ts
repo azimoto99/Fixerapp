@@ -76,7 +76,9 @@ export async function processPayment(req: Request, res: Response) {
       return res.status(404).json({ message: 'Worker not found' });
     }
     
-    if (!worker.stripeConnectId) {
+    // Check if worker has a Stripe Connect account
+    // Use stripeConnectAccountId from schema, with fallback to stripeConnectId virtual field
+    if (!worker.stripeConnectAccountId) {
       return res.status(400).json({ 
         message: 'Worker does not have a Stripe Connect account set up'
       });
@@ -91,7 +93,7 @@ export async function processPayment(req: Request, res: Response) {
       return_url: `${req.protocol}://${req.get('host')}/jobs/${jobId}`,
       application_fee_amount: Math.round(serviceFee * 100),
       transfer_data: {
-        destination: worker.stripeConnectId,
+        destination: worker.stripeConnectAccountId || '',
       },
       metadata: {
         jobId: jobId.toString(),
