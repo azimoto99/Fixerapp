@@ -183,6 +183,34 @@ export default function PostJobDrawer({ isOpen, onOpenChange }: PostJobDrawerPro
         }
       }
       
+      // Process payment for fixed-price jobs
+      let paymentSuccessful = true;
+      let paymentError = null;
+      
+      if (data.paymentType === 'fixed' && data.paymentMethodId) {
+        try {
+          // Attempt to process payment
+          const paymentResponse = await apiRequest('POST', `/api/payments/process`, {
+            jobId: jobResponse.id,
+            paymentMethodId: data.paymentMethodId,
+            amount: data.paymentAmount
+          });
+          
+          if (!paymentResponse.ok) {
+            const errorData = await paymentResponse.json();
+            paymentSuccessful = false;
+            paymentError = errorData.message || 'Payment processing failed';
+            console.error('Payment processing failed:', errorData);
+          } else {
+            console.log('Payment successful for fixed-price job');
+          }
+        } catch (paymentError) {
+          console.error('Payment processing error:', paymentError);
+          paymentSuccessful = false;
+          paymentError = 'An error occurred while processing payment';
+        }
+      }
+      
       form.reset();
       setTasks([]);
       onOpenChange(false);
@@ -190,20 +218,36 @@ export default function PostJobDrawer({ isOpen, onOpenChange }: PostJobDrawerPro
       queryClient.invalidateQueries({ queryKey: ['/api/jobs'] });
       queryClient.invalidateQueries({ queryKey: ['/api/jobs/nearby/location'] });
       
-      // Show a simple success toast - no navigation buttons
-      toast({
-        title: "Job Posted",
-        description: "Your job has been posted successfully! Find it on the map or in your jobs list.",
-        variant: "default"
-      });
-      
-      console.log(`Job created successfully with ID: ${jobResponse.id}`);
-      
-      // Navigate to home page and let the user find the job on the map
+      // Navigate to home page
       navigate('/');
       
-      // Highlight the new job on the map (optional, if this functionality exists)
-      // Otherwise the jobs will refresh via the queryClient invalidation above
+      // Show appropriate dialog based on payment result for fixed-price jobs
+      if (data.paymentType === 'fixed') {
+        if (paymentSuccessful) {
+          // Show payment success dialog
+          toast({
+            title: "Payment Successful",
+            description: "Your job has been posted and payment has been processed successfully!",
+            variant: "default"
+          });
+        } else {
+          // Show payment failure dialog but inform that the job is still posted
+          toast({
+            title: "Payment Failed",
+            description: `Your job has been posted, but there was an issue processing your payment: ${paymentError}. Please update your payment method in the payment settings.`,
+            variant: "destructive"
+          });
+        }
+      } else {
+        // For hourly jobs, just show success
+        toast({
+          title: "Job Posted",
+          description: "Your hourly job has been posted successfully! Find it on the map or in your jobs list.",
+          variant: "default"
+        });
+      }
+      
+      console.log(`Job created successfully with ID: ${jobResponse.id}`);
     } catch (error) {
       toast({
         title: "Error",
