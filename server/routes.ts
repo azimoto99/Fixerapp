@@ -1659,6 +1659,65 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Batch create tasks for a job
+  apiRouter.post("/jobs/:jobId/tasks/batch", isAuthenticated, async (req: Request, res: Response) => {
+    try {
+      const jobId = parseInt(req.params.jobId);
+      const job = await storage.getJob(jobId);
+      
+      if (!job) {
+        return res.status(404).json({ message: "Job not found" });
+      }
+      
+      // Verify user owns the job or is authorized to add tasks
+      if (job.posterId !== req.user?.id && job.workerId !== req.user?.id) {
+        return res.status(403).json({ message: "Unauthorized to add tasks to this job" });
+      }
+      
+      // Validate tasks array
+      const taskArraySchema = z.object({
+        tasks: z.array(
+          insertTaskSchema.omit({ jobId: true }).extend({
+            jobId: z.number().optional()
+          })
+        ),
+      });
+      
+      const validation = taskArraySchema.safeParse(req.body);
+      if (!validation.success) {
+        return res.status(400).json({ 
+          message: "Invalid task data", 
+          errors: validation.error.errors 
+        });
+      }
+      
+      // Create all tasks
+      const createdTasks = [];
+      for (const taskData of validation.data.tasks) {
+        try {
+          // Ensure jobId is set correctly
+          const task = {
+            ...taskData,
+            jobId
+          };
+          
+          const createdTask = await storage.createTask(task);
+          createdTasks.push(createdTask);
+        } catch (taskError) {
+          console.error(`Error creating task for job ${jobId}:`, taskError);
+        }
+      }
+      
+      return res.status(201).json({ 
+        message: `Created ${createdTasks.length} tasks for job ${jobId}`,
+        tasks: createdTasks 
+      });
+    } catch (error) {
+      console.error("Error creating batch tasks:", error);
+      return res.status(500).json({ message: "Failed to create tasks" });
+    }
+  });
+
   apiRouter.post("/tasks", isAuthenticated, async (req: Request, res: Response) => {
     try {
       const taskData = insertTaskSchema.parse(req.body);
