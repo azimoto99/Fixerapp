@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useQuery, useMutation } from '@tanstack/react-query';
-import { apiRequest } from '@/lib/queryClient';
+import { apiRequest, queryClient } from '@/lib/queryClient';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/hooks/use-auth';
 import { Button } from '@/components/ui/button';
@@ -98,11 +98,13 @@ export default function PaymentConfirmation({
   const processPaymentMutation = useMutation({
     mutationFn: async () => {
       setIsProcessing(true);
-      const response = await apiRequest('POST', '/api/payments/process', {
+      const response = await apiRequest('POST', '/api/process-payment', {
         jobId,
         applicationId,
         workerId,
-        paymentMethodId: selectedPaymentMethod
+        paymentMethodId: selectedPaymentMethod,
+        amount: totalAmount * 100, // Convert to cents for Stripe
+        description: `Payment for job: ${job?.title}`
       });
       
       if (!response.ok) {
@@ -112,7 +114,13 @@ export default function PaymentConfirmation({
       
       return response.json();
     },
-    onSuccess: () => {
+    onSuccess: (data) => {
+      // Invalidate relevant queries to refresh data
+      queryClient.invalidateQueries({ queryKey: ['/api/jobs', jobId] });
+      queryClient.invalidateQueries({ queryKey: ['/api/applications', applicationId] });
+      queryClient.invalidateQueries({ queryKey: ['/api/applications/job', jobId] });
+      queryClient.invalidateQueries({ queryKey: ['/api/applications/worker', workerId] });
+      
       toast({
         title: 'Payment processed',
         description: 'Your payment has been successfully processed and the worker has been hired.',
