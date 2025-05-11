@@ -406,7 +406,7 @@ export default function ApplicationsManager({ jobId }: ApplicationsManagerProps)
               <div className="mb-4">
                 <h3 className="text-sm font-medium mb-2">Required Skills</h3>
                 <div className="flex flex-wrap gap-2">
-                  {job.requiredSkills.map((skill, index) => (
+                  {job.requiredSkills.map((skill: string, index: number) => (
                     <Badge key={index} variant="outline">
                       {skill}
                     </Badge>
@@ -497,17 +497,7 @@ export default function ApplicationsManager({ jobId }: ApplicationsManagerProps)
               </DialogDescription>
             </DialogHeader>
             
-            <WorkerHistory 
-              workerId={selectedWorkerId} 
-              onHire={() => {
-                // Find the application for this worker
-                const application = applications?.find(app => app.workerId === selectedWorkerId);
-                if (application) {
-                  handleAccept(application.id);
-                  setShowHistoryDialog(false);
-                }
-              }}
-            />
+            <WorkerHistory workerId={selectedWorkerId} />
             
             <DialogFooter className="mt-4">
               <DialogClose asChild>
