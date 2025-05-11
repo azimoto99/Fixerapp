@@ -98,13 +98,24 @@ export default function PaymentConfirmation({
   const processPaymentMutation = useMutation({
     mutationFn: async () => {
       setIsProcessing(true);
+      
+      // First verify the worker has a Stripe Connect account
+      const workerConnectResponse = await apiRequest('GET', `/api/workers/${workerId}/stripe-connect-status`);
+      if (!workerConnectResponse.ok) {
+        const workerConnectData = await workerConnectResponse.json();
+        if (workerConnectData.hasConnectAccount === false) {
+          throw new Error('This worker does not have a Stripe Connect account set up. Please select another worker.');
+        }
+      }
+      
+      // Process the payment
       const response = await apiRequest('POST', '/api/payments/process', {
         jobId,
         applicationId,
         workerId,
         paymentMethodId: selectedPaymentMethod,
-        amount: totalAmount * 100, // Convert to cents for Stripe
-        description: `Payment for job: ${job?.title}`
+        amount: job?.totalAmount || totalAmount, // Use the job's total amount from the database
+        description: `Payment for job: ${job?.title || 'requested services'}`
       });
       
       if (!response.ok) {
@@ -120,9 +131,10 @@ export default function PaymentConfirmation({
       queryClient.invalidateQueries({ queryKey: ['/api/applications', applicationId] });
       queryClient.invalidateQueries({ queryKey: ['/api/applications/job', jobId] });
       queryClient.invalidateQueries({ queryKey: ['/api/applications/worker', workerId] });
+      queryClient.invalidateQueries({ queryKey: ['/api/payments/user', user?.id] });
       
       toast({
-        title: 'Payment processed',
+        title: 'Payment processed successfully',
         description: 'Your payment has been successfully processed and the worker has been hired.',
       });
       

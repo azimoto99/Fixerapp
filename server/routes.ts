@@ -243,6 +243,35 @@ export async function registerRoutes(app: Express): Promise<Server> {
   
   // Worker history endpoints
   // Get worker job history
+  apiRouter.get("/workers/:workerId/stripe-connect-status", isAuthenticated, async (req: Request, res: Response) => {
+    try {
+      const workerId = parseInt(req.params.workerId);
+      if (isNaN(workerId)) {
+        return res.status(400).json({ message: "Invalid worker ID" });
+      }
+      
+      // Get the worker
+      const worker = await storage.getUser(workerId);
+      if (!worker) {
+        return res.status(404).json({ message: "Worker not found" });
+      }
+      
+      // Check if the worker has a Stripe Connect account
+      const hasConnectAccount = !!worker.stripeConnectAccountId;
+      const accountStatus = worker.stripeConnectAccountStatus || 'pending';
+      
+      return res.json({
+        workerId: worker.id,
+        hasConnectAccount,
+        accountStatus,
+        isActive: accountStatus === 'active' || accountStatus === 'restricted'
+      });
+    } catch (error) {
+      console.error("Error checking worker Stripe Connect status:", error);
+      return res.status(500).json({ message: "Failed to check worker Stripe Connect status" });
+    }
+  });
+  
   apiRouter.get("/workers/:workerId/job-history", isAuthenticated, async (req: Request, res: Response) => {
     try {
       const workerId = parseInt(req.params.workerId);

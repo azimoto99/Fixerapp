@@ -105,12 +105,16 @@ const ApplicationDetail = ({
           <div className="flex items-center space-x-4">
             <Avatar className="h-10 w-10">
               <AvatarImage src={application.workerAvatar} alt={application.workerName} />
-              <AvatarFallback>{application.workerName[0]}</AvatarFallback>
+              <AvatarFallback>
+                {application.workerName && application.workerName.length > 0 
+                  ? application.workerName[0] 
+                  : '?'}
+              </AvatarFallback>
             </Avatar>
             <div>
-              <CardTitle className="text-base">{application.workerName}</CardTitle>
+              <CardTitle className="text-base">{application.workerName || 'Applicant'}</CardTitle>
               <CardDescription>
-                Applied {format(new Date(application.dateApplied), 'MMM d, yyyy')}
+                Applied {application.dateApplied ? format(new Date(application.dateApplied), 'MMM d, yyyy') : 'Recently'}
               </CardDescription>
             </div>
           </div>

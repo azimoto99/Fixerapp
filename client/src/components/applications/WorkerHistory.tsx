@@ -209,6 +209,19 @@ export default function WorkerHistory({ workerId, onHire }: WorkerHistoryProps) 
       </Alert>
     );
   }
+  
+  // Check if we have worker data
+  if (!workerData) {
+    return (
+      <Alert variant="default" className="mb-4">
+        <AlertCircle className="h-4 w-4" />
+        <AlertTitle>No Data Available</AlertTitle>
+        <AlertDescription>
+          This worker's profile information could not be found. They may be new to the platform.
+        </AlertDescription>
+      </Alert>
+    );
+  }
 
   // Group jobs by status
   const completedJobs = workerData?.jobs?.filter(job => job.status === 'completed') || [];
@@ -223,13 +236,13 @@ export default function WorkerHistory({ workerId, onHire }: WorkerHistoryProps) 
           <div className="flex items-start justify-between">
             <div className="flex items-center space-x-4">
               <Avatar className="h-12 w-12">
-                <AvatarImage src={workerData?.avatarUrl} alt={workerData?.fullName || 'Worker'} />
-                <AvatarFallback>{workerData?.fullName?.charAt(0) || 'W'}</AvatarFallback>
+                <AvatarImage src={workerData?.avatarUrl} alt={workerData?.fullName} />
+                <AvatarFallback>{workerData?.fullName?.charAt(0) || workerData?.username?.charAt(0) || '?'}</AvatarFallback>
               </Avatar>
               <div>
-                <CardTitle>{workerData?.fullName || 'Worker'}</CardTitle>
+                <CardTitle>{workerData?.fullName}</CardTitle>
                 <CardDescription className="flex items-center mt-1">
-                  @{workerData?.username || 'username'} · Member since {format(new Date(workerData?.joinedDate || Date.now()), 'MMM yyyy')}
+                  @{workerData?.username} · Member since {format(new Date(workerData?.joinedDate || Date.now()), 'MMM yyyy')}
                 </CardDescription>
                 {workerData?.rating && 
                   <div className="mt-1">

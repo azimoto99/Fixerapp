@@ -70,9 +70,10 @@ const ApplicationForm: React.FC<ApplicationFormProps> = ({
   // Function to redirect to Stripe Connect onboarding
   const handleSetupStripeConnect = async () => {
     try {
-      const response = await apiRequest('GET', '/api/stripe/connect/onboarding-url');
+      setIsCheckingStripe(true);
+      const response = await apiRequest('POST', '/api/stripe/connect/create-account', {});
       if (!response.ok) {
-        throw new Error('Failed to get onboarding URL');
+        throw new Error('Failed to create Stripe Connect account');
       }
       
       const data = await response.json();
@@ -84,6 +85,26 @@ const ApplicationForm: React.FC<ApplicationFormProps> = ({
           title: 'Setting up Stripe Connect',
           description: 'Complete the form in the new tab. You may need to refresh this page after completion.',
         });
+        
+        // Set a timeout to check again for the account after some time
+        setTimeout(() => {
+          checkStripeConnectStatus()
+            .then(hasAccount => {
+              setHasStripeAccount(hasAccount);
+              if (hasAccount) {
+                toast({
+                  title: 'Stripe Connect Setup Complete',
+                  description: 'Your payment account is now ready. You can proceed with your application.',
+                });
+              }
+            })
+            .catch(err => {
+              console.error('Error re-checking Stripe account:', err);
+            })
+            .finally(() => {
+              setIsCheckingStripe(false);
+            });
+        }, 10000); // Check after 10 seconds
       }
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Failed to start Stripe Connect setup';
@@ -92,6 +113,7 @@ const ApplicationForm: React.FC<ApplicationFormProps> = ({
         description: errorMessage,
         variant: 'destructive',
       });
+      setIsCheckingStripe(false);
     }
   };
 
@@ -183,18 +205,27 @@ const ApplicationForm: React.FC<ApplicationFormProps> = ({
   const calculateEstimatedCost = (hourlyRate: number, duration: string): number => {
     let hours = 0;
     
-    if (duration.includes('Less than 1 hour')) {
-      hours = 0.5; // Assuming 30 minutes on average
-    } else if (duration.includes('1-2 hours')) {
-      hours = 1.5; // Midpoint
-    } else if (duration.includes('2-4 hours')) {
-      hours = 3; // Midpoint
-    } else if (duration.includes('Half day')) {
-      hours = 5; // Midpoint of 4-6 hours
-    } else if (duration.includes('Full day')) {
-      hours = 7; // Midpoint of 6-8 hours
-    } else if (duration.includes('Multiple days')) {
-      hours = 16; // Assuming 2 full days
+    // Map duration selections to estimated hours
+    const durationMap: Record<string, number> = {
+      'Less than 1 hour': 0.5,        // 30 minutes average
+      '1-2 hours': 1.5,               // Midpoint
+      '2-4 hours': 3,                 // Midpoint
+      'Half day (4-6 hours)': 5,      // Midpoint
+      'Full day (6-8 hours)': 7,      // Midpoint
+      'Multiple days': 16             // Estimate for 2 days
+    };
+    
+    // Use exact matches from the map to avoid string.includes issues
+    if (duration in durationMap) {
+      hours = durationMap[duration];
+    } else {
+      // Fallback for any non-exact matches
+      for (const [key, value] of Object.entries(durationMap)) {
+        if (duration.includes(key)) {
+          hours = value;
+          break;
+        }
+      }
     }
     
     return hourlyRate * hours;
