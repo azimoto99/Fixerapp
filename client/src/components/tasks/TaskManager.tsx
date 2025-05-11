@@ -495,7 +495,20 @@ export default function TaskManager({ jobId, editable = false, onComplete }: Tas
                                       ${task.bonusAmount.toFixed(2)} Bonus
                                     </Badge>
                                   )}
+                                  
+                                  {task.estimatedDuration > 0 && (
+                                    <Badge variant="outline" className="text-xs flex items-center gap-1">
+                                      <Clock className="h-3 w-3" />
+                                      {task.estimatedDuration} min
+                                    </Badge>
+                                  )}
                                 </div>
+                                
+                                {task.notes && (
+                                  <div className="mt-2 text-sm text-muted-foreground border-l-2 border-muted pl-3 py-1">
+                                    {task.notes}
+                                  </div>
+                                )}
                               </div>
                               
                               {editable && (
@@ -562,7 +575,27 @@ export default function TaskManager({ jobId, editable = false, onComplete }: Tas
                                           Optional
                                         </Badge>
                                       )}
+                                      
+                                      {task.bonusAmount > 0 && (
+                                        <Badge variant="secondary" className="text-xs flex items-center gap-1 opacity-70">
+                                          <DollarSign className="h-3 w-3" />
+                                          ${task.bonusAmount.toFixed(2)} Bonus
+                                        </Badge>
+                                      )}
+                                      
+                                      {task.estimatedDuration > 0 && (
+                                        <Badge variant="outline" className="text-xs flex items-center gap-1 opacity-70">
+                                          <Clock className="h-3 w-3" />
+                                          {task.estimatedDuration} min
+                                        </Badge>
+                                      )}
                                     </div>
+                                    
+                                    {task.notes && (
+                                      <div className="mt-2 text-sm text-muted-foreground border-l-2 border-muted pl-3 py-1 opacity-70 line-through">
+                                        {task.notes}
+                                      </div>
+                                    )}
                                   </div>
                                 </div>
                               </div>
