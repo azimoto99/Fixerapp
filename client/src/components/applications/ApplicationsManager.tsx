@@ -543,12 +543,50 @@ export default function ApplicationsManager({ jobId }: ApplicationsManagerProps)
               </DialogDescription>
             </DialogHeader>
             
-            <WorkerHistory workerId={selectedWorkerId} />
+            <WorkerHistory 
+              workerId={selectedWorkerId} 
+              onHire={() => {
+                const application = applications?.find(app => 
+                  app.workerId === selectedWorkerId && 
+                  app.status === 'pending'
+                );
+                if (application) {
+                  handleAccept(application.id);
+                  setShowHistoryDialog(false);
+                }
+              }}
+            />
             
             <DialogFooter className="mt-4">
               <DialogClose asChild>
                 <Button variant="outline">Close</Button>
               </DialogClose>
+              
+              {applications?.some(app => 
+                app.workerId === selectedWorkerId && 
+                app.status === 'pending'
+              ) && (
+                <Button 
+                  onClick={() => {
+                    const application = applications.find(app => 
+                      app.workerId === selectedWorkerId && 
+                      app.status === 'pending'
+                    );
+                    if (application) {
+                      handleAccept(application.id);
+                      setShowHistoryDialog(false);
+                    }
+                  }}
+                  disabled={!!processingId}
+                >
+                  {processingId ? (
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  ) : (
+                    <CheckCircle className="mr-2 h-4 w-4" />
+                  )}
+                  Hire This Worker
+                </Button>
+              )}
             </DialogFooter>
           </DialogContent>
         </Dialog>

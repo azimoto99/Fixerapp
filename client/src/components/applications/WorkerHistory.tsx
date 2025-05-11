@@ -28,7 +28,7 @@ import { Progress } from '@/components/ui/progress';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Separator } from '@/components/ui/separator';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { Star, StarHalf, Calendar, CheckCircle2, Clock, MapPin, AlertCircle, User2, BriefcaseIcon, Award, Loader2 } from 'lucide-react';
+import { Star, StarHalf, Calendar, CheckCircle2, Clock, MapPin, AlertCircle, User2, Award, Loader2, Briefcase } from 'lucide-react';
 
 // Type definitions
 interface WorkerJob {
@@ -303,7 +303,7 @@ export default function WorkerHistory({ workerId, onHire }: WorkerHistoryProps) 
                   .slice(0, 3)
                   .map(([category, count]) => (
                     <Badge key={category} variant="outline" className="flex items-center gap-1">
-                      <BriefcaseIcon className="h-3 w-3" />
+                      <Briefcase className="h-3 w-3" />
                       {category}
                       <span className="ml-1 text-xs bg-primary/10 px-1.5 py-0.5 rounded-full">
                         {count}
@@ -420,11 +420,52 @@ export default function WorkerHistory({ workerId, onHire }: WorkerHistoryProps) 
           <Button 
             onClick={onHire}
             className="ml-auto"
+            size="lg"
           >
+            <Briefcase className="mr-2 h-5 w-5" />
             Hire This Worker
           </Button>
         </div>
       )}
+      
+      {/* Success rate and stats panel */}
+      <Card className="mt-6 bg-muted/30">
+        <CardHeader className="pb-3">
+          <CardTitle className="text-base">Why Hire This Worker?</CardTitle>
+        </CardHeader>
+        <CardContent className="pb-4">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            <div className="space-y-1">
+              <p className="text-sm text-muted-foreground">Success Rate</p>
+              <p className="text-2xl font-semibold">{workerData?.metrics?.successRate || 0}%</p>
+            </div>
+            
+            <div className="space-y-1">
+              <p className="text-sm text-muted-foreground">Completed Jobs</p>
+              <p className="text-2xl font-semibold">{workerData?.metrics?.completedJobs || 0}</p>
+            </div>
+            
+            <div className="space-y-1">
+              <p className="text-sm text-muted-foreground">Rating</p>
+              <div className="flex items-center">
+                <p className="text-2xl font-semibold mr-1">{(workerData?.metrics?.averageRating || 0).toFixed(1)}</p>
+                <Star className="h-5 w-5 fill-yellow-400 text-yellow-400" />
+              </div>
+            </div>
+            
+            <div className="space-y-1">
+              <p className="text-sm text-muted-foreground">Response Time</p>
+              <p className="text-2xl font-semibold">
+                {(workerData?.metrics?.responseTime || 0) < 1 ? (
+                  <>{Math.round((workerData?.metrics?.responseTime || 0) * 60)}m</>
+                ) : (
+                  <>{(workerData?.metrics?.responseTime || 0).toFixed(1)}h</>
+                )}
+              </p>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
     </div>
   );
 }

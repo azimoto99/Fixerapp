@@ -33,6 +33,22 @@ const ApplicationForm: React.FC<ApplicationFormProps> = ({
   const [hasStripeAccount, setHasStripeAccount] = useState<boolean | null>(null);
   const [isCheckingStripe, setIsCheckingStripe] = useState<boolean>(false);
   
+  // Helper function to check Stripe Connect status
+  const checkStripeConnectStatus = async (): Promise<boolean> => {
+    try {
+      const response = await apiRequest('GET', '/api/stripe/connect/account-status');
+      if (!response.ok) {
+        return false;
+      }
+      
+      const data = await response.json();
+      return data.exists === true && data.details?.payoutsEnabled === true;
+    } catch (error) {
+      console.error('Error checking Stripe account:', error);
+      return false;
+    }
+  };
+
   // Check for Stripe Connect account on component mount
   useEffect(() => {
     if (user && user.accountType === 'worker') {
@@ -164,22 +180,24 @@ const ApplicationForm: React.FC<ApplicationFormProps> = ({
     }
   };
   
-  // Create a function to check for Stripe Connect account
-  const checkStripeConnectStatus = async (): Promise<boolean> => {
-    try {
-      // Check if user has a Stripe Connect account
-      const res = await apiRequest('GET', '/api/stripe/connect/account-status');
-      
-      if (!res.ok) {
-        return false;
-      }
-      
-      const accountStatus = await res.json();
-      return accountStatus && accountStatus.accountStatus === 'active';
-    } catch (error) {
-      console.error('Failed to check Stripe Connect status:', error);
-      return false;
+  const calculateEstimatedCost = (hourlyRate: number, duration: string): number => {
+    let hours = 0;
+    
+    if (duration.includes('Less than 1 hour')) {
+      hours = 0.5; // Assuming 30 minutes on average
+    } else if (duration.includes('1-2 hours')) {
+      hours = 1.5; // Midpoint
+    } else if (duration.includes('2-4 hours')) {
+      hours = 3; // Midpoint
+    } else if (duration.includes('Half day')) {
+      hours = 5; // Midpoint of 4-6 hours
+    } else if (duration.includes('Full day')) {
+      hours = 7; // Midpoint of 6-8 hours
+    } else if (duration.includes('Multiple days')) {
+      hours = 16; // Assuming 2 full days
     }
+    
+    return hourlyRate * hours;
   };
   
   // Helper to get placeholder text based on current context
@@ -290,8 +308,8 @@ const ApplicationForm: React.FC<ApplicationFormProps> = ({
               )}
               
               {hasStripeAccount === true && (
-                <Alert variant="success" className="bg-green-500/10 border-green-500/30 text-green-700 dark:text-green-400">
-                  <CheckCircle className="h-4 w-4" />
+                <Alert className="bg-green-500/10 border-green-500/30 text-green-700 dark:text-green-400">
+                  <AlertCircle className="h-4 w-4" />
                   <AlertTitle>Stripe Connect Ready</AlertTitle>
                   <AlertDescription>
                     Your Stripe Connect account is set up and ready to receive payments.
