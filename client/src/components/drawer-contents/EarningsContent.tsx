@@ -113,6 +113,8 @@ const EarningsContent: React.FC<EarningsContentProps> = ({ userId }) => {
 
   // Filter earnings by timeframe
   const getFilteredEarnings = () => {
+    if (!earnings || earnings.length === 0) return [];
+    
     if (timeframe === 'all') return earnings;
     
     const now = new Date();
@@ -131,12 +133,14 @@ const EarningsContent: React.FC<EarningsContentProps> = ({ userId }) => {
 
   const filteredEarnings = getFilteredEarnings();
   
-  // Prepare data for the bar chart
-  const chartData = filteredEarnings.map(earning => ({
-    date: formatDate(earning.dateEarned),
-    amount: earning.amount,
-    jobTitle: jobs?.find(j => j.id === earning.jobId)?.title || 'Job',
-  }));
+  // Prepare data for the bar chart - ensure no empty data
+  const chartData = filteredEarnings.length > 0 
+    ? filteredEarnings.map(earning => ({
+        date: formatDate(earning.dateEarned),
+        amount: earning.amount,
+        jobTitle: jobs?.find(j => j.id === earning.jobId)?.title || `Job #${earning.jobId || ''}`,
+      }))
+    : [];
 
   // Status distribution for pie chart
   const statusData = [
@@ -148,7 +152,7 @@ const EarningsContent: React.FC<EarningsContentProps> = ({ userId }) => {
       name: 'Pending',
       value: filteredEarnings.filter(e => e.status === 'pending').length,
     },
-  ];
+  ].filter(data => data.value > 0); // Only include non-zero data
 
   const COLORS = ['#0088FE', '#FFBB28'];
 
@@ -310,15 +314,17 @@ const EarningsContent: React.FC<EarningsContentProps> = ({ userId }) => {
               <span className="font-medium">{filteredEarnings.length}</span>
             </div>
             
-            <div className="flex items-center justify-between">
-              <div className="flex items-center">
-                <Clock className="h-4 w-4 mr-2 text-muted-foreground" />
-                <span className="text-sm">Pending Payments</span>
+            {filteredEarnings.filter(e => e.status === 'pending').length > 0 && (
+              <div className="flex items-center justify-between">
+                <div className="flex items-center">
+                  <Clock className="h-4 w-4 mr-2 text-muted-foreground" />
+                  <span className="text-sm">Pending Payments</span>
+                </div>
+                <Badge variant="outline">
+                  {filteredEarnings.filter(e => e.status === 'pending').length}
+                </Badge>
               </div>
-              <Badge variant="outline">
-                {filteredEarnings.filter(e => e.status === 'pending').length}
-              </Badge>
-            </div>
+            )}
           </CardContent>
         </Card>
       </div>
@@ -329,27 +335,33 @@ const EarningsContent: React.FC<EarningsContentProps> = ({ userId }) => {
           <CardTitle className="text-base">Recent Transactions</CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="space-y-4">
-            {filteredEarnings.slice(0, 5).map((earning, index) => {
-              const job = jobs?.find(j => j.id === earning.jobId);
-              return (
-                <div key={index} className="flex items-center justify-between border-b pb-2 last:border-0">
-                  <div>
-                    <p className="font-medium">{job?.title || 'Job'}</p>
-                    <p className="text-sm text-muted-foreground">
-                      {earning.dateEarned ? new Date(earning.dateEarned.toString()).toLocaleDateString() : 'No date'}
-                    </p>
+          {filteredEarnings.length > 0 ? (
+            <div className="space-y-4">
+              {filteredEarnings.slice(0, 5).map((earning, index) => {
+                const job = jobs?.find(j => j.id === earning.jobId);
+                return (
+                  <div key={index} className="flex items-center justify-between border-b pb-2 last:border-0">
+                    <div>
+                      <p className="font-medium">{job?.title || `Job #${earning.jobId || ''}`}</p>
+                      <p className="text-sm text-muted-foreground">
+                        {earning.dateEarned ? new Date(earning.dateEarned.toString()).toLocaleDateString() : 'No date'}
+                      </p>
+                    </div>
+                    <div className="flex items-center">
+                      <Badge variant={earning.status === 'paid' ? 'default' : 'secondary'} className="mr-2">
+                        {earning.status}
+                      </Badge>
+                      <span className="font-semibold">${earning.amount.toFixed(2)}</span>
+                    </div>
                   </div>
-                  <div className="flex items-center">
-                    <Badge variant={earning.status === 'paid' ? 'default' : 'secondary'} className="mr-2">
-                      {earning.status}
-                    </Badge>
-                    <span className="font-semibold">${earning.amount.toFixed(2)}</span>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
+                );
+              })}
+            </div>
+          ) : (
+            <div className="text-center py-4 text-muted-foreground">
+              No recent transactions found
+            </div>
+          )}
         </CardContent>
       </Card>
     </div>
