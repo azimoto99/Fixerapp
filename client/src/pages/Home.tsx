@@ -7,6 +7,7 @@ import ViewToggle from '@/components/ViewToggle';
 import JobListSection from '@/components/JobListSection';
 import MapSection from '@/components/MapSection';
 import NewJobButton from '@/components/NewJobButton';
+import PostJobDrawer from '@/components/PostJobDrawer';
 
 import { useJobs } from '@/hooks/useJobs';
 import { Job } from '@shared/schema';
@@ -229,6 +230,7 @@ const WorkerDashboard = () => {
 // Job Poster Dashboard Component
 const PosterDashboard = () => {
   const { jobs, isLoading } = useJobs({ poster: true });
+  const [isJobDrawerOpen, setIsJobDrawerOpen] = useState(false);
   
   if (isLoading) {
     return (
@@ -240,10 +242,16 @@ const PosterDashboard = () => {
 
   return (
     <div className="py-6 sm:px-6 lg:px-8">
+      {/* New Job Drawer */}
+      <PostJobDrawer 
+        isOpen={isJobDrawerOpen} 
+        onOpenChange={setIsJobDrawerOpen}
+      />
+      
       <div className="flex items-center justify-between mb-6">
         <h1 className="text-2xl font-bold text-foreground">Job Poster Dashboard</h1>
-        <Button asChild>
-          <a href="/jobs/post">Post a New Job</a>
+        <Button onClick={() => setIsJobDrawerOpen(true)}>
+          Post a New Job
         </Button>
       </div>
 
@@ -321,8 +329,11 @@ const PosterDashboard = () => {
         ) : (
           <div className="text-center py-8">
             <p className="text-muted-foreground">You haven't posted any jobs yet.</p>
-            <Button className="mt-4" asChild>
-              <a href="/jobs/post">Post Your First Job</a>
+            <Button 
+              className="mt-4" 
+              onClick={() => setIsJobDrawerOpen(true)}
+            >
+              Post Your First Job
             </Button>
           </div>
         )}
