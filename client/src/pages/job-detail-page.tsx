@@ -268,10 +268,16 @@ const JobDetailPage: React.FC = () => {
                   </DialogDescription>
                 </DialogHeader>
                 <JobPaymentForm 
-                  jobId={jobId} 
-                  workerId={job.workerId} 
-                  onSuccess={handlePaymentSuccess} 
-                  isExistingJob={true}
+                  job={{
+                    id: jobId,
+                    title: job.title,
+                    payAmount: job.paymentAmount,
+                    posterId: job.posterId,
+                    workerId: job.workerId,
+                    status: job.status
+                  }}
+                  onSuccess={handlePaymentSuccess}
+                  onCancel={() => setPayDialogOpen(false)}
                 />
               </DialogContent>
             </Dialog>
@@ -438,7 +444,7 @@ const JobDetailPage: React.FC = () => {
         <TabsContent value="tasks">
           <TaskManager 
             jobId={jobId} 
-            mode={isPoster ? 'poster' : 'worker'}
+            editable={isPoster}
           />
         </TabsContent>
         
