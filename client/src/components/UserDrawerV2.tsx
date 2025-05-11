@@ -177,7 +177,7 @@ const UserDrawerV2: React.FC<UserDrawerProps> = ({
                 <div className="flex justify-end mb-3">
                   <button 
                     onClick={closeDrawer}
-                    className="bg-white/20 backdrop-blur-sm text-white hover:bg-white/30 rounded-full w-8 h-8 flex items-center justify-center transform transition-all hover:scale-105 active:scale-95 p-0"
+                    className="bg-primary-foreground/20 backdrop-blur-sm text-primary-foreground hover:bg-primary-foreground/30 rounded-full w-8 h-8 flex items-center justify-center transform transition-all hover:scale-105 active:scale-95 p-0"
                     aria-label="Close menu"
                   >
                     <X className="h-4 w-4" />
@@ -233,7 +233,7 @@ const UserDrawerV2: React.FC<UserDrawerProps> = ({
             <div className="flex h-[calc(100vh-198px)] overflow-hidden">
               {/* Enhanced sidebar navigation with tooltips */}
               <TooltipProvider>
-                <div className="w-[80px] border-r bg-slate-50 dark:bg-slate-900 py-4 flex flex-col items-center h-full overflow-y-auto">
+                <div className="w-[80px] border-r border-border bg-background/80 dark:bg-background py-4 flex flex-col items-center h-full overflow-y-auto">
                   <div className="flex flex-col items-center space-y-1">
                     {/* Main sections */}
                     <div className="mb-2 px-2 py-1 w-full">
@@ -425,17 +425,17 @@ const UserDrawerV2: React.FC<UserDrawerProps> = ({
               </TooltipProvider>
               
               {/* Enhanced tab content with better styling */}
-              <div className="flex-1 overflow-y-auto p-6 bg-white dark:bg-slate-950">
+              <div className="flex-1 overflow-y-auto p-6 bg-card dark:bg-card">
                 {/* Title bar for current section */}
                 <div className="mb-6 pb-4 border-b">
-                  <h2 className="text-xl font-bold text-slate-900 dark:text-slate-100">
+                  <h2 className="text-xl font-bold text-foreground">
                     {activeTab === "profile" ? "Your Profile" : 
                      activeTab === "reviews" ? "Reviews & Ratings" :
                      activeTab === "payments" ? "Payment Management" :
                      activeTab === "earnings" ? "Earnings & Analytics" :
                      activeTab === "settings" ? "Account Settings" : "Profile"}
                   </h2>
-                  <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">
+                  <p className="text-sm text-muted-foreground mt-1">
                     {activeTab === "profile" ? "View and update your personal information" : 
                      activeTab === "reviews" ? "See what others are saying about your work" :
                      activeTab === "payments" ? "Manage your payment methods and transactions" :
