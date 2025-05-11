@@ -1,460 +1,406 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { formatDistanceToNow, format } from 'date-fns';
-import { Star, Clock, BriefcaseBusiness, Award, AlertTriangle, MapPin, Calendar, ThumbsUp, ChevronDown, ChevronRight, CheckCircle2, Eye, MapIcon } from 'lucide-react';
-import { Skeleton } from '@/components/ui/skeleton';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { apiRequest } from '@/lib/queryClient';
+import { format } from 'date-fns';
+import { 
+  Card, 
+  CardContent, 
+  CardDescription, 
+  CardFooter, 
+  CardHeader, 
+  CardTitle 
+} from '@/components/ui/card';
+import { 
+  Tabs, 
+  TabsContent, 
+  TabsList, 
+  TabsTrigger 
+} from '@/components/ui/tabs';
+import { 
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger 
+} from '@/components/ui/accordion';
+import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Separator } from '@/components/ui/separator';
-import { Button } from '@/components/ui/button';
-import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { formatCurrency } from '@/lib/utils';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { Star, StarHalf, Calendar, CheckCircle2, Clock, MapPin, AlertCircle, User2, BriefcaseIcon, Award, Loader2 } from 'lucide-react';
 
-interface WorkerHistoryProps {
-  workerId: number;
-  className?: string;
-  onHire?: (workerId: number) => void;
-}
-
-interface WorkerProfile {
-  id: number;
-  username: string;
-  fullName: string;
-  email?: string;
-  bio?: string;
-  avatarUrl?: string;
-  rating?: number;
-  skills?: string[];
-  skillsVerified?: Record<string, boolean>;
-  createdAt?: string;
-  successRate?: number;
-  responseTime?: number;
-  [key: string]: any;
-}
-
+// Type definitions
 interface WorkerJob {
   id: number;
   title: string;
-  description?: string;
-  category?: string;
-  paymentAmount?: number;
-  location?: string;
+  description: string;
+  status: string;
+  category: string;
   datePosted: string;
   dateCompleted?: string;
-  dateNeeded?: string;
-  review?: WorkerReview;
-  [key: string]: any;
+  paymentAmount: number;
+  posterName: string;
+  location: string;
+  rating?: number;
+  review?: string;
+  tasks?: WorkerTask[];
 }
 
-interface WorkerReview {
+interface WorkerTask {
   id: number;
-  rating: number;
-  comment?: string;
-  content?: string;
-  title?: string;
-  dateCreated?: string;
-  dateReviewed?: string;
-  [key: string]: any;
+  description: string;
+  isCompleted: boolean;
+  completedAt?: string;
+  isOptional: boolean;
+  bonusAmount?: number;
 }
 
-const WorkerHistory: React.FC<WorkerHistoryProps> = ({ workerId, className, onHire }) => {
-  const [expandedJobId, setExpandedJobId] = useState<number | null>(null);
-  const [activeTab, setActiveTab] = useState('overview');
+interface WorkerMetrics {
+  totalJobs: number;
+  completedJobs: number;
+  canceledJobs: number;
+  averageRating: number;
+  reviewCount: number;
+  successRate: number;
+  responseTime: number; // in hours
+  categoryCounts: Record<string, number>;
+  earnedBadges: string[];
+  totalEarnings: number;
+}
+
+interface WorkerProfileData {
+  id: number;
+  username: string;
+  fullName: string;
+  avatarUrl?: string;
+  bio?: string;
+  skills: string[];
+  joinedDate: string;
+  location?: string;
+  rating?: number;
+  metrics: WorkerMetrics;
+  jobs: WorkerJob[];
+}
+
+// Display star rating component
+const StarRating = ({ rating }: { rating: number }) => {
+  const fullStars = Math.floor(rating);
+  const hasHalfStar = rating % 1 >= 0.5;
   
-  // Fetch worker's user profile
-  const { data: worker, isLoading: isWorkerLoading } = useQuery<WorkerProfile>({
-    queryKey: ['/api/users', workerId],
-    enabled: !!workerId
-  });
+  return (
+    <div className="flex items-center">
+      {Array.from({ length: fullStars }).map((_, i) => (
+        <Star key={`full-${i}`} className="h-4 w-4 fill-yellow-400 text-yellow-400" />
+      ))}
+      {hasHalfStar && <StarHalf className="h-4 w-4 fill-yellow-400 text-yellow-400" />}
+      {Array.from({ length: 5 - fullStars - (hasHalfStar ? 1 : 0) }).map((_, i) => (
+        <Star key={`empty-${i}`} className="h-4 w-4 text-gray-300" />
+      ))}
+      <span className="ml-1 text-sm">{rating.toFixed(1)}</span>
+    </div>
+  );
+};
 
-  // Fetch past jobs that the worker has completed
-  const { data: pastJobs, isLoading: isJobsLoading } = useQuery<WorkerJob[]>({
-    queryKey: ['/api/jobs/worker', workerId, 'completed'],
-    enabled: !!workerId
-  });
-
-  // Fetch reviews for the worker
-  const { data: reviews, isLoading: isReviewsLoading } = useQuery<WorkerReview[]>({
-    queryKey: ['/api/reviews/user', workerId],
-    enabled: !!workerId
-  });
-
-  const isLoading = isWorkerLoading || isJobsLoading || isReviewsLoading;
-
-  // Calculate metrics and stats
-  const calculateMetrics = () => {
-    const emptyMetrics = {
-      completedJobs: 0,
-      successRate: 0,
-      averageRating: 0,
-      responseTime: 0,
-      totalEarnings: 0,
-      topCategories: [] as string[]
-    };
-
-    if (!worker || !pastJobs || !reviews) {
-      return emptyMetrics;
-    }
-
-    const completedJobs = pastJobs.length;
-    const averageRating = reviews.length > 0 
-      ? reviews.reduce((acc, review) => acc + review.rating, 0) / reviews.length 
-      : 0;
-    
-    // Calculate total earnings from completed jobs
-    const totalEarnings = pastJobs.reduce((acc, job) => {
-      return acc + (job.paymentAmount || 0);
-    }, 0);
-    
-    // Find top job categories
-    const categoryCount: Record<string, number> = {};
-    pastJobs.forEach(job => {
-      if (job.category) {
-        categoryCount[job.category] = (categoryCount[job.category] || 0) + 1;
-      }
-    });
-    
-    const topCategories = Object.entries(categoryCount)
-      .sort((a, b) => b[1] - a[1])
-      .slice(0, 3)
-      .map(([category]) => category);
-    
-    return {
-      completedJobs,
-      successRate: worker.successRate || 0,
-      averageRating: averageRating || worker.rating || 0,
-      responseTime: worker.responseTime || 0,
-      totalEarnings,
-      topCategories
-    };
-  };
-
-  const metrics = calculateMetrics();
-  const hasReviews = reviews && reviews.length > 0;
-  const hasPastJobs = pastJobs && pastJobs.length > 0;
-
-  // Render star rating
-  const renderStars = (rating: number) => {
-    return (
-      <div className="flex items-center">
-        {[...Array(5)].map((_, i) => (
-          <Star 
-            key={i} 
-            className={`h-4 w-4 ${i < Math.round(rating) ? 'text-yellow-500 fill-yellow-500' : 'text-gray-300'}`} 
-          />
-        ))}
-        <span className="ml-1 text-sm">{rating.toFixed(1)}</span>
+// JobListItem component for worker's past jobs
+const JobListItem = ({ job }: { job: WorkerJob }) => {
+  return (
+    <div className="mb-4 border rounded-lg p-4 hover:bg-accent/10 transition-colors">
+      <div className="flex justify-between items-start">
+        <div>
+          <h3 className="font-medium">{job.title}</h3>
+          <div className="text-sm text-muted-foreground mt-1 flex items-center gap-2">
+            <Calendar className="h-3.5 w-3.5" />
+            <span>{format(new Date(job.datePosted), 'MMM d, yyyy')}</span>
+            {job.dateCompleted && (
+              <span className="flex items-center">
+                <span className="mx-1">–</span>
+                <span>{format(new Date(job.dateCompleted), 'MMM d, yyyy')}</span>
+              </span>
+            )}
+          </div>
+          <div className="flex items-center gap-2 mt-1 text-sm">
+            <MapPin className="h-3.5 w-3.5 text-muted-foreground" />
+            <span className="text-muted-foreground">{job.location}</span>
+          </div>
+        </div>
+        <div className="flex flex-col items-end">
+          <Badge 
+            variant={
+              job.status === 'completed' ? 'green' : 
+              job.status === 'in_progress' ? 'default' : 
+              job.status === 'canceled' ? 'destructive' : 
+              'outline'
+            }
+            className="mb-2"
+          >
+            {job.status === 'completed' && <CheckCircle2 className="mr-1 h-3 w-3" />}
+            {job.status === 'in_progress' && <Clock className="mr-1 h-3 w-3" />}
+            {job.status === 'canceled' && <AlertCircle className="mr-1 h-3 w-3" />}
+            {job.status.replace('_', ' ')}
+          </Badge>
+          <div className="text-sm text-muted-foreground">
+            {job.rating && <StarRating rating={job.rating} />}
+          </div>
+        </div>
       </div>
-    );
-  };
+      
+      <p className="text-sm mt-2 line-clamp-2">{job.description}</p>
+      
+      <div className="flex justify-between items-center mt-3">
+        <div className="text-sm">
+          <span className="font-medium">${job.paymentAmount.toFixed(2)}</span>
+        </div>
+        <div className="flex items-center text-sm text-muted-foreground">
+          <User2 className="h-3.5 w-3.5 mr-1" />
+          <span>{job.posterName}</span>
+        </div>
+      </div>
+      
+      {job.review && (
+        <div className="mt-3 p-3 bg-muted/50 rounded-md text-sm italic">
+          "{job.review}"
+        </div>
+      )}
+    </div>
+  );
+};
 
-  // Render loading skeleton
+// Main WorkerHistory component
+export default function WorkerHistory({ workerId }: { workerId: number }) {
+  // Fetch worker profile data including job history and metrics
+  const { 
+    data: workerData, 
+    isLoading, 
+    isError, 
+    error 
+  } = useQuery({
+    queryKey: ['worker-history', workerId],
+    queryFn: async () => {
+      const response = await apiRequest('GET', `/api/workers/${workerId}/job-history`);
+      if (!response.ok) {
+        throw new Error('Failed to fetch worker history');
+      }
+      return response.json() as Promise<WorkerProfileData>;
+    },
+  });
+
   if (isLoading) {
     return (
-      <div className={className}>
-        <Card>
-          <CardHeader>
-            <Skeleton className="h-6 w-36" />
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="flex items-center space-x-3">
-              <Skeleton className="h-10 w-10 rounded-full" />
-              <div className="space-y-2">
-                <Skeleton className="h-4 w-24" />
-                <Skeleton className="h-3 w-32" />
-              </div>
-            </div>
-            <div className="grid grid-cols-2 gap-4">
-              <Skeleton className="h-16 w-full" />
-              <Skeleton className="h-16 w-full" />
-              <Skeleton className="h-16 w-full" />
-              <Skeleton className="h-16 w-full" />
-            </div>
-            <Skeleton className="h-28 w-full" />
-          </CardContent>
-        </Card>
+      <div className="flex justify-center items-center p-8">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
       </div>
     );
   }
 
-  // Format worker's skill badges
-  const renderSkills = () => {
-    if (!worker || !worker.skills || worker.skills.length === 0) {
-      return <div className="text-sm text-muted-foreground">No skills listed</div>;
-    }
-
+  if (isError) {
     return (
-      <div className="flex flex-wrap gap-1 mt-1">
-        {worker.skills.map((skill, index) => (
-          <Badge key={index} variant="outline" className="text-xs">
-            {skill}
-            {worker.skillsVerified && worker.skillsVerified[skill] && (
-              <Award className="h-3 w-3 ml-1 text-primary" />
-            )}
-          </Badge>
-        ))}
-      </div>
+      <Alert variant="destructive" className="mb-4">
+        <AlertCircle className="h-4 w-4" />
+        <AlertTitle>Error</AlertTitle>
+        <AlertDescription>
+          {error instanceof Error ? error.message : 'Failed to load worker history'}
+        </AlertDescription>
+      </Alert>
     );
-  };
+  }
 
-  // Helper function to safely format dates
-  const formatDateSafely = (dateString: string | undefined): string => {
-    if (!dateString) return formatDistanceToNow(new Date(), { addSuffix: true });
-    try {
-      return formatDistanceToNow(new Date(dateString), { addSuffix: true });
-    } catch (error) {
-      return formatDistanceToNow(new Date(), { addSuffix: true });
-    }
-  };
-
-  // Render job details with collapsible content
-  const renderJobDetails = (job: WorkerJob) => {
-    const isExpanded = expandedJobId === job.id;
-    
-    return (
-      <div key={job.id} className="rounded-lg border p-3 text-sm">
-        <Collapsible
-          open={isExpanded}
-          onOpenChange={() => setExpandedJobId(isExpanded ? null : job.id)}
-        >
-          <div className="flex justify-between items-start">
-            <div>
-              <div className="flex items-center">
-                <div className="font-medium">{job.title}</div>
-                {job.review && (
-                  <div className="ml-2">
-                    {renderStars(job.review.rating)}
-                  </div>
-                )}
-              </div>
-              <div className="flex items-center gap-2 text-xs text-muted-foreground mt-1">
-                <Calendar className="h-3 w-3" />
-                <span>Completed {formatDateSafely(job.dateCompleted || job.datePosted)}</span>
-              </div>
-            </div>
-            <CollapsibleTrigger asChild>
-              <Button variant="ghost" size="sm" className="p-0 h-6 w-6">
-                {isExpanded ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
-              </Button>
-            </CollapsibleTrigger>
-          </div>
-          
-          <CollapsibleContent className="mt-2">
-            <div className="space-y-2 pt-2 border-t mt-2">
-              <div className="grid grid-cols-2 gap-2">
-                <div>
-                  <div className="text-xs text-muted-foreground">Category</div>
-                  <div className="font-medium">{job.category}</div>
-                </div>
-                <div>
-                  <div className="text-xs text-muted-foreground">Payment</div>
-                  <div className="font-medium">{formatCurrency(job.paymentAmount || 0)}</div>
-                </div>
-              </div>
-              
-              {job.location && (
-                <div className="flex items-start gap-1 text-xs">
-                  <MapPin className="h-3 w-3 mt-0.5 text-muted-foreground" />
-                  <span className="text-muted-foreground">{job.location}</span>
-                </div>
-              )}
-              
-              {job.review && (
-                <div className="bg-muted/50 p-2 rounded-md mt-2">
-                  <div className="text-xs font-medium">Feedback from job poster:</div>
-                  <p className="text-xs mt-1">{job.review.comment}</p>
-                </div>
-              )}
-            </div>
-          </CollapsibleContent>
-        </Collapsible>
-      </div>
-    );
-  };
+  // Group jobs by status
+  const completedJobs = workerData.jobs.filter(job => job.status === 'completed');
+  const inProgressJobs = workerData.jobs.filter(job => job.status === 'in_progress');
+  const canceledJobs = workerData.jobs.filter(job => job.status === 'canceled');
 
   return (
-    <div className={className}>
+    <div className="space-y-6">
+      {/* Worker Profile Summary */}
       <Card>
-        <CardHeader>
-          <CardTitle className="text-lg">Worker Profile</CardTitle>
-          <CardDescription>View this worker's experience and performance</CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          {/* Worker profile section */}
-          {worker && (
-            <div className="flex flex-col md:flex-row md:items-center md:justify-between">
-              <div className="flex items-center space-x-3">
-                <Avatar className="h-16 w-16">
-                  <AvatarImage src={worker.avatarUrl || undefined} alt={worker.fullName} />
-                  <AvatarFallback>{worker.fullName.charAt(0)}</AvatarFallback>
-                </Avatar>
-                <div>
-                  <div className="text-xl font-medium">{worker.fullName}</div>
-                  <div className="text-sm text-muted-foreground">
-                    Member since {formatDistanceToNow(new Date(worker.createdAt || Date.now()), { addSuffix: true })}
+        <CardHeader className="pb-2">
+          <div className="flex items-start justify-between">
+            <div className="flex items-center space-x-4">
+              <Avatar className="h-12 w-12">
+                <AvatarImage src={workerData.avatarUrl} alt={workerData.fullName} />
+                <AvatarFallback>{workerData.fullName.charAt(0)}</AvatarFallback>
+              </Avatar>
+              <div>
+                <CardTitle>{workerData.fullName}</CardTitle>
+                <CardDescription className="flex items-center mt-1">
+                  @{workerData.username} · Member since {format(new Date(workerData.joinedDate), 'MMM yyyy')}
+                </CardDescription>
+                {workerData.rating && 
+                  <div className="mt-1">
+                    <StarRating rating={workerData.rating} />
                   </div>
-                  {renderSkills()}
-                </div>
+                }
               </div>
-              
-              {onHire && (
-                <Button 
-                  className="mt-4 md:mt-0"
-                  onClick={() => onHire(workerId)}
-                >
-                  <CheckCircle2 className="h-4 w-4 mr-2" />
-                  Hire Worker
-                </Button>
-              )}
+            </div>
+          </div>
+        </CardHeader>
+        <CardContent>
+          {workerData.bio && (
+            <p className="text-sm mb-4">{workerData.bio}</p>
+          )}
+          
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-4">
+            <div className="flex flex-col">
+              <span className="text-sm text-muted-foreground">Success Rate</span>
+              <div className="mt-1">
+                <Progress value={workerData.metrics.successRate} className="h-2" />
+              </div>
+              <span className="text-sm font-medium mt-1">{workerData.metrics.successRate}%</span>
+            </div>
+            
+            <div className="flex flex-col">
+              <span className="text-sm text-muted-foreground">Jobs Completed</span>
+              <span className="text-lg font-medium">{workerData.metrics.completedJobs}</span>
+            </div>
+            
+            <div className="flex flex-col">
+              <span className="text-sm text-muted-foreground">Avg. Rating</span>
+              <div className="flex items-center">
+                <span className="text-lg font-medium mr-1">
+                  {workerData.metrics.averageRating.toFixed(1)}
+                </span>
+                <Star className="h-4 w-4 fill-yellow-400 text-yellow-400" />
+              </div>
+            </div>
+            
+            <div className="flex flex-col">
+              <span className="text-sm text-muted-foreground">Response Time</span>
+              <span className="text-lg font-medium">
+                {workerData.metrics.responseTime < 1 
+                  ? `${Math.round(workerData.metrics.responseTime * 60)} min` 
+                  : `${workerData.metrics.responseTime.toFixed(1)} hrs`}
+              </span>
+            </div>
+          </div>
+
+          {/* Skills section */}
+          <div className="mb-4">
+            <h3 className="text-sm font-medium mb-2">Skills</h3>
+            <div className="flex flex-wrap gap-2">
+              {workerData.skills.map((skill, index) => (
+                <Badge key={index} variant="secondary">
+                  {skill}
+                </Badge>
+              ))}
+            </div>
+          </div>
+
+          {/* Top categories */}
+          {Object.keys(workerData.metrics.categoryCounts).length > 0 && (
+            <div>
+              <h3 className="text-sm font-medium mb-2">Top Categories</h3>
+              <div className="flex flex-wrap gap-2">
+                {Object.entries(workerData.metrics.categoryCounts)
+                  .sort((a, b) => b[1] - a[1])
+                  .slice(0, 3)
+                  .map(([category, count]) => (
+                    <Badge key={category} variant="outline" className="flex items-center gap-1">
+                      <BriefcaseIcon className="h-3 w-3" />
+                      {category}
+                      <span className="ml-1 text-xs bg-primary/10 px-1.5 py-0.5 rounded-full">
+                        {count}
+                      </span>
+                    </Badge>
+                  ))}
+              </div>
             </div>
           )}
+        </CardContent>
+      </Card>
 
-          <Separator className="my-2" />
-          
-          <Tabs defaultValue="overview" value={activeTab} onValueChange={setActiveTab} className="mt-6">
-            <TabsList className="grid grid-cols-3">
-              <TabsTrigger value="overview">Overview</TabsTrigger>
-              <TabsTrigger value="jobs">Job History</TabsTrigger>
-              <TabsTrigger value="reviews">Reviews</TabsTrigger>
+      {/* Badges Section */}
+      {workerData.metrics.earnedBadges.length > 0 && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-base flex items-center">
+              <Award className="h-5 w-5 mr-2" />
+              Earned Badges
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="flex flex-wrap gap-3">
+              {workerData.metrics.earnedBadges.map((badge, index) => (
+                <Badge key={index} className="py-1.5 px-3">
+                  <Award className="h-3.5 w-3.5 mr-1.5" />
+                  {badge}
+                </Badge>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Job History Tabs */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base">Job History</CardTitle>
+          <CardDescription>
+            {workerData.metrics.totalJobs} total jobs • ${workerData.metrics.totalEarnings.toFixed(2)} total earnings
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="pb-0">
+          <Tabs defaultValue="all">
+            <TabsList className="mb-4">
+              <TabsTrigger value="all">
+                All Jobs ({workerData.jobs.length})
+              </TabsTrigger>
+              <TabsTrigger value="completed">
+                Completed ({completedJobs.length})
+              </TabsTrigger>
+              <TabsTrigger value="in_progress">
+                In Progress ({inProgressJobs.length})
+              </TabsTrigger>
+              <TabsTrigger value="canceled">
+                Canceled ({canceledJobs.length})
+              </TabsTrigger>
             </TabsList>
-            
-            {/* Overview Tab */}
-            <TabsContent value="overview" className="space-y-4 pt-4">
-              {/* Performance metrics */}
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-                <div className="rounded-lg border p-3">
-                  <div className="text-sm text-muted-foreground mb-1">Completed Jobs</div>
-                  <div className="flex items-center">
-                    <BriefcaseBusiness className="h-5 w-5 mr-1 text-blue-500" />
-                    <span className="text-lg font-semibold">{metrics.completedJobs}</span>
-                  </div>
-                </div>
-                
-                <div className="rounded-lg border p-3">
-                  <div className="text-sm text-muted-foreground mb-1">Success Rate</div>
-                  <div>
-                    <div className="flex justify-between items-center mb-1">
-                      <span className="text-lg font-semibold">{metrics.successRate}%</span>
-                    </div>
-                    <Progress value={metrics.successRate} className="h-2" />
-                  </div>
-                </div>
-                
-                <div className="rounded-lg border p-3">
-                  <div className="text-sm text-muted-foreground mb-1">Rating</div>
-                  <div>
-                    {renderStars(metrics.averageRating)}
-                  </div>
-                </div>
-                
-                <div className="rounded-lg border p-3">
-                  <div className="text-sm text-muted-foreground mb-1">Response Time</div>
-                  <div className="flex items-center">
-                    <Clock className="h-5 w-5 mr-1 text-blue-500" />
-                    <span className="text-lg font-semibold">{metrics.responseTime} min</span>
-                  </div>
-                </div>
-              </div>
-              
-              {/* Top categories/expertise */}
-              {metrics.topCategories.length > 0 && (
-                <div className="rounded-lg border p-4">
-                  <h3 className="text-sm font-medium mb-2">Top Expertise</h3>
-                  <div className="flex flex-wrap gap-2">
-                    {metrics.topCategories.map((category, index) => (
-                      <Badge key={index} variant="secondary" className="text-xs">
-                        <ThumbsUp className="h-3 w-3 mr-1" />
-                        {category}
-                      </Badge>
-                    ))}
-                  </div>
-                </div>
-              )}
-              
-              {/* Latest review */}
-              {hasReviews && (
-                <div className="rounded-lg border p-4">
-                  <div className="flex justify-between items-center mb-2">
-                    <h3 className="text-sm font-medium">Latest Feedback</h3>
-                    <Button 
-                      variant="ghost" 
-                      size="sm"
-                      className="h-6 text-xs"
-                      onClick={() => setActiveTab('reviews')}
-                    >
-                      <Eye className="h-3 w-3 mr-1" />
-                      View All
-                    </Button>
-                  </div>
-                  
-                  <div className="bg-muted/30 rounded-md p-3">
-                    <div className="flex justify-between items-start">
-                      <div className="font-medium">{reviews[0].title || 'Job Review'}</div>
-                      <div>{renderStars(reviews[0].rating)}</div>
-                    </div>
-                    <p className="text-sm mt-1">{reviews[0].comment || reviews[0].content}</p>
-                    <div className="text-xs text-muted-foreground mt-2">
-                      {formatDateSafely(reviews[0].dateCreated || reviews[0].dateReviewed)}
-                    </div>
-                  </div>
-                </div>
-              )}
-              
-              {!hasPastJobs && !hasReviews && (
-                <div className="bg-yellow-50 dark:bg-yellow-900/20 rounded-lg p-3 flex items-start gap-2">
-                  <AlertTriangle className="h-5 w-5 text-yellow-600 dark:text-yellow-500 mt-0.5" />
-                  <div className="text-sm text-yellow-700 dark:text-yellow-400">
-                    This worker has not completed any jobs or received reviews yet.
-                  </div>
-                </div>
-              )}
-            </TabsContent>
-            
-            {/* Jobs Tab */}
-            <TabsContent value="jobs" className="space-y-4 pt-4">
-              <h3 className="text-sm font-medium mb-2">Completed Jobs</h3>
-              
-              {!hasPastJobs && (
-                <div className="text-center py-6 text-sm text-muted-foreground">
-                  No completed jobs yet
-                </div>
-              )}
-              
-              {hasPastJobs && (
-                <div className="space-y-3">
-                  {pastJobs.map((job) => renderJobDetails(job))}
-                </div>
-              )}
-            </TabsContent>
-            
-            {/* Reviews Tab */}
-            <TabsContent value="reviews" className="space-y-4 pt-4">
-              <h3 className="text-sm font-medium mb-2">Client Reviews</h3>
-              
-              {!hasReviews && (
-                <div className="text-center py-6 text-sm text-muted-foreground">
-                  No reviews yet
-                </div>
-              )}
-              
-              {hasReviews && (
-                <div className="space-y-3">
-                  {reviews.map((review) => (
-                    <div key={review.id} className="rounded-lg border p-3">
-                      <div className="flex justify-between items-start">
-                        <div className="font-medium">{review.title || 'Job Review'}</div>
-                        <div>{renderStars(review.rating)}</div>
-                      </div>
-                      <p className="text-sm mt-1">{review.comment || review.content}</p>
-                      <div className="text-xs text-muted-foreground mt-2">
-                        {formatDateSafely(review.dateCreated || review.dateReviewed)}
-                      </div>
-                    </div>
+
+            <TabsContent value="all" className="mt-0">
+              {workerData.jobs.length > 0 ? (
+                <div className="max-h-96 overflow-y-auto pr-2">
+                  {workerData.jobs.map(job => (
+                    <JobListItem key={job.id} job={job} />
                   ))}
                 </div>
+              ) : (
+                <p className="text-center py-8 text-muted-foreground">No jobs found.</p>
+              )}
+            </TabsContent>
+
+            <TabsContent value="completed" className="mt-0">
+              {completedJobs.length > 0 ? (
+                <div className="max-h-96 overflow-y-auto pr-2">
+                  {completedJobs.map(job => (
+                    <JobListItem key={job.id} job={job} />
+                  ))}
+                </div>
+              ) : (
+                <p className="text-center py-8 text-muted-foreground">No completed jobs found.</p>
+              )}
+            </TabsContent>
+
+            <TabsContent value="in_progress" className="mt-0">
+              {inProgressJobs.length > 0 ? (
+                <div className="max-h-96 overflow-y-auto pr-2">
+                  {inProgressJobs.map(job => (
+                    <JobListItem key={job.id} job={job} />
+                  ))}
+                </div>
+              ) : (
+                <p className="text-center py-8 text-muted-foreground">No in-progress jobs found.</p>
+              )}
+            </TabsContent>
+
+            <TabsContent value="canceled" className="mt-0">
+              {canceledJobs.length > 0 ? (
+                <div className="max-h-96 overflow-y-auto pr-2">
+                  {canceledJobs.map(job => (
+                    <JobListItem key={job.id} job={job} />
+                  ))}
+                </div>
+              ) : (
+                <p className="text-center py-8 text-muted-foreground">No canceled jobs found.</p>
               )}
             </TabsContent>
           </Tabs>
@@ -462,6 +408,4 @@ const WorkerHistory: React.FC<WorkerHistoryProps> = ({ workerId, className, onHi
       </Card>
     </div>
   );
-};
-
-export default WorkerHistory;
+}
