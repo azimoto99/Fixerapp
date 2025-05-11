@@ -181,15 +181,20 @@ export default function PaymentsPage() {
                         </AlertDialogHeader>
                         
                         <div className="py-4">
-                          <JobPaymentForm 
-                            jobId={9} // This would be dynamic in a real implementation
-                            onSuccess={() => {
-                              toast({
-                                title: "Payment Successful",
-                                description: "Your payment has been processed successfully.",
-                              });
-                            }}
-                          />
+                          {/* Dynamic job payment form with job selector */}
+                          <div className="space-y-4">
+                            <p className="text-sm text-muted-foreground">
+                              Select a job to pay for:
+                            </p>
+                            <JobPaymentForm 
+                              onSuccess={() => {
+                                toast({
+                                  title: "Payment Successful",
+                                  description: "Your payment has been processed successfully.",
+                                });
+                              }}
+                            />
+                          </div>
                         </div>
                         
                         <AlertDialogFooter>
@@ -207,7 +212,6 @@ export default function PaymentsPage() {
                     </p>
                     
                     <StripeTransferForm
-                      workerId={1} // This would be dynamic in a real implementation
                       onSuccess={() => {
                         toast({
                           title: "Transfer Successful",

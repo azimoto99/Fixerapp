@@ -133,7 +133,7 @@ function CheckoutForm({ clientSecret, paymentIntentId, onSuccess }: CheckoutForm
 }
 
 interface JobPaymentFormProps {
-  jobId: number;
+  jobId?: number;
   workerId?: number;
   initialAmount?: number;
   onSuccess?: () => void;
@@ -155,14 +155,36 @@ export default function JobPaymentForm({
   const [paymentSuccess, setPaymentSuccess] = useState(false);
   const { toast } = useToast();
   
-  // Fetch job details to get worker info if not provided
-  const { data: jobData, isLoading: isLoadingJob } = useQuery({
-    queryKey: ['/api/jobs', jobId],
+  // Fetch available jobs for selection when no jobId is provided
+  const { data: availableJobs, isLoading: isLoadingAvailableJobs } = useQuery({
+    queryKey: ['/api/jobs', { status: 'completed' }],
     queryFn: async () => {
-      const res = await apiRequest('GET', `/api/jobs/${jobId}`);
+      if (jobId) return { data: [] }; // Skip if jobId is provided
+      const res = await apiRequest('GET', '/api/jobs?status=completed');
+      if (!res.ok) {
+        if (res.status === 404) return { data: [] };
+        throw new Error('Failed to fetch jobs');
+      }
+      return res.json();
+    },
+    enabled: !jobId, // Only run if no jobId is provided
+  });
+  
+  // Selected job state
+  const [selectedJobId, setSelectedJobId] = useState<number | undefined>(jobId);
+  
+  // Fetch job details to get worker info based on selected or provided jobId
+  const { data: jobData, isLoading: isLoadingJob } = useQuery({
+    queryKey: ['/api/jobs', selectedJobId || jobId],
+    queryFn: async () => {
+      const effectiveJobId = selectedJobId || jobId;
+      if (!effectiveJobId) return null;
+      
+      const res = await apiRequest('GET', `/api/jobs/${effectiveJobId}`);
       if (!res.ok) throw new Error('Failed to fetch job details');
       return res.json();
-    }
+    },
+    enabled: !!(selectedJobId || jobId) // Only run if we have a jobId
   });
   
   // Get worker ID from job if not provided
@@ -178,16 +200,29 @@ export default function JobPaymentForm({
     resolver: zodResolver(jobPaymentSchema),
     defaultValues: {
       amount: initialAmount || 0,
-      description: `Payment for Job #${jobId}`,
+      description: jobId 
+        ? `Payment for Job #${jobId}` 
+        : selectedJobId 
+          ? `Payment for Job #${selectedJobId}` 
+          : 'Payment for services',
     },
   });
+  
+  // Update description when job selection changes
+  useEffect(() => {
+    if (selectedJobId) {
+      form.setValue('description', `Payment for Job #${selectedJobId}`);
+    }
+  }, [selectedJobId, form]);
   
   // Create payment intent mutation
   const createPaymentIntentMutation = useMutation({
     mutationFn: async (data: JobPaymentFormValues) => {
+      const effectiveJobId = jobId || selectedJobId;
+      
       const payload = {
         ...data,
-        jobId,
+        jobId: effectiveJobId,
         workerId: workerId || jobData?.workerId,
       };
       
@@ -294,14 +329,44 @@ export default function JobPaymentForm({
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Payment for Job #{jobId}</CardTitle>
+        <CardTitle>
+          {jobId ? (
+            `Payment for Job #${jobId}`
+          ) : selectedJobId ? (
+            `Payment for Job #${selectedJobId}`
+          ) : (
+            'Create a Payment'
+          )}
+        </CardTitle>
         <CardDescription>
-          Enter payment details for your job
+          {jobId || selectedJobId ? 'Enter payment details for your job' : 'Select a job and enter payment details'}
         </CardDescription>
       </CardHeader>
       <CardContent>
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+            {!jobId && (
+              <div className="mb-4">
+                <label className="text-sm font-medium">
+                  Select a Job
+                </label>
+                <select 
+                  className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                  value={selectedJobId || ''}
+                  onChange={(e) => setSelectedJobId(e.target.value ? Number(e.target.value) : undefined)}
+                >
+                  <option value="">Select a job</option>
+                  {availableJobs?.map((job: any) => (
+                    <option key={job.id} value={job.id}>
+                      {job.title} {job.status === 'completed' ? '(Completed)' : ''}
+                    </option>
+                  ))}
+                </select>
+                <p className="text-sm text-muted-foreground mt-1">
+                  Select the job you want to pay for
+                </p>
+              </div>
+            )}
             <FormField
               control={form.control}
               name="amount"
