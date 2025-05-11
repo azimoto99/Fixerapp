@@ -381,7 +381,7 @@ export default function ApplicationsManager({
       setProcessingId(applicationId);
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['/api/applications', jobId] });
+      queryClient.invalidateQueries({ queryKey: ['/api/applications', effectiveJobId] });
       toast({
         title: 'Application declined',
         description: 'The worker has been notified.',
