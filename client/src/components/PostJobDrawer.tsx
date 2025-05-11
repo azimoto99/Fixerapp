@@ -31,11 +31,14 @@ import TaskEditor, { Task } from '@/components/TaskEditor';
 
 // Form schema with validation
 const formSchema = insertJobSchema.extend({
+  title: z.string().min(5, 'Title must be at least 5 characters'),
+  description: z.string().min(10, 'Description must be at least 10 characters'),
   paymentAmount: z.coerce
     .number()
     .min(10, 'Minimum payment amount is $10')
     .positive('Payment amount must be positive'),
   dateNeeded: z.string(),
+  paymentMethodId: z.string().optional(),
 });
 
 interface PostJobDrawerProps {
