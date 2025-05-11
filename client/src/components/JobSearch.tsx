@@ -1,4 +1,4 @@
-import React, { useState, useCallback, memo, useRef } from 'react';
+import { useState, useCallback, memo, useRef } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Slider } from '@/components/ui/slider';
@@ -166,9 +166,11 @@ const JobSearch: React.FC<JobSearchProps> = memo(({ onSearch }) => {
         category: selectedCategory, 
         searchMode,
         // Pass existing coordinates if we have them and are in location mode
-        ...(searchMode === 'location' && locationCoordinates && {
-          coordinates: locationCoordinates,
-          radiusMiles
+        ...(searchMode === 'location' && lastSearchLocation && {
+          coordinates: {
+            latitude: 0, // We'd use stored coordinates in a real implementation
+            longitude: 0
+          }
         })
       });
     }, 100);

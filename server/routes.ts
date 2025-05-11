@@ -2402,8 +2402,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Payment methods endpoints
   apiRouter.get("/payment-methods", isAuthenticated, async (req: Request, res: Response) => {
     try {
-      if (!req.user?.stripeCustomerId) {
-        return res.json({ paymentMethods: [] });
+      if (!req.user.stripeCustomerId) {
+        return res.json([]);
       }
       
       const paymentMethods = await stripe.paymentMethods.list({
@@ -2411,30 +2411,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
         type: 'card',
       });
       
-      // Get the customer to check which payment method is default
-      const customer = await stripe.customers.retrieve(req.user.stripeCustomerId);
-      const defaultPaymentMethodId = typeof customer === 'object' && !('deleted' in customer) 
-        ? customer.invoice_settings?.default_payment_method
-        : null;
-      
-      // Add isDefault flag to payment methods
-      const enhancedPaymentMethods = paymentMethods.data.map(method => ({
-        ...method,
-        isDefault: method.id === defaultPaymentMethodId
-      }));
-      
-      res.json({ paymentMethods: enhancedPaymentMethods });
+      res.json(paymentMethods.data);
     } catch (error) {
       console.error('Error fetching payment methods:', error);
       res.status(500).json({ message: (error as Error).message });
     }
   });
   
-  apiRouter.post("/payment-methods/default/:id", isAuthenticated, async (req: Request, res: Response) => {
+  apiRouter.post("/payment-methods/:id/set-default", isAuthenticated, async (req: Request, res: Response) => {
     try {
       const paymentMethodId = req.params.id;
       
-      if (!req.user?.stripeCustomerId) {
+      if (!req.user.stripeCustomerId) {
         return res.status(400).json({ message: "No Stripe customer ID found" });
       }
       
@@ -2467,7 +2455,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
   
-  apiRouter.post("/create-setup-intent", isAuthenticated, async (req: Request, res: Response) => {
+  apiRouter.post("/stripe/create-setup-intent", isAuthenticated, async (req: Request, res: Response) => {
     try {
       // Make sure we have a customer ID
       let customerId = req.user.stripeCustomerId;

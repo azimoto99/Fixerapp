@@ -1,11 +1,11 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { Link, useLocation } from 'wouter';
 import { useQuery } from '@tanstack/react-query';
 import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/hooks/use-toast';
 import { apiRequest } from '@/lib/queryClient';
 import { Award, Edit, Wallet, DollarSign } from 'lucide-react';
-// import StripeConnectSetup from '@/components/stripe/StripeConnectSetup';
+import StripeConnectSetup from '@/components/stripe/StripeConnectSetup';
 
 import Header from '@/components/Header';
 // Mobile Nav removed as requested
@@ -157,13 +157,13 @@ export default function Profile() {
                 </TabsTrigger>
                 <TabsTrigger value="payments">
                   <span className="flex items-center gap-1">
-                    <span className="text-sm">💳</span> 
+                    <Wallet className="h-3.5 w-3.5" />
                     Payments
                   </span>
                 </TabsTrigger>
                 <TabsTrigger value="earnings">
                   <span className="flex items-center gap-1">
-                    <span className="text-sm">💰</span>
+                    <DollarSign className="h-3.5 w-3.5" />
                     {user.accountType === 'worker' ? 'Earnings' : 'Income'}
                   </span>
                 </TabsTrigger>
@@ -257,23 +257,8 @@ export default function Profile() {
                       </div>
                     ) : (
                       <div className="space-y-4">
-                        {userJobs.map((job) => (
-                          <div key={job.id} className="border border-border p-4 rounded-md hover:border-primary/50 transition-colors">
-                            <div className="flex justify-between items-start">
-                              <div>
-                                <h3 className="font-medium">{job.title}</h3>
-                                <p className="text-sm text-muted-foreground line-clamp-2 mb-2">{job.description}</p>
-                                <div className="flex items-center space-x-2 text-xs">
-                                  <span className="px-2 py-0.5 bg-secondary rounded-full">{job.category}</span>
-                                  <span className="text-muted-foreground">{job.location}</span>
-                                </div>
-                              </div>
-                              <Link href={`/jobs/${job.id}`}>
-                                <Button size="sm" variant="outline">View Details</Button>
-                              </Link>
-                            </div>
-                          </div>
-                        ))}
+                        {/* This would render list of jobs or applications */}
+                        <p className="text-gray-500 text-center py-4">No data to display</p>
                       </div>
                     )}
                   </CardContent>
@@ -325,6 +310,7 @@ export default function Profile() {
                       <div className="space-y-2">
                         <h3 className="text-sm font-medium text-gray-500 mb-4">Recent Transactions</h3>
                         
+                        {/* Add some sample payments with future pagination */}
                         <div className="rounded-md border">
                           <div className="divide-y">
                             <div className="flex items-center justify-between p-4">

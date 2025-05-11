@@ -195,57 +195,22 @@ const StripeConnectSetup: React.FC<StripeConnectSetupProps> = ({ compact = false
   // Get status badge props based on account status
   const getStatusBadge = () => {
     if (!accountStatus) {
-      return { 
-        text: 'Not Connected', 
-        variant: 'outline', 
-        iconComponent: XCircle,
-        iconProps: { className: "h-4 w-4 mr-1" }
-      };
+      return { text: 'Not Connected', variant: 'outline', icon: <XCircle className="h-4 w-4 mr-1" /> };
     }
     
     switch (accountStatus.accountStatus) {
       case 'active':
-        return { 
-          text: 'Active', 
-          variant: 'default', 
-          iconComponent: CheckCircle,
-          iconProps: { className: "h-4 w-4 mr-1" }
-        };
+        return { text: 'Active', variant: 'default', icon: <CheckCircle className="h-4 w-4 mr-1" /> };
       case 'incomplete':
-        return { 
-          text: 'Incomplete', 
-          variant: 'warning', 
-          iconComponent: AlertCircle,
-          iconProps: { className: "h-4 w-4 mr-1" }
-        };
+        return { text: 'Incomplete', variant: 'warning', icon: <AlertCircle className="h-4 w-4 mr-1" /> };
       case 'pending':
-        return { 
-          text: 'Pending Verification', 
-          variant: 'secondary', 
-          iconComponent: Loader2,
-          iconProps: { className: "h-4 w-4 mr-1 animate-spin" }
-        };
+        return { text: 'Pending Verification', variant: 'secondary', icon: <Loader2 className="h-4 w-4 mr-1 animate-spin" /> };
       case 'restricted':
-        return { 
-          text: 'Restricted', 
-          variant: 'destructive', 
-          iconComponent: AlertCircle,
-          iconProps: { className: "h-4 w-4 mr-1" }
-        };
+        return { text: 'Restricted', variant: 'destructive', icon: <AlertCircle className="h-4 w-4 mr-1" /> };
       case 'disabled':
-        return { 
-          text: 'Disabled', 
-          variant: 'destructive', 
-          iconComponent: XCircle,
-          iconProps: { className: "h-4 w-4 mr-1" }
-        };
+        return { text: 'Disabled', variant: 'destructive', icon: <XCircle className="h-4 w-4 mr-1" /> };
       default:
-        return { 
-          text: accountStatus.accountStatus, 
-          variant: 'outline', 
-          iconComponent: AlertCircle,
-          iconProps: { className: "h-4 w-4 mr-1" }
-        };
+        return { text: accountStatus.accountStatus, variant: 'outline', icon: <AlertCircle className="h-4 w-4 mr-1" /> };
     }
   };
   
@@ -266,7 +231,7 @@ const StripeConnectSetup: React.FC<StripeConnectSetupProps> = ({ compact = false
           <div className="flex justify-between items-center">
             <CardTitle className="text-lg">Payment Account</CardTitle>
             <Badge variant={statusBadge.variant as any} className="flex items-center">
-              {statusBadge.iconComponent && <statusBadge.iconComponent className="h-4 w-4 mr-1" />}
+              {statusBadge.icon}
               {statusBadge.text}
             </Badge>
           </div>
@@ -341,15 +306,12 @@ const StripeConnectSetup: React.FC<StripeConnectSetupProps> = ({ compact = false
       <CardHeader>
         <div className="flex justify-between items-center">
           <CardTitle>Stripe Connect Account</CardTitle>
-          {!isLoading && (() => {
-            const badge = getStatusBadge();
-            return (
-              <Badge variant={badge.variant as any} className="flex items-center">
-                {badge.iconComponent && <badge.iconComponent className="h-4 w-4 mr-1" />}
-                {badge.text}
-              </Badge>
-            );
-          })()}
+          {!isLoading && (
+            <Badge variant={getStatusBadge().variant as any} className="flex items-center">
+              {getStatusBadge().icon}
+              {getStatusBadge().text}
+            </Badge>
+          )}
         </div>
         <CardDescription>
           Your payment account status and details
@@ -450,7 +412,7 @@ const StripeConnectSetup: React.FC<StripeConnectSetupProps> = ({ compact = false
                 <div className="border rounded-md p-3 mt-4 bg-muted/40">
                   <h4 className="text-sm font-medium mb-2">Requirements</h4>
                   
-                  {accountStatus.requirements.currentlyDue && accountStatus.requirements.currentlyDue.length > 0 && (
+                  {accountStatus.requirements.currentlyDue?.length > 0 && (
                     <div className="mb-3">
                       <div className="text-xs font-medium text-amber-600 mb-1">Currently Due:</div>
                       <ul className="text-xs list-disc list-inside space-y-1 text-muted-foreground">
@@ -477,7 +439,7 @@ const StripeConnectSetup: React.FC<StripeConnectSetupProps> = ({ compact = false
                     </div>
                   )}
                   
-                  {accountStatus.requirements.eventuallyDue && accountStatus.requirements.eventuallyDue.length > 0 && (
+                  {accountStatus.requirements.eventuallyDue?.length > 0 && (
                     <div className="mb-3">
                       <div className="text-xs font-medium text-blue-600 mb-1">Eventually Due:</div>
                       <ul className="text-xs list-disc list-inside space-y-1 text-muted-foreground">
@@ -504,7 +466,7 @@ const StripeConnectSetup: React.FC<StripeConnectSetupProps> = ({ compact = false
                     </div>
                   )}
                   
-                  {accountStatus.requirements.pendingVerification && accountStatus.requirements.pendingVerification.length > 0 && (
+                  {accountStatus.requirements.pendingVerification?.length > 0 && (
                     <div>
                       <div className="text-xs font-medium text-orange-600 mb-1">Pending Verification:</div>
                       <ul className="text-xs list-disc list-inside space-y-1 text-muted-foreground">

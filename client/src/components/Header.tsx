@@ -15,7 +15,6 @@ import {
 import { ThemeToggle } from '@/components/theme';
 import { NotificationPopover } from '@/components/notifications';
 import UserDrawerV2 from '@/components/UserDrawerV2';
-import logoImg from '@/assets/logo.png';
 
 const Header = () => {
   const { user, logoutMutation } = useAuth();
@@ -31,7 +30,10 @@ const Header = () => {
         <div className="flex items-center">
           <Link href="/">
             <div className="flex-shrink-0 flex items-center cursor-pointer">
-              <img src={logoImg} alt="Fixer Logo" className="h-10 w-auto" />
+              <svg className="h-8 w-8 text-emerald-600" viewBox="0 0 24 24" fill="currentColor">
+                <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"></path>
+              </svg>
+              <span className="ml-2 text-xl font-bold text-emerald-600">Fixer</span>
             </div>
           </Link>
           <nav className="hidden md:ml-8 md:flex md:space-x-8">
