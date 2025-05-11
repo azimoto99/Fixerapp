@@ -424,8 +424,13 @@ export default function PostJobDrawer({ isOpen, onOpenChange }: PostJobDrawerPro
         
         <DrawerFooter className="border-t border-border">
           <Button 
-            form="post-job-form"
-            type="submit"
+            onClick={() => {
+              console.log('Post Job button clicked directly');
+              // Find and submit the form
+              document.getElementById('post-job-form')?.dispatchEvent(
+                new Event('submit', { cancelable: true, bubbles: true })
+              );
+            }}
             className="bg-primary text-primary-foreground hover:bg-primary/90" 
             disabled={isSubmitting}
           >
