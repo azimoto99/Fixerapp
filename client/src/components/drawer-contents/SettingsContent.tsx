@@ -104,20 +104,20 @@ const SettingsContent: React.FC<SettingsContentProps> = ({ user }) => {
         className="space-y-4"
       >
         <TabsList className="grid grid-cols-4 w-full">
-          <TabsTrigger value="notifications">
-            <Bell className="h-4 w-4 mr-2" />
+          <TabsTrigger value="notifications" className="text-xs">
+            <Bell className="h-4 w-4 mr-1" />
             Notifications
           </TabsTrigger>
-          <TabsTrigger value="privacy">
-            <Shield className="h-4 w-4 mr-2" />
+          <TabsTrigger value="privacy" className="text-xs">
+            <Shield className="h-4 w-4 mr-1" />
             Privacy
           </TabsTrigger>
-          <TabsTrigger value="appearance">
-            <Palette className="h-4 w-4 mr-2" />
+          <TabsTrigger value="appearance" className="text-xs">
+            <Palette className="h-4 w-4 mr-1" />
             Appearance
           </TabsTrigger>
-          <TabsTrigger value="data">
-            <Download className="h-4 w-4 mr-2" />
+          <TabsTrigger value="data" className="text-xs">
+            <Download className="h-4 w-4 mr-1" />
             Data
           </TabsTrigger>
         </TabsList>

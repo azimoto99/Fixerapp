@@ -226,8 +226,8 @@ export default function StripeConnectSetup() {
   return (
     <Tabs value={activeTab} onValueChange={setActiveTab} className="max-w-3xl mx-auto">
       <TabsList className="grid w-full grid-cols-2 mb-4">
-        <TabsTrigger value="setup">Stripe Connect Setup</TabsTrigger>
-        <TabsTrigger value="dashboard" disabled={!hasConnectAccount}>Account Dashboard</TabsTrigger>
+        <TabsTrigger value="setup" className="text-xs">Stripe Connect Setup</TabsTrigger>
+        <TabsTrigger value="dashboard" disabled={!hasConnectAccount} className="text-xs">Account Dashboard</TabsTrigger>
       </TabsList>
       
       <TabsContent value="setup">

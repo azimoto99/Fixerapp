@@ -173,28 +173,28 @@ const EarningsContent: React.FC<EarningsContentProps> = ({ userId }) => {
             <TabsTrigger 
               value="week" 
               onClick={() => setTimeframe('week')}
-              className={timeframe === 'week' ? 'bg-primary text-white' : ''}
+              className={`text-xs ${timeframe === 'week' ? 'bg-primary text-white' : ''}`}
             >
               Week
             </TabsTrigger>
             <TabsTrigger 
               value="month"
               onClick={() => setTimeframe('month')}
-              className={timeframe === 'month' ? 'bg-primary text-white' : ''}
+              className={`text-xs ${timeframe === 'month' ? 'bg-primary text-white' : ''}`}
             >
               Month
             </TabsTrigger>
             <TabsTrigger 
               value="year"
               onClick={() => setTimeframe('year')}
-              className={timeframe === 'year' ? 'bg-primary text-white' : ''}
+              className={`text-xs ${timeframe === 'year' ? 'bg-primary text-white' : ''}`}
             >
               Year
             </TabsTrigger>
             <TabsTrigger 
               value="all"
               onClick={() => setTimeframe('all')}
-              className={timeframe === 'all' ? 'bg-primary text-white' : ''}
+              className={`text-xs ${timeframe === 'all' ? 'bg-primary text-white' : ''}`}
             >
               All
             </TabsTrigger>
