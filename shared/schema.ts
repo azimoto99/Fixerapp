@@ -129,27 +129,38 @@ export const tasks = pgTable("tasks", {
 export const earnings = pgTable("earnings", {
   id: serial("id").primaryKey(),
   workerId: integer("worker_id").notNull(), // References users.id
-  jobId: integer("job_id").notNull(), // References jobs.id
-  amount: doublePrecision("amount").notNull(), // Amount earned for this job
+  jobId: integer("job_id"), // References jobs.id (optional for non-job earnings)
+  amount: doublePrecision("amount").notNull(), // Total amount earned before fees
   serviceFee: doublePrecision("service_fee").notNull().default(2.5), // Service fee amount
   netAmount: doublePrecision("net_amount").notNull(), // Net amount after service fee
   status: text("status").notNull().default("pending"), // "pending", "paid", "cancelled"
   dateEarned: timestamp("date_earned").defaultNow(), // When the job was completed
   datePaid: timestamp("date_paid"), // When the worker was paid
+  transactionId: text("transaction_id"), // Stripe transfer ID or other payment processor ID
+  paymentId: integer("payment_id"), // References the associated payment record
+  stripeAccountId: text("stripe_account_id"), // Worker's Stripe Connect account ID
+  description: text("description"), // Description of the earnings
+  metadata: jsonb("metadata"), // Additional data about the earnings
 });
 
 // Payments table to track payment transactions
 export const payments = pgTable("payments", {
   id: serial("id").primaryKey(),
-  userId: integer("user_id").notNull(), // References users.id (can be worker or poster)
+  userId: integer("user_id").notNull(), // References users.id (payer - usually job poster)
+  workerId: integer("worker_id"), // References users.id (payee - usually worker)
   amount: doublePrecision("amount").notNull(), // Amount of the payment
-  type: text("type").notNull(), // "payout" (to worker) or "charge" (from poster)
-  status: text("status").notNull(), // "pending", "completed", "failed"
-  paymentMethod: text("payment_method"), // e.g., "bank_transfer", "credit_card"
-  transactionId: text("transaction_id"), // External payment processor ID
+  serviceFee: doublePrecision("service_fee"), // Platform fee amount
+  type: text("type").notNull(), // "payment", "transfer", "refund", "payout"
+  status: text("status").notNull(), // "pending", "processing", "completed", "failed", "refunded"
+  paymentMethod: text("payment_method"), // "card", "bank_account", "stripe", etc.
+  transactionId: text("transaction_id"), // External payment processor ID (Stripe payment/transfer ID)
+  stripePaymentIntentId: text("stripe_payment_intent_id"), // Stripe Payment Intent ID
+  stripeCustomerId: text("stripe_customer_id"), // Customer ID for the payer
+  stripeConnectAccountId: text("stripe_connect_account_id"), // Connect account ID for the worker
   jobId: integer("job_id"), // Optional reference to the related job
   description: text("description"), // Description of the payment
   createdAt: timestamp("created_at").defaultNow(),
+  completedAt: timestamp("completed_at"), // When the payment was completed
   metadata: jsonb("metadata"), // Additional payment data
 });
 
@@ -234,11 +245,15 @@ export const insertEarningSchema = createInsertSchema(earnings).omit({
   dateEarned: true,
   datePaid: true,
   status: true,
+  paymentId: true, // Optional relation to payment
+  metadata: true, // Optional additional data
 });
 
 export const insertPaymentSchema = createInsertSchema(payments).omit({
   id: true,
   createdAt: true,
+  completedAt: true, // Set when payment completes
+  metadata: true, // Optional additional data
 });
 
 export const insertBadgeSchema = createInsertSchema(badges).omit({

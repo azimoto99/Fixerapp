@@ -6,6 +6,9 @@ import Stripe from "stripe";
 import { filterJobContent, validatePaymentAmount } from "./content-filter";
 import stripeRouter from "./api/stripe-api";
 import createPaymentIntentRouter from "./api/stripe-api-create-payment-intent";
+import webhooksRouter from "./api/stripe-webhooks";
+import transfersRouter from "./api/stripe-transfers";
+import "./api/storage-extensions"; // Import to register extended storage methods
 import * as crypto from 'crypto';
 import { 
   insertUserSchema, 
@@ -3345,6 +3348,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
   
   // Use our improved create-payment-intent handler
   app.use("/api/stripe", createPaymentIntentRouter);
+  
+  // Use our webhooks router
+  app.use("/api/stripe", webhooksRouter);
+  
+  // Use our transfers router for Stripe Connect transfers
+  app.use("/api/stripe/transfers", transfersRouter);
 
   const httpServer = createServer(app);
   return httpServer;
