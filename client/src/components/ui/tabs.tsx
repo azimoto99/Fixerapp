@@ -25,7 +25,11 @@ const TabsTrigger = React.forwardRef<
   React.ComponentPropsWithoutRef<typeof TabsPrimitive.Trigger>
 >(({ className, children, ...props }, ref) => {
   // Make sure to properly handle children that might be React elements,
-  // like SVG components from Lucide React
+  // especially SVG components from Lucide React
+  
+  // Ensure children are in an array format to prevent rendering issues with SVG elements
+  const childrenArray = React.Children.toArray(children);
+  
   return (
     <TabsPrimitive.Trigger
       ref={ref}
@@ -35,7 +39,7 @@ const TabsTrigger = React.forwardRef<
       )}
       {...props}
     >
-      {children}
+      {childrenArray}
     </TabsPrimitive.Trigger>
   )
 })
