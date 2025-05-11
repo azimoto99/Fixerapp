@@ -232,7 +232,7 @@ const WorkerHistory: React.FC<WorkerHistoryProps> = ({ workerId, className, onHi
               </div>
               <div className="flex items-center gap-2 text-xs text-muted-foreground mt-1">
                 <Calendar className="h-3 w-3" />
-                <span>Completed {formatDistanceToNow(new Date(job.dateCompleted || job.datePosted), { addSuffix: true })}</span>
+                <span>Completed {formatDateSafely(job.dateCompleted || job.datePosted)}</span>
               </div>
             </div>
             <CollapsibleTrigger asChild>
@@ -397,7 +397,7 @@ const WorkerHistory: React.FC<WorkerHistoryProps> = ({ workerId, className, onHi
                     </div>
                     <p className="text-sm mt-1">{reviews[0].comment || reviews[0].content}</p>
                     <div className="text-xs text-muted-foreground mt-2">
-                      {formatDistanceToNow(new Date(reviews[0].dateCreated || reviews[0].dateReviewed || Date.now()), { addSuffix: true })}
+                      {formatDateSafely(reviews[0].dateCreated || reviews[0].dateReviewed)}
                     </div>
                   </div>
                 </div>
@@ -450,7 +450,7 @@ const WorkerHistory: React.FC<WorkerHistoryProps> = ({ workerId, className, onHi
                       </div>
                       <p className="text-sm mt-1">{review.comment || review.content}</p>
                       <div className="text-xs text-muted-foreground mt-2">
-                        {formatDistanceToNow(new Date(review.dateCreated || review.dateReviewed || Date.now()), { addSuffix: true })}
+                        {formatDateSafely(review.dateCreated || review.dateReviewed)}
                       </div>
                     </div>
                   ))}
