@@ -58,11 +58,17 @@ const UserDrawerV2: React.FC<UserDrawerProps> = ({
     }
   }, [externalIsOpen]);
   
-  // Notify parent when drawer state changes
+  // Notify parent when drawer state changes - debounced to avoid quick flickering
   useEffect(() => {
-    if (onDrawerStateChange) {
-      onDrawerStateChange(isOpen);
-    }
+    // Only notify parent about changes after a small delay to avoid rapid state toggling
+    const notifyTimeout = setTimeout(() => {
+      if (onDrawerStateChange) {
+        console.log('UserDrawerV2: Notifying parent of state change:', isOpen);
+        onDrawerStateChange(isOpen);
+      }
+    }, 50);
+    
+    return () => clearTimeout(notifyTimeout);
   }, [isOpen, onDrawerStateChange]);
   
   const drawerRef = useRef<HTMLDivElement>(null);
@@ -142,12 +148,12 @@ const UserDrawerV2: React.FC<UserDrawerProps> = ({
         </div>
       )}
 
-      {/* Drawer overlay and container */}
+      {/* Drawer overlay and container - using higher z-index to appear above map */}
       {isOpen && (
-        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-[999998] animate-in fade-in duration-200">
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-[9999998] animate-in fade-in duration-200">
           <div
             ref={drawerRef}
-            className="fixed top-0 right-0 bottom-0 w-[320px] bg-background shadow-lg z-[999999] transform transition-transform duration-300 animate-in slide-in-from-right overflow-hidden"
+            className="fixed top-0 right-0 bottom-0 w-[320px] bg-background shadow-lg z-[9999999] transform transition-transform duration-300 animate-in slide-in-from-right overflow-hidden"
           >
             {/* Drawer header */}
             <div className="p-4 border-b">

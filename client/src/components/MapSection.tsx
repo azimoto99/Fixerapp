@@ -51,7 +51,13 @@ const MapSection: React.FC<MapSectionProps> = ({ jobs, selectedJob, onSelectJob,
   const [showJobDetail, setShowJobDetail] = useState<boolean>(false);
   const [mapReady, setMapReady] = useState(false);
   const [isApplying, setIsApplying] = useState(false);
+  // Control drawer state with debouncing to prevent rapid toggling
   const [isUserDrawerOpen, setIsUserDrawerOpen] = useState(false);
+  
+  const handleUserDrawerChange = useCallback((isOpen: boolean) => {
+    console.log('MapSection: User drawer state changed to:', isOpen);
+    setIsUserDrawerOpen(isOpen);
+  }, []);
   const [lastSearchLocation, setLastSearchLocation] = useState<LatLngExpression | null>(null);
   const [showStripeConnectRequired, setShowStripeConnectRequired] = useState(false);
   const [mapView, setMapView] = useState<'standard' | 'heatmap'>('standard');
@@ -467,7 +473,7 @@ const MapSection: React.FC<MapSectionProps> = ({ jobs, selectedJob, onSelectJob,
         
 
 
-        {/* Map controls and overlay - fixed actions on top */}
+        {/* Map controls and overlay - fixed actions on top (z-index below drawer) */}
         <div className="absolute top-0 right-0 z-[500] w-full">
           {/* Floating control panel */}
           <div className="bg-background/70 backdrop-blur-md border-b border-border/20 dark:border-border/20 shadow-sm px-4 py-2">
@@ -506,7 +512,7 @@ const MapSection: React.FC<MapSectionProps> = ({ jobs, selectedJob, onSelectJob,
                   <div className="relative">
                     <UserDrawerV2 
                       isOpen={isUserDrawerOpen} 
-                      onDrawerStateChange={(isOpen) => setIsUserDrawerOpen(isOpen)}
+                      onDrawerStateChange={handleUserDrawerChange}
                     >
                       <button 
                         className="bg-primary text-white shadow-md rounded-full w-10 h-10 flex items-center justify-center transform transition-all hover:scale-105 active:scale-95 p-0 relative"
