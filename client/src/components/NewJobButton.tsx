@@ -1,12 +1,14 @@
-import { Link } from 'wouter';
+import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/hooks/use-auth';
 import { Plus } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import PostJobDrawer from './PostJobDrawer';
 
 const NewJobButton: React.FC = () => {
   const { user } = useAuth();
   const { toast } = useToast();
+  const [isDrawerOpen, setIsDrawerOpen] = useState(false);
 
   const handleClick = (e: React.MouseEvent) => {
     if (!user) {
@@ -16,12 +18,19 @@ const NewJobButton: React.FC = () => {
         description: "Please login to post a job",
         variant: "destructive"
       });
+    } else {
+      setIsDrawerOpen(true);
     }
   };
   
   return (
-    <div className="fixed right-6 bottom-24 md:bottom-12 z-[1000]">
-      <Link href="/jobs/post">
+    <>
+      <PostJobDrawer 
+        isOpen={isDrawerOpen} 
+        onOpenChange={setIsDrawerOpen}
+      />
+      
+      <div className="fixed right-6 bottom-24 md:bottom-12 z-[1000]">
         <Button 
           size="lg"
           onClick={handleClick}
@@ -32,8 +41,8 @@ const NewJobButton: React.FC = () => {
           <Plus className="h-6 w-6" />
           <span className="text-base">Post Job</span>
         </Button>
-      </Link>
-    </div>
+      </div>
+    </>
   );
 };
 
