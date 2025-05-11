@@ -88,8 +88,8 @@ const WorkerDashboard = () => {
     if (!showPostedJobs) return null;
     
     return (
-      <div className="absolute top-0 right-0 h-full w-80 bg-card shadow-lg z-[1000] transform transition-transform duration-300 animate-in slide-in-from-right">
-        {/* X button in top-right corner - circular with no text */}
+      <div className="fixed top-0 right-0 h-full w-80 bg-card shadow-lg z-[var(--z-drawer)] transform transition-transform duration-300 animate-in slide-in-from-right">
+        {/* X button on the left side */}
         <button 
           onClick={togglePostedJobs}
           className="absolute -left-12 top-4 bg-primary text-white shadow-lg rounded-full w-10 h-10 flex items-center justify-center transform transition-all hover:scale-105 active:scale-95 p-0"
@@ -151,7 +151,7 @@ const WorkerDashboard = () => {
   // My Posted Jobs button - positioned 80px from right (30px more to the left)
   const PostedJobsButton = () => {
     return (
-      <div className="absolute top-4 right-[calc(4rem+80px)] z-[900]">
+      <div className="fixed top-4 right-4 z-[var(--z-controls)]">
         <Button 
           onClick={togglePostedJobs}
           className="bg-primary text-white shadow-lg rounded-full w-10 h-10 flex items-center justify-center transition-all hover:scale-105 active:scale-95 p-0"
