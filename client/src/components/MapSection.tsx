@@ -253,8 +253,14 @@ const MapSection: React.FC<MapSectionProps> = ({ jobs, selectedJob, onSelectJob,
           onSkip={() => setShowStripeConnectRequired(false)}
         />
       )}
-      <div className="relative h-screen max-h-[calc(100vh-64px)] overflow-hidden">
+      <div className="relative h-screen max-h-[calc(100vh-64px)] overflow-hidden" style={{ zIndex: 1 }}>
         <style>{`
+          /* Force map container below all other elements */
+          #map-container {
+            z-index: 1 !important;
+            position: relative;
+          }
+          
           .leaflet-container {
             height: 100%;
             width: 100%;
@@ -394,6 +400,7 @@ const MapSection: React.FC<MapSectionProps> = ({ jobs, selectedJob, onSelectJob,
         
         {position && (
           <MapContainer 
+            id="map-container"
             center={position as [number, number]} 
             zoom={15} 
             zoomControl={false}
@@ -403,6 +410,7 @@ const MapSection: React.FC<MapSectionProps> = ({ jobs, selectedJob, onSelectJob,
             scrollWheelZoom={false}
             touchZoom={true}
             className="mobile-optimized-map"
+            style={{ zIndex: 1 }}
           >
             <TileLayer
               attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>'
