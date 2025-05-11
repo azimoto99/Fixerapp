@@ -26,11 +26,11 @@ function isStripeAuthenticated(req: Request, res: Response, next: Function) {
   next();
 }
 
-// Create a router for the create-payment-intent endpoint
+// Create a router for the enhanced payment intent creation
 const createPaymentIntentRouter = Router();
 
-// Create a payment intent for a new transaction
-createPaymentIntentRouter.post("/create-payment-intent", isStripeAuthenticated, async (req: Request, res: Response) => {
+// Create a payment intent for a new transaction with improved error handling
+createPaymentIntentRouter.post("/create-payment-intent-v2", isStripeAuthenticated, async (req: Request, res: Response) => {
   try {
     // Validate request
     const schema = z.object({

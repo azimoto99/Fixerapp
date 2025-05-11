@@ -84,7 +84,7 @@ export default function StripeTester() {
 
     setIsLoading(true);
     try {
-      const response = await apiRequest("POST", "/api/stripe/create-payment-intent", {
+      const response = await apiRequest("POST", "/api/stripe/create-payment-intent-v2", {
         amount,
         description: "Test payment from Stripe Tester"
       });
