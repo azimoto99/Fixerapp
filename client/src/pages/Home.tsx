@@ -353,36 +353,64 @@ const WorkerDashboard = () => {
   };
 
   return (
-    <div className="h-full">
-      {/* DoorDash-style layout with map as primary interface */}
-      <div className="h-full relative">
-        {/* Map takes the full screen in this view */}
-        <MapSection 
-          jobs={jobs || []}
-          selectedJob={selectedJob}
-          onSelectJob={handleSelectJob}
-          searchCoordinates={searchParams.coordinates}
-        />
-        
-        {/* Worker can view jobs they've posted */}
-        <PostedJobsButton />
-        <PostedJobsDrawer />
-        
-        {/* Add the NewJobButton component to allow users to post jobs */}
-        <NewJobButton />
-        
-        {/* Square search box at the very bottom of the screen with no space */}
-        <div className="fixed bottom-0 left-0 right-0 z-[50] w-full">
-          <div className="bg-card border-t border-border shadow-lg">
-            <div className="p-2">
-              <JobSearch onSearch={handleSearch} />
+    <>
+      <div className="h-full">
+        {/* DoorDash-style layout with map as primary interface */}
+        <div className="h-full relative">
+          {/* Map takes the full screen in this view */}
+          <MapSection 
+            jobs={jobs || []}
+            selectedJob={selectedJob}
+            onSelectJob={handleSelectJob}
+            searchCoordinates={searchParams.coordinates}
+          />
+          
+          {/* Worker can view jobs they've posted */}
+          <PostedJobsButton />
+          <PostedJobsDrawer />
+          
+          {/* Add the NewJobButton component to allow users to post jobs */}
+          <NewJobButton />
+          
+          {/* Square search box at the very bottom of the screen with no space */}
+          <div className="fixed bottom-0 left-0 right-0 z-[50] w-full">
+            <div className="bg-card border-t border-border shadow-lg">
+              <div className="p-2">
+                <JobSearch onSearch={handleSearch} />
+              </div>
             </div>
           </div>
         </div>
-        
-
       </div>
-    </div>
+
+      {/* Cancel Job Confirmation Dialog */}
+      <AlertDialog open={showCancelDialog} onOpenChange={setShowCancelDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Cancel Job</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to cancel this job? This action cannot be undone.
+              {cancelJobId && (
+                <p className="mt-2">
+                  If payment was made for this job, a refund will be processed automatically.
+                </p>
+              )}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>No, Keep Job</AlertDialogCancel>
+            <AlertDialogAction 
+              onClick={handleCancelJob}
+              className="bg-destructive hover:bg-destructive/90"
+            >
+              Yes, Cancel Job{cancelJobMutation.isPending && (
+                <span className="ml-2 inline-block animate-spin">⟳</span>
+              )}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+    </>
   );
 };
 
