@@ -3,7 +3,7 @@ import { useLocation } from 'wouter';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { insertJobSchema, JOB_CATEGORIES, SKILLS } from '@shared/schema';
+import { insertJobSchema, JOB_CATEGORIES, SKILLS, insertTaskSchema, type InsertTask } from '@shared/schema';
 import { apiRequest } from '@/lib/queryClient';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/hooks/use-auth';
@@ -25,8 +25,9 @@ import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Badge } from '@/components/ui/badge';
-import { MapPin, DollarSign, Calendar, Check } from 'lucide-react';
+import { MapPin, DollarSign, Calendar, Check, ListChecks } from 'lucide-react';
 import { useQueryClient } from '@tanstack/react-query';
+import TaskEditor, { Task } from '@/components/TaskEditor';
 
 // Form schema with validation
 const formSchema = insertJobSchema.extend({
@@ -49,6 +50,7 @@ export default function PostJobDrawer({ isOpen, onOpenChange }: PostJobDrawerPro
   const [isSubmitting, setIsSubmitting] = useState(false);
   const { userLocation } = useGeolocation();
   const queryClient = useQueryClient();
+  const [tasks, setTasks] = useState<Task[]>([]);
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -67,6 +69,10 @@ export default function PostJobDrawer({ isOpen, onOpenChange }: PostJobDrawerPro
       posterId: user?.id || 0
     }
   });
+
+  const handleTasksChange = (updatedTasks: Task[]) => {
+    setTasks(updatedTasks);
+  };
 
   const onSubmit = async (data: z.infer<typeof formSchema>) => {
     if (!user) {
@@ -89,10 +95,41 @@ export default function PostJobDrawer({ isOpen, onOpenChange }: PostJobDrawerPro
         status: 'open'
       };
       
+      // First create the job
       const response = await apiRequest('POST', '/api/jobs', jobData);
       const jobResponse = await response.json();
       
+      // If there are tasks, create them
+      if (tasks.length > 0) {
+        try {
+          // Format tasks for API
+          const taskData = tasks.map((task) => ({
+            jobId: jobResponse.id,
+            description: task.description,
+            position: task.position,
+            isOptional: task.isOptional,
+            dueTime: task.dueTime,
+            location: task.location,
+            latitude: task.latitude,
+            longitude: task.longitude,
+            bonusAmount: task.bonusAmount
+          }));
+          
+          // Create tasks in batch
+          await apiRequest('POST', `/api/jobs/${jobResponse.id}/tasks/batch`, { tasks: taskData });
+        } catch (taskError) {
+          console.error("Error creating tasks:", taskError);
+          // We don't fail the entire submission if tasks fail
+          toast({
+            title: "Job Posted",
+            description: "Your job was posted, but there was an error adding tasks.",
+            variant: "default"
+          });
+        }
+      }
+      
       form.reset();
+      setTasks([]);
       onOpenChange(false);
       
       queryClient.invalidateQueries({ queryKey: ['/api/jobs'] });
@@ -343,6 +380,28 @@ export default function PostJobDrawer({ isOpen, onOpenChange }: PostJobDrawerPro
                   </FormItem>
                 )}
               />
+              
+              {/* Divider */}
+              <div className="relative my-6">
+                <div className="absolute inset-0 flex items-center">
+                  <span className="w-full border-t border-border" />
+                </div>
+                <div className="relative flex justify-center text-xs uppercase">
+                  <span className="bg-background px-2 text-muted-foreground flex items-center">
+                    <ListChecks className="h-4 w-4 mr-1" />
+                    Job Tasks
+                  </span>
+                </div>
+              </div>
+              
+              {/* Task Editor */}
+              <div className="mb-4">
+                <TaskEditor
+                  tasks={tasks}
+                  onChange={handleTasksChange}
+                  disabled={isSubmitting}
+                />
+              </div>
             </form>
           </Form>
         </div>
