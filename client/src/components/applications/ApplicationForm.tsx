@@ -7,8 +7,9 @@ import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { AlertCircle, Loader2, DollarSign, Clock, ExternalLink, CreditCard } from 'lucide-react';
+import { AlertCircle, Loader2, DollarSign, Clock, ExternalLink, CreditCard, MessageSquare, CheckCircle2, Send } from 'lucide-react';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { Badge } from '@/components/ui/badge';
 
 interface ApplicationFormProps {
   jobId: number;
@@ -252,7 +253,10 @@ const ApplicationForm: React.FC<ApplicationFormProps> = ({
         <div className="space-y-4">
           {/* Cover letter message */}
           <div>
-            <Label htmlFor="message" className="font-medium">Cover Letter</Label>
+            <Label htmlFor="message" className="font-medium flex items-center">
+              Cover Letter 
+              <span className="text-xs ml-2 font-normal text-muted-foreground">(Required)</span>
+            </Label>
             <Textarea
               id="message"
               placeholder={getMessagePlaceholder()}
@@ -261,93 +265,209 @@ const ApplicationForm: React.FC<ApplicationFormProps> = ({
               className="h-32 resize-none mt-1.5"
               disabled={isDisabled}
             />
-            <p className="text-xs text-muted-foreground mt-1">
-              Introduce yourself and explain why you're a good fit for this job
-            </p>
-          </div>
-          
-          {/* Hourly rate */}
-          <div>
-            <Label htmlFor="hourlyRate" className="font-medium">Your Hourly Rate</Label>
-            <div className="relative mt-1.5">
-              <DollarSign className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-              <Input
-                id="hourlyRate"
-                type="number"
-                placeholder="25.00"
-                min="1"
-                step="0.01"
-                value={hourlyRate}
-                onChange={(e) => setHourlyRate(e.target.value)}
-                className="pl-10"
-                disabled={isDisabled}
-              />
+            <div className="mt-2 flex items-start gap-2">
+              <div className="bg-primary/10 rounded-full p-1 mt-0.5">
+                <MessageSquare className="h-3 w-3 text-primary" />
+              </div>
+              <div className="flex-1">
+                <p className="text-xs text-muted-foreground">
+                  A good cover letter increases your chances of being hired. Introduce yourself, mention relevant experience, and explain why you're interested in this specific job.
+                </p>
+                <div className="flex flex-wrap gap-2 mt-2">
+                  {message.length === 0 ? (
+                    <Badge variant="outline" className="text-xs text-destructive border-destructive/30">
+                      Empty letter
+                    </Badge>
+                  ) : message.length < 50 ? (
+                    <Badge variant="outline" className="text-xs text-amber-500 border-amber-500/30">
+                      Too short
+                    </Badge>
+                  ) : message.length > 50 && message.length < 150 ? (
+                    <Badge variant="outline" className="text-xs text-amber-500 border-amber-500/30">
+                      Good start
+                    </Badge>
+                  ) : (
+                    <Badge variant="outline" className="text-xs text-green-500 border-green-500/30">
+                      Great length
+                    </Badge>
+                  )}
+                  <Badge variant="secondary" className="text-xs">
+                    {message.length} characters
+                  </Badge>
+                </div>
+              </div>
             </div>
-            <p className="text-xs text-muted-foreground mt-1">
-              Set your competitive hourly rate for this job
-            </p>
           </div>
           
-          {/* Expected duration */}
-          <div>
-            <Label htmlFor="expectedDuration" className="font-medium">Estimated Duration</Label>
-            <div className="relative mt-1.5">
-              <Clock className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-              <Select 
-                value={expectedDuration} 
-                onValueChange={setExpectedDuration}
-                disabled={isDisabled}
-              >
-                <SelectTrigger className="pl-10">
-                  <SelectValue placeholder="Select estimated duration" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="Less than 1 hour">Less than 1 hour</SelectItem>
-                  <SelectItem value="1-2 hours">1-2 hours</SelectItem>
-                  <SelectItem value="2-4 hours">2-4 hours</SelectItem>
-                  <SelectItem value="Half day (4-6 hours)">Half day (4-6 hours)</SelectItem>
-                  <SelectItem value="Full day (6-8 hours)">Full day (6-8 hours)</SelectItem>
-                  <SelectItem value="Multiple days">Multiple days</SelectItem>
-                </SelectContent>
-              </Select>
+          {/* Payment details section with border */}
+          <div className="border rounded-md p-4 bg-muted/5 space-y-4">
+            <h3 className="text-sm font-medium">Payment Details</h3>
+            
+            {/* Hourly rate */}
+            <div>
+              <Label htmlFor="hourlyRate" className="font-medium flex items-center">
+                Your Hourly Rate
+                <span className="text-xs ml-2 font-normal text-muted-foreground">(Required)</span>
+              </Label>
+              <div className="relative mt-1.5">
+                <DollarSign className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                <Input
+                  id="hourlyRate"
+                  type="number"
+                  placeholder="25.00"
+                  min="1"
+                  step="0.01"
+                  value={hourlyRate}
+                  onChange={(e) => setHourlyRate(e.target.value)}
+                  className="pl-10"
+                  disabled={isDisabled}
+                />
+              </div>
+              <div className="flex items-center mt-2">
+                <div className="flex-1">
+                  <p className="text-xs text-muted-foreground">
+                    Set a competitive hourly rate based on the job requirements
+                  </p>
+                </div>
+                <div>
+                  {hourlyRate && (
+                    <Badge variant={
+                      parseFloat(hourlyRate) < 15 ? "outline" : 
+                      parseFloat(hourlyRate) > 50 ? "secondary" : 
+                      "default"
+                    } className="text-xs">
+                      {parseFloat(hourlyRate) < 15 ? "Budget" : 
+                       parseFloat(hourlyRate) > 50 ? "Premium" : 
+                       "Standard"} Rate
+                    </Badge>
+                  )}
+                </div>
+              </div>
             </div>
-            <p className="text-xs text-muted-foreground mt-1">
-              How long do you expect this job to take?
-            </p>
+            
+            {/* Expected duration */}
+            <div>
+              <Label htmlFor="expectedDuration" className="font-medium flex items-center">
+                Estimated Duration
+                <span className="text-xs ml-2 font-normal text-muted-foreground">(Required)</span>
+              </Label>
+              <div className="relative mt-1.5">
+                <Clock className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                <Select 
+                  value={expectedDuration} 
+                  onValueChange={setExpectedDuration}
+                  disabled={isDisabled}
+                >
+                  <SelectTrigger className="pl-10">
+                    <SelectValue placeholder="Select estimated duration" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="Less than 1 hour">Less than 1 hour</SelectItem>
+                    <SelectItem value="1-2 hours">1-2 hours</SelectItem>
+                    <SelectItem value="2-4 hours">2-4 hours</SelectItem>
+                    <SelectItem value="Half day (4-6 hours)">Half day (4-6 hours)</SelectItem>
+                    <SelectItem value="Full day (6-8 hours)">Full day (6-8 hours)</SelectItem>
+                    <SelectItem value="Multiple days">Multiple days</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <p className="text-xs text-muted-foreground mt-2">
+                A realistic time estimate helps set expectations for the job poster
+              </p>
+            </div>
           </div>
           
-          {/* Stripe Connect Account Alert */}
-          {user && user.accountType === 'worker' && !isCheckingStripe && (
-            <>
-              {hasStripeAccount === false && (
-                <Alert className="bg-yellow-500/10 border-yellow-500/30 text-yellow-700 dark:text-yellow-400">
-                  <CreditCard className="h-4 w-4" />
-                  <AlertTitle>Stripe Connect Required</AlertTitle>
-                  <AlertDescription className="mt-1">
-                    You need to set up a Stripe Connect account to receive payments for jobs.
-                    <Button 
-                      onClick={handleSetupStripeConnect} 
-                      variant="outline" 
-                      size="sm" 
-                      className="mt-2 border-yellow-500/50 hover:bg-yellow-500/10"
-                    >
-                      <ExternalLink className="h-3.5 w-3.5 mr-1.5" />
-                      Set up Stripe Connect
-                    </Button>
-                  </AlertDescription>
-                </Alert>
-              )}
+          {/* Estimated job cost calculator */}
+          {hourlyRate && expectedDuration && (
+            <div className="mt-4 p-4 bg-primary/5 border border-primary/10 rounded-lg">
+              <h4 className="text-sm font-medium mb-2 flex items-center">
+                <DollarSign className="h-4 w-4 mr-1.5 text-primary" />
+                Estimated Job Value
+              </h4>
+              <div className="grid grid-cols-2 gap-3 text-sm">
+                <div>
+                  <p className="text-muted-foreground">Hourly Rate</p>
+                  <p className="font-medium">${parseFloat(hourlyRate).toFixed(2)}/hr</p>
+                </div>
+                <div>
+                  <p className="text-muted-foreground">Duration</p>
+                  <p className="font-medium">{expectedDuration}</p>
+                </div>
+                <div>
+                  <p className="text-muted-foreground">Service Fee (10%)</p>
+                  <p className="font-medium">
+                    ${(calculateEstimatedCost(parseFloat(hourlyRate), expectedDuration) * 0.1).toFixed(2)}
+                  </p>
+                </div>
+                <div>
+                  <p className="text-muted-foreground">Your Earnings</p>
+                  <p className="font-medium text-primary">
+                    ${(calculateEstimatedCost(parseFloat(hourlyRate), expectedDuration) * 0.9).toFixed(2)}
+                  </p>
+                </div>
+              </div>
+            </div>
+          )}
+          
+          {/* Stripe Connect Account Setup Section */}
+          {user && user.accountType === 'worker' && (
+            <div className="border rounded-md bg-muted/5 overflow-hidden">
+              <div className="bg-gradient-to-r from-indigo-500/10 via-purple-500/10 to-pink-500/10 dark:from-indigo-800/20 dark:via-purple-800/20 dark:to-pink-800/20 p-0.5">
+                <div className="bg-background rounded-t-sm px-4 py-3 flex justify-between items-center">
+                  <h3 className="font-medium flex items-center">
+                    <CreditCard className="h-4 w-4 mr-2 text-primary" />
+                    Payment Account Setup
+                  </h3>
+                  {hasStripeAccount === true && (
+                    <Badge variant="green" className="px-2 py-0.5">Verified</Badge>
+                  )}
+                </div>
+              </div>
               
-              {hasStripeAccount === true && (
-                <Alert className="bg-green-500/10 border-green-500/30 text-green-700 dark:text-green-400">
-                  <AlertCircle className="h-4 w-4" />
-                  <AlertTitle>Stripe Connect Ready</AlertTitle>
-                  <AlertDescription>
-                    Your Stripe Connect account is set up and ready to receive payments.
-                  </AlertDescription>
-                </Alert>
-              )}
-            </>
+              <div className="p-4">
+                {isCheckingStripe ? (
+                  <div className="flex items-center justify-center p-2">
+                    <Loader2 className="h-5 w-5 animate-spin text-primary mr-2" />
+                    <span className="text-sm">Checking payment account status...</span>
+                  </div>
+                ) : (
+                  <>
+                    {hasStripeAccount === false ? (
+                      <div className="space-y-3">
+                        <div className="text-sm space-y-1.5">
+                          <p className="font-medium text-yellow-600 dark:text-yellow-400">Stripe Connect Required</p>
+                          <p className="text-muted-foreground">You need to set up a Stripe Connect account to receive payments for jobs. It only takes a few minutes to complete.</p>
+                        </div>
+                        
+                        <div className="flex items-center gap-2 text-sm rounded-md bg-yellow-50 dark:bg-yellow-950/30 p-2.5 border border-yellow-200 dark:border-yellow-900">
+                          <AlertCircle className="h-4 w-4 text-yellow-600 dark:text-yellow-400 flex-shrink-0" />
+                          <span className="flex-1">Without a Stripe account, you won't be able to submit applications or get paid.</span>
+                        </div>
+                        
+                        <Button 
+                          onClick={handleSetupStripeConnect} 
+                          variant="default" 
+                          className="w-full bg-gradient-to-r from-indigo-500 to-purple-500 hover:from-indigo-600 hover:to-purple-600 text-white border-none"
+                        >
+                          <ExternalLink className="h-4 w-4 mr-2" />
+                          Set up your payment account
+                        </Button>
+                      </div>
+                    ) : (
+                      <div className="flex items-start gap-3">
+                        <div className="bg-green-100 dark:bg-green-900/30 p-1.5 rounded-full text-green-600 dark:text-green-400">
+                          <CheckCircle2 className="h-5 w-5" />
+                        </div>
+                        <div className="space-y-1 flex-1">
+                          <p className="font-medium text-green-600 dark:text-green-400">Payment Account Verified</p>
+                          <p className="text-sm text-muted-foreground">Your Stripe Connect account is active and ready to receive payments. You'll receive earnings directly to your connected bank account.</p>
+                        </div>
+                      </div>
+                    )}
+                  </>
+                )}
+              </div>
+            </div>
           )}
 
           {error && (
@@ -357,13 +477,15 @@ const ApplicationForm: React.FC<ApplicationFormProps> = ({
             </div>
           )}
           
-          <div className="flex justify-end gap-2 pt-2">
+          {/* Form actions with enhanced submit button */}
+          <div className="flex flex-col sm:flex-row justify-end gap-2 pt-4 mt-2">
             {onCancel && (
               <Button 
                 type="button" 
                 variant="outline" 
                 onClick={onCancel}
                 disabled={isSubmitting}
+                className="sm:order-1 order-2"
               >
                 Cancel
               </Button>
@@ -372,7 +494,12 @@ const ApplicationForm: React.FC<ApplicationFormProps> = ({
             <Button 
               type="submit"
               disabled={isDisabled || (user?.accountType === 'worker' && hasStripeAccount === false)}
-              className="bg-primary hover:bg-primary/90"
+              className={`${onCancel ? 'sm:order-2 order-1' : ''} relative overflow-hidden group ${
+                isDisabled || (user?.accountType === 'worker' && hasStripeAccount === false) 
+                  ? 'opacity-50' 
+                  : 'bg-gradient-to-r from-primary to-primary-600 hover:from-primary-600 hover:to-primary-700'
+              }`}
+              size="lg"
             >
               {isSubmitting ? (
                 <>
@@ -380,10 +507,25 @@ const ApplicationForm: React.FC<ApplicationFormProps> = ({
                   Submitting...
                 </>
               ) : (
-                'Submit Application'
+                <>
+                  <span className="relative z-10 flex items-center">
+                    <Send className="h-4 w-4 mr-2" />
+                    Submit Application
+                  </span>
+                  <span className="absolute inset-0 bg-white/10 scale-x-0 group-hover:scale-x-100 transition-transform origin-left" />
+                </>
               )}
             </Button>
           </div>
+          
+          {/* Additional note if Stripe account isn't set up */}
+          {user?.accountType === 'worker' && hasStripeAccount === false && (
+            <div className="text-center mt-3">
+              <p className="text-xs text-muted-foreground">
+                You must set up your Stripe Connect account before you can apply for jobs
+              </p>
+            </div>
+          )}
         </div>
       </form>
     </div>
