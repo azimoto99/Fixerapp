@@ -1,180 +1,269 @@
-/**
- * Stripe Payment Methods API
- * 
- * This file handles the management of Stripe payment methods
- * including listing, creating, deleting, and setting default payment methods.
- */
-
-import { Router, Request, Response } from 'express';
+import express from 'express';
 import Stripe from 'stripe';
 import { storage } from '../storage';
-import { z } from 'zod';
-import { getOrCreateStripeCustomer } from './stripe-api';
 
-// Initialize Stripe with the secret key
 if (!process.env.STRIPE_SECRET_KEY) {
-  throw new Error("Missing required environment variable: STRIPE_SECRET_KEY");
+  throw new Error('Missing required Stripe secret: STRIPE_SECRET_KEY');
 }
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY, {
-  apiVersion: "2023-10-16" as any,
+  apiVersion: '2023-10-16' as any, // Using a valid API version, casting to any to bypass typechecking
 });
 
-// Authentication middleware
-function isStripeAuthenticated(req: Request, res: Response, next: Function) {
-  if (!req.isAuthenticated()) {
-    return res.status(401).json({ message: "Not authenticated for Stripe operations" });
-  }
-  next();
-}
+export const setupStripePaymentMethodsRoutes = (app: express.Express) => {
+  // Authentication middleware for Stripe routes
+  const requireAuth = (req: express.Request, res: express.Response, next: express.NextFunction) => {
+    if (!req.isAuthenticated()) {
+      return res.status(401).json({ message: 'Authentication required' });
+    }
+    next();
+  };
 
-// Create a router for payment methods
-const paymentMethodsRouter = Router();
+  // Get current user's Stripe customer ID or create one if it doesn't exist
+  const getOrCreateStripeCustomer = async (userId: number) => {
+    try {
+      // Get user from database
+      const user = await storage.getUser(userId);
+      
+      if (!user) {
+        throw new Error('User not found');
+      }
+      
+      // If user already has a Stripe customer ID, return it
+      if (user.stripeCustomerId) {
+        return user.stripeCustomerId;
+      }
+      
+      // Otherwise, create a new Stripe customer
+      const customer = await stripe.customers.create({
+        email: user.email || undefined,
+        name: user.fullName || user.username,
+        metadata: {
+          userId: userId.toString(),
+        },
+      });
+      
+      // Save the new Stripe customer ID to the user
+      await storage.updateUser(userId, {
+        stripeCustomerId: customer.id,
+      });
+      
+      return customer.id;
+    } catch (error) {
+      console.error('Error getting or creating Stripe customer:', error);
+      throw error;
+    }
+  };
 
-/**
- * Get all payment methods for the authenticated user
- */
-paymentMethodsRouter.get("/", isStripeAuthenticated, async (req: Request, res: Response) => {
-  try {
-    // Check if user has a Stripe customer ID
-    if (!req.user?.stripeCustomerId) {
-      // No customer ID means no payment methods yet
-      return res.json({ paymentMethods: [] });
+  // Get all payment methods for the current user
+  app.get('/api/stripe/payment-methods', requireAuth, async (req, res) => {
+    try {
+      const userId = req.user?.id;
+      
+      if (!userId) {
+        return res.status(401).json({ message: 'User ID is missing' });
+      }
+      
+      const stripeCustomerId = await getOrCreateStripeCustomer(userId);
+      
+      // Get all payment methods for this customer
+      const paymentMethods = await stripe.paymentMethods.list({
+        customer: stripeCustomerId,
+        type: 'card',
+      });
+      
+      // Get customer to determine default payment method
+      const customer = await stripe.customers.retrieve(stripeCustomerId);
+      const defaultPaymentMethodId = 
+        typeof customer !== 'string' && customer.invoice_settings?.default_payment_method;
+      
+      // Mark the default payment method
+      const data = paymentMethods.data.map(method => ({
+        ...method,
+        isDefault: method.id === defaultPaymentMethodId,
+      }));
+      
+      return res.status(200).json({
+        data,
+        total: paymentMethods.data.length,
+      });
+    } catch (error) {
+      console.error('Error fetching payment methods:', error);
+      return res.status(500).json({
+        message: 'Failed to fetch payment methods',
+        error: error instanceof Error ? error.message : 'Unknown error',
+      });
     }
-    
-    // Retrieve all payment methods for the customer from Stripe
-    const paymentMethods = await stripe.paymentMethods.list({
-      customer: req.user.stripeCustomerId,
-      type: 'card',
-    });
-    
-    // Get the customer to find the default payment method
-    const customer = await stripe.customers.retrieve(req.user.stripeCustomerId);
-    let defaultPaymentMethodId = null;
-    
-    if (customer && !customer.deleted && 'invoice_settings' in customer) {
-      defaultPaymentMethodId = customer.invoice_settings?.default_payment_method || null;
-    }
-    
-    // Return the payment methods with the default marked
-    return res.json({
-      paymentMethods: paymentMethods.data.map(pm => ({
-        ...pm,
-        isDefault: pm.id === defaultPaymentMethodId,
-      })),
-    });
-  } catch (error) {
-    console.error('Error fetching payment methods:', error);
-    return res.status(500).json({
-      message: 'Failed to fetch payment methods',
-      error: error instanceof Error ? error.message : String(error),
-    });
-  }
-});
+  });
 
-/**
- * Delete a payment method
- */
-paymentMethodsRouter.delete("/:id", isStripeAuthenticated, async (req: Request, res: Response) => {
-  try {
-    const { id } = req.params;
-    
-    if (!id) {
-      return res.status(400).json({ message: "Payment method ID is required" });
+  // Add a new payment method for the current user
+  app.post('/api/stripe/payment-methods', requireAuth, async (req, res) => {
+    try {
+      const userId = req.user?.id;
+      const { paymentMethodId } = req.body;
+      
+      if (!userId) {
+        return res.status(401).json({ message: 'User ID is missing' });
+      }
+      
+      if (!paymentMethodId) {
+        return res.status(400).json({ message: 'Payment method ID is required' });
+      }
+      
+      const stripeCustomerId = await getOrCreateStripeCustomer(userId);
+      
+      // Attach the payment method to the customer
+      await stripe.paymentMethods.attach(paymentMethodId, {
+        customer: stripeCustomerId,
+      });
+      
+      // If this is the first payment method, set it as the default
+      const paymentMethods = await stripe.paymentMethods.list({
+        customer: stripeCustomerId,
+        type: 'card',
+      });
+      
+      if (paymentMethods.data.length === 1) {
+        await stripe.customers.update(stripeCustomerId, {
+          invoice_settings: {
+            default_payment_method: paymentMethodId,
+          },
+        });
+      }
+      
+      return res.status(200).json({
+        message: 'Payment method added successfully',
+        paymentMethodId,
+      });
+    } catch (error) {
+      console.error('Error adding payment method:', error);
+      return res.status(500).json({
+        message: 'Failed to add payment method',
+        error: error instanceof Error ? error.message : 'Unknown error',
+      });
     }
-    
-    // Check if user has a Stripe customer ID
-    if (!req.user?.stripeCustomerId) {
-      return res.status(400).json({ message: "No customer profile found" });
-    }
-    
-    // Retrieve the payment method to verify it belongs to the customer
-    const paymentMethod = await stripe.paymentMethods.retrieve(id);
-    
-    if (paymentMethod.customer !== req.user.stripeCustomerId) {
-      return res.status(403).json({ message: "Payment method does not belong to this customer" });
-    }
-    
-    // Detach the payment method from the customer
-    await stripe.paymentMethods.detach(id);
-    
-    return res.json({ success: true });
-  } catch (error) {
-    console.error('Error deleting payment method:', error);
-    return res.status(500).json({
-      message: 'Failed to delete payment method',
-      error: error instanceof Error ? error.message : String(error),
-    });
-  }
-});
+  });
 
-/**
- * Set a payment method as default
- */
-paymentMethodsRouter.post("/:id/set-default", isStripeAuthenticated, async (req: Request, res: Response) => {
-  try {
-    const { id } = req.params;
-    
-    if (!id) {
-      return res.status(400).json({ message: "Payment method ID is required" });
+  // Delete a payment method for the current user
+  app.delete('/api/stripe/payment-methods/:paymentMethodId', requireAuth, async (req, res) => {
+    try {
+      const userId = req.user?.id;
+      const { paymentMethodId } = req.params;
+      
+      if (!userId) {
+        return res.status(401).json({ message: 'User ID is missing' });
+      }
+      
+      if (!paymentMethodId) {
+        return res.status(400).json({ message: 'Payment method ID is required' });
+      }
+      
+      const stripeCustomerId = await getOrCreateStripeCustomer(userId);
+      
+      // Get customer to check if we're deleting the default payment method
+      const customer = await stripe.customers.retrieve(stripeCustomerId);
+      
+      // Get all payment methods for this customer
+      const paymentMethods = await stripe.paymentMethods.list({
+        customer: stripeCustomerId,
+        type: 'card',
+      });
+      
+      // Check if the payment method belongs to this customer
+      const paymentMethodBelongsToCustomer = paymentMethods.data.some(
+        method => method.id === paymentMethodId
+      );
+      
+      if (!paymentMethodBelongsToCustomer) {
+        return res.status(403).json({
+          message: 'Payment method does not belong to this customer',
+        });
+      }
+      
+      // Detach the payment method from the customer
+      await stripe.paymentMethods.detach(paymentMethodId);
+      
+      // If we deleted the default payment method, set a new one if available
+      if (
+        typeof customer !== 'string' &&
+        customer.invoice_settings?.default_payment_method === paymentMethodId &&
+        paymentMethods.data.length > 1
+      ) {
+        // Find another payment method that isn't the one we're deleting
+        const newDefaultMethod = paymentMethods.data.find(
+          method => method.id !== paymentMethodId
+        );
+        
+        if (newDefaultMethod) {
+          await stripe.customers.update(stripeCustomerId, {
+            invoice_settings: {
+              default_payment_method: newDefaultMethod.id,
+            },
+          });
+        }
+      }
+      
+      return res.status(200).json({
+        message: 'Payment method removed successfully',
+      });
+    } catch (error) {
+      console.error('Error removing payment method:', error);
+      return res.status(500).json({
+        message: 'Failed to remove payment method',
+        error: error instanceof Error ? error.message : 'Unknown error',
+      });
     }
-    
-    // Check if user has a Stripe customer ID
-    if (!req.user?.stripeCustomerId) {
-      return res.status(400).json({ message: "No customer profile found" });
-    }
-    
-    // Retrieve the payment method to verify it belongs to the customer
-    const paymentMethod = await stripe.paymentMethods.retrieve(id);
-    
-    if (paymentMethod.customer !== req.user.stripeCustomerId) {
-      return res.status(403).json({ message: "Payment method does not belong to this customer" });
-    }
-    
-    // Update the customer's default payment method
-    await stripe.customers.update(req.user.stripeCustomerId, {
-      invoice_settings: {
-        default_payment_method: id,
-      },
-    });
-    
-    return res.json({ success: true });
-  } catch (error) {
-    console.error('Error setting default payment method:', error);
-    return res.status(500).json({
-      message: 'Failed to set default payment method',
-      error: error instanceof Error ? error.message : String(error),
-    });
-  }
-});
+  });
 
-/**
- * Create a SetupIntent for adding a new payment method
- * This route is already implemented in the main Stripe API router
- * but it's good to keep it here for clarity
- */
-paymentMethodsRouter.post("/create-setup-intent", isStripeAuthenticated, async (req: Request, res: Response) => {
-  try {
-    // Get or create a Stripe customer
-    const customerId = await getOrCreateStripeCustomer(req.user!.id);
-    
-    // Create a setup intent
-    const setupIntent = await stripe.setupIntents.create({
-      customer: customerId,
-      payment_method_types: ['card'],
-      usage: 'off_session',
-    });
-    
-    return res.json({
-      clientSecret: setupIntent.client_secret,
-    });
-  } catch (error) {
-    console.error('Error creating setup intent:', error);
-    return res.status(500).json({
-      message: 'Failed to create setup intent',
-      error: error instanceof Error ? error.message : String(error),
-    });
-  }
-});
-
-export default paymentMethodsRouter;
+  // Set a payment method as the default for the current user
+  app.post('/api/stripe/payment-methods/default', requireAuth, async (req, res) => {
+    try {
+      const userId = req.user?.id;
+      const { paymentMethodId } = req.body;
+      
+      if (!userId) {
+        return res.status(401).json({ message: 'User ID is missing' });
+      }
+      
+      if (!paymentMethodId) {
+        return res.status(400).json({ message: 'Payment method ID is required' });
+      }
+      
+      const stripeCustomerId = await getOrCreateStripeCustomer(userId);
+      
+      // Get all payment methods for this customer
+      const paymentMethods = await stripe.paymentMethods.list({
+        customer: stripeCustomerId,
+        type: 'card',
+      });
+      
+      // Check if the payment method belongs to this customer
+      const paymentMethodBelongsToCustomer = paymentMethods.data.some(
+        method => method.id === paymentMethodId
+      );
+      
+      if (!paymentMethodBelongsToCustomer) {
+        return res.status(403).json({
+          message: 'Payment method does not belong to this customer',
+        });
+      }
+      
+      // Set the payment method as the default
+      await stripe.customers.update(stripeCustomerId, {
+        invoice_settings: {
+          default_payment_method: paymentMethodId,
+        },
+      });
+      
+      return res.status(200).json({
+        message: 'Default payment method updated successfully',
+      });
+    } catch (error) {
+      console.error('Error setting default payment method:', error);
+      return res.status(500).json({
+        message: 'Failed to set default payment method',
+        error: error instanceof Error ? error.message : 'Unknown error',
+      });
+    }
+  });
+};

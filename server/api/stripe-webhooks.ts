@@ -1,600 +1,411 @@
-/**
- * Stripe Webhooks Router
- * 
- * This file handles all Stripe webhook events,
- * processing payment intents, transfers, accounts,
- * and other Stripe events.
- */
-
-import { Router, Request, Response } from 'express';
+import express from 'express';
 import Stripe from 'stripe';
 import { storage } from '../storage';
-import express from 'express';
-import { z } from 'zod';
+import { payments, insertPaymentSchema } from '@shared/schema';
 
-// Initialize Stripe with the secret key
 if (!process.env.STRIPE_SECRET_KEY) {
-  throw new Error("Missing required environment variable: STRIPE_SECRET_KEY");
+  throw new Error('Missing required Stripe secret: STRIPE_SECRET_KEY');
 }
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY, {
-  apiVersion: "2023-10-16" as any,
+  apiVersion: '2023-10-16',
 });
 
-// Define the webhook secret
-const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET || '';
-
-const webhooksRouter = Router();
-
-// This endpoint receives webhook events from Stripe
-// This should be raw body for signature verification
-webhooksRouter.post('/webhooks', express.raw({ type: 'application/json' }), async (req: Request, res: Response) => {
-  try {
+// Webhooks endpoint must be configured in Stripe dashboard to receive events
+// List of Stripe webhook event types: https://stripe.com/docs/api/events/types
+export const setupStripeWebhooks = (app: express.Express) => {
+  const endpointSecret = process.env.STRIPE_WEBHOOK_SECRET || '';
+  
+  app.post('/api/stripe/webhooks', express.raw({ type: 'application/json' }), async (req, res) => {
+    let event: Stripe.Event;
     const sig = req.headers['stripe-signature'];
     
-    if (!sig) {
-      return res.status(400).send('No signature provided');
-    }
-    
-    // Skip signature verification in development without webhook secret
-    let event: Stripe.Event;
-    
     try {
-      if (webhookSecret) {
-        // Verify the event came from Stripe using the webhook secret
-        event = stripe.webhooks.constructEvent(
-          req.body, // raw body
-          sig,
-          webhookSecret
-        );
+      // Verify webhook signature
+      if (endpointSecret && sig) {
+        event = stripe.webhooks.constructEvent(req.body, sig, endpointSecret);
       } else {
-        // In development without a webhook secret, parse the event without verification
-        // This should ONLY be used in development
-        event = JSON.parse(req.body.toString());
-        console.warn('WARNING: Webhook signature verification skipped. This should only be done in development.');
+        // For testing without the webhook secret
+        event = req.body as Stripe.Event;
       }
     } catch (err) {
-      console.error('Error verifying webhook signature', err);
-      return res.status(400).send(`Webhook Error: ${err instanceof Error ? err.message : 'Unknown error'}`);
+      const errorMessage = err instanceof Error ? err.message : 'Unknown error';
+      console.error(`Webhook Error: ${errorMessage}`);
+      return res.status(400).send(`Webhook Error: ${errorMessage}`);
     }
     
     // Handle different event types
     try {
       switch (event.type) {
-        // Payment Intent Events
         case 'payment_intent.succeeded':
           await handlePaymentIntentSucceeded(event.data.object as Stripe.PaymentIntent);
           break;
+          
         case 'payment_intent.payment_failed':
           await handlePaymentIntentFailed(event.data.object as Stripe.PaymentIntent);
           break;
-        case 'payment_intent.canceled':
-          await handlePaymentIntentCanceled(event.data.object as Stripe.PaymentIntent);
+          
+        case 'charge.succeeded':
+          await handleChargeSucceeded(event.data.object as Stripe.Charge);
           break;
           
-        // Transfer Events
+        case 'charge.failed':
+          await handleChargeFailed(event.data.object as Stripe.Charge);
+          break;
+          
+        case 'charge.refunded':
+          await handleChargeRefunded(event.data.object as Stripe.Charge);
+          break;
+          
         case 'transfer.created':
           await handleTransferCreated(event.data.object as Stripe.Transfer);
           break;
-        case 'transfer.paid':
-          await handleTransferPaid(event.data.object as Stripe.Transfer);
-          break;
+          
         case 'transfer.failed':
           await handleTransferFailed(event.data.object as Stripe.Transfer);
           break;
-        case 'transfer.reversed':
-          await handleTransferReversed(event.data.object as Stripe.Transfer);
+          
+        case 'payout.created':
+          await handlePayoutCreated(event.data.object as Stripe.Payout);
           break;
           
-        // Account Events
+        case 'payout.failed':
+          await handlePayoutFailed(event.data.object as Stripe.Payout);
+          break;
+          
         case 'account.updated':
           await handleAccountUpdated(event.data.object as Stripe.Account);
           break;
-        
-        // Customer Events
-        case 'customer.subscription.created':
-          await handleSubscriptionCreated(event.data.object as Stripe.Subscription);
-          break;
-        case 'customer.subscription.updated':
-          await handleSubscriptionUpdated(event.data.object as Stripe.Subscription);
-          break;
-        case 'customer.subscription.deleted':
-          await handleSubscriptionDeleted(event.data.object as Stripe.Subscription);
-          break;
-        
-        // Checkout Events  
-        case 'checkout.session.completed':
-          await handleCheckoutSessionCompleted(event.data.object as Stripe.Checkout.Session);
-          break;
-          
-        // Invoice Events
-        case 'invoice.paid':
-          await handleInvoicePaid(event.data.object as Stripe.Invoice);
-          break;
-        case 'invoice.payment_failed':
-          await handleInvoicePaymentFailed(event.data.object as Stripe.Invoice);
-          break;
           
         default:
-          // Log unhandled event types for debugging
           console.log(`Unhandled event type: ${event.type}`);
       }
-    } catch (err) {
-      console.error(`Error handling webhook event ${event.type}:`, err);
-      // We still return 200 to acknowledge receipt of the webhook
-      // otherwise Stripe will retry sending it
-    }
-    
-    // Return a 200 to acknowledge receipt of the event
-    res.send({ received: true });
-  } catch (error) {
-    console.error('Error processing webhook:', error);
-    res.status(400).send('Webhook Error');
-  }
-});
-
-// Handler functions for various webhook events
-
-// Payment Intent Handlers
-async function handlePaymentIntentSucceeded(paymentIntent: Stripe.PaymentIntent) {
-  console.log(`Payment succeeded: ${paymentIntent.id}`);
-  
-  // Check if we have a payment record for this payment intent
-  const payment = await storage.getPaymentByTransactionId(paymentIntent.id);
-  
-  if (payment) {
-    // Update the payment status to succeeded
-    await storage.updatePaymentStatus(payment.id, 'succeeded');
-    
-    // If there's a job ID and worker ID, create an earning record
-    if (payment.jobId && payment.workerId) {
-      // Calculate platform fee (e.g., 10%)
-      const serviceFeePercent = 0.1;
-      const serviceFee = payment.amount * serviceFeePercent;
-      const netAmount = payment.amount - serviceFee;
       
-      // Create an earning record for the worker
-      try {
-        await storage.createEarning({
-          workerId: payment.workerId,
-          jobId: payment.jobId,
-          amount: payment.amount,
-          netAmount: netAmount,
-          serviceFee: serviceFee,
-          status: 'pending_transfer',
-          dateEarned: new Date(),
-          transferId: null,
-          description: payment.description || 'Payment from job',
-        });
-      } catch (err) {
-        console.error('Error creating earning record:', err);
-      }
+      res.status(200).json({ received: true });
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      console.error(`Error processing webhook: ${errorMessage}`);
+      res.status(500).send(`Error processing webhook: ${errorMessage}`);
     }
-  } else {
-    console.log(`No payment record found for payment intent: ${paymentIntent.id}`);
+  });
+};
+
+// Helper function to extract metadata from payment intent
+const extractPaymentMetadata = (paymentIntent: Stripe.PaymentIntent) => {
+  let userId = null;
+  let jobId = null;
+  let workerId = null;
+  
+  if (paymentIntent.metadata) {
+    userId = paymentIntent.metadata.userId ? parseInt(paymentIntent.metadata.userId) : null;
+    jobId = paymentIntent.metadata.jobId ? parseInt(paymentIntent.metadata.jobId) : null;
+    workerId = paymentIntent.metadata.workerId ? parseInt(paymentIntent.metadata.workerId) : null;
+  }
+  
+  return { userId, jobId, workerId };
+};
+
+// Handler for payment_intent.succeeded event
+async function handlePaymentIntentSucceeded(paymentIntent: Stripe.PaymentIntent) {
+  const { userId, jobId, workerId } = extractPaymentMetadata(paymentIntent);
+  
+  console.log(`PaymentIntent succeeded: ${paymentIntent.id}`);
+  
+  // Record the successful payment in our database
+  try {
+    // Check if this payment was already recorded (to avoid duplicates)
+    const existingPayment = await storage.getPaymentByTransactionId(paymentIntent.id);
     
-    // If needed, we could create a payment record here based on metadata
-    if (paymentIntent.metadata && paymentIntent.metadata.jobId && paymentIntent.metadata.userId) {
-      try {
-        // Create a payment record
-        const newPayment = await storage.createPayment({
-          userId: parseInt(paymentIntent.metadata.userId as string),
-          workerId: paymentIntent.metadata.workerId ? parseInt(paymentIntent.metadata.workerId as string) : null,
-          jobId: parseInt(paymentIntent.metadata.jobId as string),
-          amount: paymentIntent.amount / 100, // Stripe amounts are in cents
-          status: 'succeeded',
+    if (existingPayment) {
+      // Update existing payment if status has changed
+      if (existingPayment.status !== 'succeeded') {
+        await storage.updatePaymentStatus(existingPayment.id, 'succeeded', paymentIntent.id);
+      }
+      return;
+    }
+    
+    // Create new payment record
+    const paymentData = {
+      userId: userId,
+      jobId: jobId,
+      workerId: workerId,
+      amount: paymentIntent.amount,
+      description: paymentIntent.description || 'Job payment',
+      transactionId: paymentIntent.id,
+      paymentMethod: paymentIntent.payment_method_types[0] || 'card',
+      status: 'succeeded',
+      datePaid: new Date().toISOString(),
+      metadata: JSON.stringify(paymentIntent.metadata || {}),
+    };
+    
+    await storage.createPayment(paymentData);
+    
+    // If this is a job payment, update the job status
+    if (jobId) {
+      await storage.updateJob(jobId, { paymentStatus: 'paid' });
+      
+      // Create notification for the worker if assigned
+      if (workerId) {
+        await storage.createNotification({
+          userId: workerId,
           type: 'payment',
-          transactionId: paymentIntent.id,
-          description: paymentIntent.description || 'Payment',
-          metadata: paymentIntent.metadata,
-          serviceFee: null,
-          stripeCustomerId: paymentIntent.customer as string,
-          stripeConnectAccountId: null,
-          paymentMethod: paymentIntent.payment_method as string,
+          title: 'Payment Received',
+          message: `Payment for job #${jobId} has been processed successfully.`,
+          isRead: false,
+          relatedId: jobId,
+          relatedType: 'job',
         });
-        
-        console.log(`Created payment record: ${newPayment.id}`);
-      } catch (err) {
-        console.error('Error creating payment record:', err);
       }
     }
+  } catch (error) {
+    console.error('Error recording successful payment:', error);
+    throw error;
   }
 }
 
+// Handler for payment_intent.payment_failed event
 async function handlePaymentIntentFailed(paymentIntent: Stripe.PaymentIntent) {
-  console.log(`Payment failed: ${paymentIntent.id}`);
+  const { userId, jobId, workerId } = extractPaymentMetadata(paymentIntent);
   
-  // Update payment record
-  const payment = await storage.getPaymentByTransactionId(paymentIntent.id);
+  console.log(`PaymentIntent failed: ${paymentIntent.id}`);
   
-  if (payment) {
-    await storage.updatePaymentStatus(payment.id, 'failed');
+  try {
+    // Check if this payment was already recorded
+    const existingPayment = await storage.getPaymentByTransactionId(paymentIntent.id);
+    
+    if (existingPayment) {
+      // Update existing payment status
+      await storage.updatePaymentStatus(existingPayment.id, 'failed', paymentIntent.id);
+    } else {
+      // Create new payment record with failed status
+      const paymentData = {
+        userId: userId,
+        jobId: jobId,
+        workerId: workerId,
+        amount: paymentIntent.amount,
+        description: paymentIntent.description || 'Failed payment',
+        transactionId: paymentIntent.id,
+        paymentMethod: paymentIntent.payment_method_types[0] || 'card',
+        status: 'failed',
+        metadata: JSON.stringify(paymentIntent.metadata || {}),
+      };
+      
+      await storage.createPayment(paymentData);
+    }
+    
+    // If this is a job payment, update the job status
+    if (jobId) {
+      await storage.updateJob(jobId, { paymentStatus: 'failed' });
+      
+      // Notify the job poster about the failed payment
+      if (userId) {
+        await storage.createNotification({
+          userId,
+          type: 'payment_failed',
+          title: 'Payment Failed',
+          message: `Payment for job #${jobId} has failed. Please update your payment information.`,
+          isRead: false,
+          relatedId: jobId,
+          relatedType: 'job',
+        });
+      }
+    }
+  } catch (error) {
+    console.error('Error recording failed payment:', error);
+    throw error;
   }
 }
 
-async function handlePaymentIntentCanceled(paymentIntent: Stripe.PaymentIntent) {
-  console.log(`Payment canceled: ${paymentIntent.id}`);
+// Handler for charge.succeeded event
+async function handleChargeSucceeded(charge: Stripe.Charge) {
+  console.log(`Charge succeeded: ${charge.id}`);
   
-  // Update payment record
-  const payment = await storage.getPaymentByTransactionId(paymentIntent.id);
+  // Additional handling for charges if needed
+  // Most payment flows will use the payment_intent events instead
+}
+
+// Handler for charge.failed event
+async function handleChargeFailed(charge: Stripe.Charge) {
+  console.log(`Charge failed: ${charge.id}`);
   
-  if (payment) {
-    await storage.updatePaymentStatus(payment.id, 'canceled');
+  // Additional handling for failed charges if needed
+}
+
+// Handler for charge.refunded event
+async function handleChargeRefunded(charge: Stripe.Charge) {
+  console.log(`Charge refunded: ${charge.id}`);
+  
+  try {
+    if (charge.payment_intent && typeof charge.payment_intent === 'string') {
+      const existingPayment = await storage.getPaymentByTransactionId(charge.payment_intent);
+      
+      if (existingPayment) {
+        // Update payment status based on refund amount
+        const status = charge.amount_refunded === charge.amount ? 'refunded' : 'partial_refunded';
+        await storage.updatePaymentStatus(existingPayment.id, status);
+        
+        // If this is a job payment, update the job payment status
+        if (existingPayment.jobId) {
+          await storage.updateJob(existingPayment.jobId, { paymentStatus: status });
+        }
+        
+        // Notify the users involved
+        if (existingPayment.userId) {
+          await storage.createNotification({
+            userId: existingPayment.userId,
+            type: 'refund',
+            title: 'Payment Refunded',
+            message: `Your payment of ${(charge.amount_refunded / 100).toFixed(2)} USD for job #${existingPayment.jobId} has been refunded.`,
+            isRead: false,
+            relatedId: existingPayment.jobId || undefined,
+            relatedType: 'job',
+          });
+        }
+      }
+    }
+  } catch (error) {
+    console.error('Error processing refund:', error);
+    throw error;
   }
 }
 
-// Transfer Handlers
+// Handler for transfer.created event
 async function handleTransferCreated(transfer: Stripe.Transfer) {
   console.log(`Transfer created: ${transfer.id}`);
   
-  // Find the connected account and associated user
-  if (transfer.destination) {
-    const connectedAccountId = transfer.destination;
-    const users = await storage.getUsersByStripeConnectAccountId(connectedAccountId);
+  // Record transfers to workers in our database
+  try {
+    const metadata = transfer.metadata || {};
+    const jobId = metadata.jobId ? parseInt(metadata.jobId) : null;
+    const workerId = metadata.workerId ? parseInt(metadata.workerId) : null;
+    const userId = metadata.userId ? parseInt(metadata.userId) : null;
     
-    if (users.length > 0) {
-      const worker = users[0];
+    if (workerId) {
+      // Record the transfer in earnings table
+      const earningData = {
+        workerId,
+        jobId,
+        amount: transfer.amount,
+        description: transfer.description || 'Transfer payment',
+        transactionId: transfer.id,
+        status: 'paid',
+        datePaid: new Date().toISOString(),
+      };
       
-      // If there's metadata with a job ID, update the corresponding earning record
-      if (transfer.metadata && transfer.metadata.jobId) {
-        const jobId = parseInt(transfer.metadata.jobId as string);
-        const earnings = await storage.getEarningsForJob(jobId);
-        
-        // Find the earning for this worker and job
-        const earning = earnings.find(e => e.workerId === worker.id);
-        
-        if (earning) {
-          // Update the earning with the transfer ID and status
-          await storage.updateEarningStatus(earning.id, 'transferred');
-          // TODO: Add a field for transferId and update it here
-        }
-      }
+      const earning = await storage.createEarning(earningData);
       
-      // Create a payment record for the transfer if it doesn't exist
-      const existingPayment = await storage.getPaymentByTransactionId(transfer.id);
-      
-      if (!existingPayment) {
-        try {
-          await storage.createPayment({
-            userId: worker.id,
-            workerId: worker.id,
-            jobId: transfer.metadata?.jobId ? parseInt(transfer.metadata.jobId as string) : null,
-            amount: transfer.amount / 100, // Stripe amounts are in cents
-            status: 'pending',
-            type: 'transfer',
-            transactionId: transfer.id,
-            description: transfer.description || 'Transfer to connected account',
-            metadata: transfer.metadata || {},
-            serviceFee: null,
-            stripeCustomerId: null,
-            stripeConnectAccountId: connectedAccountId,
-            paymentMethod: null,
-          });
-        } catch (err) {
-          console.error('Error creating transfer payment record:', err);
-        }
-      }
+      // Notify the worker
+      await storage.createNotification({
+        userId: workerId,
+        type: 'earnings',
+        title: 'Payment Received',
+        message: `You have received a payment of ${(transfer.amount / 100).toFixed(2)} USD for ${jobId ? `job #${jobId}` : 'your services'}.`,
+        isRead: false,
+        relatedId: jobId || undefined,
+        relatedType: jobId ? 'job' : 'earnings',
+      });
     }
+  } catch (error) {
+    console.error('Error recording transfer:', error);
+    throw error;
   }
 }
 
-async function handleTransferPaid(transfer: Stripe.Transfer) {
-  console.log(`Transfer paid: ${transfer.id}`);
-  
-  // Find the connected account and associated user
-  if (transfer.destination) {
-    const connectedAccountId = transfer.destination;
-    const users = await storage.getUsersByStripeConnectAccountId(connectedAccountId);
-    
-    if (users.length > 0) {
-      // Update the payment record for this transfer
-      const payment = await storage.getPaymentByTransactionId(transfer.id);
-      
-      if (payment) {
-        await storage.updatePaymentStatus(payment.id, 'paid');
-      }
-    }
-  }
-}
-
+// Handler for transfer.failed event
 async function handleTransferFailed(transfer: Stripe.Transfer) {
   console.log(`Transfer failed: ${transfer.id}`);
   
-  // Find the connected account and associated user
-  if (transfer.destination) {
-    const connectedAccountId = transfer.destination;
-    const users = await storage.getUsersByStripeConnectAccountId(connectedAccountId);
+  try {
+    const metadata = transfer.metadata || {};
+    const jobId = metadata.jobId ? parseInt(metadata.jobId) : null;
+    const workerId = metadata.workerId ? parseInt(metadata.workerId) : null;
+    const userId = metadata.userId ? parseInt(metadata.userId) : null;
     
-    if (users.length > 0) {
-      // Update the payment record for this transfer
-      const payment = await storage.getPaymentByTransactionId(transfer.id);
+    if (workerId) {
+      // Record the failed transfer
+      const earningData = {
+        workerId,
+        jobId,
+        amount: transfer.amount,
+        description: transfer.description || 'Failed transfer',
+        transactionId: transfer.id,
+        status: 'failed',
+      };
       
-      if (payment) {
-        await storage.updatePaymentStatus(payment.id, 'failed');
-      }
+      await storage.createEarning(earningData);
       
-      // If there's a job ID, update the earning record
-      if (transfer.metadata && transfer.metadata.jobId) {
-        const jobId = parseInt(transfer.metadata.jobId as string);
-        const earnings = await storage.getEarningsForJob(jobId);
-        
-        // Find the earning for this worker and job
-        const worker = users[0];
-        const earning = earnings.find(e => e.workerId === worker.id);
-        
-        if (earning) {
-          // Update the earning status back to pending_transfer
-          await storage.updateEarningStatus(earning.id, 'pending_transfer');
-        }
+      // Notify the admin/job poster about the failed transfer
+      if (userId) {
+        await storage.createNotification({
+          userId,
+          type: 'transfer_failed',
+          title: 'Worker Payment Failed',
+          message: `The payment transfer to worker #${workerId} for ${jobId ? `job #${jobId}` : 'services'} has failed.`,
+          isRead: false,
+          relatedId: jobId || undefined,
+          relatedType: jobId ? 'job' : 'earnings',
+        });
       }
     }
+  } catch (error) {
+    console.error('Error recording failed transfer:', error);
+    throw error;
   }
 }
 
-async function handleTransferReversed(transfer: Stripe.Transfer) {
-  console.log(`Transfer reversed: ${transfer.id}`);
+// Handler for payout.created event
+async function handlePayoutCreated(payout: Stripe.Payout) {
+  console.log(`Payout created: ${payout.id}`);
   
-  // Similar logic to failed transfers
-  if (transfer.destination) {
-    const connectedAccountId = transfer.destination;
-    const users = await storage.getUsersByStripeConnectAccountId(connectedAccountId);
-    
-    if (users.length > 0) {
-      // Update the payment record for this transfer
-      const payment = await storage.getPaymentByTransactionId(transfer.id);
-      
-      if (payment) {
-        await storage.updatePaymentStatus(payment.id, 'reversed');
-      }
-    }
-  }
+  // Additional handling for payouts (when workers withdraw funds)
 }
 
-// Account Handlers
+// Handler for payout.failed event
+async function handlePayoutFailed(payout: Stripe.Payout) {
+  console.log(`Payout failed: ${payout.id}`);
+  
+  // Handling for failed payouts
+}
+
+// Handler for account.updated event
 async function handleAccountUpdated(account: Stripe.Account) {
   console.log(`Account updated: ${account.id}`);
   
-  // Find users with this connected account
-  const users = await storage.getUsersByStripeConnectAccountId(account.id);
-  
-  if (users.length > 0) {
-    const user = users[0];
+  try {
+    // Find the user with this Stripe account
+    const users = await storage.getAllUsers();
+    const user = users.find(u => u.stripeConnectAccountId === account.id);
     
-    // Check if the account now has representative info provided
-    const hasRepresentative = account.company?.directors_provided || 
-                            account.company?.executives_provided || 
-                            account.company?.owners_provided || 
-                            account.individual !== null;
-                            
-    if (hasRepresentative) {
-      await storage.updateStripeRepresentativeInfo(user.id, true);
-    }
-    
-    // Check if bank account is provided
-    const hasBankingDetails = account.external_accounts?.data?.length > 0;
-    
-    if (hasBankingDetails) {
-      await storage.updateStripeBankingDetails(user.id, true);
-    }
-  }
-}
-
-// Subscription Handlers
-async function handleSubscriptionCreated(subscription: Stripe.Subscription) {
-  console.log(`Subscription created: ${subscription.id}`);
-  
-  if (subscription.customer) {
-    const customerId = typeof subscription.customer === 'string' 
-      ? subscription.customer 
-      : subscription.customer.id;
+    if (user) {
+      // Update the user's Stripe account verification status
+      const isVerified = account.charges_enabled && account.payouts_enabled;
+      const verificationStatus = isVerified ? 'verified' : 'pending';
       
-    const users = await storage.getUsersByStripeCustomerId(customerId);
-    
-    if (users.length > 0) {
-      const user = users[0];
+      await storage.updateUser(user.id, {
+        stripeVerificationStatus: verificationStatus,
+      });
       
-      // TODO: Add a field for subscriptionId and update it here
-      // await storage.updateUserSubscription(user.id, subscription.id, subscription.status);
-      
-      // Create a payment record for the subscription
-      if (subscription.latest_invoice) {
-        const invoice = typeof subscription.latest_invoice === 'string'
-          ? await stripe.invoices.retrieve(subscription.latest_invoice)
-          : subscription.latest_invoice;
-          
-        if (invoice.payment_intent) {
-          const paymentIntent = typeof invoice.payment_intent === 'string'
-            ? await stripe.paymentIntents.retrieve(invoice.payment_intent)
-            : invoice.payment_intent;
-            
-          try {
-            await storage.createPayment({
-              userId: user.id,
-              workerId: null,
-              jobId: null,
-              amount: subscription.items.total_usage / 100, // Stripe amounts are in cents
-              status: subscription.status,
-              type: 'subscription',
-              transactionId: paymentIntent.id,
-              description: `Subscription: ${subscription.id}`,
-              metadata: subscription.metadata || {},
-              serviceFee: null,
-              stripeCustomerId: customerId,
-              stripeConnectAccountId: null,
-              paymentMethod: paymentIntent.payment_method as string,
-            });
-          } catch (err) {
-            console.error('Error creating subscription payment record:', err);
-          }
-        }
+      // Notify the user about verification changes
+      if (isVerified) {
+        await storage.createNotification({
+          userId: user.id,
+          type: 'account',
+          title: 'Account Verified',
+          message: 'Your Stripe account has been verified. You can now receive payments for your work.',
+          isRead: false,
+        });
+      } else if (account.requirements?.currently_due?.length) {
+        await storage.createNotification({
+          userId: user.id,
+          type: 'account',
+          title: 'Action Required',
+          message: 'Your Stripe account requires additional information. Please complete the verification process.',
+          isRead: false,
+        });
       }
     }
+  } catch (error) {
+    console.error('Error updating user account verification:', error);
+    throw error;
   }
 }
-
-async function handleSubscriptionUpdated(subscription: Stripe.Subscription) {
-  console.log(`Subscription updated: ${subscription.id}`);
-  
-  // Similar to subscription created, but update existing records
-  if (subscription.customer) {
-    const customerId = typeof subscription.customer === 'string' 
-      ? subscription.customer 
-      : subscription.customer.id;
-      
-    const users = await storage.getUsersByStripeCustomerId(customerId);
-    
-    if (users.length > 0) {
-      const user = users[0];
-      
-      // TODO: Update user's subscription status
-      // await storage.updateUserSubscription(user.id, subscription.id, subscription.status);
-    }
-  }
-}
-
-async function handleSubscriptionDeleted(subscription: Stripe.Subscription) {
-  console.log(`Subscription deleted: ${subscription.id}`);
-  
-  if (subscription.customer) {
-    const customerId = typeof subscription.customer === 'string' 
-      ? subscription.customer 
-      : subscription.customer.id;
-      
-    const users = await storage.getUsersByStripeCustomerId(customerId);
-    
-    if (users.length > 0) {
-      const user = users[0];
-      
-      // TODO: Update user's subscription status to canceled
-      // await storage.updateUserSubscription(user.id, subscription.id, 'canceled');
-    }
-  }
-}
-
-// Checkout Session Handlers
-async function handleCheckoutSessionCompleted(session: Stripe.Checkout.Session) {
-  console.log(`Checkout session completed: ${session.id}`);
-  
-  // Process the checkout session based on what was purchased
-  if (session.customer) {
-    const customerId = typeof session.customer === 'string' 
-      ? session.customer 
-      : session.customer.id;
-      
-    const users = await storage.getUsersByStripeCustomerId(customerId);
-    
-    if (users.length > 0) {
-      const user = users[0];
-      
-      // Check what was purchased and handle accordingly
-      if (session.mode === 'payment' && session.payment_intent) {
-        const paymentIntentId = typeof session.payment_intent === 'string'
-          ? session.payment_intent
-          : session.payment_intent.id;
-          
-        // A one-time payment was made
-        try {
-          await storage.createPayment({
-            userId: user.id,
-            workerId: null,
-            jobId: session.metadata?.jobId ? parseInt(session.metadata.jobId) : null,
-            amount: session.amount_total ? session.amount_total / 100 : 0, // Stripe amounts are in cents
-            status: 'succeeded',
-            type: 'payment',
-            transactionId: paymentIntentId,
-            description: session.metadata?.description || 'Checkout payment',
-            metadata: session.metadata || {},
-            serviceFee: null,
-            stripeCustomerId: customerId,
-            stripeConnectAccountId: null,
-            paymentMethod: null, // We don't get the payment method in the session
-          });
-        } catch (err) {
-          console.error('Error creating checkout payment record:', err);
-        }
-      } else if (session.mode === 'subscription' && session.subscription) {
-        // A subscription was created - this will be handled by the subscription events
-        console.log(`Subscription ${session.subscription} created via checkout`);
-      }
-    }
-  }
-}
-
-// Invoice Handlers
-async function handleInvoicePaid(invoice: Stripe.Invoice) {
-  console.log(`Invoice paid: ${invoice.id}`);
-  
-  if (invoice.customer) {
-    const customerId = typeof invoice.customer === 'string' 
-      ? invoice.customer 
-      : invoice.customer.id;
-      
-    const users = await storage.getUsersByStripeCustomerId(customerId);
-    
-    if (users.length > 0 && invoice.payment_intent) {
-      const user = users[0];
-      const paymentIntentId = typeof invoice.payment_intent === 'string'
-        ? invoice.payment_intent
-        : invoice.payment_intent.id;
-        
-      // Check if we already have a payment record
-      const existingPayment = await storage.getPaymentByTransactionId(paymentIntentId);
-      
-      if (!existingPayment) {
-        // Create a payment record
-        try {
-          await storage.createPayment({
-            userId: user.id,
-            workerId: null,
-            jobId: null,
-            amount: invoice.amount_paid / 100, // Stripe amounts are in cents
-            status: 'succeeded',
-            type: invoice.subscription ? 'subscription' : 'payment',
-            transactionId: paymentIntentId,
-            description: `Invoice: ${invoice.id}`,
-            metadata: invoice.metadata || {},
-            serviceFee: null,
-            stripeCustomerId: customerId,
-            stripeConnectAccountId: null,
-            paymentMethod: null, // We don't get the payment method in the invoice
-          });
-        } catch (err) {
-          console.error('Error creating invoice payment record:', err);
-        }
-      }
-    }
-  }
-}
-
-async function handleInvoicePaymentFailed(invoice: Stripe.Invoice) {
-  console.log(`Invoice payment failed: ${invoice.id}`);
-  
-  if (invoice.customer && invoice.payment_intent) {
-    const customerId = typeof invoice.customer === 'string' 
-      ? invoice.customer 
-      : invoice.customer.id;
-      
-    const users = await storage.getUsersByStripeCustomerId(customerId);
-    
-    if (users.length > 0) {
-      const user = users[0];
-      const paymentIntentId = typeof invoice.payment_intent === 'string'
-        ? invoice.payment_intent
-        : invoice.payment_intent.id;
-        
-      // Update payment record if it exists
-      const payment = await storage.getPaymentByTransactionId(paymentIntentId);
-      
-      if (payment) {
-        await storage.updatePaymentStatus(payment.id, 'failed');
-      }
-      
-      // If it's a subscription, we might want to notify the user
-      if (invoice.subscription) {
-        // TODO: Send notification to user about failed subscription payment
-      }
-    }
-  }
-}
-
-export default webhooksRouter;
