@@ -190,24 +190,20 @@ export default function PostJobDrawer({ isOpen, onOpenChange }: PostJobDrawerPro
       queryClient.invalidateQueries({ queryKey: ['/api/jobs'] });
       queryClient.invalidateQueries({ queryKey: ['/api/jobs/nearby/location'] });
       
-      // Show success toast for all job types
+      // Show a simple success toast - no navigation buttons
       toast({
         title: "Job Posted",
-        description: "Your job has been posted successfully!"
+        description: "Your job has been posted successfully! Find it on the map or in your jobs list.",
+        variant: "default"
       });
       
-      // For ALL job types, add a small delay to ensure the database finishes saving before navigating
-      // This prevents the "job not found" error when navigating too quickly
       console.log(`Job created successfully with ID: ${jobResponse.id}`);
       
-      // First, navigate to home so we don't get the error
+      // Navigate to home page and let the user find the job on the map
       navigate('/');
       
-      // Then, after a short delay, navigate to the job detail page
-      setTimeout(() => {
-        console.log(`Navigating to job detail page for job ID: ${jobResponse.id}`);
-        navigate(`/job/${jobResponse.id}`);
-      }, 1000); // 1-second delay to allow database to finish saving
+      // Highlight the new job on the map (optional, if this functionality exists)
+      // Otherwise the jobs will refresh via the queryClient invalidation above
     } catch (error) {
       toast({
         title: "Error",
