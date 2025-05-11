@@ -38,7 +38,11 @@ import { CircleCheckBig, CircleX, Info, ExternalLink, CheckCircle, AlertCircle, 
  * A component for setting up Stripe Connect for workers
  * to receive payments directly to their bank accounts
  */
-export default function StripeConnectSetup() {
+interface StripeConnectSetupProps {
+  compact?: boolean;
+}
+
+export default function StripeConnectSetup({ compact = false }: StripeConnectSetupProps) {
   const [acceptedTerms, setAcceptedTerms] = useState(false);
   const [activeTab, setActiveTab] = useState<string>('setup');
   const { toast } = useToast();

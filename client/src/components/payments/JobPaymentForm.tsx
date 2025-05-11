@@ -137,6 +137,7 @@ interface JobPaymentFormProps {
   workerId?: number;
   initialAmount?: number;
   onSuccess?: () => void;
+  isExistingJob?: boolean;
 }
 
 /**

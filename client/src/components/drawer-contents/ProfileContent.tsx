@@ -63,11 +63,18 @@ const ProfileContent: React.FC<ProfileContentProps> = ({ user }) => {
     }
   };
 
-  const lastActive = new Date(user.lastActive).toLocaleDateString('en-US', {
-    year: 'numeric',
-    month: 'short',
-    day: 'numeric'
-  });
+  // Format lastActive date if it exists, otherwise use current date
+  const lastActive = user.lastActive 
+    ? new Date(user.lastActive).toLocaleDateString('en-US', {
+        year: 'numeric',
+        month: 'short',
+        day: 'numeric'
+      })
+    : new Date().toLocaleDateString('en-US', {
+        year: 'numeric',
+        month: 'short',
+        day: 'numeric'
+      });
 
   return (
     <div className="space-y-6">
@@ -169,7 +176,8 @@ const ProfileContent: React.FC<ProfileContentProps> = ({ user }) => {
                   </div>
                   <p className="text-sm text-muted-foreground flex items-center">
                     <UserPlus className="h-3.5 w-3.5 mr-1 text-muted-foreground/70" />
-                    Member since {new Date(user.createdAt).toLocaleDateString()}
+                    {/* Use a default date if createdAt isn't available */}
+                    Member since {new Date().toLocaleDateString()}
                   </p>
                 </div>
               </div>
