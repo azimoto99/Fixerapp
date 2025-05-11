@@ -171,7 +171,7 @@ const UserDrawerV2: React.FC<UserDrawerProps> = ({
             style={{ zIndex: 100000 }}
           >
             {/* Drawer header with elevated design */}
-            <div className="bg-gradient-to-r from-blue-600 to-blue-700 text-white shadow-md">
+            <div className="bg-gradient-to-r from-primary to-primary/80 text-primary-foreground shadow-md">
               <div className="px-6 pt-6 pb-5">
                 {/* Top bar with close button */}
                 <div className="flex justify-end mb-3">
@@ -186,21 +186,21 @@ const UserDrawerV2: React.FC<UserDrawerProps> = ({
                 
                 {/* User profile section */}
                 <div className="flex items-center gap-4">
-                  <Avatar className="h-16 w-16 border-2 border-white/50">
+                  <Avatar className="h-16 w-16 border-2 border-primary-foreground/50">
                     <AvatarImage src={user.avatarUrl || undefined} alt={user.fullName} />
-                    <AvatarFallback className="bg-blue-800 text-white text-lg">
+                    <AvatarFallback className="bg-primary/80 text-primary-foreground text-lg">
                       {user.fullName?.charAt(0) || 'U'}
                     </AvatarFallback>
                   </Avatar>
                   
                   <div>
                     <div className="font-bold text-xl tracking-tight">{user.fullName}</div>
-                    <div className="text-sm text-blue-100 flex items-center gap-2 mt-1">
-                      <Badge variant="outline" className="font-normal capitalize text-xs bg-white/10 hover:bg-white/20 text-white border-white/20">
+                    <div className="text-sm text-primary-foreground/80 flex items-center gap-2 mt-1">
+                      <Badge variant="outline" className="font-normal capitalize text-xs bg-primary-foreground/10 hover:bg-primary-foreground/20 text-primary-foreground border-primary-foreground/20">
                         {user.accountType}
                       </Badge>
                       {user.rating && user.rating > 0 && (
-                        <div className="flex items-center bg-white/10 px-2 py-0.5 rounded text-xs">
+                        <div className="flex items-center bg-primary-foreground/10 px-2 py-0.5 rounded text-xs">
                           <StarIcon className="h-3 w-3 text-yellow-300 mr-1 inline" />
                           <span>{user.rating.toFixed(1)}</span>
                         </div>
@@ -211,19 +211,19 @@ const UserDrawerV2: React.FC<UserDrawerProps> = ({
                 
                 {/* Quick stats */}
                 <div className="grid grid-cols-3 gap-2 mt-4">
-                  <div className="bg-white/10 rounded-lg p-2 text-center">
-                    <div className="text-xs text-blue-100">Jobs</div>
+                  <div className="bg-primary-foreground/10 rounded-lg p-2 text-center">
+                    <div className="text-xs text-primary-foreground/80">Jobs</div>
                     <div className="text-lg font-semibold">{user.completedJobs || 0}</div>
                   </div>
-                  <div className="bg-white/10 rounded-lg p-2 text-center">
-                    <div className="text-xs text-blue-100">Rating</div>
+                  <div className="bg-primary-foreground/10 rounded-lg p-2 text-center">
+                    <div className="text-xs text-primary-foreground/80">Rating</div>
                     <div className="text-lg font-semibold flex items-center justify-center">
                       <StarIcon className="h-4 w-4 text-yellow-300 mr-1" />
                       {user.rating?.toFixed(1) || '-'}
                     </div>
                   </div>
-                  <div className="bg-white/10 rounded-lg p-2 text-center">
-                    <div className="text-xs text-blue-100">Success</div>
+                  <div className="bg-primary-foreground/10 rounded-lg p-2 text-center">
+                    <div className="text-xs text-primary-foreground/80">Success</div>
                     <div className="text-lg font-semibold">{user.successRate ? `${user.successRate}%` : '-'}</div>
                   </div>
                 </div>
@@ -263,8 +263,8 @@ const UserDrawerV2: React.FC<UserDrawerProps> = ({
                           className={cn(
                             "flex flex-col items-center justify-center w-14 h-14 rounded-lg",
                             activeTab === "profile" 
-                              ? "bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-400" 
-                              : "hover:bg-blue-50 dark:hover:bg-blue-900/20 text-slate-600 dark:text-slate-300"
+                              ? "bg-primary/10 text-primary dark:bg-primary/20 dark:text-primary" 
+                              : "hover:bg-accent dark:hover:bg-accent/20 text-foreground dark:text-foreground/80"
                           )}
                         >
                           <User className="h-5 w-5 mb-1" />
