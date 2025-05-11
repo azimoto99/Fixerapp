@@ -262,12 +262,19 @@ const MapSection: React.FC<MapSectionProps> = ({ jobs, selectedJob, onSelectJob,
             z-index: 1 !important;
           }
           
-          /* Force all leaflet controls to lower z-index */
+          /* Force all leaflet controls to lower z-index so drawer can appear above */
           .leaflet-control,
           .leaflet-top,
           .leaflet-bottom,
           .leaflet-pane {
             z-index: 400 !important;
+          }
+          
+          /* Ensure map stays behind our high z-index components */
+          .leaflet-map-pane canvas,
+          .leaflet-map-pane svg,
+          .leaflet-popup {
+            z-index: 450 !important;
           }
           
           /* Additional fixes for z-index issues */
