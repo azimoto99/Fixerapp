@@ -5,7 +5,6 @@ import { format } from 'date-fns';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/hooks/use-auth';
 import WorkerHistory from './WorkerHistory';
-
 import {
   Card,
   CardContent,
@@ -147,19 +146,44 @@ const ApplicationDetail = ({
         
         <div className="grid grid-cols-2 gap-4 text-sm">
           {application.hourlyRate && (
-            <div>
-              <span className="text-muted-foreground">Hourly Rate:</span>
-              <div className="font-medium">${application.hourlyRate.toFixed(2)}/hr</div>
+            <div className="flex items-start space-x-2">
+              <div className="rounded-full bg-primary/10 p-2">
+                <DollarSign className="h-4 w-4 text-primary" />
+              </div>
+              <div>
+                <span className="text-muted-foreground">Hourly Rate</span>
+                <div className="font-medium">${application.hourlyRate.toFixed(2)}/hr</div>
+              </div>
             </div>
           )}
           
           {application.expectedDuration && (
-            <div>
-              <span className="text-muted-foreground">Expected Duration:</span>
-              <div className="font-medium">{application.expectedDuration}</div>
+            <div className="flex items-start space-x-2">
+              <div className="rounded-full bg-primary/10 p-2">
+                <Clock className="h-4 w-4 text-primary" />
+              </div>
+              <div>
+                <span className="text-muted-foreground">Estimated Time</span>
+                <div className="font-medium">{application.expectedDuration}</div>
+              </div>
             </div>
           )}
         </div>
+        
+        {/* Estimated cost calculation */}
+        {application.hourlyRate && application.expectedDuration && (
+          <div className="mt-3 p-3 bg-secondary/30 rounded-md text-sm">
+            <div className="flex justify-between items-center">
+              <div className="flex items-center">
+                <Briefcase className="h-4 w-4 mr-2 text-muted-foreground" />
+                <span>Estimated Cost</span>
+              </div>
+              <div className="font-semibold">
+                ${calculateEstimatedCost(application.hourlyRate, application.expectedDuration)}
+              </div>
+            </div>
+          </div>
+        )}
       </CardContent>
       <CardFooter className="flex justify-between pt-0">
         <Button
