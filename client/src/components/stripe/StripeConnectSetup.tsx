@@ -462,11 +462,20 @@ export default function StripeConnectSetup({ compact = false }: StripeConnectSet
       
       <TabsContent value="dashboard">
         <Card>
-          <CardHeader>
-            <CardTitle>Stripe Connect Dashboard</CardTitle>
-            <CardDescription>
-              Manage your Stripe Connect account and view payment history
-            </CardDescription>
+          <CardHeader className="pb-4">
+            <div className="flex justify-between items-center">
+              <div>
+                <CardTitle>Stripe Connect Dashboard</CardTitle>
+                <CardDescription>
+                  Manage your Stripe Connect account and view payment history
+                </CardDescription>
+              </div>
+              <img 
+                src="https://upload.wikimedia.org/wikipedia/commons/b/ba/Stripe_Logo%2C_revised_2016.svg" 
+                alt="Stripe" 
+                className="h-8 opacity-80" 
+              />
+            </div>
           </CardHeader>
           <CardContent className="space-y-6">
             {isLoadingAccount ? (
@@ -475,25 +484,42 @@ export default function StripeConnectSetup({ compact = false }: StripeConnectSet
               </div>
             ) : hasConnectAccount ? (
               <>
-                <div className="flex items-center justify-between">
-                  <div>
-                    <h3 className="text-lg font-medium">Account Status</h3>
-                    <p className="text-sm text-muted-foreground">
-                      {accountVerified ? 
-                        'Your account is fully verified and ready to receive payments' : 
-                        'Your account requires additional information before you can receive payments'
-                      }
-                    </p>
+                <div className="rounded-lg overflow-hidden border border-slate-200 dark:border-slate-800">
+                  <div className={`p-4 ${accountVerified ? 'bg-gradient-to-r from-emerald-50 to-teal-50 dark:from-emerald-950/30 dark:to-teal-950/30' : 'bg-gradient-to-r from-amber-50 to-orange-50 dark:from-amber-950/30 dark:to-orange-950/30'}`}>
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-3">
+                        {accountVerified ? (
+                          <div className="h-10 w-10 rounded-full bg-emerald-100 dark:bg-emerald-900/60 flex items-center justify-center">
+                            <CheckCircle className="h-6 w-6 text-emerald-600 dark:text-emerald-400" />
+                          </div>
+                        ) : (
+                          <div className="h-10 w-10 rounded-full bg-amber-100 dark:bg-amber-900/60 flex items-center justify-center">
+                            <AlertCircle className="h-6 w-6 text-amber-600 dark:text-amber-400" />
+                          </div>
+                        )}
+                        <div>
+                          <h3 className={`text-lg font-medium ${accountVerified ? 'text-emerald-900 dark:text-emerald-300' : 'text-amber-900 dark:text-amber-300'}`}>
+                            {accountVerified ? 'Account Verified' : 'Verification Required'}
+                          </h3>
+                          <p className={`text-sm ${accountVerified ? 'text-emerald-700 dark:text-emerald-400' : 'text-amber-700 dark:text-amber-400'}`}>
+                            {accountVerified ? 
+                              'Your account is fully verified and ready to receive payments' : 
+                              'Additional information needed to process payments'
+                            }
+                          </p>
+                        </div>
+                      </div>
+                      <Badge 
+                        variant="outline"
+                        className={accountVerified 
+                          ? "bg-emerald-100 text-emerald-800 hover:bg-emerald-100 border-emerald-200 dark:bg-emerald-900/60 dark:text-emerald-300 dark:border-emerald-800" 
+                          : "bg-amber-100 text-amber-800 hover:bg-amber-100 border-amber-200 dark:bg-amber-900/60 dark:text-amber-300 dark:border-amber-800"
+                        }
+                      >
+                        {accountVerified ? 'Verified' : 'Pending Verification'}
+                      </Badge>
+                    </div>
                   </div>
-                  <Badge 
-                    variant="outline"
-                    className={accountVerified 
-                      ? "bg-green-100 text-green-800 hover:bg-green-100 border-green-200" 
-                      : "bg-amber-100 text-amber-800 hover:bg-amber-100 border-amber-200"
-                    }
-                  >
-                    {accountVerified ? 'Verified' : 'Pending Verification'}
-                  </Badge>
                 </div>
                 
                 <Separator />
@@ -543,37 +569,57 @@ export default function StripeConnectSetup({ compact = false }: StripeConnectSet
                     <Separator />
                     
                     <div className="space-y-4">
-                      <h3 className="text-lg font-medium">Required Information</h3>
-                      <Alert variant="destructive">
-                        <AlertCircle className="h-4 w-4 mr-2" />
-                        <AlertTitle>Action Required</AlertTitle>
-                        <AlertDescription>
-                          <p className="mb-2">The following information is required to activate your account:</p>
-                          <ul className="list-disc pl-5 space-y-1">
+                      <div className="flex justify-between items-center">
+                        <h3 className="text-lg font-medium">Account Requirements</h3>
+                        <Badge variant="outline" className="bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-900/40 dark:text-amber-300 dark:border-amber-800">
+                          Action Needed
+                        </Badge>
+                      </div>
+                      
+                      <div className="rounded-lg border border-amber-200 dark:border-amber-800 bg-gradient-to-r from-amber-50 to-orange-50 dark:from-amber-950/30 dark:to-orange-950/30 p-5">
+                        <div className="flex gap-3 mb-4">
+                          <div className="h-10 w-10 rounded-full bg-amber-100 dark:bg-amber-900/60 flex items-center justify-center flex-shrink-0">
+                            <AlertCircle className="h-6 w-6 text-amber-600 dark:text-amber-400" />
+                          </div>
+                          <div>
+                            <h4 className="font-medium text-amber-900 dark:text-amber-300">Complete Your Verification</h4>
+                            <p className="text-sm text-amber-700 dark:text-amber-400">
+                              The following information is needed to activate your account:
+                            </p>
+                          </div>
+                        </div>
+                        
+                        <div className="rounded-md bg-white dark:bg-slate-900 border border-amber-200 dark:border-amber-800 p-3 mb-4">
+                          <ul className="space-y-2">
                             {requirements.currently_due.map((requirement: string, index: number) => (
-                              <li key={index} className="text-sm">
-                                {requirement.replace(/_/g, ' ').replace(/\./g, ' › ')}
+                              <li key={index} className="flex items-start gap-2 text-sm">
+                                <div className="h-5 w-5 rounded-full bg-amber-100 dark:bg-amber-900/60 flex items-center justify-center flex-shrink-0 mt-0.5">
+                                  <span className="text-xs font-medium text-amber-700 dark:text-amber-300">!</span>
+                                </div>
+                                <span className="text-slate-700 dark:text-slate-300">
+                                  {requirement.replace(/_/g, ' ').replace(/\./g, ' › ')}
+                                </span>
                               </li>
                             ))}
                           </ul>
-                        </AlertDescription>
-                      </Alert>
-                      
-                      <Button 
-                        onClick={handleLoginToStripe}
-                        disabled={createLoginLinkMutation.isPending}
-                      >
-                        {createLoginLinkMutation.isPending ? (
-                          <>
-                            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                            Loading...
-                          </>
-                        ) : (
-                          <>
-                            Complete Account Setup <ExternalLink className="ml-2 h-4 w-4" />
-                          </>
-                        )}
-                      </Button>
+                        </div>
+                        
+                        <Button 
+                          onClick={handleLoginToStripe}
+                          disabled={createLoginLinkMutation.isPending}
+                          className="w-full bg-gradient-to-r from-amber-600 to-orange-600 hover:from-amber-700 hover:to-orange-700 text-white"
+                          size="lg"
+                        >
+                          {createLoginLinkMutation.isPending ? (
+                            <>
+                              <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+                              Loading Stripe Dashboard...
+                            </>
+                          ) : (
+                            <>Complete Verification Now <ExternalLink className="ml-2 h-4 w-4" /></>
+                          )}
+                        </Button>
+                      </div>
                     </div>
                   </>
                 )}
