@@ -157,13 +157,13 @@ export default function Profile() {
                 </TabsTrigger>
                 <TabsTrigger value="payments">
                   <span className="flex items-center gap-1">
-                    {React.createElement(Wallet, { className: "h-3.5 w-3.5" })}
+                    <Wallet className="h-3.5 w-3.5" />
                     Payments
                   </span>
                 </TabsTrigger>
                 <TabsTrigger value="earnings">
                   <span className="flex items-center gap-1">
-                    {React.createElement(DollarSign, { className: "h-3.5 w-3.5" })}
+                    <DollarSign className="h-3.5 w-3.5" />
                     {user.accountType === 'worker' ? 'Earnings' : 'Income'}
                   </span>
                 </TabsTrigger>
