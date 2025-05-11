@@ -161,7 +161,12 @@ const ProfileContent: React.FC<ProfileContentProps> = ({ user }) => {
                 
                 <div className="space-y-1">
                   <h3 className="text-lg font-semibold">{user.fullName}</h3>
-                  <Badge variant="outline" className="capitalize">{user.accountType}</Badge>
+                  <div className="flex flex-wrap gap-2 items-center">
+                    <Badge variant="outline" className="capitalize">{user.accountType}</Badge>
+                    {user.accountType === 'worker' && (
+                      <Badge variant="secondary" className="text-xs">ID: {user.id}</Badge>
+                    )}
+                  </div>
                   <p className="text-sm text-muted-foreground flex items-center">
                     <UserPlus className="h-3.5 w-3.5 mr-1 text-muted-foreground/70" />
                     Member since {new Date(user.createdAt).toLocaleDateString()}
