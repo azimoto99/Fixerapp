@@ -64,6 +64,60 @@
     width: 95% !important;
     max-width: 360px;
   }
+  
+  /* Better card layout for mobile */
+  .card-grid {
+    grid-template-columns: 1fr !important;
+    gap: 0.75rem !important;
+  }
+  
+  /* Optimize buttons on mobile */
+  .btn-group {
+    flex-direction: column;
+    width: 100%;
+  }
+  
+  .btn-group > * {
+    margin-right: 0 !important;
+    margin-bottom: 0.5rem;
+    width: 100%;
+  }
+  
+  /* Improve table displays on mobile */
+  .responsive-table {
+    display: block;
+    width: 100%;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+  
+  /* Optimize map for mobile */
+  .mobile-optimized-map {
+    height: calc(100vh - 64px) !important;
+  }
+  
+  /* Improve form layouts */
+  .form-grid {
+    grid-template-columns: 1fr !important;
+  }
+}
+
+/* Tablet optimizations */
+@media (min-width: 641px) and (max-width: 1024px) {
+  /* Optimize card layouts for tablets */
+  .card-grid {
+    grid-template-columns: repeat(2, 1fr) !important;
+  }
+  
+  /* Better spacing for tablets */
+  .tablet-spacing {
+    padding: 1.25rem !important;
+  }
+  
+  /* Optimize map for tablets */
+  .mobile-optimized-map {
+    height: calc(100vh - 72px) !important;
+  }
 }
 
 /* Improve map interactions on touch devices */
