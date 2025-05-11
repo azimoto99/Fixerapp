@@ -34,7 +34,7 @@ const MinimalMobileNav: React.FC = () => {
           <div className="flex justify-center">
             <div
               onClick={handleClick}
-              className={`group flex flex-col items-center py-3 px-2 cursor-pointer text-foreground`}
+              className={`group flex flex-col items-center py-3 px-2 cursor-pointer text-primary hover:text-primary/90`}
             >
               <i className="ri-add-circle-line text-xl"></i>
               <span className="text-xs mt-1">Post Job</span>

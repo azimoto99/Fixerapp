@@ -34,7 +34,6 @@ const formSchema = insertJobSchema.extend({
     .number()
     .min(10, 'Minimum payment amount is $10')
     .positive('Payment amount must be positive'),
-  // Handle dateNeeded as string in the form and convert when needed
   dateNeeded: z.string(),
 });
 
@@ -82,7 +81,6 @@ export default function PostJobDrawer({ isOpen, onOpenChange }: PostJobDrawerPro
     setIsSubmitting(true);
     
     try {
-      // Post the job data to the API
       const jobData = {
         ...data,
         posterId: user?.id,
@@ -91,21 +89,12 @@ export default function PostJobDrawer({ isOpen, onOpenChange }: PostJobDrawerPro
         status: 'open'
       };
       
-      const response = await apiRequest(
-        'POST',
-        '/api/jobs',
-        jobData
-      );
-      
+      const response = await apiRequest('POST', '/api/jobs', jobData);
       const jobResponse = await response.json();
       
-      // Reset the form and state
       form.reset();
-      
-      // Close the drawer
       onOpenChange(false);
       
-      // Invalidate jobs queries to refresh the data
       queryClient.invalidateQueries({ queryKey: ['/api/jobs'] });
       queryClient.invalidateQueries({ queryKey: ['/api/jobs/nearby/location'] });
       
@@ -114,7 +103,6 @@ export default function PostJobDrawer({ isOpen, onOpenChange }: PostJobDrawerPro
         description: "Your job has been posted successfully!"
       });
       
-      // Navigate to the job details page
       navigate(`/job/${jobResponse.id}`);
     } catch (error) {
       toast({
@@ -129,18 +117,18 @@ export default function PostJobDrawer({ isOpen, onOpenChange }: PostJobDrawerPro
 
   return (
     <Drawer open={isOpen} onOpenChange={onOpenChange}>
-      <DrawerContent style={{ zIndex: 2000 }} className="max-h-[85vh] overflow-y-auto pb-20">
-        <div className="mx-auto w-full max-w-lg pb-8">
-          <DrawerHeader>
-            <DrawerTitle className="text-2xl">Post a New Job</DrawerTitle>
-            <DrawerDescription>
+      <DrawerContent>
+        <div className="mx-auto w-full max-w-lg">
+          <DrawerHeader className="border-b border-border">
+            <DrawerTitle className="text-foreground">Post a New Job</DrawerTitle>
+            <DrawerDescription className="text-muted-foreground">
               Fill out the form below to post a new job
             </DrawerDescription>
           </DrawerHeader>
           
-          <div className="px-4">
+          <div className="px-4 py-4 overflow-y-auto max-h-[60vh]">
             <Form {...form}>
-              <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-5">
+              <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
                 {/* Job Title */}
                 <FormField
                   control={form.control}
@@ -236,7 +224,7 @@ export default function PostJobDrawer({ isOpen, onOpenChange }: PostJobDrawerPro
                   render={({ field }) => (
                     <FormItem>
                       <FormLabel>
-                        {form.watch('paymentType') === 'hourly' ? 'Hourly Rate' : 'Fixed Price'}
+                        {form.watch('paymentType') === 'hourly' ? 'Hourly Rate ($)' : 'Fixed Price ($)'}
                       </FormLabel>
                       <FormControl>
                         <div className="relative">
@@ -300,28 +288,31 @@ export default function PostJobDrawer({ isOpen, onOpenChange }: PostJobDrawerPro
                     <FormItem>
                       <FormLabel>Required Skills</FormLabel>
                       <FormControl>
-                        <div className="border rounded-md p-3 h-auto flex flex-wrap gap-2">
-                          {SKILLS.map((skill) => (
-                            <Badge
-                              key={skill}
-                              variant={(field.value || []).includes(skill) ? "default" : "outline"}
-                              className={`cursor-pointer ${
-                                (field.value || []).includes(skill) ? "bg-primary" : "bg-secondary/50"
-                              }`}
-                              onClick={() => {
-                                const currentValue = field.value || [];
-                                const updatedSkills = currentValue.includes(skill)
-                                  ? currentValue.filter((s: string) => s !== skill)
-                                  : [...currentValue, skill];
-                                field.onChange(updatedSkills);
-                              }}
-                            >
-                              {skill}
-                              {(field.value || []).includes(skill) && (
-                                <Check className="h-3 w-3 ml-1" />
-                              )}
-                            </Badge>
-                          ))}
+                        <div className="border border-border rounded-md p-3 h-auto flex flex-wrap gap-2">
+                          {SKILLS.map((skill) => {
+                            const isSelected = (field.value || []).includes(skill);
+                            return (
+                              <Badge
+                                key={skill}
+                                variant={isSelected ? "default" : "outline"}
+                                className={`cursor-pointer ${
+                                  isSelected ? "bg-primary text-primary-foreground" : "bg-secondary/50 hover:bg-secondary"
+                                }`}
+                                onClick={() => {
+                                  const currentValue = field.value || [];
+                                  const updatedSkills = currentValue.includes(skill)
+                                    ? currentValue.filter((s: string) => s !== skill)
+                                    : [...currentValue, skill];
+                                  field.onChange(updatedSkills);
+                                }}
+                              >
+                                {skill}
+                                {isSelected && (
+                                  <Check className="h-3 w-3 ml-1" />
+                                )}
+                              </Badge>
+                            );
+                          })}
                         </div>
                       </FormControl>
                       <FormDescription>
@@ -337,7 +328,7 @@ export default function PostJobDrawer({ isOpen, onOpenChange }: PostJobDrawerPro
                   control={form.control}
                   name="equipmentProvided"
                   render={({ field }) => (
-                    <FormItem className="flex flex-row items-start space-x-3 space-y-0 rounded-md border p-4">
+                    <FormItem className="flex flex-row items-start space-x-3 space-y-0 rounded-md border border-border p-4">
                       <FormControl>
                         <Checkbox
                           checked={field.value}
@@ -353,18 +344,24 @@ export default function PostJobDrawer({ isOpen, onOpenChange }: PostJobDrawerPro
                     </FormItem>
                   )}
                 />
-                
-                <DrawerFooter className="px-0">
-                  <Button type="submit" className="w-full" disabled={isSubmitting}>
-                    {isSubmitting ? 'Posting...' : 'Post Job'}
-                  </Button>
-                  <DrawerClose asChild>
-                    <Button variant="outline">Cancel</Button>
-                  </DrawerClose>
-                </DrawerFooter>
               </form>
             </Form>
           </div>
+          
+          <DrawerFooter className="border-t border-border">
+            <Button 
+              onClick={form.handleSubmit(onSubmit)}
+              className="bg-primary hover:bg-primary/90 text-primary-foreground" 
+              disabled={isSubmitting}
+            >
+              {isSubmitting ? 'Posting...' : 'Post Job'}
+            </Button>
+            <DrawerClose asChild>
+              <Button variant="outline" className="border-border hover:bg-accent hover:text-accent-foreground">
+                Cancel
+              </Button>
+            </DrawerClose>
+          </DrawerFooter>
         </div>
       </DrawerContent>
     </Drawer>
