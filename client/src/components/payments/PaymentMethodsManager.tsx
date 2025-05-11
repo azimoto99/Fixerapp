@@ -159,7 +159,7 @@ const AddPaymentMethodModal = ({ isOpen, onClose }: { isOpen: boolean; onClose: 
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="sm:max-w-md">
+      <DialogContent className="sm:max-w-md z-[var(--z-critical)]">
         <DialogHeader>
           <DialogTitle>Add Payment Method</DialogTitle>
           <DialogDescription>
