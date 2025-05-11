@@ -86,6 +86,7 @@ const StatusBadge = ({ status }: { status: string }) => {
 const PaymentsContent: React.FC<PaymentsContentProps> = ({ userId }) => {
   const { user } = useAuth();
   const { toast } = useToast();
+  const { openAddPaymentMethod } = usePaymentDialog();
   const [activeTab, setActiveTab] = useState('history');
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
@@ -612,6 +613,14 @@ const PaymentsContent: React.FC<PaymentsContentProps> = ({ userId }) => {
                       : 'Manage your payment methods for jobs'}
                   </p>
                 </div>
+                <Button 
+                  size="sm" 
+                  className="ml-auto h-7 text-xs px-2.5"
+                  onClick={openAddPaymentMethod}
+                >
+                  <PlusCircle className="h-3.5 w-3.5 mr-1.5" />
+                  Add Method
+                </Button>
               </div>
             </div>
             <div className="p-3">

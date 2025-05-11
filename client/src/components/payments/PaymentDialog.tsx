@@ -11,10 +11,9 @@ const PaymentDialogTrigger = DialogPrimitive.Trigger;
 
 // Dialog portal component (renders content in a portal)
 const PaymentDialogPortal = ({
-  className,
   ...props
 }: DialogPrimitive.DialogPortalProps) => (
-  <DialogPrimitive.Portal className={cn(className)} {...props} />
+  <DialogPrimitive.Portal {...props} />
 );
 PaymentDialogPortal.displayName = DialogPrimitive.Portal.displayName;
 

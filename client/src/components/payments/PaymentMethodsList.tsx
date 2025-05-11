@@ -189,7 +189,7 @@ export default function PaymentMethodsList() {
           </div>
         )}
       </CardContent>
-      <CardFooter>
+      <CardFooter className="space-y-2">
         <Button 
           onClick={openAddPaymentMethod}
           className="w-full"
@@ -197,6 +197,9 @@ export default function PaymentMethodsList() {
           <Plus className="mr-2 h-4 w-4" />
           Add Payment Method
         </Button>
+        <p className="text-xs text-center text-muted-foreground">
+          Your payment information is securely processed by Stripe
+        </p>
       </CardFooter>
     </Card>
   );
