@@ -46,7 +46,6 @@ import {
 } from 'lucide-react';
 
 // Custom Components
-import StripeConnectSetupV2 from '@/components/stripe/StripeConnectSetupV2';
 import PaymentDetailsCard from '@/components/payments/PaymentDetailsCard';
 import JobPaymentForm from '@/components/payments/JobPaymentForm';
 import PaymentMethodsManager from '@/components/payments/PaymentMethodsManager';
@@ -227,10 +226,9 @@ const PaymentsContent: React.FC<PaymentsContentProps> = ({ userId }) => {
       </div>
       
       <Tabs defaultValue="history" value={activeTab} onValueChange={setActiveTab}>
-        <TabsList className="grid w-full grid-cols-3 h-7">
+        <TabsList className="grid w-full grid-cols-2 h-7">
           <TabsTrigger value="history" className="text-xs">History</TabsTrigger>
           <TabsTrigger value="methods" className="text-xs">Methods</TabsTrigger>
-          <TabsTrigger value="setup" className="text-xs">Setup</TabsTrigger>
         </TabsList>
         
         {/* Payment History Tab */}
@@ -617,25 +615,6 @@ const PaymentsContent: React.FC<PaymentsContentProps> = ({ userId }) => {
             </div>
             <div className="p-3">
               <PaymentMethodsManager userId={user?.id} />
-            </div>
-          </div>
-        </TabsContent>
-
-        {/* Account Setup Tab */}
-        <TabsContent value="setup" className="space-y-3 mt-3">
-          <div className="border rounded-lg overflow-hidden">
-            <div className="p-3 pb-2 border-b">
-              <div className="flex justify-between items-center">
-                <div>
-                  <h3 className="text-sm font-medium">Stripe Connect</h3>
-                  <p className="text-xs text-muted-foreground mt-0.5">
-                    Set up your payment account to receive funds
-                  </p>
-                </div>
-              </div>
-            </div>
-            <div className="p-3">
-              <StripeConnectSetupV2 />
             </div>
           </div>
         </TabsContent>
