@@ -116,15 +116,21 @@ const StripeConnectCheck: React.FC<StripeConnectCheckProps> = ({
 
   useEffect(() => {
     if (!isLoading && shouldCheckUser) {
-      // If enforce is true, show the modal when the user doesn't have an account
-      // or if the account setup is incomplete
+      // First check if the user has dismissed the setup - this takes precedence
+      const hasUserDismissedSetup = localStorage.getItem('stripe-connect-dismissed') === 'true';
+      
+      // If user has dismissed, never show the modal regardless of enforcement
+      if (hasUserDismissedSetup) {
+        setShowRequiredModal(false);
+        setHasChecked(true);
+        return;
+      }
+      
+      // Only proceed with checks if the user hasn't dismissed
       const needsSetup = !accountStatus || 
         (accountStatus.accountStatus !== 'active' && accountStatus.accountStatus !== 'restricted');
       
-      // Check if user has previously dismissed the setup
-      const hasUserDismissedSetup = localStorage.getItem('stripe-connect-dismissed') === 'true';
-      
-      if (enforce && needsSetup && !hasUserDismissedSetup) {
+      if (enforce && needsSetup) {
         setShowRequiredModal(true);
       }
       
@@ -134,6 +140,8 @@ const StripeConnectCheck: React.FC<StripeConnectCheckProps> = ({
 
   // Handle skip action
   const handleSkip = () => {
+    // Store in localStorage that the user has dismissed the setup
+    localStorage.setItem('stripe-connect-dismissed', 'true');
     setShowRequiredModal(false);
   };
 

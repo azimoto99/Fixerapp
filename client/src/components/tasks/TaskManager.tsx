@@ -84,10 +84,12 @@ const taskFormSchema = insertTaskSchema.extend({
   position: z.number(),
   isOptional: z.boolean().default(false),
   dueTime: z.union([z.string(), z.date(), z.null()]).optional(),
+  estimatedDuration: z.number().min(5, "Minimum 5 minutes").max(480, "Maximum 8 hours").optional(),
   location: z.string().optional(),
   latitude: z.number().optional(),
   longitude: z.number().optional(),
-  bonusAmount: z.number().optional(),
+  bonusAmount: z.number().min(0, "Bonus amount cannot be negative").optional(),
+  notes: z.string().optional(),
 });
 
 // Infer the types from the schema
