@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import Header from '@/components/Header';
 import MobileNav from '@/components/MobileNav';
 import JobSearch from '@/components/JobSearch';
@@ -26,7 +26,6 @@ import {
   AlertDialogHeader,
   AlertDialogTitle 
 } from "@/components/ui/alert-dialog";
-import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { apiRequest } from '@/lib/queryClient';
 import { useToast } from '@/hooks/use-toast';
 
@@ -52,11 +51,44 @@ const WorkerDashboard = () => {
     nearbyOnly: true,
     radiusMiles: 2
   }, searchParams);
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
   
   // Get jobs posted by this worker (if any)
   const { data: postedJobs, isLoading: isLoadingPostedJobs } = useQuery<Job[]>({
     queryKey: ['/api/jobs', { posterId: user?.id }],
     enabled: !!user?.id
+  });
+  
+  // Job cancellation mutation
+  const cancelJobMutation = useMutation({
+    mutationFn: async (jobId: number) => {
+      return apiRequest('DELETE', `/api/jobs/${jobId}`, { 
+        withRefund: true // Request a refund when canceling
+      })
+      .then(res => {
+        if (!res.ok) throw new Error('Failed to cancel job');
+        return res.json();
+      });
+    },
+    onSuccess: () => {
+      toast({
+        title: "Job cancelled",
+        description: "Your job has been cancelled and payment has been refunded.",
+      });
+      setShowCancelDialog(false);
+      setCancelJobId(null);
+      queryClient.invalidateQueries({ queryKey: ['/api/jobs'] });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Error cancelling job",
+        description: error.message,
+        variant: "destructive"
+      });
+      setShowCancelDialog(false);
+      setCancelJobId(null);
+    }
   });
 
   const handleSearch = (params: { 
@@ -79,6 +111,18 @@ const WorkerDashboard = () => {
   const handleSelectJob = (job: Job) => {
     setSelectedJob(job);
   };
+  
+  // Handle job cancellation
+  const handleCancelJobClick = (jobId: number) => {
+    setCancelJobId(jobId);
+    setShowCancelDialog(true);
+  };
+  
+  const handleCancelJob = () => {
+    if (cancelJobId) {
+      cancelJobMutation.mutate(cancelJobId);
+    }
+  };
 
   const handleViewChange = (newView: 'list' | 'map') => {
     setView(newView);
@@ -88,49 +132,6 @@ const WorkerDashboard = () => {
     setShowPostedJobs(!showPostedJobs);
   };
   
-  // Set up query client and toast for job cancellation
-  const queryClient = useQueryClient();
-  const { toast } = useToast();
-  
-  // Mutation for canceling a job
-  const cancelJobMutation = useMutation({
-    mutationFn: async (jobId: number) => {
-      const response = await apiRequest('DELETE', `/api/jobs/${jobId}`, { 
-        withRefund: true // Request a refund when canceling
-      });
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.message || 'Failed to cancel job');
-      }
-      return response.json();
-    },
-    onSuccess: () => {
-      toast({
-        title: "Job Canceled",
-        description: "The job has been canceled and a refund has been initiated",
-        variant: "default"
-      });
-      
-      // Refresh job data
-      queryClient.invalidateQueries({ queryKey: ['/api/jobs'] });
-    },
-    onError: (error: Error) => {
-      toast({
-        title: "Error",
-        description: `Failed to cancel job: ${error.message}`,
-        variant: "destructive"
-      });
-    }
-  });
-  
-  const handleCancelJob = () => {
-    if (cancelJobId) {
-      cancelJobMutation.mutate(cancelJobId);
-      setShowCancelDialog(false);
-      setCancelJobId(null);
-    }
-  };
-
   // We no longer auto-select the first job to avoid unwanted drawer opening
   // This gives users full control over when job details are displayed
 
@@ -144,50 +145,6 @@ const WorkerDashboard = () => {
   
   // Jobs Posted by Worker Drawer
   const PostedJobsDrawer = () => {
-    const { toast } = useToast();
-    const queryClient = useQueryClient();
-    const [cancelJobId, setCancelJobId] = useState<number | null>(null);
-    const [showCancelDialog, setShowCancelDialog] = useState(false);
-    
-    // Mutation for canceling a job
-    const cancelJobMutation = useMutation({
-      mutationFn: async (jobId: number) => {
-        const response = await apiRequest('DELETE', `/api/jobs/${jobId}`, { 
-          withRefund: true // Request a refund when canceling
-        });
-        if (!response.ok) {
-          const errorData = await response.json();
-          throw new Error(errorData.message || 'Failed to cancel job');
-        }
-        return response.json();
-      },
-      onSuccess: () => {
-        toast({
-          title: "Job Canceled",
-          description: "The job has been canceled and a refund has been issued",
-          variant: "default"
-        });
-        
-        // Refresh job data
-        queryClient.invalidateQueries({ queryKey: ['/api/jobs'] });
-      },
-      onError: (error: Error) => {
-        toast({
-          title: "Error",
-          description: `Failed to cancel job: ${error.message}`,
-          variant: "destructive"
-        });
-      }
-    });
-    
-    const handleCancelJob = () => {
-      if (cancelJobId) {
-        cancelJobMutation.mutate(cancelJobId);
-        setShowCancelDialog(false);
-        setCancelJobId(null);
-      }
-    };
-    
     if (!showPostedJobs) return null;
     
     return (
@@ -300,34 +257,6 @@ const WorkerDashboard = () => {
             </div>
           )}
         </div>
-        
-        {/* Cancel Job Confirmation Dialog */}
-        <AlertDialog open={showCancelDialog} onOpenChange={setShowCancelDialog}>
-          <AlertDialogContent>
-            <AlertDialogHeader>
-              <AlertDialogTitle>Cancel Job</AlertDialogTitle>
-              <AlertDialogDescription>
-                Are you sure you want to cancel this job? This action cannot be undone.
-                {cancelJobId && (
-                  <p className="mt-2">
-                    If payment was made for this job, a refund will be processed automatically.
-                  </p>
-                )}
-              </AlertDialogDescription>
-            </AlertDialogHeader>
-            <AlertDialogFooter>
-              <AlertDialogCancel>No, Keep Job</AlertDialogCancel>
-              <AlertDialogAction 
-                onClick={handleCancelJob}
-                className="bg-destructive hover:bg-destructive/90"
-              >
-                Yes, Cancel Job{cancelJobMutation.isPending && (
-                  <span className="ml-2 inline-block animate-spin">⟳</span>
-                )}
-              </AlertDialogAction>
-            </AlertDialogFooter>
-          </AlertDialogContent>
-        </AlertDialog>
       </div>
     );
   };
@@ -436,125 +365,97 @@ const PosterDashboard = () => {
       />
       
       <div className="flex items-center justify-between mb-6">
-        <h1 className="text-2xl font-bold text-foreground">Job Poster Dashboard</h1>
+        <h1 className="text-2xl font-bold tracking-tight">My Jobs</h1>
         <Button onClick={() => setIsJobDrawerOpen(true)}>
-          Post a New Job
+          Post a Job
         </Button>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle>Active Jobs</CardTitle>
-            <CardDescription>Jobs currently accepting applications</CardDescription>
-          </CardHeader>
+      {/* When no jobs exist */}
+      {jobs.length === 0 ? (
+        <Card className="w-full text-center py-8">
           <CardContent>
-            <div className="text-3xl font-bold text-primary">
-              {jobs?.filter(job => job.status === 'open').length || 0}
+            <div className="mx-auto w-16 h-16 rounded-full bg-muted text-muted-foreground flex items-center justify-center mb-4">
+              <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-muted-foreground">
+                <path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"></path>
+                <polyline points="14 2 14 8 20 8"></polyline>
+                <line x1="12" y1="18" x2="12" y2="12"></line>
+                <line x1="9" y1="15" x2="15" y2="15"></line>
+              </svg>
             </div>
+            <h3 className="text-lg font-medium mb-2">No Jobs Posted Yet</h3>
+            <p className="text-muted-foreground mb-6">Start by posting your first job to find workers.</p>
+            <Button onClick={() => setIsJobDrawerOpen(true)}>Post Your First Job</Button>
           </CardContent>
         </Card>
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle>In Progress</CardTitle>
-            <CardDescription>Jobs with assigned workers</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="text-3xl font-bold text-amber-500">
-              {jobs?.filter(job => job.status === 'assigned').length || 0}
-            </div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle>Completed</CardTitle>
-            <CardDescription>Successfully completed jobs</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="text-3xl font-bold text-green-600">
-              {jobs?.filter(job => job.status === 'completed').length || 0}
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-
-      <div className="bg-card shadow rounded-lg p-6">
-        <h2 className="text-lg font-medium text-card-foreground mb-4">My Posted Jobs</h2>
-        {jobs && jobs.length > 0 ? (
-          <div className="space-y-4">
-            {jobs.map(job => (
-              <div key={job.id} className="border border-border rounded-md p-4 hover:bg-secondary">
-                <div className="flex justify-between items-start">
-                  <div>
-                    <h3 className="font-medium text-foreground">{job.title}</h3>
-                    <p className="text-sm text-muted-foreground mt-1">{job.description.substring(0, 100)}...</p>
-                    <div className="flex items-center mt-2">
-                      <span className={`px-2 py-1 text-xs rounded-full ${
-                        job.status === 'open' ? 'bg-emerald-600 text-white' : 
-                        job.status === 'assigned' ? 'bg-emerald-700 text-white' : 
-                        'bg-emerald-800 text-white'
-                      }`}>
-                        {job.status.charAt(0).toUpperCase() + job.status.slice(1)}
-                      </span>
-                      <span className="text-xs text-muted-foreground ml-2">
-                        Posted on {job.datePosted ? new Date(job.datePosted).toLocaleDateString() : 'Unknown date'}
-                      </span>
-                    </div>
-                  </div>
-                  <div className="flex space-x-2">
-                    <Button variant="outline" asChild size="sm">
-                      <a href={`/jobs/${job.id}`}>View Details</a>
-                    </Button>
-                    <Button variant="outline" asChild size="sm">
-                      <a href={`/jobs/${job.id}/applications`}>Applications</a>
-                    </Button>
-                  </div>
+      ) : (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          {jobs.map((job) => (
+            <Card key={job.id} className="mb-4 hover:shadow-md transition-shadow">
+              <CardHeader className="pb-2">
+                <CardTitle className="text-lg">{job.title}</CardTitle>
+                <div className="flex justify-between items-center">
+                  <span className={`px-2 py-0.5 text-xs rounded-full ${
+                    job.status === 'open' ? 'bg-emerald-600 text-white' : 
+                    job.status === 'assigned' ? 'bg-emerald-700 text-white' : 
+                    job.status === 'completed' ? 'bg-emerald-800 text-white' :
+                    'bg-emerald-600 text-white'
+                  }`}>
+                    {job.status ? job.status.charAt(0).toUpperCase() + job.status.slice(1) : 'Open'}
+                  </span>
+                  {job.paymentAmount && (
+                    <span className="text-sm">
+                      ${job.paymentAmount} {job.paymentType === 'hourly' ? '/hr' : ''}
+                    </span>
+                  )}
                 </div>
-              </div>
-            ))}
-          </div>
-        ) : (
-          <div className="text-center py-8">
-            <p className="text-muted-foreground">You haven't posted any jobs yet.</p>
-            <Button 
-              className="mt-4" 
-              onClick={() => setIsJobDrawerOpen(true)}
-            >
-              Post Your First Job
-            </Button>
-          </div>
-        )}
-      </div>
+              </CardHeader>
+              <CardContent>
+                <p className="text-sm text-muted-foreground mb-4 line-clamp-2">{job.description}</p>
+                <div className="flex space-x-2">
+                  <Button variant="default" className="flex-1 text-xs" asChild>
+                    <a href={`/jobs/${job.id}`}>
+                      Manage
+                    </a>
+                  </Button>
+                  <Button variant="destructive" className="flex-1 text-xs">
+                    Cancel Job
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+      )}
     </div>
   );
 };
 
 export default function Home() {
   const { user } = useAuth();
+  const [selectedRole, setSelectedRole] = useState<'worker' | 'poster'>('worker');
 
+  // Add role selection at the top
   return (
-    <div className="min-h-screen flex flex-col bg-background">
-      {/* Only show header for Job Posters - workers get fullscreen map */}
-      {(user && user.accountType === 'poster') && <Header />}
-      
-      <main className={`flex-1 ${(!user || user.accountType === 'worker') ? 'h-screen' : ''}`}>
-        {(!user || user.accountType === 'worker') ? (
-          // Worker dashboard - Full screen for map view
-          <div className="h-full">
-            <WorkerDashboard />
-          </div>
+    <div className="flex flex-col min-h-screen">
+      <Header
+        selectedRole={selectedRole}
+        onRoleChange={setSelectedRole}
+      />
+
+      <main className="flex-1 container max-w-7xl mx-auto px-2 sm:px-4">
+        {selectedRole === 'worker' ? (
+          <WorkerDashboard />
         ) : (
-          // Job poster dashboard - Normal width with padding
-          <div className="max-w-7xl mx-auto">
-            <PosterDashboard />
-          </div>
+          <PosterDashboard />
         )}
       </main>
-      
-      {/* Mobile nav with Post Job+ button */}
-      {(!user || user.accountType === 'worker') && <MobileNav />}
-      
-      {/* New job button now integrated in the MapSection component */}
+
+      <MobileNav selectedTab={selectedRole === 'worker' ? 'worker' : 'poster'} onTabChange={(tab) => {
+        if (tab === 'worker' || tab === 'poster') {
+          setSelectedRole(tab);
+        }
+      }} />
     </div>
   );
 }
