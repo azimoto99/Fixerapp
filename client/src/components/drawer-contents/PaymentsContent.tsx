@@ -162,11 +162,10 @@ const PaymentsContent: React.FC<PaymentsContentProps> = ({ userId }) => {
   return (
     <div className="space-y-4">
       <Tabs defaultValue="history" value={activeTab} onValueChange={setActiveTab}>
-        <TabsList className="grid w-full grid-cols-4">
+        <TabsList className="grid w-full grid-cols-3">
           <TabsTrigger value="history">Payment History</TabsTrigger>
           <TabsTrigger value="methods">Payment Methods</TabsTrigger>
           <TabsTrigger value="setup">Account Setup</TabsTrigger>
-          <TabsTrigger value="tester">Stripe Test</TabsTrigger>
         </TabsList>
         
         {/* Payment History Tab */}
