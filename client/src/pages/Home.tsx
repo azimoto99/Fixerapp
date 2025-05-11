@@ -87,6 +87,49 @@ const WorkerDashboard = () => {
   const togglePostedJobs = () => {
     setShowPostedJobs(!showPostedJobs);
   };
+  
+  // Set up query client and toast for job cancellation
+  const queryClient = useQueryClient();
+  const { toast } = useToast();
+  
+  // Mutation for canceling a job
+  const cancelJobMutation = useMutation({
+    mutationFn: async (jobId: number) => {
+      const response = await apiRequest('DELETE', `/api/jobs/${jobId}`, { 
+        withRefund: true // Request a refund when canceling
+      });
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || 'Failed to cancel job');
+      }
+      return response.json();
+    },
+    onSuccess: () => {
+      toast({
+        title: "Job Canceled",
+        description: "The job has been canceled and a refund has been initiated",
+        variant: "default"
+      });
+      
+      // Refresh job data
+      queryClient.invalidateQueries({ queryKey: ['/api/jobs'] });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Error",
+        description: `Failed to cancel job: ${error.message}`,
+        variant: "destructive"
+      });
+    }
+  });
+  
+  const handleCancelJob = () => {
+    if (cancelJobId) {
+      cancelJobMutation.mutate(cancelJobId);
+      setShowCancelDialog(false);
+      setCancelJobId(null);
+    }
+  };
 
   // We no longer auto-select the first job to avoid unwanted drawer opening
   // This gives users full control over when job details are displayed
