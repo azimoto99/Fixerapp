@@ -259,34 +259,48 @@ const MapSection: React.FC<MapSectionProps> = ({ jobs, selectedJob, onSelectJob,
             height: 100%;
             width: 100%;
             touch-action: manipulation;
-            z-index: 1 !important;
+            z-index: var(--z-map-base) !important;
           }
           
-          /* Force all leaflet controls to lower z-index so drawer can appear above */
+          /* Apply consistent z-index to map elements based on our global strategy */
           .leaflet-control,
           .leaflet-top,
-          .leaflet-bottom,
+          .leaflet-bottom {
+            z-index: var(--z-map-controls) !important;
+          }
+          
           .leaflet-pane {
-            z-index: 400 !important;
+            z-index: var(--z-map-tiles) !important;
           }
           
-          /* Ensure map stays behind our high z-index components */
-          .leaflet-map-pane canvas,
-          .leaflet-map-pane svg,
+          /* Map visualization elements */
+          .leaflet-map-pane canvas, 
+          .leaflet-map-pane svg {
+            z-index: var(--z-map-markers) !important;
+          }
+          
           .leaflet-popup {
-            z-index: 450 !important;
+            z-index: var(--z-map-popups) !important;
           }
           
-          /* Additional fixes for z-index issues */
+          /* Let's make sure everything is consistent */
           .leaflet-map-pane {
-            z-index: 100 !important;
+            z-index: var(--z-map-tiles) !important;
           }
+          
+          /* Fixing z-index for specific map elements */
+          .leaflet-marker-pane, 
           .leaflet-overlay-pane {
-            z-index: 300 !important;
+            z-index: var(--z-map-markers) !important;
+          }
+          
+          /* Any markers or pop-ups need to be above the map but below UI elements */
+          .marker-cluster {
+            z-index: calc(var(--z-map-markers) + 10) !important;
           }
           /* Ensure all map elements have lower z-index than our drawer */
           .leaflet-popup-pane {
-            z-index: 500 !important;
+            z-index: var(--z-map-popups) !important;
           }
           .custom-job-marker {
             background: none;

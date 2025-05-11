@@ -148,12 +148,13 @@ const UserDrawerV2: React.FC<UserDrawerProps> = ({
         </div>
       )}
 
-      {/* Drawer overlay and container - using higher z-index to appear above map */}
+      {/* Drawer overlay and container - using standardized z-index system */}
       {isOpen && (
-        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-[9999998] animate-in fade-in duration-200">
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm" style={{ zIndex: 'var(--z-drawer-backdrop)' }}>
           <div
             ref={drawerRef}
-            className="fixed top-0 right-0 bottom-0 w-[320px] bg-background shadow-lg z-[9999999] transform transition-transform duration-300 animate-in slide-in-from-right overflow-hidden"
+            className="fixed top-0 right-0 bottom-0 w-[320px] bg-background shadow-lg transform transition-transform duration-300 animate-in slide-in-from-right overflow-hidden"
+            style={{ zIndex: 'var(--z-drawer)' }}
           >
             {/* Drawer header */}
             <div className="p-4 border-b">
