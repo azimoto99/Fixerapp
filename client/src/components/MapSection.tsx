@@ -2,7 +2,6 @@ import React, { useState, useEffect, useMemo, useCallback, memo } from 'react';
 import { useGeolocation } from '@/lib/geolocation';
 import JobDetail from './JobDetail';
 import { JobMarker } from './JobMarker';
-import SimpleUserDrawer2 from './SimpleUserDrawer2';
 import UserDrawerV2 from './UserDrawerV2';
 import HeatmapLayer from './HeatmapLayer';
 import MapViewToggle from './MapViewToggle';
@@ -522,10 +521,14 @@ const MapSection: React.FC<MapSectionProps> = ({ jobs, selectedJob, onSelectJob,
                       </svg>
                     </button>
                     
-                    <SimpleUserDrawer2 
-                      isOpen={isUserDrawerOpen}
-                      onClose={() => setIsUserDrawerOpen(false)}
-                    />
+                    <UserDrawerV2>
+                      <button 
+                        className="flex items-center text-sm rounded-full focus:outline-none"
+                        onClick={() => setIsUserDrawerOpen(false)}
+                      >
+                        <span className="sr-only">Close user drawer</span>
+                      </button>
+                    </UserDrawerV2>
                   </div>
                 ) : (
                   <Button
