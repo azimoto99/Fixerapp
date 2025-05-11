@@ -241,7 +241,7 @@ const UserDrawerV2: React.FC<UserDrawerProps> = ({
                         <TooltipTrigger asChild>
                           <button
                             onClick={() => navigateTo('/')}
-                            className="flex flex-col items-center justify-center w-full h-14 rounded-lg hover:bg-blue-50 dark:hover:bg-blue-900/20 text-slate-600 dark:text-slate-300"
+                            className="flex flex-col items-center justify-center w-full h-14 rounded-lg hover:bg-accent dark:hover:bg-accent/20 text-foreground dark:text-foreground/80"
                           >
                             <Home className="h-5 w-5 mb-1" />
                             <span className="text-xs">Home</span>
@@ -284,8 +284,8 @@ const UserDrawerV2: React.FC<UserDrawerProps> = ({
                           className={cn(
                             "flex flex-col items-center justify-center w-14 h-14 rounded-lg relative",
                             activeTab === "reviews" 
-                              ? "bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-400" 
-                              : "hover:bg-blue-50 dark:hover:bg-blue-900/20 text-slate-600 dark:text-slate-300"
+                              ? "bg-primary/10 text-primary dark:bg-primary/20 dark:text-primary" 
+                              : "hover:bg-accent dark:hover:bg-accent/20 text-foreground dark:text-foreground/80"
                           )}
                         >
                           <StarIcon className="h-5 w-5 mb-1" />
@@ -311,8 +311,8 @@ const UserDrawerV2: React.FC<UserDrawerProps> = ({
                           className={cn(
                             "flex flex-col items-center justify-center w-14 h-14 rounded-lg",
                             activeTab === "payments" 
-                              ? "bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-400" 
-                              : "hover:bg-blue-50 dark:hover:bg-blue-900/20 text-slate-600 dark:text-slate-300"
+                              ? "bg-primary/10 text-primary dark:bg-primary/20 dark:text-primary" 
+                              : "hover:bg-accent dark:hover:bg-accent/20 text-foreground dark:text-foreground/80"
                           )}
                         >
                           <CreditCard className="h-5 w-5 mb-1" />
@@ -332,8 +332,8 @@ const UserDrawerV2: React.FC<UserDrawerProps> = ({
                             className={cn(
                               "flex flex-col items-center justify-center w-14 h-14 rounded-lg",
                               activeTab === "earnings" 
-                                ? "bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-400" 
-                                : "hover:bg-blue-50 dark:hover:bg-blue-900/20 text-slate-600 dark:text-slate-300"
+                                ? "bg-primary/10 text-primary dark:bg-primary/20 dark:text-primary" 
+                                : "hover:bg-accent dark:hover:bg-accent/20 text-foreground dark:text-foreground/80"
                             )}
                           >
                             <BarChart2 className="h-5 w-5 mb-1" />
@@ -351,7 +351,7 @@ const UserDrawerV2: React.FC<UserDrawerProps> = ({
                         <TooltipTrigger asChild>
                           <button 
                             onClick={() => navigateTo('/payment-dashboard')}
-                            className="flex flex-col items-center justify-center w-14 h-14 rounded-lg hover:bg-blue-50 dark:hover:bg-blue-900/20 text-slate-600 dark:text-slate-300"
+                            className="flex flex-col items-center justify-center w-14 h-14 rounded-lg hover:bg-accent dark:hover:bg-accent/20 text-foreground dark:text-foreground/80"
                           >
                             <LayoutDashboard className="h-5 w-5 mb-1" />
                             <span className="text-xs">Dashboard</span>
@@ -373,8 +373,8 @@ const UserDrawerV2: React.FC<UserDrawerProps> = ({
                           className={cn(
                             "flex flex-col items-center justify-center w-14 h-14 rounded-lg",
                             activeTab === "settings" 
-                              ? "bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-400" 
-                              : "hover:bg-blue-50 dark:hover:bg-blue-900/20 text-slate-600 dark:text-slate-300"
+                              ? "bg-primary/10 text-primary dark:bg-primary/20 dark:text-primary" 
+                              : "hover:bg-accent dark:hover:bg-accent/20 text-foreground dark:text-foreground/80"
                           )}
                         >
                           <Settings className="h-5 w-5 mb-1" />
@@ -391,7 +391,7 @@ const UserDrawerV2: React.FC<UserDrawerProps> = ({
                       <TooltipTrigger asChild>
                         <button 
                           onClick={() => window.open('/help', '_blank')}
-                          className="flex flex-col items-center justify-center w-14 h-14 rounded-lg hover:bg-blue-50 dark:hover:bg-blue-900/20 text-slate-600 dark:text-slate-300"
+                          className="flex flex-col items-center justify-center w-14 h-14 rounded-lg hover:bg-accent dark:hover:bg-accent/20 text-foreground dark:text-foreground/80"
                         >
                           <HelpCircle className="h-5 w-5 mb-1" />
                           <span className="text-xs">Help</span>
