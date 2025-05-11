@@ -2259,8 +2259,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       // Check if the user has a Connect account
       if (!req.user.stripeConnectAccountId) {
-        return res.status(404).json({ 
-          message: "User does not have a Stripe Connect account" 
+        return res.status(200).json({ 
+          exists: false,
+          message: "User does not have a Stripe Connect account yet",
+          needsSetup: true
         });
       }
       
@@ -2330,8 +2332,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       // Check if the user has a Connect account
       if (!req.user.stripeConnectAccountId) {
-        return res.status(404).json({ 
-          message: "User does not have a Stripe Connect account" 
+        return res.status(200).json({ 
+          exists: false,
+          message: "User does not have a Stripe Connect account yet",
+          needsSetup: true
         });
       }
       

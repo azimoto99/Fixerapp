@@ -423,8 +423,11 @@ export default function StripeConnectSetup() {
                     </p>
                   </div>
                   <Badge 
-                    variant={accountVerified ? "success" : "outline"}
-                    className={accountVerified ? "bg-green-100 text-green-800 hover:bg-green-100" : "bg-amber-100 text-amber-800 hover:bg-amber-100"}
+                    variant="outline"
+                    className={accountVerified 
+                      ? "bg-green-100 text-green-800 hover:bg-green-100 border-green-200" 
+                      : "bg-amber-100 text-amber-800 hover:bg-amber-100 border-amber-200"
+                    }
                   >
                     {accountVerified ? 'Verified' : 'Pending Verification'}
                   </Badge>
