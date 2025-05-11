@@ -456,6 +456,85 @@ export default function ApplicationsManager({
     );
   }
   
+  // Render differently based on mode
+  if (mode === 'worker') {
+    return (
+      <div className="space-y-6">
+        {/* Worker's Applications View */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center">
+              <Briefcase className="mr-2 h-5 w-5" />
+              Your Applications
+            </CardTitle>
+            <CardDescription>
+              Track the status of your job applications
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            {applications && applications.length > 0 ? (
+              <div className="space-y-4">
+                {applications.map(application => (
+                  <Card key={application.id} className="overflow-hidden">
+                    <CardHeader className="pb-2">
+                      <div className="flex items-start justify-between">
+                        <CardTitle className="text-base">{application.jobId}</CardTitle>
+                        <Badge variant={
+                          application.status === 'accepted' ? 'primary' :
+                          application.status === 'rejected' ? 'destructive' :
+                          application.status === 'completed' ? 'green' :
+                          'secondary'
+                        }>
+                          {application.status === 'pending' && <Clock className="mr-1 h-3 w-3" />}
+                          {application.status === 'accepted' && <CheckCircle className="mr-1 h-3 w-3" />}
+                          {application.status === 'rejected' && <XCircle className="mr-1 h-3 w-3" />}
+                          {application.status === 'completed' && <CheckCircle className="mr-1 h-3 w-3" />}
+                          {application.status.charAt(0).toUpperCase() + application.status.slice(1)}
+                        </Badge>
+                      </div>
+                      <CardDescription>
+                        Applied on {format(new Date(application.dateApplied), 'MMM d, yyyy')}
+                      </CardDescription>
+                    </CardHeader>
+                    <CardContent className="pb-3">
+                      <p className="text-sm mb-2 line-clamp-2">
+                        {application.coverLetter || "No cover letter provided"}
+                      </p>
+                      <div className="flex flex-wrap gap-2 mt-2">
+                        {application.hourlyRate && (
+                          <Badge variant="outline" className="flex items-center">
+                            <DollarSign className="h-3 w-3 mr-1" />
+                            {application.hourlyRate}/hr
+                          </Badge>
+                        )}
+                        {application.expectedDuration && (
+                          <Badge variant="outline" className="flex items-center">
+                            <Clock className="h-3 w-3 mr-1" />
+                            {application.expectedDuration}
+                          </Badge>
+                        )}
+                      </div>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            ) : (
+              <div className="text-center py-8">
+                <div className="bg-muted rounded-full p-3 inline-flex mb-4">
+                  <Briefcase className="h-6 w-6 text-muted-foreground" />
+                </div>
+                <h3 className="font-medium mb-1">No Applications Yet</h3>
+                <p className="text-sm text-muted-foreground mb-4">
+                  You haven't applied to any jobs yet
+                </p>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-6">
       {/* Job Details */}
