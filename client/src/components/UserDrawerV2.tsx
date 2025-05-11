@@ -53,6 +53,7 @@ const UserDrawerV2: React.FC<UserDrawerProps> = ({
   // Listen for external isOpen changes
   useEffect(() => {
     if (externalIsOpen !== undefined) {
+      console.log('UserDrawerV2: External isOpen changed to', externalIsOpen);
       setIsOpen(externalIsOpen);
     }
   }, [externalIsOpen]);
