@@ -30,7 +30,7 @@ const NewJobButton: React.FC = () => {
         onOpenChange={setIsDrawerOpen}
       />
       
-      <div className="fixed right-6 bottom-24 md:bottom-12 z-[1000]">
+      <div className={`fixed right-6 bottom-24 md:bottom-12 z-[900] ${isDrawerOpen ? 'opacity-0 pointer-events-none' : 'opacity-100'} transition-opacity duration-300`}>
         <Button 
           size="lg"
           onClick={handleClick}

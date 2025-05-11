@@ -129,8 +129,8 @@ export default function PostJobDrawer({ isOpen, onOpenChange }: PostJobDrawerPro
 
   return (
     <Drawer open={isOpen} onOpenChange={onOpenChange}>
-      <DrawerContent className="max-h-[90vh] overflow-y-auto">
-        <div className="mx-auto w-full max-w-lg">
+      <DrawerContent style={{ zIndex: 2000 }} className="max-h-[85vh] overflow-y-auto pb-20">
+        <div className="mx-auto w-full max-w-lg pb-8">
           <DrawerHeader>
             <DrawerTitle className="text-2xl">Post a New Job</DrawerTitle>
             <DrawerDescription>
