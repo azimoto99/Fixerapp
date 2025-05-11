@@ -256,7 +256,7 @@ const ApplicationDetail = ({
 interface ApplicationsManagerProps {
   jobId?: number;
   userId?: number;
-  mode?: 'worker' | 'poster';
+  mode?: string;
   initialJobId?: number;
 }
 
@@ -686,9 +686,9 @@ export default function ApplicationsManager({
             </DialogDescription>
           </DialogHeader>
           
-          {pendingApplicationId && pendingWorkerId && jobId && (
+          {pendingApplicationId && pendingWorkerId && effectiveJobId && (
             <PaymentConfirmation
-              jobId={jobId}
+              jobId={effectiveJobId}
               applicationId={pendingApplicationId}
               workerId={pendingWorkerId}
               onSuccess={confirmHire}
