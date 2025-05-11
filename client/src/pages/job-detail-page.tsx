@@ -38,6 +38,7 @@ import {
   DollarSign, 
   Clock, 
   User, 
+  Users,
   ArrowLeft, 
   Briefcase,
   CheckCircle2,
@@ -46,7 +47,10 @@ import {
   MessageSquare,
   ClipboardList,
   Send,
-  Loader2
+  Loader2,
+  Star,
+  StarHalf,
+  Info
 } from 'lucide-react';
 import { formatDate, formatCurrency } from '@/lib/utils';
 import ApplicationForm from '@/components/applications/ApplicationForm';
@@ -364,21 +368,51 @@ const JobDetailPage: React.FC = () => {
                   {job.poster?.avatarUrl ? (
                     <AvatarImage src={job.poster.avatarUrl} alt={job.poster?.username || 'Job Poster'} />
                   ) : null}
-                  <AvatarFallback>
-                    {job.poster?.username?.charAt(0).toUpperCase() || 'P'}
+                  <AvatarFallback className="bg-primary/10 text-primary">
+                    {job.poster?.fullName?.charAt(0)?.toUpperCase() || 
+                     job.poster?.username?.charAt(0)?.toUpperCase() || 'P'}
                   </AvatarFallback>
                 </Avatar>
                 <div>
-                  <h3 className="font-medium">{job.poster?.fullName || job.poster?.username || `User #${job.posterId}`}</h3>
-                  <p className="text-sm text-muted-foreground">
-                    Posted on {formatDate(job.datePosted)}
-                  </p>
+                  <h3 className="font-medium flex items-center">
+                    {job.poster?.fullName || job.poster?.username || 'Job Poster'}
+                    {job.poster?.verified && (
+                      <Badge variant="outline" className="ml-2 px-1 py-0">
+                        <CheckCircle2 className="h-3 w-3 text-blue-500" />
+                        <span className="ml-1 text-xs font-normal">Verified</span>
+                      </Badge>
+                    )}
+                  </h3>
+                  <div className="flex items-center text-sm text-muted-foreground gap-2">
+                    <span>Posted on {formatDate(job.datePosted)}</span>
+                    {job.poster?.rating && (
+                      <>
+                        <span className="text-xs">•</span>
+                        <div className="flex items-center">
+                          <div className="flex text-yellow-500">
+                            {[...Array(Math.floor(job.poster.rating))].map((_, i) => (
+                              <Star key={i} className="h-3 w-3 fill-current" />
+                            ))}
+                            {job.poster.rating % 1 !== 0 && (
+                              <StarHalf className="h-3 w-3 fill-current" />
+                            )}
+                          </div>
+                          <span className="ml-1">{job.poster.rating.toFixed(1)}</span>
+                        </div>
+                      </>
+                    )}
+                  </div>
                 </div>
               </div>
               
-              {job.poster?.bio && (
+              {job.poster?.bio ? (
                 <div className="mt-4">
                   <p className="text-sm">{job.poster.bio}</p>
+                </div>
+              ) : (
+                <div className="mt-4 p-3 bg-muted/50 rounded-md text-sm text-muted-foreground flex items-center">
+                  <Info className="h-4 w-4 mr-2 text-muted-foreground/70" />
+                  <span>This poster hasn't added a bio yet.</span>
                 </div>
               )}
             </CardContent>
@@ -411,45 +445,120 @@ const JobDetailPage: React.FC = () => {
         {/* Applications tab */}
         <TabsContent value="applications">
           {isPoster ? (
-            <ApplicationsManager 
-              userId={user?.id || 0} 
-              mode="poster"
-              initialJobId={jobId}
-            />
+            <Card>
+              <CardHeader className="pb-3">
+                <CardTitle className="text-lg flex items-center">
+                  <Users className="h-5 w-5 mr-2 text-primary" />
+                  Applications for this Job
+                </CardTitle>
+                <CardDescription>
+                  Review and manage worker applications
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="pt-0">
+                <ApplicationsManager 
+                  userId={user?.id || 0} 
+                  mode="poster"
+                  initialJobId={jobId}
+                />
+              </CardContent>
+            </Card>
           ) : isWorker ? (
-            <div className="text-center py-8">
-              <div className="mx-auto w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center mb-4">
-                <CheckCircle2 className="h-6 w-6 text-primary" />
-              </div>
-              <h3 className="text-lg font-medium">You're working on this job</h3>
-              <p className="text-muted-foreground mt-1 max-w-sm mx-auto">
-                Your application has been accepted. You can now view and complete tasks for this job.
-              </p>
-            </div>
+            <Card>
+              <CardContent className="pt-6">
+                <div className="text-center py-6 px-4">
+                  <div className="mx-auto w-14 h-14 rounded-full bg-green-100 dark:bg-green-900/30 flex items-center justify-center mb-4">
+                    <CheckCircle2 className="h-7 w-7 text-green-600 dark:text-green-400" />
+                  </div>
+                  <h3 className="text-lg font-medium">You're working on this job</h3>
+                  <p className="text-muted-foreground mt-2 max-w-sm mx-auto">
+                    Your application has been accepted! You can now view and complete tasks for this job.
+                  </p>
+                  
+                  <div className="mt-6 flex flex-col sm:flex-row items-center justify-center gap-3">
+                    <Button 
+                      variant="outline" 
+                      onClick={() => setActiveTab('tasks')}
+                      className="w-full sm:w-auto"
+                    >
+                      <ClipboardList className="h-4 w-4 mr-2" />
+                      View Tasks
+                    </Button>
+                    
+                    {job.status === 'assigned' && (
+                      <Button 
+                        onClick={handleCompleteJob} 
+                        disabled={completeJobMutation.isPending}
+                        className="w-full sm:w-auto bg-green-600 hover:bg-green-700"
+                      >
+                        {completeJobMutation.isPending ? (
+                          <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                        ) : (
+                          <CheckCircle2 className="h-4 w-4 mr-2" />
+                        )}
+                        Mark as Complete
+                      </Button>
+                    )}
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
           ) : hasApplied ? (
-            <ApplicationsManager 
-              userId={user?.id || 0} 
-              mode="worker"
-              className="mt-4"
-            />
+            <Card>
+              <CardHeader className="pb-3">
+                <CardTitle className="text-lg flex items-center">
+                  <Send className="h-5 w-5 mr-2 text-primary" />
+                  Your Application Status
+                </CardTitle>
+                <CardDescription>
+                  Track the status of your job application
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="pt-0">
+                <ApplicationsManager 
+                  userId={user?.id || 0} 
+                  mode="worker"
+                />
+              </CardContent>
+            </Card>
           ) : (
-            <div className="text-center py-12 border rounded-md">
-              <div className="mx-auto w-12 h-12 rounded-full bg-muted flex items-center justify-center mb-4">
-                <Send className="h-6 w-6 text-muted-foreground" />
-              </div>
-              <h3 className="text-lg font-medium">Apply for this job</h3>
-              <p className="text-muted-foreground mt-1 max-w-sm mx-auto">
-                Submit an application to express your interest in this job.
-              </p>
-              <Button 
-                variant="outline" 
-                onClick={() => setApplyDialogOpen(true)} 
-                className="mt-4"
-              >
-                <Send className="h-4 w-4 mr-2" />
-                Apply Now
-              </Button>
-            </div>
+            <Card>
+              <CardContent>
+                <div className="text-center py-10 px-4">
+                  <div className="w-16 h-16 bg-primary/10 rounded-full flex items-center justify-center mx-auto mb-4">
+                    <Send className="h-7 w-7 text-primary" />
+                  </div>
+                  <h3 className="text-xl font-medium">Apply for this job</h3>
+                  <p className="text-muted-foreground mt-2 max-w-md mx-auto">
+                    Submit your application to express interest in this job. Include your qualifications, rate, and availability.
+                  </p>
+                  
+                  <div className="mt-6 grid grid-cols-1 sm:grid-cols-3 gap-3 max-w-lg mx-auto text-sm">
+                    <div className="flex flex-col items-center p-3 bg-muted/40 rounded-md">
+                      <DollarSign className="h-5 w-5 mb-1 text-muted-foreground" />
+                      <span className="font-medium">Set your rate</span>
+                    </div>
+                    <div className="flex flex-col items-center p-3 bg-muted/40 rounded-md">
+                      <Clock className="h-5 w-5 mb-1 text-muted-foreground" />
+                      <span className="font-medium">Provide availability</span>
+                    </div>
+                    <div className="flex flex-col items-center p-3 bg-muted/40 rounded-md">
+                      <MessageSquare className="h-5 w-5 mb-1 text-muted-foreground" />
+                      <span className="font-medium">Add cover letter</span>
+                    </div>
+                  </div>
+                  
+                  <Button 
+                    onClick={() => setApplyDialogOpen(true)} 
+                    className="mt-6 px-8"
+                    size="lg"
+                  >
+                    <Send className="h-4 w-4 mr-2" />
+                    Apply Now
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
           )}
         </TabsContent>
       </Tabs>
