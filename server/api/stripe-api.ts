@@ -420,6 +420,7 @@ stripeRouter.post("/create-payment-intent", isStripeAuthenticated, async (req: R
       workerId: z.number().optional(),
       description: z.string().optional(),
       paymentMethodId: z.string().optional(),
+      savePaymentMethod: z.boolean().optional().default(false),
     });
     
     const validation = schema.safeParse(req.body);
@@ -430,7 +431,14 @@ stripeRouter.post("/create-payment-intent", isStripeAuthenticated, async (req: R
       });
     }
     
-    const { amount, jobId, workerId, description, paymentMethodId } = validation.data;
+    const { 
+      amount, 
+      jobId, 
+      workerId, 
+      description, 
+      paymentMethodId, 
+      savePaymentMethod 
+    } = validation.data;
     
     // Check if user already has a Stripe customer ID
     let customerId = req.user.stripeCustomerId;
@@ -451,21 +459,33 @@ stripeRouter.post("/create-payment-intent", isStripeAuthenticated, async (req: R
       await storage.updateUser(req.user.id, { stripeCustomerId: customerId });
     }
     
-    // Create a payment intent with automatic payment methods
-    const paymentIntent = await stripe.paymentIntents.create({
+    // Create payment intent options
+    const paymentIntentOptions: any = {
       amount: Math.round(amount * 100), // Convert to cents
       currency: 'usd',
       customer: customerId,
-      payment_method: paymentMethodId,
-      setup_future_usage: 'off_session',
       metadata: {
         userId: req.user.id.toString(),
         jobId: jobId?.toString(),
         workerId: workerId?.toString(),
         description: description || '',
+        savePaymentMethod: savePaymentMethod ? 'true' : 'false',
       },
       description: description || `Payment for ${jobId ? `job #${jobId}` : 'service'}`,
-    });
+    };
+    
+    // If a payment method ID is provided, attach it to the payment intent
+    if (paymentMethodId) {
+      paymentIntentOptions.payment_method = paymentMethodId;
+    }
+    
+    // If we should save the payment method for future use
+    if (savePaymentMethod) {
+      paymentIntentOptions.setup_future_usage = 'off_session';
+    }
+    
+    // Create the payment intent
+    const paymentIntent = await stripe.paymentIntents.create(paymentIntentOptions);
     
     // Create a payment record in our database
     const payment = await storage.createPayment({
@@ -480,11 +500,13 @@ stripeRouter.post("/create-payment-intent", isStripeAuthenticated, async (req: R
       stripePaymentIntentId: paymentIntent.id,
       metadata: {
         paymentIntentId: paymentIntent.id,
+        savePaymentMethod: savePaymentMethod ? 'true' : 'false',
       }
     });
     
     return res.json({
       clientSecret: paymentIntent.client_secret,
+      paymentIntentId: paymentIntent.id,
       paymentId: payment.id,
     });
   } catch (error) {

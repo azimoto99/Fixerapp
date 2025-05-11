@@ -27,6 +27,8 @@ import {
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
+import { Checkbox } from '@/components/ui/checkbox';
+import { Label } from '@/components/ui/label';
 import { Loader2, CheckCircle } from 'lucide-react';
 
 // Load Stripe outside of component render to avoid re-creating Stripe object on every render
@@ -55,7 +57,36 @@ function CheckoutForm({ clientSecret, paymentIntentId, onSuccess }: CheckoutForm
   const elements = useElements();
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [saveCard, setSaveCard] = useState(false);
+  const [existingPaymentMethods, setExistingPaymentMethods] = useState<any[]>([]);
+  const [selectedPaymentMethod, setSelectedPaymentMethod] = useState<string | null>(null);
+  const [useExistingCard, setUseExistingCard] = useState(false);
   const { toast } = useToast();
+
+  // Fetch existing payment methods
+  useEffect(() => {
+    async function fetchPaymentMethods() {
+      try {
+        const res = await apiRequest('GET', '/api/stripe/payment-methods');
+        if (res.ok) {
+          const data = await res.json();
+          setExistingPaymentMethods(Array.isArray(data) ? data : []);
+          
+          // If we have saved cards, default to using them
+          if (data.length > 0) {
+            setUseExistingCard(true);
+            // Try to find the default payment method, otherwise use the first one
+            const defaultMethod = data.find((pm: any) => pm.isDefault);
+            setSelectedPaymentMethod(defaultMethod ? defaultMethod.id : data[0].id);
+          }
+        }
+      } catch (err) {
+        console.error('Error fetching payment methods:', err);
+      }
+    }
+    
+    fetchPaymentMethods();
+  }, []);
 
   // Handle form submission and payment confirmation
   const handleSubmit = async (e: React.FormEvent) => {
@@ -69,13 +100,32 @@ function CheckoutForm({ clientSecret, paymentIntentId, onSuccess }: CheckoutForm
     setError(null);
 
     try {
-      const { error: submitError } = await stripe.confirmPayment({
-        elements,
-        confirmParams: {
-          return_url: window.location.href, // Use the current URL for redirection
-        },
-        redirect: 'if_required', // Only redirect if 3D Secure is required
-      });
+      let confirmResult;
+      
+      if (useExistingCard && selectedPaymentMethod) {
+        // Use existing payment method
+        confirmResult = await stripe.confirmPayment({
+          clientSecret,
+          confirmParams: {
+            payment_method: selectedPaymentMethod,
+            return_url: window.location.href,
+            save_payment_method: false, // Already saved
+          },
+          redirect: 'if_required',
+        });
+      } else {
+        // Use new card
+        confirmResult = await stripe.confirmPayment({
+          elements,
+          confirmParams: {
+            return_url: window.location.href,
+            save_payment_method: saveCard, // Save the card if requested
+          },
+          redirect: 'if_required',
+        });
+      }
+      
+      const { error: submitError } = confirmResult;
 
       if (submitError) {
         setError(submitError.message || 'Payment failed');
@@ -107,7 +157,68 @@ function CheckoutForm({ clientSecret, paymentIntentId, onSuccess }: CheckoutForm
   return (
     <form onSubmit={handleSubmit}>
       <div className="space-y-4">
-        <PaymentElement />
+        {existingPaymentMethods.length > 0 && (
+          <div className="space-y-2">
+            <div className="flex items-center space-x-2">
+              <Checkbox 
+                id="use-existing-card" 
+                checked={useExistingCard} 
+                onCheckedChange={(checked) => setUseExistingCard(checked === true)} 
+              />
+              <Label htmlFor="use-existing-card">Use saved payment method</Label>
+            </div>
+            
+            {useExistingCard && (
+              <div className="pl-6 pt-2 space-y-3">
+                {existingPaymentMethods.map((pm) => (
+                  <div 
+                    key={pm.id} 
+                    className={`flex items-center p-3 border rounded-md cursor-pointer ${selectedPaymentMethod === pm.id ? 'border-primary bg-primary/5' : 'border-input'}`}
+                    onClick={() => setSelectedPaymentMethod(pm.id)}
+                  >
+                    <div className="flex-1">
+                      <div className="font-medium">
+                        {pm.card.brand.charAt(0).toUpperCase() + pm.card.brand.slice(1)} •••• {pm.card.last4}
+                      </div>
+                      <div className="text-sm text-muted-foreground">
+                        Expires {pm.card.exp_month}/{pm.card.exp_year.toString().slice(-2)}
+                      </div>
+                    </div>
+                    <div className="flex items-center">
+                      {selectedPaymentMethod === pm.id && (
+                        <CheckCircle className="h-5 w-5 text-primary" />
+                      )}
+                    </div>
+                  </div>
+                ))}
+                
+                <Button 
+                  type="button" 
+                  variant="outline" 
+                  size="sm" 
+                  onClick={() => setUseExistingCard(false)}
+                >
+                  Use a different card
+                </Button>
+              </div>
+            )}
+          </div>
+        )}
+        
+        {!useExistingCard && (
+          <>
+            <PaymentElement />
+            
+            <div className="flex items-center space-x-2">
+              <Checkbox 
+                id="save-card" 
+                checked={saveCard} 
+                onCheckedChange={(checked) => setSaveCard(checked === true)} 
+              />
+              <Label htmlFor="save-card">Save this card for future payments</Label>
+            </div>
+          </>
+        )}
         
         {error && (
           <div className="text-destructive text-sm">{error}</div>
@@ -115,7 +226,7 @@ function CheckoutForm({ clientSecret, paymentIntentId, onSuccess }: CheckoutForm
         
         <Button 
           type="submit" 
-          disabled={!stripe || !elements || isLoading} 
+          disabled={(!stripe || (!elements && !useExistingCard) || isLoading) || (useExistingCard && !selectedPaymentMethod)} 
           className="w-full"
         >
           {isLoading ? (
@@ -218,7 +329,7 @@ export default function JobPaymentForm({
   
   // Create payment intent mutation
   const createPaymentIntentMutation = useMutation({
-    mutationFn: async (data: JobPaymentFormValues) => {
+    mutationFn: async (data: JobPaymentFormValues & { savePaymentMethod?: boolean }) => {
       const effectiveJobId = jobId || selectedJobId;
       
       const payload = {
