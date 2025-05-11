@@ -41,6 +41,7 @@ const stripePromise = loadStripe(import.meta.env.VITE_STRIPE_PUBLIC_KEY);
 const jobPaymentSchema = z.object({
   amount: z.number().min(5, "Minimum payment is $5"),
   description: z.string().min(3, "Description is required").max(255),
+  saveCard: z.boolean().optional().default(false),
 });
 
 type JobPaymentFormValues = z.infer<typeof jobPaymentSchema>;
@@ -360,7 +361,14 @@ export default function JobPaymentForm({
   
   // Handle form submission to create payment intent
   const onSubmit = (values: JobPaymentFormValues) => {
-    createPaymentIntentMutation.mutate(values);
+    // Use the saveCard value from the form values
+    const savePaymentMethod = values.saveCard || false;
+    
+    // Pass both form values and the save card preference
+    createPaymentIntentMutation.mutate({
+      ...values,
+      savePaymentMethod
+    });
   };
   
   // Handle successful payment
@@ -520,6 +528,27 @@ export default function JobPaymentForm({
                     Enter a brief description for this payment
                   </FormDescription>
                   <FormMessage />
+                </FormItem>
+              )}
+            />
+            
+            <FormField
+              control={form.control}
+              name="saveCard"
+              render={({ field }) => (
+                <FormItem className="flex flex-row items-start space-x-3 space-y-0 rounded-md border p-4">
+                  <FormControl>
+                    <Checkbox
+                      checked={field.value}
+                      onCheckedChange={field.onChange}
+                    />
+                  </FormControl>
+                  <div className="space-y-1 leading-none">
+                    <FormLabel>Save payment method</FormLabel>
+                    <FormDescription>
+                      Save this card for future payments
+                    </FormDescription>
+                  </div>
                 </FormItem>
               )}
             />
