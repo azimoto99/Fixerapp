@@ -66,6 +66,20 @@ const UserDrawerV2: React.FC<UserDrawerProps> = ({
     }
   }, [externalIsOpen]);
   
+  // Listen for custom close events from other components
+  useEffect(() => {
+    const handleCloseEvent = () => {
+      console.log('UserDrawerV2: Received close-user-drawer event');
+      setIsOpen(false);
+    };
+    
+    window.addEventListener('close-user-drawer', handleCloseEvent);
+    
+    return () => {
+      window.removeEventListener('close-user-drawer', handleCloseEvent);
+    };
+  }, []);
+  
   // Notify parent when drawer state changes - debounced to avoid quick flickering
   useEffect(() => {
     // Only notify parent about changes after a small delay to avoid rapid state toggling

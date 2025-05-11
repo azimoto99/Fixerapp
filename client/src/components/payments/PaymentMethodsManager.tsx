@@ -129,6 +129,27 @@ const AddPaymentMethodModal = ({ isOpen, onClose }: { isOpen: boolean; onClose: 
   const queryClient = useQueryClient();
   const [clientSecret, setClientSecret] = useState<string | null>(null);
   
+  // Access user drawer state via a custom event
+  const closeUserDrawer = () => {
+    // Dispatch a custom event to notify the app to close the user drawer
+    const event = new CustomEvent('close-user-drawer');
+    window.dispatchEvent(event);
+  };
+  
+  // When the modal opens, close the user drawer
+  React.useEffect(() => {
+    if (isOpen) {
+      closeUserDrawer();
+      document.body.style.overflow = 'hidden'; // Prevent background scrolling
+    } else {
+      document.body.style.overflow = ''; // Restore scrolling
+    }
+    
+    return () => {
+      document.body.style.overflow = ''; // Clean up
+    };
+  }, [isOpen]);
+  
   // Create setup intent for adding a new card
   const setupIntent = useMutation({
     mutationFn: async () => {
