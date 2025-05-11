@@ -620,6 +620,41 @@ export default function ApplicationsManager({ jobId }: ApplicationsManagerProps)
           </DialogContent>
         </Dialog>
       )}
+      
+      {/* Payment Confirmation Dialog */}
+      <Dialog 
+        open={showPaymentConfirmation} 
+        onOpenChange={(open) => {
+          if (!open) {
+            setShowPaymentConfirmation(false);
+            setPendingApplicationId(null);
+            setPendingWorkerId(null);
+          }
+        }}
+      >
+        <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Complete Payment to Hire Worker</DialogTitle>
+            <DialogDescription>
+              Review payment details and confirm to hire the worker for your job
+            </DialogDescription>
+          </DialogHeader>
+          
+          {pendingApplicationId && pendingWorkerId && jobId && (
+            <PaymentConfirmation
+              jobId={jobId}
+              applicationId={pendingApplicationId}
+              workerId={pendingWorkerId}
+              onSuccess={confirmHire}
+              onCancel={() => {
+                setShowPaymentConfirmation(false);
+                setPendingApplicationId(null);
+                setPendingWorkerId(null);
+              }}
+            />
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
