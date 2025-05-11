@@ -21,6 +21,10 @@ const stripePromise = loadStripe(import.meta.env.VITE_STRIPE_PUBLIC_KEY);
 // Create context for payment dialog
 type PaymentDialogContextType = {
   openAddPaymentMethod: () => void;
+  openPaymentMethodsDialog: (options: { 
+    onSelect: (paymentMethodId: string) => void; 
+    onClose: () => void; 
+  }) => void;
 };
 
 const PaymentDialogContext = createContext<PaymentDialogContextType | null>(null);
@@ -118,7 +122,12 @@ export const PaymentDialogProvider: React.FC<{ children: React.ReactNode }> = ({
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [isAddPaymentMethodOpen, setIsAddPaymentMethodOpen] = useState(false);
+  const [isSelectPaymentMethodOpen, setIsSelectPaymentMethodOpen] = useState(false);
   const [clientSecret, setClientSecret] = useState<string | null>(null);
+  const [paymentMethodSelectCallbacks, setPaymentMethodSelectCallbacks] = useState<{
+    onSelect: (paymentMethodId: string) => void;
+    onClose: () => void;
+  } | null>(null);
 
   // Access user drawer state via a custom event
   const closeUserDrawer = () => {
@@ -164,9 +173,48 @@ export const PaymentDialogProvider: React.FC<{ children: React.ReactNode }> = ({
       }
     }, 300); // Slight delay to allow drawer to close
   };
+  
+  // Open the payment methods selection dialog
+  const openPaymentMethodsDialog = (options: { 
+    onSelect: (paymentMethodId: string) => void; 
+    onClose: () => void; 
+  }) => {
+    // Close the user drawer first
+    closeUserDrawer();
+    
+    // Store callbacks
+    setPaymentMethodSelectCallbacks(options);
+    
+    // Then open payment methods dialog
+    setTimeout(() => {
+      setIsSelectPaymentMethodOpen(true);
+    }, 300);
+  };
 
   const closeAddPaymentMethod = () => {
     setIsAddPaymentMethodOpen(false);
+  };
+  
+  const closeSelectPaymentMethod = () => {
+    setIsSelectPaymentMethodOpen(false);
+    
+    // Call onClose callback if provided
+    if (paymentMethodSelectCallbacks?.onClose) {
+      paymentMethodSelectCallbacks.onClose();
+    }
+    
+    // Clear callbacks
+    setPaymentMethodSelectCallbacks(null);
+  };
+  
+  const handlePaymentMethodSelect = (paymentMethodId: string) => {
+    // Call onSelect callback
+    if (paymentMethodSelectCallbacks?.onSelect) {
+      paymentMethodSelectCallbacks.onSelect(paymentMethodId);
+    }
+    
+    // Close dialog
+    closeSelectPaymentMethod();
   };
 
   const handleSuccess = () => {

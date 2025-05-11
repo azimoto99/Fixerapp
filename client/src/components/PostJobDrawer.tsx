@@ -28,6 +28,9 @@ import { Badge } from '@/components/ui/badge';
 import { MapPin, DollarSign, Calendar, Check, ListChecks } from 'lucide-react';
 import { useQueryClient } from '@tanstack/react-query';
 import TaskEditor, { Task } from '@/components/TaskEditor';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { usePaymentDialog } from '@/components/payments/PaymentDialogManager';
 
 // Form schema with validation
 const formSchema = insertJobSchema.extend({
@@ -54,6 +57,9 @@ export default function PostJobDrawer({ isOpen, onOpenChange }: PostJobDrawerPro
   const { userLocation } = useGeolocation();
   const queryClient = useQueryClient();
   const [tasks, setTasks] = useState<Task[]>([]);
+  const [showPaymentDialog, setShowPaymentDialog] = useState(false);
+  const [pendingJobData, setPendingJobData] = useState<any>(null);
+  const { openPaymentMethodsDialog } = usePaymentDialog();
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -90,6 +96,43 @@ export default function PostJobDrawer({ isOpen, onOpenChange }: PostJobDrawerPro
       return;
     }
 
+    // If it's a fixed price job and we don't have a payment method yet
+    if (data.paymentType === 'fixed' && !data.paymentMethodId) {
+      console.log('Fixed price job requires payment method');
+      
+      // Store the pending job data
+      setPendingJobData(data);
+      
+      // Open the payment method selection dialog
+      openPaymentMethodsDialog({
+        onSelect: (paymentMethodId) => {
+          console.log('Payment method selected:', paymentMethodId);
+          
+          // Update the form with the selected payment method
+          form.setValue('paymentMethodId', paymentMethodId);
+          
+          // Continue with submission
+          const updatedData = {
+            ...data,
+            paymentMethodId
+          };
+          submitJobWithValidData(updatedData);
+        },
+        onClose: () => {
+          console.log('Payment method dialog closed without selection');
+          setIsSubmitting(false);
+        }
+      });
+      
+      return;
+    }
+    
+    // For hourly jobs or if we already have a payment method
+    await submitJobWithValidData(data);
+  };
+  
+  // Function to submit job data after validation and payment method selection (if needed)
+  const submitJobWithValidData = async (data: z.infer<typeof formSchema>) => {
     setIsSubmitting(true);
     
     try {
@@ -100,6 +143,8 @@ export default function PostJobDrawer({ isOpen, onOpenChange }: PostJobDrawerPro
         datePosted: new Date().toISOString(),
         status: 'open'
       };
+      
+      console.log('Creating job with data:', jobData);
       
       // First create the job
       const response = await apiRequest('POST', '/api/jobs', jobData);
