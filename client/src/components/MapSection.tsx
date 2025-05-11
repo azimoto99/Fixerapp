@@ -52,7 +52,6 @@ const MapSection: React.FC<MapSectionProps> = ({ jobs, selectedJob, onSelectJob,
   const [mapReady, setMapReady] = useState(false);
   const [isApplying, setIsApplying] = useState(false);
   const [isUserDrawerOpen, setIsUserDrawerOpen] = useState(false);
-  const [forceCloseDrawer, setForceCloseDrawer] = useState(false);
   const [lastSearchLocation, setLastSearchLocation] = useState<LatLngExpression | null>(null);
   const [showStripeConnectRequired, setShowStripeConnectRequired] = useState(false);
   const [mapView, setMapView] = useState<'standard' | 'heatmap'>('standard');
@@ -89,11 +88,6 @@ const MapSection: React.FC<MapSectionProps> = ({ jobs, selectedJob, onSelectJob,
     // Close user drawer if open
     if (isUserDrawerOpen) {
       setIsUserDrawerOpen(false);
-      setForceCloseDrawer(true);
-      // Reset the force close state after a short delay
-      setTimeout(() => {
-        setForceCloseDrawer(false);
-      }, 100);
     }
   }, [showJobDetail, isUserDrawerOpen]);
   
@@ -521,12 +515,14 @@ const MapSection: React.FC<MapSectionProps> = ({ jobs, selectedJob, onSelectJob,
                       </svg>
                     </button>
                     
-                    <UserDrawerV2>
+                    <UserDrawerV2 
+                      isOpen={isUserDrawerOpen} 
+                      onDrawerStateChange={(isOpen) => setIsUserDrawerOpen(isOpen)}
+                    >
                       <button 
                         className="flex items-center text-sm rounded-full focus:outline-none"
-                        onClick={() => setIsUserDrawerOpen(false)}
                       >
-                        <span className="sr-only">Close user drawer</span>
+                        <span className="sr-only">User drawer</span>
                       </button>
                     </UserDrawerV2>
                   </div>
