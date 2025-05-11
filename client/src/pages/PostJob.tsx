@@ -184,14 +184,20 @@ export default function PostJob() {
 
   // Submit the form directly if it's an hourly job (which doesn't require upfront payment)
   async function onSubmit(values: z.infer<typeof formSchema>) {
+    console.log('Form submitted with values:', values);
+    
     if (values.paymentType === 'hourly') {
       // For hourly jobs, we don't collect payment upfront
       try {
+        console.log('Starting submission for hourly job');
         setIsSubmitting(true);
         
         // Set the poster id from the current user
         if (user) {
           values.posterId = user.id;
+          console.log('Set poster ID to:', user.id);
+        } else {
+          console.warn('No user found when submitting job');
         }
         
         // Create the job
@@ -272,7 +278,16 @@ export default function PostJob() {
             </Dialog>
             
             <Form {...form}>
-              <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+              <form 
+                onSubmit={form.handleSubmit(onSubmit, (errors) => {
+                  console.error('Form validation errors:', errors);
+                  toast({
+                    title: "Form Validation Error",
+                    description: "Please check the form fields and try again.",
+                    variant: "destructive"
+                  });
+                })} 
+                className="space-y-6">
                 {/* Job Title */}
                 <FormField
                   control={form.control}

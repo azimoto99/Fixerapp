@@ -75,7 +75,10 @@ export default function PostJobDrawer({ isOpen, onOpenChange }: PostJobDrawerPro
   };
 
   const onSubmit = async (data: z.infer<typeof formSchema>) => {
+    console.log('PostJobDrawer form submitted with data:', data);
+    
     if (!user) {
+      console.warn('No user found when submitting job');
       toast({
         title: "Login Required",
         description: "Please login to post a job",
@@ -164,7 +167,20 @@ export default function PostJobDrawer({ isOpen, onOpenChange }: PostJobDrawerPro
         
         <div className="px-4 py-4 overflow-y-auto max-h-[50vh]">
           <Form {...form}>
-            <form id="post-job-form" onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+            <form 
+              id="post-job-form" 
+              onSubmit={form.handleSubmit(
+                onSubmit, 
+                (errors) => {
+                  console.error('Form validation errors:', errors);
+                  toast({
+                    title: "Form Validation Error",
+                    description: "Please check the form fields and try again.",
+                    variant: "destructive"
+                  });
+                }
+              )} 
+              className="space-y-4">
               {/* Job Title */}
               <FormField
                 control={form.control}
