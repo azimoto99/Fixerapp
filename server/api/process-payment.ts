@@ -103,17 +103,19 @@ export async function processPayment(req: Request, res: Response) {
     
     // Record the payment in our database
     await storage.createPayment({
-      jobId,
+      userId: req.user.id,
+      workerId,
       amount: totalAmount,
-      senderId: req.user.id,
-      recipientId: workerId,
-      stripePaymentId: paymentIntent.id,
-      status: paymentIntent.status,
-      applicationId,
-      paymentType: 'job_payment',
       serviceFee,
-      dateCreated: new Date(),
-      datePaid: new Date(),
+      type: 'payment',
+      status: paymentIntent.status,
+      paymentMethod: 'card',
+      transactionId: paymentIntent.id,
+      stripePaymentIntentId: paymentIntent.id,
+      stripeCustomerId: req.user.stripeCustomerId || undefined,
+      stripeConnectAccountId: worker.stripeConnectAccountId || undefined,
+      jobId,
+      description: `Payment for job "${job.title}"`,
     });
     
     // Update the application status
