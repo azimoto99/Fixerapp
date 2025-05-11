@@ -58,6 +58,12 @@ const PaymentsContent: React.FC<PaymentsContentProps> = ({ userId }) => {
   const [selectedPayment, setSelectedPayment] = useState<any>(null);
   const [paymentDetailsOpen, setPaymentDetailsOpen] = useState(false);
   const [makePaymentOpen, setMakePaymentOpen] = useState(false);
+  
+  // Function to navigate to Stripe test payment page
+  const goToStripeTestPage = () => {
+    console.log("Navigating to Stripe test page");
+    window.open('/stripe-test', '_blank');
+  };
 
   // Fetch payments from the API
   const { data: payments, isLoading: isLoadingPayments, refetch: refetchPayments } = useQuery({
