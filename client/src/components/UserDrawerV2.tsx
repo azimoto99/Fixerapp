@@ -115,6 +115,12 @@ const UserDrawerV2: React.FC<UserDrawerProps> = ({
     setIsOpen(false);
     navigate(path);
   };
+  
+  // Handle tab switching with logging
+  const handleTabChange = (tabName: string) => {
+    console.log('UserDrawerV2: Switching to tab:', tabName);
+    setActiveTab(tabName);
+  };
 
   const renderTabContent = () => {
     switch (activeTab) {
