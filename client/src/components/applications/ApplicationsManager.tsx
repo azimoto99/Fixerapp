@@ -88,6 +88,8 @@ interface ApplicationDetailProps {
   showWorkerHistory: (workerId: number) => void;
 }
 
+
+
 const ApplicationDetail = ({
   application,
   onAccept,
@@ -179,7 +181,27 @@ const ApplicationDetail = ({
                 <span>Estimated Cost</span>
               </div>
               <div className="font-semibold">
-                ${calculateEstimatedCost(application.hourlyRate, application.expectedDuration)}
+                ${(() => {
+                  // Calculate estimated cost based on hourly rate and duration
+                  let hours = 0;
+                  
+                  if (application.expectedDuration.includes('Less than 1 hour')) {
+                    hours = 0.5; // Assuming 30 minutes on average
+                  } else if (application.expectedDuration.includes('1-2 hours')) {
+                    hours = 1.5; // Midpoint
+                  } else if (application.expectedDuration.includes('2-4 hours')) {
+                    hours = 3; // Midpoint
+                  } else if (application.expectedDuration.includes('Half day')) {
+                    hours = 5; // Midpoint of 4-6 hours
+                  } else if (application.expectedDuration.includes('Full day')) {
+                    hours = 7; // Midpoint of 6-8 hours
+                  } else if (application.expectedDuration.includes('Multiple days')) {
+                    hours = 16; // Assuming 2 full days
+                  }
+                  
+                  const cost = application.hourlyRate * hours;
+                  return cost.toFixed(2);
+                })()}
               </div>
             </div>
           </div>
