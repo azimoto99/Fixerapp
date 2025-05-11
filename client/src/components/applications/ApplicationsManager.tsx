@@ -5,6 +5,7 @@ import { format } from 'date-fns';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/hooks/use-auth';
 import WorkerHistory from './WorkerHistory';
+import PaymentConfirmation from '../payments/PaymentConfirmation';
 import {
   Card,
   CardContent,
@@ -293,6 +294,11 @@ export default function ApplicationsManager({ jobId }: ApplicationsManagerProps)
     },
   });
   
+  // State for payment confirmation dialog
+  const [showPaymentConfirmation, setShowPaymentConfirmation] = useState<boolean>(false);
+  const [pendingApplicationId, setPendingApplicationId] = useState<number | null>(null);
+  const [pendingWorkerId, setPendingWorkerId] = useState<number | null>(null);
+  
   // Mutation for accepting an application
   const acceptMutation = useMutation({
     mutationFn: async (applicationId: number) => {
@@ -314,6 +320,11 @@ export default function ApplicationsManager({ jobId }: ApplicationsManagerProps)
         title: 'Worker hired!',
         description: 'The worker has been notified and can now start the job.',
       });
+      
+      // Close payment confirmation if it was shown
+      setShowPaymentConfirmation(false);
+      setPendingApplicationId(null);
+      setPendingWorkerId(null);
     },
     onError: (error) => {
       toast({
@@ -361,7 +372,25 @@ export default function ApplicationsManager({ jobId }: ApplicationsManagerProps)
   });
   
   const handleAccept = (applicationId: number) => {
-    acceptMutation.mutate(applicationId);
+    // Find the application to get the worker ID
+    const application = applications?.find(app => app.id === applicationId);
+    if (application) {
+      setPendingApplicationId(applicationId);
+      setPendingWorkerId(application.workerId);
+      setShowPaymentConfirmation(true);
+    } else {
+      toast({
+        title: 'Error',
+        description: 'Could not find application details',
+        variant: 'destructive',
+      });
+    }
+  };
+  
+  const confirmHire = () => {
+    if (pendingApplicationId) {
+      acceptMutation.mutate(pendingApplicationId);
+    }
   };
   
   const handleReject = (applicationId: number) => {
