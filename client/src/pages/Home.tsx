@@ -16,6 +16,19 @@ import { useAuth } from '@/hooks/use-auth';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Loader2 } from 'lucide-react';
+import { 
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle 
+} from "@/components/ui/alert-dialog";
+import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { apiRequest } from '@/lib/queryClient';
+import { useToast } from '@/hooks/use-toast';
 
 // Worker Dashboard Component
 const WorkerDashboard = () => {
@@ -86,6 +99,50 @@ const WorkerDashboard = () => {
   
   // Jobs Posted by Worker Drawer
   const PostedJobsDrawer = () => {
+    const { toast } = useToast();
+    const queryClient = useQueryClient();
+    const [cancelJobId, setCancelJobId] = useState<number | null>(null);
+    const [showCancelDialog, setShowCancelDialog] = useState(false);
+    
+    // Mutation for canceling a job
+    const cancelJobMutation = useMutation({
+      mutationFn: async (jobId: number) => {
+        const response = await apiRequest('DELETE', `/api/jobs/${jobId}`, { 
+          withRefund: true // Request a refund when canceling
+        });
+        if (!response.ok) {
+          const errorData = await response.json();
+          throw new Error(errorData.message || 'Failed to cancel job');
+        }
+        return response.json();
+      },
+      onSuccess: () => {
+        toast({
+          title: "Job Canceled",
+          description: "The job has been canceled and a refund has been issued",
+          variant: "default"
+        });
+        
+        // Refresh job data
+        queryClient.invalidateQueries({ queryKey: ['/api/jobs'] });
+      },
+      onError: (error: Error) => {
+        toast({
+          title: "Error",
+          description: `Failed to cancel job: ${error.message}`,
+          variant: "destructive"
+        });
+      }
+    });
+    
+    const handleCancelJob = () => {
+      if (cancelJobId) {
+        cancelJobMutation.mutate(cancelJobId);
+        setShowCancelDialog(false);
+        setCancelJobId(null);
+      }
+    };
+    
     if (!showPostedJobs) return null;
     
     return (
@@ -135,11 +192,30 @@ const WorkerDashboard = () => {
                     )}
                   </div>
                   <div className="mt-3 flex gap-2">
-                    <Button size="sm" variant="outline" asChild className="flex-1">
-                      <a href={`/job/${job.id}`}>View Details</a>
+                    <Button 
+                      size="sm" 
+                      variant="default" 
+                      className="flex-1"
+                      onClick={(e) => {
+                        e.preventDefault();
+                        // Open the job card instead of navigating to detail page
+                        setSelectedJob(job);
+                      }}
+                    >
+                      <i className="ri-settings-4-line mr-1"></i> Manage
                     </Button>
-                    <Button size="sm" variant="default" asChild className="flex-1">
-                      <a href={`/job/${job.id}`}>Manage</a>
+                    <Button 
+                      size="sm" 
+                      variant="destructive" 
+                      className="flex-1"
+                      onClick={(e) => {
+                        e.preventDefault();
+                        // Show cancel confirmation dialog
+                        setCancelJobId(job.id);
+                        setShowCancelDialog(true);
+                      }}
+                    >
+                      <i className="ri-close-circle-line mr-1"></i> Cancel Job
                     </Button>
                   </div>
                 </div>
@@ -179,6 +255,34 @@ const WorkerDashboard = () => {
             </div>
           )}
         </div>
+        
+        {/* Cancel Job Confirmation Dialog */}
+        <AlertDialog open={showCancelDialog} onOpenChange={setShowCancelDialog}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Cancel Job</AlertDialogTitle>
+              <AlertDialogDescription>
+                Are you sure you want to cancel this job? This action cannot be undone.
+                {cancelJobId && (
+                  <p className="mt-2">
+                    If payment was made for this job, a refund will be processed automatically.
+                  </p>
+                )}
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>No, Keep Job</AlertDialogCancel>
+              <AlertDialogAction 
+                onClick={handleCancelJob}
+                className="bg-destructive hover:bg-destructive/90"
+              >
+                Yes, Cancel Job{cancelJobMutation.isPending && (
+                  <span className="ml-2 inline-block animate-spin">⟳</span>
+                )}
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
       </div>
     );
   };
