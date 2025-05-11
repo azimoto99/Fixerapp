@@ -45,6 +45,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Separator } from '@/components/ui/separator';
+import { Progress } from '@/components/ui/progress';
 import { formatDate } from '@/lib/utils';
 import {
   Check,
@@ -482,130 +483,323 @@ const ApplicationsManager: React.FC<ApplicationsManagerProps> = ({
           </DialogHeader>
           
           {selectedApplication && (
-            <div className="space-y-4">
-              {/* Job/Applicant info */}
-              <div className="space-y-1.5">
-                <h3 className="text-sm font-medium text-muted-foreground">
-                  {userMode === 'worker' ? 'Job' : 'Applicant'}
-                </h3>
-                <div className="bg-muted p-3 rounded-md">
-                  {userMode === 'worker' ? (
-                    <div>
-                      <h4 className="font-medium">{selectedApplication.job?.title}</h4>
-                      <div className="flex gap-2 text-xs text-muted-foreground mt-1">
-                        <div className="flex items-center gap-1">
-                          <Calendar className="h-3 w-3" />
-                          {formatDate(selectedApplication.job?.dateNeeded)}
+            <Tabs defaultValue="details" className="mt-2">
+              <TabsList className="grid grid-cols-2">
+                <TabsTrigger value="details">
+                  {userMode === 'worker' ? 'Job Details' : 'Application Details'}
+                </TabsTrigger>
+                <TabsTrigger value="history">
+                  {userMode === 'worker' ? 'Application Status' : 'Worker History'}
+                </TabsTrigger>
+              </TabsList>
+              
+              <TabsContent value="details" className="space-y-4 pt-4">
+                {/* Job/Applicant info */}
+                <div className="space-y-1.5">
+                  <h3 className="text-sm font-medium text-muted-foreground">
+                    {userMode === 'worker' ? 'Job' : 'Applicant'}
+                  </h3>
+                  <div className="bg-muted/50 p-4 rounded-md">
+                    {userMode === 'worker' ? (
+                      <div>
+                        <div className="font-medium text-lg">{selectedApplication.job?.title}</div>
+                        <div className="flex flex-wrap gap-2 mt-2">
+                          <Badge variant="outline" className="text-xs">
+                            {selectedApplication.job?.category || 'Uncategorized'}
+                          </Badge>
+                          <Badge variant="outline" className="text-xs">
+                            {selectedApplication.job?.paymentType === 'hourly' 
+                              ? `$${selectedApplication.job?.paymentAmount}/hr` 
+                              : `$${selectedApplication.job?.paymentAmount} fixed`}
+                          </Badge>
                         </div>
-                        <div className="flex items-center gap-1">
-                          <MapPin className="h-3 w-3" />
-                          {selectedApplication.job?.location}
+                        <div className="text-sm mt-3">
+                          {selectedApplication.job?.description?.substring(0, 200)}
+                          {selectedApplication.job?.description?.length > 200 ? '...' : ''}
+                        </div>
+                        <div className="flex flex-col sm:flex-row sm:items-center gap-2 mt-3 text-xs text-muted-foreground">
+                          <div className="flex items-center gap-1">
+                            <MapPin className="h-3 w-3" />
+                            {selectedApplication.job?.location}
+                          </div>
+                          <div className="flex items-center gap-1">
+                            <Calendar className="h-3 w-3" />
+                            {formatDate(selectedApplication.job?.dateNeeded)}
+                          </div>
                         </div>
                       </div>
-                    </div>
-                  ) : (
-                    <div>
-                      <h4 className="font-medium">{selectedApplication.worker?.fullName || selectedApplication.worker?.username}</h4>
-                      {selectedApplication.worker?.rating && (
-                        <div className="flex items-center gap-1 text-xs text-muted-foreground mt-1">
-                          {Array(5).fill(0).map((_, i) => (
-                            <svg
-                              key={i}
-                              className={`h-3 w-3 ${i < Math.round(selectedApplication.worker.rating) ? 'text-yellow-500 fill-yellow-500' : 'text-muted stroke-muted'}`}
-                              xmlns="http://www.w3.org/2000/svg"
-                              viewBox="0 0 24 24"
-                              fill="none"
-                              stroke="currentColor"
-                              strokeWidth="2"
-                              strokeLinecap="round"
-                              strokeLinejoin="round"
-                            >
-                              <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />
-                            </svg>
-                          ))}
-                          <span className="ml-1">{selectedApplication.worker.rating.toFixed(1)}</span>
+                    ) : (
+                      <div className="flex flex-col sm:flex-row gap-4">
+                        <div className="flex items-center gap-3">
+                          <div className="h-16 w-16 rounded-full bg-primary/10 flex items-center justify-center text-primary">
+                            <User className="h-8 w-8" />
+                          </div>
+                          <div>
+                            <div className="font-medium text-lg">{selectedApplication.worker?.fullName || selectedApplication.worker?.username}</div>
+                            <div className="text-sm text-muted-foreground">
+                              Member ID: {selectedApplication.workerId}
+                            </div>
+                            {selectedApplication.worker?.skills && selectedApplication.worker.skills.length > 0 && (
+                              <div className="flex flex-wrap gap-1 mt-2">
+                                {selectedApplication.worker.skills.map((skill: string, index: number) => (
+                                  <Badge key={index} variant="outline" className="text-xs">
+                                    {skill}
+                                  </Badge>
+                                ))}
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </div>
+                
+                {/* Application details */}
+                <div className="space-y-1.5">
+                  <h3 className="text-sm font-medium text-muted-foreground">
+                    Application Details
+                  </h3>
+                  <div className="bg-muted/50 p-4 rounded-md">
+                    <div className="flex flex-col space-y-3">
+                      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+                        <div>
+                          <div className="text-xs text-muted-foreground">Status</div>
+                          <div>{getStatusBadge(selectedApplication.status)}</div>
+                        </div>
+                        <div>
+                          <div className="text-xs text-muted-foreground">Date Applied</div>
+                          <div className="text-sm">{formatDate(selectedApplication.dateApplied)}</div>
+                        </div>
+                      </div>
+                      {selectedApplication.message && (
+                        <div>
+                          <div className="text-xs text-muted-foreground mb-1">Message from Applicant</div>
+                          <div className="text-sm border p-3 rounded-md bg-card">
+                            {selectedApplication.message}
+                          </div>
                         </div>
                       )}
                     </div>
+                  </div>
+                </div>
+                
+                {/* Required skills match (for poster view) */}
+                {userMode === 'poster' && selectedApplication.job?.requiredSkills && selectedApplication.worker?.skills && (
+                  <div className="space-y-1.5">
+                    <h3 className="text-sm font-medium text-muted-foreground">
+                      Skills Match
+                    </h3>
+                    <div className="bg-muted/50 p-4 rounded-md">
+                      <div className="grid grid-cols-2 gap-2">
+                        <div>
+                          <div className="text-xs text-muted-foreground mb-1">Required Skills</div>
+                          <div className="flex flex-wrap gap-1">
+                            {selectedApplication.job.requiredSkills.map((skill: string, index: number) => (
+                              <Badge key={index} variant={
+                                selectedApplication.worker.skills?.includes(skill) 
+                                  ? "default" 
+                                  : "outline"
+                              } className="text-xs">
+                                {skill}
+                                {selectedApplication.worker.skills?.includes(skill) && (
+                                  <Check className="h-3 w-3 ml-1" />
+                                )}
+                              </Badge>
+                            ))}
+                          </div>
+                        </div>
+                        
+                        <div>
+                          <div className="text-xs text-muted-foreground mb-1">Match Rate</div>
+                          <div className="flex items-center gap-2">
+                            {(() => {
+                              const requiredSkills = selectedApplication.job.requiredSkills || [];
+                              const workerSkills = selectedApplication.worker.skills || [];
+                              const matchCount = requiredSkills.filter(
+                                (skill: string) => workerSkills.includes(skill)
+                              ).length;
+                              const matchRate = requiredSkills.length ? 
+                                Math.round((matchCount / requiredSkills.length) * 100) : 0;
+                              
+                              return (
+                                <>
+                                  <Progress value={matchRate} className="h-2 flex-1" />
+                                  <span className="text-sm font-medium">{matchRate}%</span>
+                                </>
+                              );
+                            })()}
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                )}
+                
+                {/* Actions section */}
+                <div className="pt-3">
+                  {userMode === 'poster' && selectedApplication.status === 'pending' && (
+                    <div className="flex gap-2">
+                      <Button 
+                        className="flex-1"
+                        onClick={() => handleAcceptApplication(selectedApplication.id)}
+                        disabled={updateApplicationMutation.isPending}
+                      >
+                        {updateApplicationMutation.isPending ? (
+                          <>
+                            <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                            Processing...
+                          </>
+                        ) : (
+                          <>
+                            <CheckIcon className="h-4 w-4 mr-2" />
+                            Accept Application
+                          </>
+                        )}
+                      </Button>
+                      <Button 
+                        variant="outline"
+                        className="flex-1"
+                        onClick={() => handleRejectApplication(selectedApplication.id)}
+                        disabled={updateApplicationMutation.isPending}
+                      >
+                        <XCircle className="h-4 w-4 mr-2" />
+                        Decline
+                      </Button>
+                    </div>
+                  )}
+                  
+                  {userMode === 'worker' && selectedApplication.status === 'accepted' && (
+                    <div className="bg-green-50 dark:bg-green-900/20 p-3 rounded-md">
+                      <div className="flex items-start gap-2">
+                        <CheckIcon className="h-5 w-5 text-green-600 dark:text-green-500 mt-0.5" />
+                        <div>
+                          <div className="font-medium text-green-800 dark:text-green-300">
+                            Your application was accepted!
+                          </div>
+                          <p className="text-sm text-green-700 dark:text-green-400 mt-1">
+                            The job poster has accepted your application. You can now view the job details and start working.
+                          </p>
+                          <Button 
+                            variant="outline"
+                            size="sm" 
+                            className="mt-2"
+                            onClick={() => {
+                              setViewApplicationDetails(false);
+                              // Navigate to job detail page
+                              window.location.href = `/jobs/${selectedApplication.jobId}`;
+                            }}
+                          >
+                            <Briefcase className="h-3 w-3 mr-1" />
+                            View Job Details
+                          </Button>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                  
+                  {userMode === 'worker' && selectedApplication.status === 'rejected' && (
+                    <div className="bg-red-50 dark:bg-red-900/20 p-3 rounded-md">
+                      <div className="flex items-start gap-2">
+                        <AlertCircle className="h-5 w-5 text-red-600 dark:text-red-500 mt-0.5" />
+                        <div>
+                          <div className="font-medium text-red-800 dark:text-red-300">
+                            Your application was not accepted
+                          </div>
+                          <p className="text-sm text-red-700 dark:text-red-400 mt-1">
+                            The job poster has declined your application. You can view other available jobs or apply for different positions.
+                          </p>
+                        </div>
+                      </div>
+                    </div>
                   )}
                 </div>
-              </div>
+              </TabsContent>
               
-              {/* Application message */}
-              <div className="space-y-1.5">
-                <h3 className="text-sm font-medium text-muted-foreground">Application Message</h3>
-                <div className="bg-muted p-3 rounded-md">
-                  {selectedApplication.message || 
-                    <span className="text-muted-foreground italic">No message provided</span>}
-                </div>
-              </div>
-              
-              {/* Application status */}
-              <div className="space-y-1.5">
-                <h3 className="text-sm font-medium text-muted-foreground">Status</h3>
-                <div className="bg-muted p-3 rounded-md flex justify-between items-center">
-                  {getStatusBadge(selectedApplication.status)}
-                  <span className="text-xs text-muted-foreground">
-                    Applied on {formatDate(selectedApplication.dateApplied)}
-                  </span>
-                </div>
-              </div>
-              
-              {/* Worker History (only shown to poster) */}
-              {userMode === 'poster' && selectedApplication.workerId && (
-                <div className="space-y-1.5 mt-6">
-                  <h3 className="font-medium">Worker History & Reviews</h3>
-                  <p className="text-xs text-muted-foreground mb-2">
-                    Review this worker's past jobs and ratings to help you make an informed decision
-                  </p>
-                  {/* Import and use the WorkerHistory component */}
-                  <Suspense fallback={
-                    <div className="h-64 flex items-center justify-center">
-                      <Loader2 className="h-8 w-8 animate-spin text-primary" />
+              <TabsContent value="history" className="pt-4">
+                {userMode === 'poster' ? (
+                  // Show worker history for job posters to evaluate applicants
+                  <WorkerHistory workerId={selectedApplication.workerId} 
+                    onHire={() => handleAcceptApplication(selectedApplication.id)} 
+                  />
+                ) : (
+                  // Show application timeline for workers
+                  <div className="space-y-4">
+                    <h3 className="text-sm font-medium">Application Timeline</h3>
+                    
+                    <div className="relative border-l border-muted pl-6 py-2 space-y-6">
+                      {/* Application submitted */}
+                      <div className="relative">
+                        <div className="absolute -left-[25px] h-4 w-4 rounded-full bg-primary"></div>
+                        <div className="text-sm font-medium">Application Submitted</div>
+                        <div className="text-xs text-muted-foreground">
+                          {formatDate(selectedApplication.dateApplied)}
+                        </div>
+                        <div className="text-sm mt-1">
+                          You submitted your application for this job
+                        </div>
+                      </div>
+                      
+                      {/* Application reviewed/pending */}
+                      <div className="relative">
+                        <div className={`absolute -left-[25px] h-4 w-4 rounded-full ${
+                          selectedApplication.status === 'pending' 
+                            ? 'bg-yellow-500 animate-pulse' 
+                            : 'bg-muted'
+                        }`}></div>
+                        <div className="text-sm font-medium">Under Review</div>
+                        <div className="text-xs text-muted-foreground">
+                          {selectedApplication.status === 'pending' 
+                            ? 'Current status' 
+                            : 'Completed'}
+                        </div>
+                        <div className="text-sm mt-1">
+                          {selectedApplication.status === 'pending'
+                            ? 'Your application is being reviewed by the job poster'
+                            : 'The job poster has reviewed your application'}
+                        </div>
+                      </div>
+                      
+                      {/* Application accepted/rejected */}
+                      <div className="relative">
+                        <div className={`absolute -left-[25px] h-4 w-4 rounded-full ${
+                          selectedApplication.status === 'accepted' 
+                            ? 'bg-green-500' 
+                            : selectedApplication.status === 'rejected'
+                            ? 'bg-red-500'
+                            : 'bg-muted-foreground/20'
+                        }`}></div>
+                        <div className="text-sm font-medium">
+                          {selectedApplication.status === 'accepted' 
+                            ? 'Application Accepted' 
+                            : selectedApplication.status === 'rejected'
+                            ? 'Application Declined'
+                            : 'Awaiting Decision'}
+                        </div>
+                        <div className="text-xs text-muted-foreground">
+                          {selectedApplication.status === 'pending' 
+                            ? 'Pending' 
+                            : 'Final status'}
+                        </div>
+                        <div className="text-sm mt-1">
+                          {selectedApplication.status === 'accepted'
+                            ? 'Congratulations! You were selected for this job.'
+                            : selectedApplication.status === 'rejected'
+                            ? 'Your application was not selected for this position.'
+                            : 'The job poster will make a decision soon.'}
+                        </div>
+                      </div>
                     </div>
-                  }>
-                    <WorkerHistory workerId={selectedApplication.workerId} />
-                  </Suspense>
-                </div>
-              )}
-            </div>
+                  </div>
+                )}
+              </TabsContent>
+            </Tabs>
           )}
           
           <DialogFooter className="flex sm:justify-between mt-4">
             <Button variant="outline" onClick={() => setViewApplicationDetails(false)}>
               Close
             </Button>
-            
-            {userMode === 'poster' && selectedApplication?.status === 'pending' && (
-              <div className="flex gap-2">
-                <Button 
-                  variant="outline" 
-                  className="border-red-200 text-red-700 hover:bg-red-50 hover:text-red-800"
-                  onClick={() => handleRejectApplication(selectedApplication.id)}
-                  disabled={updateApplicationMutation.isPending}
-                >
-                  {updateApplicationMutation.isPending ? (
-                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                  ) : (
-                    <XCircle className="h-4 w-4 mr-2" />
-                  )}
-                  Reject
-                </Button>
-                <Button 
-                  variant="default"
-                  className="bg-green-600 hover:bg-green-700"
-                  onClick={() => handleAcceptApplication(selectedApplication.id)}
-                  disabled={updateApplicationMutation.isPending}
-                >
-                  {updateApplicationMutation.isPending ? (
-                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                  ) : (
-                    <CheckIcon className="h-4 w-4 mr-2" />
-                  )}
-                  Accept
-                </Button>
-              </div>
-            )}
           </DialogFooter>
         </DialogContent>
       </Dialog>
