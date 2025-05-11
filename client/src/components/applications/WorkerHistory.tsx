@@ -28,7 +28,7 @@ import { Progress } from '@/components/ui/progress';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Separator } from '@/components/ui/separator';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { Star, StarHalf, Calendar, CheckCircle2, Clock, MapPin, AlertCircle, User2, Award, Loader2, Briefcase } from 'lucide-react';
+import { Star, StarHalf, Calendar, CheckCircle2, Clock, MapPin, AlertCircle, User2, Award, Loader2, Briefcase, DollarSign, ThumbsUp } from 'lucide-react';
 
 // Type definitions
 interface WorkerJob {
@@ -104,18 +104,48 @@ const StarRating = ({ rating }: { rating: number }) => {
 
 // JobListItem component for worker's past jobs
 const JobListItem = ({ job }: { job: WorkerJob }) => {
+  // Calculate job duration in days if both date posted and completed exist
+  const calculateDuration = () => {
+    if (job.datePosted && job.dateCompleted) {
+      const start = new Date(job.datePosted);
+      const end = new Date(job.dateCompleted);
+      const diffTime = Math.abs(end.getTime() - start.getTime());
+      const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+      return diffDays === 0 ? "Same day" : diffDays === 1 ? "1 day" : `${diffDays} days`;
+    }
+    return null;
+  };
+  
+  const jobDuration = calculateDuration();
+
   return (
-    <div className="mb-4 border rounded-lg p-4 hover:bg-accent/10 transition-colors">
+    <div className={`mb-4 border rounded-lg p-4 hover:bg-accent/10 transition-colors ${
+      job.status === 'completed' ? 'border-green-500/20' : 
+      job.status === 'in_progress' ? 'border-blue-500/20' : 
+      job.status === 'canceled' ? 'border-red-500/20' : ''
+    }`}>
       <div className="flex justify-between items-start">
         <div>
-          <h3 className="font-medium">{job.title}</h3>
-          <div className="text-sm text-muted-foreground mt-1 flex items-center gap-2">
+          <h3 className="font-medium flex items-center">
+            {job.title}
+            {job.category && (
+              <Badge variant="outline" className="ml-2 text-xs">
+                {job.category}
+              </Badge>
+            )}
+          </h3>
+          <div className="text-sm text-muted-foreground mt-1.5 flex items-center gap-2">
             <Calendar className="h-3.5 w-3.5" />
             <span>{format(new Date(job.datePosted), 'MMM d, yyyy')}</span>
             {job.dateCompleted && (
               <span className="flex items-center">
                 <span className="mx-1">–</span>
                 <span>{format(new Date(job.dateCompleted), 'MMM d, yyyy')}</span>
+                {jobDuration && (
+                  <span className="ml-1.5 px-1.5 py-0.5 bg-muted text-xs rounded-sm">
+                    {jobDuration}
+                  </span>
+                )}
               </span>
             )}
           </div>
@@ -147,9 +177,18 @@ const JobListItem = ({ job }: { job: WorkerJob }) => {
       
       <p className="text-sm mt-2 line-clamp-2">{job.description}</p>
       
-      <div className="flex justify-between items-center mt-3">
-        <div className="text-sm">
-          <span className="font-medium">${job.paymentAmount.toFixed(2)}</span>
+      <div className="flex flex-wrap justify-between items-center gap-2 mt-3">
+        <div className="flex items-center gap-2">
+          <Badge variant="secondary" className="font-medium">
+            <DollarSign className="h-3 w-3 mr-1" />
+            ${job.paymentAmount.toFixed(2)}
+          </Badge>
+          
+          {job.tasks && job.tasks.length > 0 && (
+            <Badge variant="outline" className="text-xs">
+              {job.tasks.filter(t => t.isCompleted).length}/{job.tasks.length} Tasks
+            </Badge>
+          )}
         </div>
         <div className="flex items-center text-sm text-muted-foreground">
           <User2 className="h-3.5 w-3.5 mr-1" />
@@ -159,7 +198,11 @@ const JobListItem = ({ job }: { job: WorkerJob }) => {
       
       {job.review && (
         <div className="mt-3 p-3 bg-muted/50 rounded-md text-sm italic">
-          "{job.review}"
+          <div className="flex items-start gap-2">
+            <span className="text-xl text-muted-foreground font-serif leading-none mt-1">"</span>
+            <p className="flex-1">{job.review}</p>
+            <span className="text-xl text-muted-foreground font-serif leading-none mt-1">"</span>
+          </div>
         </div>
       )}
     </div>
@@ -231,11 +274,11 @@ export default function WorkerHistory({ workerId, onHire }: WorkerHistoryProps) 
   return (
     <div className="space-y-6">
       {/* Worker Profile Summary */}
-      <Card>
+      <Card className="border-primary/20">
         <CardHeader className="pb-2">
           <div className="flex items-start justify-between">
             <div className="flex items-center space-x-4">
-              <Avatar className="h-12 w-12">
+              <Avatar className="h-12 w-12 border-2 border-primary/20">
                 <AvatarImage src={workerData?.avatarUrl} alt={workerData?.fullName} />
                 <AvatarFallback>{workerData?.fullName?.charAt(0) || workerData?.username?.charAt(0) || '?'}</AvatarFallback>
               </Avatar>
@@ -251,6 +294,13 @@ export default function WorkerHistory({ workerId, onHire }: WorkerHistoryProps) 
                 }
               </div>
             </div>
+            {/* Verification badge if worker has completed >5 jobs with good ratings */}
+            {workerData?.metrics?.completedJobs > 5 && workerData?.metrics?.averageRating >= 4.5 && (
+              <Badge className="bg-green-500/90 text-white hover:bg-green-500/80">
+                <CheckCircle2 className="mr-1 h-3 w-3" />
+                Verified Worker
+              </Badge>
+            )}
           </div>
         </CardHeader>
         <CardContent>
@@ -427,24 +477,37 @@ export default function WorkerHistory({ workerId, onHire }: WorkerHistoryProps) 
         </CardContent>
       </Card>
       
-      {/* Optional hire button at the bottom */}
+      {/* Action panel with hire button if provided */}
       {onHire && (
-        <div className="flex justify-end mt-6">
-          <Button 
-            onClick={onHire}
-            className="ml-auto"
-            size="lg"
-          >
-            <Briefcase className="mr-2 h-5 w-5" />
-            Hire This Worker
-          </Button>
-        </div>
+        <Card className="bg-primary/5 border-primary/20">
+          <CardContent className="py-6">
+            <div className="flex flex-col md:flex-row items-center justify-between gap-4">
+              <div className="text-center md:text-left space-y-2">
+                <h3 className="text-lg font-medium">Ready to hire {workerData?.fullName}?</h3>
+                <p className="text-muted-foreground text-sm max-w-md">
+                  After hiring, you'll be able to communicate directly and create tasks for {workerData?.fullName.split(' ')[0]} to complete.
+                </p>
+              </div>
+              <Button 
+                onClick={onHire}
+                size="lg"
+                className="px-8 py-6 h-auto"
+              >
+                <Briefcase className="mr-2 h-5 w-5" />
+                Hire {workerData?.fullName.split(' ')[0]}
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
       )}
       
       {/* Success rate and stats panel */}
-      <Card className="mt-6 bg-muted/30">
+      <Card className="mt-6 border-green-500/20 bg-green-50/10 dark:bg-green-900/5">
         <CardHeader className="pb-3">
-          <CardTitle className="text-base">Why Hire This Worker?</CardTitle>
+          <CardTitle className="text-base flex items-center">
+            <ThumbsUp className="h-4 w-4 mr-2 text-green-500" />
+            Why Hire {workerData?.fullName.split(' ')[0] || 'This Worker'}?
+          </CardTitle>
         </CardHeader>
         <CardContent className="pb-4">
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">

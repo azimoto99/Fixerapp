@@ -547,7 +547,14 @@ export default function ApplicationsManager({ jobId }: ApplicationsManagerProps)
                 ))
               ) : (
                 <div className="text-center py-8">
-                  <p className="text-muted-foreground">No applications match the selected filter.</p>
+                  <div className="w-12 h-12 bg-muted/50 rounded-full flex items-center justify-center mx-auto mb-3">
+                    <AlertCircle className="h-5 w-5 text-muted-foreground" />
+                  </div>
+                  <h4 className="text-base font-medium mb-1">No matching applications</h4>
+                  <p className="text-sm text-muted-foreground">
+                    No applications match the "{selectedFilter}" filter. 
+                    {selectedFilter !== 'all' && ' Try selecting "All Applications" to see all applications.'}
+                  </p>
                 </div>
               )}
             </>
@@ -557,9 +564,20 @@ export default function ApplicationsManager({ jobId }: ApplicationsManagerProps)
                 <UserCheck className="h-6 w-6 text-muted-foreground" />
               </div>
               <h3 className="text-lg font-medium mb-2">No Applications Yet</h3>
-              <p className="text-muted-foreground mb-6">
-                Your job posting hasn't received any applications yet. Check back later or promote your job to reach more workers.
+              <p className="text-muted-foreground mb-4 max-w-md mx-auto">
+                Your job posting hasn't received any applications yet. Make sure your job description is clear and the compensation is competitive.
               </p>
+              <div className="flex flex-col items-center gap-2">
+                <Badge variant="outline" className="py-1.5 px-3">
+                  <Clock className="h-3.5 w-3.5 mr-1.5" />
+                  Posted {job?.datePosted ? new Date(job.datePosted).toLocaleDateString() : 'recently'}
+                </Badge>
+                {job?.viewCount > 0 && (
+                  <div className="text-sm text-muted-foreground">
+                    <span className="font-medium">{job.viewCount}</span> people have viewed this job
+                  </div>
+                )}
+              </div>
             </div>
           )}
         </CardContent>
