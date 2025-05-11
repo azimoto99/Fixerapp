@@ -227,6 +227,44 @@ export default function StripeConnectSetup({ compact = false }: StripeConnectSet
   
   const progress = calculateProgress();
   
+  // If compact mode is enabled, show a simplified version
+  if (compact) {
+    return (
+      <Card className="w-full">
+        <CardHeader className="pb-2">
+          <CardTitle className="text-sm">Stripe Connect Status</CardTitle>
+        </CardHeader>
+        <CardContent className="py-2">
+          {isLoadingAccount ? (
+            <div className="flex items-center gap-2 py-1">
+              <Loader2 className="h-4 w-4 animate-spin text-primary" />
+              <span className="text-sm">Checking...</span>
+            </div>
+          ) : hasConnectAccount ? (
+            <div className="flex justify-between items-center">
+              <div className="flex items-center gap-2">
+                <Badge variant={accountVerified ? "default" : "outline"} className="text-xs">
+                  {accountVerified ? 'Verified' : 'Setup Needed'}
+                </Badge>
+                <span className="text-xs text-muted-foreground">
+                  {accountVerified ? 'Ready to receive payments' : `${progress}% Complete`}
+                </span>
+              </div>
+              <Button variant="ghost" size="sm" className="h-6 px-2" onClick={() => setActiveTab('dashboard')}>
+                <ArrowRight className="h-3 w-3" />
+              </Button>
+            </div>
+          ) : (
+            <Button variant="outline" size="sm" className="w-full text-xs h-7" onClick={() => setActiveTab('setup')}>
+              Set Up Payments
+            </Button>
+          )}
+        </CardContent>
+      </Card>
+    );
+  }
+
+  // Standard full view
   return (
     <Tabs value={activeTab} onValueChange={setActiveTab} className="max-w-3xl mx-auto">
       <TabsList className="grid w-full grid-cols-2 mb-4">
