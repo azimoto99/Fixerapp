@@ -140,6 +140,61 @@ export default function PostJobDrawer({ isOpen, onOpenChange }: PostJobDrawerPro
     setIsSubmitting(true);
     
     try {
+      // For fixed-price jobs, first process the payment before creating the job
+      if (data.paymentType === 'fixed' && data.paymentMethodId) {
+        let paymentSuccessful = false;
+        let paymentError = null;
+        let paymentResponse = null;
+        
+        try {
+          console.log('Processing payment for fixed-price job before creating job');
+          // Pre-authorize payment but don't create the job yet
+          paymentResponse = await apiRequest('POST', `/api/payments/preauthorize`, {
+            paymentMethodId: data.paymentMethodId,
+            amount: data.paymentAmount
+          });
+          
+          if (!paymentResponse.ok) {
+            const errorData = await paymentResponse.json();
+            paymentError = errorData.message || 'Payment processing failed';
+            console.error('Payment processing failed:', errorData);
+            
+            // Show payment failure dialog and don't create the job
+            toast({
+              title: "Payment Failed",
+              description: `Your job could not be posted because your payment was declined: ${paymentError}. Please update your payment method in the payment settings.`,
+              variant: "destructive"
+            });
+            
+            setIsSubmitting(false);
+            return; // Exit early without creating job
+          } else {
+            console.log('Payment pre-authorized for fixed-price job');
+            paymentSuccessful = true;
+          }
+        } catch (error) {
+          console.error('Payment processing error:', error);
+          paymentError = 'An error occurred while processing payment';
+          
+          // Show payment failure dialog and don't create the job
+          toast({
+            title: "Payment Failed",
+            description: `Your job could not be posted because your payment could not be processed: ${paymentError}`,
+            variant: "destructive"
+          });
+          
+          setIsSubmitting(false);
+          return; // Exit early without creating job
+        }
+        
+        // Only proceed to create the job if payment was successful
+        if (!paymentSuccessful) {
+          setIsSubmitting(false);
+          return; // Exit early
+        }
+      }
+      
+      // If we reach here, payment was successful or not required (hourly job)
       const jobData = {
         ...data,
         posterId: user?.id,
@@ -150,7 +205,7 @@ export default function PostJobDrawer({ isOpen, onOpenChange }: PostJobDrawerPro
       
       console.log('Creating job with data:', jobData);
       
-      // First create the job
+      // Create the job
       const response = await apiRequest('POST', '/api/jobs', jobData);
       const jobResponse = await response.json();
       
@@ -183,13 +238,10 @@ export default function PostJobDrawer({ isOpen, onOpenChange }: PostJobDrawerPro
         }
       }
       
-      // Process payment for fixed-price jobs
-      let paymentSuccessful = true;
-      let paymentError = null;
-      
+      // For fixed-price jobs, finalize the payment with the job ID
       if (data.paymentType === 'fixed' && data.paymentMethodId) {
         try {
-          // Attempt to process payment
+          console.log('Finalizing payment for fixed-price job');
           const paymentResponse = await apiRequest('POST', `/api/payments/process`, {
             jobId: jobResponse.id,
             paymentMethodId: data.paymentMethodId,
@@ -198,43 +250,32 @@ export default function PostJobDrawer({ isOpen, onOpenChange }: PostJobDrawerPro
           
           if (!paymentResponse.ok) {
             const errorData = await paymentResponse.json();
-            paymentSuccessful = false;
-            paymentError = errorData.message || 'Payment processing failed';
-            console.error('Payment processing failed:', errorData);
+            console.error('Payment finalization failed:', errorData);
+            
+            // The job is already created at this point, but payment finalization failed
+            // This is a rare case that would require admin intervention
+            toast({
+              title: "Payment Finalization Issue",
+              description: "Your job was posted, but there was an issue finalizing the payment. An administrator will contact you.",
+              variant: "destructive"
+            });
           } else {
-            console.log('Payment successful for fixed-price job');
+            console.log('Payment finalized successfully for fixed-price job');
+            
+            // Show payment success dialog
+            toast({
+              title: "Payment Successful",
+              description: "Your job has been posted and payment has been processed successfully!",
+              variant: "default"
+            });
           }
-        } catch (paymentError) {
-          console.error('Payment processing error:', paymentError);
-          paymentSuccessful = false;
-          paymentError = 'An error occurred while processing payment';
-        }
-      }
-      
-      form.reset();
-      setTasks([]);
-      onOpenChange(false);
-      
-      queryClient.invalidateQueries({ queryKey: ['/api/jobs'] });
-      queryClient.invalidateQueries({ queryKey: ['/api/jobs/nearby/location'] });
-      
-      // Navigate to home page
-      navigate('/');
-      
-      // Show appropriate dialog based on payment result for fixed-price jobs
-      if (data.paymentType === 'fixed') {
-        if (paymentSuccessful) {
-          // Show payment success dialog
+        } catch (error) {
+          console.error('Payment finalization error:', error);
+          
+          // The job is already created at this point, but payment finalization failed
           toast({
-            title: "Payment Successful",
-            description: "Your job has been posted and payment has been processed successfully!",
-            variant: "default"
-          });
-        } else {
-          // Show payment failure dialog but inform that the job is still posted
-          toast({
-            title: "Payment Failed",
-            description: `Your job has been posted, but there was an issue processing your payment: ${paymentError}. Please update your payment method in the payment settings.`,
+            title: "Payment Finalization Issue",
+            description: "Your job was posted, but there was an issue finalizing the payment. An administrator will review this transaction.",
             variant: "destructive"
           });
         }
@@ -246,6 +287,16 @@ export default function PostJobDrawer({ isOpen, onOpenChange }: PostJobDrawerPro
           variant: "default"
         });
       }
+      
+      form.reset();
+      setTasks([]);
+      onOpenChange(false);
+      
+      queryClient.invalidateQueries({ queryKey: ['/api/jobs'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/jobs/nearby/location'] });
+      
+      // Navigate to home page
+      navigate('/');
       
       console.log(`Job created successfully with ID: ${jobResponse.id}`);
     } catch (error) {

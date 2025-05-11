@@ -6,6 +6,7 @@ import Stripe from "stripe";
 import { filterJobContent, validatePaymentAmount } from "./content-filter";
 import { stripeRouter } from "./api/stripe-api";
 import { processPayment } from "./api/process-payment";
+import { preauthorizePayment } from "./api/preauthorize-payment";
 import { taskRouter } from "./api/task-api";
 // Temporarily comment out other Stripe imports until we implement them
 // import createPaymentIntentRouter from "./api/stripe-api-create-payment-intent";
@@ -3604,6 +3605,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
   
   // Process payment for hiring a worker
   app.post("/api/payments/process", isAuthenticated, processPayment);
+  
+  // Preauthorize payment without creating a job
+  app.post("/api/payments/preauthorize", isAuthenticated, preauthorizePayment);
   
   // Comment out the Stripe-related integrations until they're properly implemented
   // Use our improved create-payment-intent handler
