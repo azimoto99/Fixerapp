@@ -451,11 +451,14 @@ export default function Home() {
         )}
       </main>
 
-      <MobileNav selectedTab={selectedRole === 'worker' ? 'worker' : 'poster'} onTabChange={(tab) => {
-        if (tab === 'worker' || tab === 'poster') {
-          setSelectedRole(tab);
-        }
-      }} />
+      {/* Only show mobile nav when not in worker map view to avoid cluttering the map interface */}
+      {!(selectedRole === 'worker') && (
+        <MobileNav selectedTab={selectedRole === 'worker' ? 'worker' : 'poster'} onTabChange={(tab) => {
+          if (tab === 'worker' || tab === 'poster') {
+            setSelectedRole(tab);
+          }
+        }} />
+      )}
     </div>
   );
 }
