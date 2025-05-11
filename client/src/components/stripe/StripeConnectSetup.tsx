@@ -52,16 +52,24 @@ export default function StripeConnectSetup() {
   } = useQuery({
     queryKey: ['/api/stripe/connect/account-status'],
     queryFn: async () => {
-      const res = await apiRequest('GET', '/api/stripe/connect/account-status');
-      if (res.status === 404) {
-        // No account yet, which is fine
-        return { exists: false };
+      try {
+        const res = await apiRequest('GET', '/api/stripe/connect/account-status');
+        if (res.status === 404) {
+          // No account yet, which is fine
+          console.log('No Stripe Connect account found yet');
+          return { exists: false };
+        }
+        if (!res.ok) {
+          const errorData = await res.json();
+          console.log('Error getting Stripe Connect status:', errorData);
+          return { exists: false, error: errorData.message || 'Failed to get account status' };
+        }
+        return res.json();
+      } catch (error) {
+        // Catch any network errors and return a default state instead of throwing
+        console.log('Error fetching Stripe Connect account:', error);
+        return { exists: false, error: 'Connection error' };
       }
-      if (!res.ok) {
-        const errorData = await res.json();
-        throw new Error(errorData.message || 'Failed to get account status');
-      }
-      return res.json();
     },
     retry: false,
   });
