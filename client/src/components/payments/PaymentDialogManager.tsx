@@ -224,7 +224,9 @@ export const PaymentDialogProvider: React.FC<{ children: React.ReactNode }> = ({
 
   // When modal is opened/closed, handle body scroll
   useEffect(() => {
-    if (isAddPaymentMethodOpen) {
+    const isAnyDialogOpen = isAddPaymentMethodOpen || isSelectPaymentMethodOpen;
+    
+    if (isAnyDialogOpen) {
       document.body.style.overflow = 'hidden'; // Prevent background scrolling
     } else {
       document.body.style.overflow = ''; // Restore scrolling
@@ -233,10 +235,10 @@ export const PaymentDialogProvider: React.FC<{ children: React.ReactNode }> = ({
     return () => {
       document.body.style.overflow = ''; // Clean up
     };
-  }, [isAddPaymentMethodOpen]);
+  }, [isAddPaymentMethodOpen, isSelectPaymentMethodOpen]);
 
   return (
-    <PaymentDialogContext.Provider value={{ openAddPaymentMethod }}>
+    <PaymentDialogContext.Provider value={{ openAddPaymentMethod, openPaymentMethodsDialog }}>
       {children}
 
       {/* Add Payment Method Dialog - at the root level */}
@@ -276,6 +278,72 @@ export const PaymentDialogProvider: React.FC<{ children: React.ReactNode }> = ({
               </Button>
             </div>
           )}
+        </PaymentDialogContent>
+      </PaymentDialog>
+
+      {/* Payment Method Selection Dialog */}
+      <PaymentDialog open={isSelectPaymentMethodOpen} onOpenChange={closeSelectPaymentMethod}>
+        <PaymentDialogContent className="sm:max-w-md">
+          <PaymentDialogHeader>
+            <PaymentDialogTitle>Select Payment Method</PaymentDialogTitle>
+            <PaymentDialogDescription>
+              Select a payment method to use for this transaction
+            </PaymentDialogDescription>
+          </PaymentDialogHeader>
+          
+          {/* Payment methods list */}
+          <div className="py-4">
+            {/* We'll use the PaymentMethodsList component here */}
+            <div className="space-y-4">
+              <Button
+                onClick={() => {
+                  // For now, simulate selecting a payment method with a hardcoded ID
+                  // In a real app, this would come from a list of the user's saved payment methods
+                  handlePaymentMethodSelect('pm_mock_123456789');
+                }}
+                className="w-full justify-start text-left font-normal"
+                variant="outline"
+              >
+                <span className="flex items-center">
+                  <svg
+                    className="h-4 w-6 mr-2"
+                    viewBox="0 0 40 24"
+                    fill="none"
+                    xmlns="http://www.w3.org/2000/svg"
+                  >
+                    <rect width="40" height="24" rx="4" fill="#252525" />
+                    <path
+                      fillRule="evenodd"
+                      clipRule="evenodd"
+                      d="M14.5 11.75H11.75V15.25H14.5V11.75Z"
+                      fill="#FF5F00"
+                    />
+                    <path
+                      d="M12.125 8.5C10.8 8.5 9.625 9.05 8.75 9.925C9.7 10.875 10.25 12.2 10.25 13.525C10.25 14.85 9.7 16.175 8.75 17.125C9.625 18 10.8 18.55 12.125 18.55C14.775 18.55 16.75 16.3 16.75 13.525C16.75 10.75 14.775 8.5 12.125 8.5Z"
+                      fill="#EB001B"
+                    />
+                    <path
+                      d="M27.875 8.5C26.55 8.5 25.375 9.05 24.5 9.925C25.45 10.875 26 12.2 26 13.525C26 14.85 25.45 16.175 24.5 17.125C25.375 18 26.55 18.55 27.875 18.55C30.525 18.55 32.5 16.3 32.5 13.525C32.5 10.75 30.525 8.5 27.875 8.5Z"
+                      fill="#F79E1B"
+                    />
+                  </svg>
+                  
+                  <span>
+                    <span className="font-medium">Credit Card</span>
+                    <span className="text-muted-foreground ml-2">•••• 4242</span>
+                  </span>
+                </span>
+              </Button>
+              
+              <Button
+                onClick={() => openAddPaymentMethod()}
+                className="w-full"
+                variant="outline"
+              >
+                + Add New Payment Method
+              </Button>
+            </div>
+          </div>
         </PaymentDialogContent>
       </PaymentDialog>
     </PaymentDialogContext.Provider>
