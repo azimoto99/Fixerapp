@@ -209,7 +209,11 @@ function AddCardDialog() {
   );
 }
 
-export default function PaymentMethodsManager() {
+interface PaymentMethodsManagerProps {
+  userId?: number; // Make it optional to maintain backward compatibility
+}
+
+export default function PaymentMethodsManager({ userId }: PaymentMethodsManagerProps) {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   
