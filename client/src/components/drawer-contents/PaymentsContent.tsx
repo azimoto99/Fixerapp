@@ -464,11 +464,60 @@ const PaymentsContent: React.FC<PaymentsContentProps> = ({ userId }) => {
                   
                   <Button 
                     variant="outline"
-                    onClick={() => window.location.href = '/stripe-tester'}
+                    onClick={goToStripeTestPage}
                   >
                     <CreditCard className="h-4 w-4 mr-2" />
                     Test Payments
                   </Button>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+        
+        {/* Stripe Tester Tab */}
+        <TabsContent value="tester" className="space-y-4 mt-4">
+          <Card>
+            <CardHeader>
+              <CardTitle>Stripe Payment Testing</CardTitle>
+              <CardDescription>
+                Test Stripe payments and verify your payment setup
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-6">
+                <div className="bg-muted p-4 rounded-lg">
+                  <h3 className="text-md font-medium mb-2">Interactive Stripe Testing</h3>
+                  <p className="text-sm text-muted-foreground mb-4">
+                    Access our full-featured Stripe testing interface to verify payment methods, create test payments, and more.
+                  </p>
+                  <Button onClick={goToStripeTestPage}>
+                    Open Stripe Tester
+                  </Button>
+                </div>
+                
+                <div className="mt-4 pt-4 border-t">
+                  <h3 className="text-md font-medium mb-2">Test Card Information</h3>
+                  <p className="text-sm text-muted-foreground mb-2">
+                    Use these test card numbers to simulate different payment scenarios:
+                  </p>
+                  <div className="grid gap-2 text-sm">
+                    <div className="grid grid-cols-2 gap-2">
+                      <div className="font-medium">Success:</div>
+                      <div>4242 4242 4242 4242</div>
+                    </div>
+                    <div className="grid grid-cols-2 gap-2">
+                      <div className="font-medium">Requires Authentication:</div>
+                      <div>4000 0025 0000 3155</div>
+                    </div>
+                    <div className="grid grid-cols-2 gap-2">
+                      <div className="font-medium">Declined:</div>
+                      <div>4000 0000 0000 0002</div>
+                    </div>
+                  </div>
+                  <p className="text-sm text-muted-foreground mt-4">
+                    For all test cards, use any future expiry date, any 3-digit CVC, and any valid postal code.
+                  </p>
                 </div>
               </div>
             </CardContent>
