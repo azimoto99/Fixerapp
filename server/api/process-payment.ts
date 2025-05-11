@@ -126,18 +126,23 @@ export async function processPayment(req: Request, res: Response) {
     // Update the job status
     await storage.updateJob(jobId, {
       status: 'assigned',
-      assignedWorkerId: workerId
+      workerId: workerId
     });
     
     // Create a notification for the worker
     await storage.createNotification({
       userId: workerId,
+      title: 'Application Accepted',
+      message: `Your application for "${job.title}" has been accepted! You can now start working on this job.`,
       type: 'application_accepted',
-      content: `Your application for "${job.title}" has been accepted! You can now start working on this job.`,
-      isRead: false,
-      dateCreated: new Date(),
-      linkUrl: `/jobs/${jobId}`,
-      senderName: req.user.fullName || req.user.username,
+      sourceId: jobId,
+      sourceType: 'job',
+      metadata: {
+        jobId,
+        applicationId,
+        posterId: req.user.id,
+        paymentId: paymentIntent.id
+      }
     });
     
     return res.status(200).json({
