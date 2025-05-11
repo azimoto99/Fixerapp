@@ -5,7 +5,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/hooks/use-toast';
 import { apiRequest } from '@/lib/queryClient';
 import { Award, Edit, Wallet, DollarSign } from 'lucide-react';
-import StripeConnectSetup from '@/components/stripe/StripeConnectSetup';
+// import StripeConnectSetup from '@/components/stripe/StripeConnectSetup';
 
 import Header from '@/components/Header';
 // Mobile Nav removed as requested
@@ -157,13 +157,13 @@ export default function Profile() {
                 </TabsTrigger>
                 <TabsTrigger value="payments">
                   <span className="flex items-center gap-1">
-                    <Wallet className="h-3.5 w-3.5" />
+                    <span className="text-sm">💳</span> 
                     Payments
                   </span>
                 </TabsTrigger>
                 <TabsTrigger value="earnings">
                   <span className="flex items-center gap-1">
-                    <DollarSign className="h-3.5 w-3.5" />
+                    <span className="text-sm">💰</span>
                     {user.accountType === 'worker' ? 'Earnings' : 'Income'}
                   </span>
                 </TabsTrigger>
