@@ -4,7 +4,8 @@ import { useQuery } from '@tanstack/react-query';
 import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/hooks/use-toast';
 import { apiRequest } from '@/lib/queryClient';
-import { Award, Edit, Wallet, DollarSign } from 'lucide-react';
+import { Award, Edit, Wallet, DollarSign, Info } from 'lucide-react';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import StripeConnectSetup from '@/components/stripe/StripeConnectSetup';
 
 import Header from '@/components/Header';
