@@ -68,8 +68,8 @@ createPaymentIntentRouter.post("/create-payment-intent", isStripeAuthenticated, 
       setup_future_usage: 'off_session',
       metadata: {
         userId: req.user.id.toString(),
-        jobId: jobId?.toString(),
-        workerId: workerId?.toString(),
+        jobId: jobId ? jobId.toString() : '',
+        workerId: workerId ? workerId.toString() : '',
         description: description || 'Payment for services',
       },
       confirm: Boolean(paymentMethodId),
@@ -87,7 +87,7 @@ createPaymentIntentRouter.post("/create-payment-intent", isStripeAuthenticated, 
       paymentMethod: paymentMethodId ? 'card' : null,
       transactionId: paymentIntent.id,
       metadata: {
-        workerId: workerId
+        workerId: workerId || null
       }
     });
     

@@ -5,6 +5,7 @@ import { z } from "zod";
 import Stripe from "stripe";
 import { filterJobContent, validatePaymentAmount } from "./content-filter";
 import stripeRouter from "./api/stripe-api";
+import createPaymentIntentRouter from "./api/stripe-api-create-payment-intent";
 import * as crypto from 'crypto';
 import { 
   insertUserSchema, 
@@ -3341,6 +3342,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
   
   // Use the centralized Stripe API router
   app.use("/api/stripe", stripeRouter);
+  
+  // Use our improved create-payment-intent handler
+  app.use("/api/stripe", createPaymentIntentRouter);
 
   const httpServer = createServer(app);
   return httpServer;

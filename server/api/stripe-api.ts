@@ -606,7 +606,7 @@ export async function updateUserStripeInfo(userId: number, data: {
   stripeCustomerId?: string;
   stripeConnectAccountId?: string;
   stripeConnectAccountStatus?: string;
-}): Promise<User | undefined> {
+}): Promise<typeof import("@shared/schema").users.$inferSelect | undefined> {
   return storage.updateUser(userId, data);
 }
 
