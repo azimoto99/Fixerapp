@@ -6,6 +6,7 @@ import Stripe from "stripe";
 import { filterJobContent, validatePaymentAmount } from "./content-filter";
 import { stripeRouter } from "./api/stripe-api";
 import { processPayment } from "./api/process-payment";
+import { taskRouter } from "./api/task-api";
 // Temporarily comment out other Stripe imports until we implement them
 // import createPaymentIntentRouter from "./api/stripe-api-create-payment-intent";
 // import { setupStripeWebhooks } from "./api/stripe-webhooks";
