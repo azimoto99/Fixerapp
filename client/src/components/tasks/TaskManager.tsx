@@ -717,6 +717,49 @@ export default function TaskManager({ jobId, editable = false, onComplete }: Tas
                 )}
               />
               
+              <FormField
+                control={form.control}
+                name="estimatedDuration"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Estimated Duration (minutes)</FormLabel>
+                    <FormControl>
+                      <Input 
+                        type="number"
+                        min="5"
+                        max="480"
+                        placeholder="30"
+                        {...field}
+                        onChange={(e) => field.onChange(parseInt(e.target.value) || 30)}
+                      />
+                    </FormControl>
+                    <FormDescription>
+                      Approximate time needed to complete this task (5-480 minutes)
+                    </FormDescription>
+                  </FormItem>
+                )}
+              />
+              
+              <FormField
+                control={form.control}
+                name="notes"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Additional Notes</FormLabel>
+                    <FormControl>
+                      <Textarea 
+                        placeholder="Enter any additional notes or instructions for this task"
+                        className="resize-none"
+                        {...field}
+                      />
+                    </FormControl>
+                    <FormDescription>
+                      Optional detailed instructions or notes for the worker
+                    </FormDescription>
+                  </FormItem>
+                )}
+              />
+              
               <DialogFooter className="pt-4">
                 <Button
                   type="button"
