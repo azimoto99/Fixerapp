@@ -213,7 +213,7 @@ const UserDrawerV2: React.FC<UserDrawerProps> = ({
 
                   {/* User sections */}
                   <button 
-                    onClick={() => setActiveTab("profile")}
+                    onClick={() => handleTabChange("profile")}
                     className={cn(
                       "flex flex-col items-center justify-center w-14 h-14 rounded-lg",
                       activeTab === "profile" 
@@ -228,7 +228,7 @@ const UserDrawerV2: React.FC<UserDrawerProps> = ({
                   
                   {/* Reviews */}
                   <button 
-                    onClick={() => setActiveTab("reviews")}
+                    onClick={() => handleTabChange("reviews")}
                     className={cn(
                       "flex flex-col items-center justify-center w-14 h-14 rounded-lg",
                       activeTab === "reviews" 
@@ -245,7 +245,7 @@ const UserDrawerV2: React.FC<UserDrawerProps> = ({
 
                   {/* Financial sections */}
                   <button 
-                    onClick={() => setActiveTab("payments")}
+                    onClick={() => handleTabChange("payments")}
                     className={cn(
                       "flex flex-col items-center justify-center w-14 h-14 rounded-lg",
                       activeTab === "payments" 
@@ -260,7 +260,7 @@ const UserDrawerV2: React.FC<UserDrawerProps> = ({
                   
                   {user.accountType === 'worker' && (
                     <button 
-                      onClick={() => setActiveTab("earnings")}
+                      onClick={() => handleTabChange("earnings")}
                       className={cn(
                         "flex flex-col items-center justify-center w-14 h-14 rounded-lg",
                         activeTab === "earnings" 
@@ -289,7 +289,7 @@ const UserDrawerV2: React.FC<UserDrawerProps> = ({
 
                   {/* Settings */}  
                   <button 
-                    onClick={() => setActiveTab("settings")}
+                    onClick={() => handleTabChange("settings")}
                     className={cn(
                       "flex flex-col items-center justify-center w-14 h-14 rounded-lg",
                       activeTab === "settings" 
