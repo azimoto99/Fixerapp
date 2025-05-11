@@ -3,14 +3,10 @@ import { useQuery, useMutation } from '@tanstack/react-query';
 import { apiRequest, queryClient } from '@/lib/queryClient';
 import { useAuth } from '@/hooks/use-auth';
 import { useLocation } from 'wouter';
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-  CardFooter,
-} from '@/components/ui/card';
+import { useToast } from '@/hooks/use-toast';
+import { formatCurrency, formatDate } from '@/lib/utils';
+
+// UI Components
 import { TabsContent, Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import {
   Table,
@@ -22,51 +18,89 @@ import {
 } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { Drawer, DrawerContent, DrawerDescription, DrawerHeader, DrawerTitle, DrawerTrigger, DrawerFooter } from '@/components/ui/drawer';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import { ScrollArea } from '@/components/ui/scroll-area';
+
+// Icons
 import { 
   Loader2, 
-  ExternalLink, 
   Search, 
-  Info, 
   Plus, 
   CreditCard, 
   FileText, 
   ArrowRight,
   DollarSign,
   Banknote,
-  PlusCircle
+  PlusCircle,
+  CheckCircle,
+  Clock,
+  AlertCircle,
+  Calendar,
+  Receipt,
+  RefreshCw,
+  ExternalLink
 } from 'lucide-react';
-import { Input } from '@/components/ui/input';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
-import { Drawer, DrawerContent, DrawerDescription, DrawerHeader, DrawerTitle, DrawerTrigger, DrawerFooter } from '@/components/ui/drawer';
-import { Label } from '@/components/ui/label';
+
+// Custom Components
 import StripeConnectSetupV2 from '@/components/stripe/StripeConnectSetupV2';
 import PaymentDetailsCard from '@/components/payments/PaymentDetailsCard';
 import JobPaymentForm from '@/components/payments/JobPaymentForm';
 import PaymentMethodsManager from '@/components/payments/PaymentMethodsManager';
-import { formatCurrency, formatDate } from '@/lib/utils';
 
 interface PaymentsContentProps {
   userId: number;
 }
 
+const StatusBadge = ({ status }: { status: string }) => {
+  const getVariant = () => {
+    switch (status.toLowerCase()) {
+      case 'completed':
+        return { variant: 'default', icon: <CheckCircle className="h-3 w-3 mr-1" /> }; 
+      case 'pending':
+        return { variant: 'outline', icon: <Clock className="h-3 w-3 mr-1" /> };
+      case 'processing':
+        return { variant: 'secondary', icon: <RefreshCw className="h-3 w-3 mr-1 animate-spin" /> };
+      case 'failed':
+        return { variant: 'destructive', icon: <AlertCircle className="h-3 w-3 mr-1" /> };
+      default:
+        return { variant: 'outline', icon: null };
+    }
+  };
+
+  const { variant, icon } = getVariant();
+  
+  return (
+    <Badge variant={variant as any} className={status === 'completed' ? 'bg-green-600' : undefined}>
+      <span className="flex items-center text-xs">
+        {icon}
+        {status}
+      </span>
+    </Badge>
+  );
+};
+
 const PaymentsContent: React.FC<PaymentsContentProps> = ({ userId }) => {
   const { user } = useAuth();
+  const { toast } = useToast();
   const [activeTab, setActiveTab] = useState('history');
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
   const [selectedPayment, setSelectedPayment] = useState<any>(null);
   const [paymentDetailsOpen, setPaymentDetailsOpen] = useState(false);
   const [makePaymentOpen, setMakePaymentOpen] = useState(false);
+  const [, navigate] = useLocation();
   
-  // Function to navigate to Stripe test payment page
-  const goToStripeTestPage = () => {
-    console.log("Navigating to Stripe test page");
-    window.open('/stripe-test', '_blank');
-  };
-
   // Fetch payments from the API
-  const { data: payments, isLoading: isLoadingPayments, refetch: refetchPayments } = useQuery({
+  const { 
+    data: payments, 
+    isLoading: isLoadingPayments, 
+    refetch: refetchPayments,
+    error: paymentsError
+  } = useQuery({
     queryKey: ['/api/payments/user', userId],
     queryFn: async () => {
       const res = await apiRequest('GET', `/api/payments/user/${userId}`);
@@ -82,7 +116,7 @@ const PaymentsContent: React.FC<PaymentsContentProps> = ({ userId }) => {
           searchTerm === '' ||
           payment.description?.toLowerCase().includes(searchTerm.toLowerCase()) ||
           payment.status.toLowerCase().includes(searchTerm.toLowerCase()) ||
-          payment.amount.toString().includes(searchTerm) ||
+          (payment.amount && payment.amount.toString().includes(searchTerm)) ||
           (payment.jobId && payment.jobId.toString().includes(searchTerm));
           
         const matchesStatus = 
@@ -109,9 +143,18 @@ const PaymentsContent: React.FC<PaymentsContentProps> = ({ userId }) => {
     onSuccess: () => {
       refetchPayments();
       setPaymentDetailsOpen(false);
+      toast({
+        title: "Payment cancelled",
+        description: "The payment has been successfully cancelled and refunded.",
+      });
     },
     onError: (error: Error) => {
       console.error('Cancel payment error:', error);
+      toast({
+        title: "Error cancelling payment",
+        description: error.message,
+        variant: "destructive"
+      });
     },
   });
 
@@ -132,9 +175,19 @@ const PaymentsContent: React.FC<PaymentsContentProps> = ({ userId }) => {
       a.click();
       document.body.removeChild(a);
       URL.revokeObjectURL(url);
+      
+      toast({
+        title: "Receipt downloaded",
+        description: "Your payment receipt has been downloaded.",
+      });
     },
     onError: (error: Error) => {
       console.error('Generate receipt error:', error);
+      toast({
+        title: "Error generating receipt",
+        description: error.message,
+        variant: "destructive"
+      });
     },
   });
 
@@ -155,6 +208,15 @@ const PaymentsContent: React.FC<PaymentsContentProps> = ({ userId }) => {
   // Success callback for payment completion
   const handlePaymentSuccess = () => {
     refetchPayments();
+    setMakePaymentOpen(false);
+    toast({
+      title: "Payment successful",
+      description: "Your payment has been processed successfully.",
+    });
+  };
+
+  // Handle payment form cancellation
+  const handlePaymentCancel = () => {
     setMakePaymentOpen(false);
   };
 
@@ -201,15 +263,38 @@ const PaymentsContent: React.FC<PaymentsContentProps> = ({ userId }) => {
                           Pay a worker directly for a job or service
                         </DialogDescription>
                       </DialogHeader>
-                      <JobPaymentForm onSuccess={handlePaymentSuccess} />
+                      {/* Placeholder job for direct payments */}
+                      <JobPaymentForm 
+                        job={{
+                          id: 0,
+                          title: "Direct Payment",
+                          description: "Direct payment to a worker",
+                          category: "Other",
+                          location: null,
+                          latitude: null,
+                          longitude: null,
+                          budget: 0,
+                          date: new Date().toISOString(),
+                          status: "completed",
+                          posterId: user?.id || 0,
+                          workerId: null,
+                          createdAt: new Date().toISOString(),
+                          updatedAt: new Date().toISOString(),
+                          posterName: user?.fullName || "",
+                          workerName: null
+                        }}
+                        onSuccess={handlePaymentSuccess}
+                        onCancel={handlePaymentCancel}
+                      />
                     </DialogContent>
                   </Dialog>
                 )}
               </div>
             </div>
+            
             <div className="p-3">
               {payments && payments.length > 0 ? (
-                <div className="space-y-4">
+                <div className="space-y-3">
                   {/* Search and filter controls - more compact */}
                   <div className="flex flex-col sm:flex-row gap-2">
                     <div className="relative flex-grow">
@@ -241,86 +326,91 @@ const PaymentsContent: React.FC<PaymentsContentProps> = ({ userId }) => {
 
                   {/* Payments table */}
                   <div className="rounded-md border overflow-hidden">
-                    <Table>
-                      <TableHeader>
-                        <TableRow>
-                          <TableHead className="w-[180px]">Date</TableHead>
-                          <TableHead>Description</TableHead>
-                          <TableHead>Amount</TableHead>
-                          <TableHead>Status</TableHead>
-                          <TableHead className="text-right">Details</TableHead>
-                        </TableRow>
-                      </TableHeader>
-                      <TableBody>
-                        {filteredPayments.length > 0 ? (
-                          filteredPayments.map((payment: any) => (
-                            <TableRow key={payment.id} className="cursor-pointer hover:bg-muted/50" onClick={() => handleOpenPaymentDetails(payment)}>
-                              <TableCell className="font-medium">
-                                {formatDate(payment.createdAt)}
-                              </TableCell>
-                              <TableCell>
-                                <div className="line-clamp-1">
-                                  {payment.description || `Payment #${payment.id}`}
-                                </div>
-                                {payment.jobId && (
-                                  <div className="text-xs text-muted-foreground mt-1">
-                                    Job #{payment.jobId}
+                    <ScrollArea className="max-h-[270px]">
+                      <Table>
+                        <TableHeader className="sticky top-0 bg-background">
+                          <TableRow>
+                            <TableHead className="w-[80px] text-xs">Date</TableHead>
+                            <TableHead className="text-xs">Description</TableHead>
+                            <TableHead className="text-xs">Amount</TableHead>
+                            <TableHead className="text-xs">Status</TableHead>
+                            <TableHead className="text-right text-xs w-10">View</TableHead>
+                          </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                          {filteredPayments.length > 0 ? (
+                            filteredPayments.map((payment: any) => (
+                              <TableRow 
+                                key={payment.id} 
+                                className="cursor-pointer hover:bg-muted/50" 
+                                onClick={() => handleOpenPaymentDetails(payment)}
+                              >
+                                <TableCell className="font-medium text-xs py-2">
+                                  {formatDate(payment.createdAt)}
+                                </TableCell>
+                                <TableCell className="py-2">
+                                  <div className="line-clamp-1 text-xs">
+                                    {payment.description || `Payment #${payment.id}`}
                                   </div>
-                                )}
-                              </TableCell>
-                              <TableCell className="font-medium">
-                                {payment.type === 'payout' ? (
-                                  <span className="text-green-600">+{formatCurrency(payment.amount)}</span>
-                                ) : (
-                                  <span>{formatCurrency(payment.amount)}</span>
-                                )}
-                              </TableCell>
-                              <TableCell>
-                                <Badge
-                                  variant={
-                                    payment.status === 'completed' ? 'default' :
-                                    payment.status === 'pending' ? 'outline' :
-                                    payment.status === 'processing' ? 'secondary' :
-                                    'destructive'
-                                  }
-                                  className={payment.status === 'completed' ? 'bg-green-600' : undefined}
-                                >
-                                  {payment.status}
-                                </Badge>
-                              </TableCell>
-                              <TableCell className="text-right">
-                                <Button variant="ghost" size="icon" className="h-8 w-8">
-                                  <ArrowRight className="h-4 w-4" />
-                                </Button>
+                                  {payment.jobId && (
+                                    <div className="text-[10px] text-muted-foreground">
+                                      Job #{payment.jobId}
+                                    </div>
+                                  )}
+                                </TableCell>
+                                <TableCell className="font-medium text-xs py-2">
+                                  {payment.type === 'payout' ? (
+                                    <span className="text-green-600">+{formatCurrency(payment.amount)}</span>
+                                  ) : (
+                                    <span>{formatCurrency(payment.amount)}</span>
+                                  )}
+                                </TableCell>
+                                <TableCell className="py-2">
+                                  <StatusBadge status={payment.status} />
+                                </TableCell>
+                                <TableCell className="text-right py-2">
+                                  <TooltipProvider>
+                                    <Tooltip>
+                                      <TooltipTrigger asChild>
+                                        <Button variant="ghost" size="icon" className="h-6 w-6">
+                                          <ArrowRight className="h-3.5 w-3.5" />
+                                        </Button>
+                                      </TooltipTrigger>
+                                      <TooltipContent>
+                                        <p>View payment details</p>
+                                      </TooltipContent>
+                                    </Tooltip>
+                                  </TooltipProvider>
+                                </TableCell>
+                              </TableRow>
+                            ))
+                          ) : (
+                            <TableRow>
+                              <TableCell colSpan={5} className="text-center py-4 text-xs text-muted-foreground">
+                                No matching payments found
                               </TableCell>
                             </TableRow>
-                          ))
-                        ) : (
-                          <TableRow>
-                            <TableCell colSpan={5} className="text-center py-8 text-muted-foreground">
-                              No matching payments found
-                            </TableCell>
-                          </TableRow>
-                        )}
-                      </TableBody>
-                    </Table>
+                          )}
+                        </TableBody>
+                      </Table>
+                    </ScrollArea>
                   </div>
                 </div>
               ) : isLoadingPayments ? (
-                <div className="flex items-center justify-center py-12">
-                  <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                <div className="flex items-center justify-center py-8">
+                  <Loader2 className="h-6 w-6 animate-spin text-primary" />
                 </div>
               ) : (
-                <div className="text-center py-12 space-y-3">
-                  <div className="w-16 h-16 mx-auto bg-muted rounded-full flex items-center justify-center mb-4">
+                <div className="text-center py-8 space-y-2">
+                  <div className="w-12 h-12 mx-auto bg-muted rounded-full flex items-center justify-center mb-3">
                     {user?.accountType === 'worker' ? (
-                      <Banknote className="h-8 w-8 text-muted-foreground" />
+                      <Banknote className="h-6 w-6 text-muted-foreground" />
                     ) : (
-                      <DollarSign className="h-8 w-8 text-muted-foreground" />
+                      <DollarSign className="h-6 w-6 text-muted-foreground" />
                     )}
                   </div>
-                  <p className="font-medium">No payment history found</p>
-                  <p className="text-sm text-muted-foreground max-w-md mx-auto">
+                  <p className="font-medium text-sm">No payment history found</p>
+                  <p className="text-xs text-muted-foreground max-w-md mx-auto">
                     {user?.accountType === 'worker' 
                       ? 'Complete jobs to receive payments that will appear here'
                       : 'Your payments to workers for jobs will appear here'}
@@ -328,6 +418,8 @@ const PaymentsContent: React.FC<PaymentsContentProps> = ({ userId }) => {
                   {user?.accountType === 'worker' ? (
                     <Button
                       variant="outline"
+                      size="sm"
+                      className="text-xs mt-2"
                       onClick={() => setActiveTab('setup')}
                     >
                       Set up payment account
@@ -335,8 +427,8 @@ const PaymentsContent: React.FC<PaymentsContentProps> = ({ userId }) => {
                   ) : (
                     <Dialog open={makePaymentOpen} onOpenChange={setMakePaymentOpen}>
                       <DialogTrigger asChild>
-                        <Button>
-                          <Plus className="h-4 w-4 mr-2" />
+                        <Button size="sm" className="text-xs mt-2">
+                          <Plus className="h-3.5 w-3.5 mr-1.5" />
                           Make a Payment
                         </Button>
                       </DialogTrigger>
@@ -347,7 +439,29 @@ const PaymentsContent: React.FC<PaymentsContentProps> = ({ userId }) => {
                             Pay a worker directly for a job or service
                           </DialogDescription>
                         </DialogHeader>
-                        <JobPaymentForm onSuccess={handlePaymentSuccess} />
+                        {/* Placeholder job for direct payments */}
+                        <JobPaymentForm 
+                          job={{
+                            id: 0,
+                            title: "Direct Payment",
+                            description: "Direct payment to a worker",
+                            category: "Other",
+                            location: null,
+                            latitude: null,
+                            longitude: null,
+                            budget: 0,
+                            date: new Date().toISOString(),
+                            status: "completed",
+                            posterId: user?.id || 0,
+                            workerId: null,
+                            createdAt: new Date().toISOString(),
+                            updatedAt: new Date().toISOString(),
+                            posterName: user?.fullName || "",
+                            workerName: null
+                          }}
+                          onSuccess={handlePaymentSuccess}
+                          onCancel={handlePaymentCancel}
+                        />
                       </DialogContent>
                     </Dialog>
                   )}
@@ -359,22 +473,125 @@ const PaymentsContent: React.FC<PaymentsContentProps> = ({ userId }) => {
           {/* Payment details drawer */}
           <Drawer open={paymentDetailsOpen} onOpenChange={setPaymentDetailsOpen}>
             <DrawerContent>
-              <div className="max-w-md mx-auto px-4 py-6">
-                <DrawerHeader className="px-0">
-                  <DrawerTitle>Payment Details</DrawerTitle>
-                  <DrawerDescription>
+              <div className="max-w-md mx-auto px-4 py-4">
+                <DrawerHeader className="px-0 pb-2">
+                  <DrawerTitle className="text-base">Payment Details</DrawerTitle>
+                  <DrawerDescription className="text-xs">
                     Transaction information and actions
                   </DrawerDescription>
                 </DrawerHeader>
                 {selectedPayment && (
-                  <PaymentDetailsCard 
-                    payment={selectedPayment} 
-                    onViewReceipt={handleViewReceipt} 
-                    onRefund={handleRefundRequest}
-                  />
+                  <div className="border rounded-lg p-3 space-y-3">
+                    <div className="flex justify-between items-start">
+                      <div>
+                        <h4 className="text-sm font-medium">
+                          {selectedPayment.description || `Payment #${selectedPayment.id}`}
+                        </h4>
+                        <p className="text-xs text-muted-foreground flex items-center mt-0.5">
+                          <Calendar className="h-3 w-3 mr-1.5" />
+                          {formatDate(selectedPayment.createdAt)}
+                        </p>
+                      </div>
+                      <div className="text-right">
+                        <p className="text-base font-semibold">
+                          {selectedPayment.type === 'payout' ? (
+                            <span className="text-green-600">+{formatCurrency(selectedPayment.amount)}</span>
+                          ) : (
+                            <span>{formatCurrency(selectedPayment.amount)}</span>
+                          )}
+                        </p>
+                        <StatusBadge status={selectedPayment.status} />
+                      </div>
+                    </div>
+                    
+                    {/* Payment details */}
+                    <div className="border-t border-b py-2 space-y-1.5">
+                      {selectedPayment.jobId && (
+                        <div className="flex justify-between">
+                          <span className="text-xs text-muted-foreground">Job ID:</span>
+                          <span className="text-xs font-medium">#{selectedPayment.jobId}</span>
+                        </div>
+                      )}
+                      <div className="flex justify-between">
+                        <span className="text-xs text-muted-foreground">Transaction ID:</span>
+                        <span className="text-xs font-medium">#{selectedPayment.id}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-xs text-muted-foreground">Payment Method:</span>
+                        <span className="text-xs font-medium">
+                          {selectedPayment.paymentMethod || 'Credit Card'}
+                        </span>
+                      </div>
+                      {selectedPayment.serviceFee && (
+                        <div className="flex justify-between">
+                          <span className="text-xs text-muted-foreground">Service Fee:</span>
+                          <span className="text-xs font-medium">
+                            {formatCurrency(selectedPayment.serviceFee)}
+                          </span>
+                        </div>
+                      )}
+                      <div className="flex justify-between">
+                        <span className="text-xs text-muted-foreground">Type:</span>
+                        <span className="text-xs font-medium capitalize">
+                          {selectedPayment.type || 'payment'}
+                        </span>
+                      </div>
+                    </div>
+                    
+                    {/* Action buttons */}
+                    <div className="flex flex-col gap-2">
+                      <Button 
+                        size="sm" 
+                        variant="outline" 
+                        className="text-xs justify-between"
+                        onClick={handleViewReceipt}
+                        disabled={selectedPayment.status !== 'completed'}
+                      >
+                        <span className="flex items-center">
+                          <Receipt className="h-3.5 w-3.5 mr-1.5" />
+                          Download Receipt
+                        </span>
+                        <FileText className="h-3.5 w-3.5 ml-1.5 opacity-70" />
+                      </Button>
+                      
+                      {selectedPayment.status === 'completed' && user?.accountType === 'poster' && (
+                        <Button 
+                          size="sm" 
+                          variant="destructive" 
+                          className="text-xs"
+                          onClick={handleRefundRequest}
+                          disabled={cancelPaymentMutation.isPending}
+                        >
+                          {cancelPaymentMutation.isPending ? (
+                            <Loader2 className="h-3.5 w-3.5 mr-1.5 animate-spin" />
+                          ) : (
+                            <RefreshCw className="h-3.5 w-3.5 mr-1.5" />
+                          )}
+                          Request Refund
+                        </Button>
+                      )}
+                      
+                      {selectedPayment.stripePaymentId && (
+                        <Button 
+                          size="sm" 
+                          variant="link" 
+                          className="text-xs text-muted-foreground"
+                          onClick={() => window.open(`https://dashboard.stripe.com/payments/${selectedPayment.stripePaymentId}`, '_blank')}
+                        >
+                          <ExternalLink className="h-3 w-3 mr-1.5" />
+                          View in Stripe Dashboard
+                        </Button>
+                      )}
+                    </div>
+                  </div>
                 )}
-                <DrawerFooter className="px-0 pt-6">
-                  <Button variant="outline" onClick={() => setPaymentDetailsOpen(false)}>
+                <DrawerFooter className="px-0 pt-4">
+                  <Button 
+                    variant="outline" 
+                    onClick={() => setPaymentDetailsOpen(false)}
+                    size="sm"
+                    className="text-xs"
+                  >
                     Close
                   </Button>
                 </DrawerFooter>
@@ -384,99 +601,44 @@ const PaymentsContent: React.FC<PaymentsContentProps> = ({ userId }) => {
         </TabsContent>
         
         {/* Payment Methods Tab */}
-        <TabsContent value="methods" className="space-y-4 mt-4">
-          <PaymentMethodsManager userId={userId} />
-          
-          <Card>
-            <CardHeader>
-              <CardTitle>Direct Deposit</CardTitle>
-              <CardDescription>
-                Manage your bank account for receiving payments
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="pb-2">
-              <div className="flex items-start gap-4 text-sm">
-                <div className="rounded-md p-2 bg-primary/10">
-                  <Banknote className="h-5 w-5 text-primary" />
-                </div>
+        <TabsContent value="methods" className="space-y-3 mt-3">
+          <div className="border rounded-lg overflow-hidden">
+            <div className="p-3 pb-2 border-b">
+              <div className="flex justify-between items-center">
                 <div>
-                  <p className="font-medium">Bank Account Setup</p>
-                  <p className="text-muted-foreground mt-1">
-                    Bank account information is managed securely through your Stripe Connect account.
-                    This ensures your banking details are kept secure and never stored on our servers.
+                  <h3 className="text-sm font-medium">Payment Methods</h3>
+                  <p className="text-xs text-muted-foreground mt-0.5">
+                    {user?.accountType === 'worker' 
+                      ? 'Add bank accounts to receive payments' 
+                      : 'Manage your payment methods for jobs'}
                   </p>
                 </div>
               </div>
-            </CardContent>
-            <CardFooter>
-              <Button variant="outline" onClick={() => setActiveTab('setup')}>
-                Manage Bank Account
-              </Button>
-            </CardFooter>
-          </Card>
+            </div>
+            <div className="p-3">
+              <PaymentMethodsManager userId={user?.id} />
+            </div>
+          </div>
         </TabsContent>
-        
-        {/* Payment Setup Tab */}
-        <TabsContent value="setup" className="space-y-4 mt-4">
-          <Card>
-            <CardHeader>
-              <CardTitle>Payment Account Setup</CardTitle>
-              <CardDescription>
-                Set up your Stripe Connect account to {user?.accountType === 'worker' ? 'receive' : 'make'} payments securely
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-4">
-                <StripeConnectSetupV2 />
-                
-                <div className="bg-blue-50 border border-blue-200 p-3 rounded-md text-blue-800 text-sm flex items-start dark:bg-blue-950 dark:border-blue-900 dark:text-blue-300">
-                  <Info className="h-5 w-5 mr-2 mt-0.5 text-blue-600 flex-shrink-0 dark:text-blue-400" />
-                  <div>
-                    <p className="font-medium mb-1">Why do we use Stripe Connect?</p>
-                    <p>
-                      Stripe Connect allows us to process payments securely while ensuring that 
-                      your banking information is never stored on our servers. This gives you added
-                      security and peace of mind when sending or receiving payments.
-                    </p>
-                    {user?.accountType === 'worker' && (
-                      <p className="mt-2">
-                        <strong>For Workers:</strong> You'll need to provide some identity verification 
-                        and banking information to receive payments directly to your bank account.
-                      </p>
-                    )}
-                  </div>
-                </div>
-                
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-4">
-                  <Button 
-                    variant="outline"
-                    onClick={() => window.open('https://stripe.com/docs/connect/identity-verification', '_blank')}
-                  >
-                    <FileText className="h-4 w-4 mr-2" />
-                    Verification Guide
-                  </Button>
-                  
-                  <Button 
-                    variant="outline"
-                    onClick={() => window.open('https://dashboard.stripe.com/', '_blank')}
-                  >
-                    <ExternalLink className="h-4 w-4 mr-2" />
-                    Stripe Dashboard
-                  </Button>
-                  
-                  <Button 
-                    variant="outline"
-                    onClick={goToStripeTestPage}
-                  >
-                    <CreditCard className="h-4 w-4 mr-2" />
-                    Test Payments
-                  </Button>
+
+        {/* Account Setup Tab */}
+        <TabsContent value="setup" className="space-y-3 mt-3">
+          <div className="border rounded-lg overflow-hidden">
+            <div className="p-3 pb-2 border-b">
+              <div className="flex justify-between items-center">
+                <div>
+                  <h3 className="text-sm font-medium">Stripe Connect</h3>
+                  <p className="text-xs text-muted-foreground mt-0.5">
+                    Set up your payment account to receive funds
+                  </p>
                 </div>
               </div>
-            </CardContent>
-          </Card>
+            </div>
+            <div className="p-3">
+              <StripeConnectSetupV2 />
+            </div>
+          </div>
         </TabsContent>
-        
       </Tabs>
     </div>
   );
