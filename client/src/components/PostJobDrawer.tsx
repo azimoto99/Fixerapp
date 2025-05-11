@@ -190,28 +190,24 @@ export default function PostJobDrawer({ isOpen, onOpenChange }: PostJobDrawerPro
       queryClient.invalidateQueries({ queryKey: ['/api/jobs'] });
       queryClient.invalidateQueries({ queryKey: ['/api/jobs/nearby/location'] });
       
-      // For fixed-price jobs with payment methods, we need to handle payment first
-      // before navigating to the job detail page
-      if (data.paymentType === 'fixed' && data.paymentMethodId) {
-        // TODO: Process payment with the selected payment method
-        // For now, we'll just show a success message and go to home page
-        toast({
-          title: "Job Posted",
-          description: "Your fixed-price job has been posted successfully! Payment will be processed shortly."
-        });
-        
-        // Navigate to home page instead of job detail page
-        // This avoids the "job not found" error that can occur when payment isn't completed
-        navigate('/');
-      } else {
-        // For hourly jobs, we can navigate directly to the job detail page
-        toast({
-          title: "Job Posted",
-          description: "Your job has been posted successfully!"
-        });
-        
+      // Show success toast for all job types
+      toast({
+        title: "Job Posted",
+        description: "Your job has been posted successfully!"
+      });
+      
+      // For ALL job types, add a small delay to ensure the database finishes saving before navigating
+      // This prevents the "job not found" error when navigating too quickly
+      console.log(`Job created successfully with ID: ${jobResponse.id}`);
+      
+      // First, navigate to home so we don't get the error
+      navigate('/');
+      
+      // Then, after a short delay, navigate to the job detail page
+      setTimeout(() => {
+        console.log(`Navigating to job detail page for job ID: ${jobResponse.id}`);
         navigate(`/job/${jobResponse.id}`);
-      }
+      }, 1000); // 1-second delay to allow database to finish saving
     } catch (error) {
       toast({
         title: "Error",

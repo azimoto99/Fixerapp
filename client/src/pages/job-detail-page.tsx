@@ -71,15 +71,23 @@ const JobDetailPage: React.FC = () => {
   // Get job ID from URL params
   const jobId = params ? parseInt(params.id) : 0;
 
-  // Fetch job details
+  // Fetch job details with retry mechanism
   const { data: job, isLoading: isLoadingJob, error: jobError } = useQuery({
     queryKey: ['/api/jobs', jobId],
     queryFn: async () => {
+      console.log(`Fetching job details for job ID ${jobId}`);
       const res = await apiRequest('GET', `/api/jobs/${jobId}`);
-      if (!res.ok) throw new Error('Failed to fetch job details');
-      return res.json();
+      if (!res.ok) {
+        console.error(`Failed to fetch job details for ID ${jobId}, status: ${res.status}`);
+        throw new Error(`Failed to fetch job details (status: ${res.status})`);
+      }
+      const jobData = await res.json();
+      console.log(`Successfully fetched job data:`, jobData);
+      return jobData;
     },
     enabled: !!jobId,
+    retry: 3, // Retry up to 3 times if fetch fails
+    retryDelay: (attempt) => Math.min(attempt > 1 ? 2000 : 1000, 30 * 1000), // Increasing delay between retries
   });
 
   // Determine user roles for this job
