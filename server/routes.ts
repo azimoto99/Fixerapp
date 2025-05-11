@@ -4,12 +4,13 @@ import { storage } from "./storage";
 import { z } from "zod";
 import Stripe from "stripe";
 import { filterJobContent, validatePaymentAmount } from "./content-filter";
-import stripeRouter from "./api/stripe-api";
-import createPaymentIntentRouter from "./api/stripe-api-create-payment-intent";
-import { setupStripeWebhooks } from "./api/stripe-webhooks";
-import { setupStripeTransfersRoutes } from "./api/stripe-transfers";
-import { setupStripePaymentMethodsRoutes } from "./api/stripe-payment-methods";
-import "./api/storage-extensions"; // Import to register extended storage methods
+import { stripeRouter } from "./api/stripe-api";
+// Temporarily comment out other Stripe imports until we implement them
+// import createPaymentIntentRouter from "./api/stripe-api-create-payment-intent";
+// import { setupStripeWebhooks } from "./api/stripe-webhooks";
+// import { setupStripeTransfersRoutes } from "./api/stripe-transfers";
+// import { setupStripePaymentMethodsRoutes } from "./api/stripe-payment-methods";
+// import "./api/storage-extensions"; // Import to register extended storage methods
 import * as crypto from 'crypto';
 import { 
   insertUserSchema, 
@@ -3410,17 +3411,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Use the centralized Stripe API router
   app.use("/api/stripe", stripeRouter);
   
+  // Comment out the Stripe-related integrations until they're properly implemented
   // Use our improved create-payment-intent handler
-  app.use("/api/stripe", createPaymentIntentRouter);
+  // app.use("/api/stripe", createPaymentIntentRouter);
   
   // Initialize Stripe webhooks
-  setupStripeWebhooks(app);
+  // setupStripeWebhooks(app);
   
   // Initialize Stripe transfers API
-  setupStripeTransfersRoutes(app);
+  // setupStripeTransfersRoutes(app);
   
   // Initialize Stripe payment methods API
-  setupStripePaymentMethodsRoutes(app);
+  // setupStripePaymentMethodsRoutes(app);
 
   const httpServer = createServer(app);
   return httpServer;
