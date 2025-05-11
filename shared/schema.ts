@@ -95,6 +95,9 @@ export const applications = pgTable("applications", {
   status: text("status").notNull().default("pending"), // "pending", "accepted", "rejected"
   message: text("message"),
   dateApplied: timestamp("date_applied").defaultNow(),
+  hourlyRate: doublePrecision("hourly_rate"), // Proposed hourly rate for hourly jobs
+  expectedDuration: text("expected_duration"), // Worker's estimate of job duration
+  coverLetter: text("cover_letter"), // Detailed message about worker's approach to the job
 });
 
 // Reviews for completed jobs
@@ -226,6 +229,10 @@ export const insertApplicationSchema = createInsertSchema(applications).omit({
   id: true,
   dateApplied: true,
   status: true,
+}).extend({
+  hourlyRate: z.number().optional(),
+  expectedDuration: z.string().optional(),
+  coverLetter: z.string().optional(),
 });
 
 export const insertReviewSchema = createInsertSchema(reviews).omit({
@@ -285,6 +292,7 @@ export type User = typeof users.$inferSelect & {
   requiresStripeRepresentative?: boolean; // Virtual field to check if user needs to provide representative info
   requiresStripeBankingDetails?: boolean; // Virtual field to check if user needs to provide banking details
   profileCompletionPercentage?: number; // Virtual field showing profile completion status
+  stripeConnectId?: string; // For compatibility with existing code (using stripeConnectAccountId internally)
 };
 
 // Contact preferences type for better TypeScript support

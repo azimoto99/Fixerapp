@@ -5,6 +5,7 @@ import { z } from "zod";
 import Stripe from "stripe";
 import { filterJobContent, validatePaymentAmount } from "./content-filter";
 import { stripeRouter } from "./api/stripe-api";
+import { processPayment } from "./api/process-payment";
 // Temporarily comment out other Stripe imports until we implement them
 // import createPaymentIntentRouter from "./api/stripe-api-create-payment-intent";
 // import { setupStripeWebhooks } from "./api/stripe-webhooks";
@@ -3410,6 +3411,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
   
   // Use the centralized Stripe API router
   app.use("/api/stripe", stripeRouter);
+  
+  // Process payment for hiring a worker
+  app.post("/api/payments/process", isAuthenticated, processPayment);
   
   // Comment out the Stripe-related integrations until they're properly implemented
   // Use our improved create-payment-intent handler
