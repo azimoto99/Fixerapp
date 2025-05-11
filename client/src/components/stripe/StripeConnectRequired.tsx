@@ -68,9 +68,9 @@ const StripeConnectRequired: React.FC<StripeConnectRequiredProps> = ({
     <Dialog open={true} onOpenChange={() => onSkip && onSkip()}>
       <DialogContent className="sm:max-w-[475px]">
         <DialogHeader>
-          <DialogTitle>Connect Payment Account Required</DialogTitle>
+          <DialogTitle>Set Up Payment Account</DialogTitle>
           <DialogDescription>
-            To apply for jobs and receive payments through our platform, you need to set up a Stripe Connect account.
+            To receive payments through our platform, you need to set up a Stripe Connect account.
             This is a secure payment account that allows us to send your earnings directly to you.
           </DialogDescription>
         </DialogHeader>
@@ -99,36 +99,46 @@ const StripeConnectRequired: React.FC<StripeConnectRequiredProps> = ({
         </div>
 
         <DialogFooter className="flex flex-col sm:flex-row gap-2 pt-2">
-          {showSkip && (
-            <Button 
-              variant="ghost" 
-              onClick={onSkip}
-              disabled={isCreating || isNavigating}
-              className="text-muted-foreground hover:text-foreground"
-            >
-              Skip for Now
-            </Button>
-          )}
-          <Button 
-            onClick={createStripeConnectAccount}
-            disabled={isCreating || isNavigating}
-            className="flex-1 bg-gradient-to-r from-primary to-primary/80 hover:from-primary/90 hover:to-primary"
-            size="lg"
-          >
-            {isCreating ? (
-              <>
-                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                Creating Account...
-              </>
-            ) : isNavigating ? (
-              <>
-                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                Redirecting to Stripe...
-              </>
-            ) : (
-              'Set Up Payment Account'
+          <div className="flex flex-col-reverse sm:flex-row gap-2 w-full">
+            {showSkip && (
+              <Button 
+                variant="outline" 
+                onClick={() => {
+                  // Store in local storage that user has dismissed this
+                  localStorage.setItem('stripe-connect-dismissed', 'true');
+                  toast({
+                    title: "Setup Postponed",
+                    description: "You can complete your Stripe Connect setup later from the Payments tab.",
+                  });
+                  if (onSkip) onSkip();
+                }}
+                disabled={isCreating || isNavigating}
+                className="sm:flex-1"
+              >
+                Set Up Later
+              </Button>
             )}
-          </Button>
+            <Button 
+              onClick={createStripeConnectAccount}
+              disabled={isCreating || isNavigating}
+              className="sm:flex-1 bg-gradient-to-r from-primary to-primary/80 hover:from-primary/90 hover:to-primary"
+              size="lg"
+            >
+              {isCreating ? (
+                <>
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  Creating Account...
+                </>
+              ) : isNavigating ? (
+                <>
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  Redirecting to Stripe...
+                </>
+              ) : (
+                'Set Up Payment Account'
+              )}
+            </Button>
+          </div>
         </DialogFooter>
       </DialogContent>
     </Dialog>

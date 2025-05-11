@@ -121,7 +121,10 @@ const StripeConnectCheck: React.FC<StripeConnectCheckProps> = ({
       const needsSetup = !accountStatus || 
         (accountStatus.accountStatus !== 'active' && accountStatus.accountStatus !== 'restricted');
       
-      if (enforce && needsSetup) {
+      // Check if user has previously dismissed the setup
+      const hasUserDismissedSetup = localStorage.getItem('stripe-connect-dismissed') === 'true';
+      
+      if (enforce && needsSetup && !hasUserDismissedSetup) {
         setShowRequiredModal(true);
       }
       

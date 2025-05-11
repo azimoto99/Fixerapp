@@ -397,21 +397,38 @@ export default function StripeConnectSetupV2({ compact = false }: StripeConnectS
                     Complete your Stripe Connect setup to receive payments directly for your work.
                   </p>
                 
-                  <Button 
-                    onClick={handleCreateAccount} 
-                    disabled={!acceptedTerms || createAccountMutation.isPending}
-                    className="w-full bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white"
-                    size="lg"
-                  >
-                    {createAccountMutation.isPending ? (
-                      <>
-                        <Loader2 className="mr-2 h-5 w-5 animate-spin" />
-                        Setting Up Your Account...
-                      </>
-                    ) : (
-                      <>Set Up Payments with Stripe Connect</>
-                    )}
-                  </Button>
+                  <div className="flex flex-col gap-3">
+                    <Button 
+                      onClick={handleCreateAccount} 
+                      disabled={!acceptedTerms || createAccountMutation.isPending}
+                      className="w-full bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white"
+                      size="lg"
+                    >
+                      {createAccountMutation.isPending ? (
+                        <>
+                          <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+                          Setting Up Your Account...
+                        </>
+                      ) : (
+                        <>Set Up Payments with Stripe Connect</>
+                      )}
+                    </Button>
+                    
+                    <Button 
+                      variant="link" 
+                      className="text-muted-foreground hover:text-blue-700 dark:hover:text-blue-400"
+                      onClick={() => {
+                        toast({
+                          title: "Setup Dismissed",
+                          description: "You can complete your Stripe Connect setup later from the Payments tab.",
+                        });
+                        // Store in local storage that user has seen this
+                        localStorage.setItem('stripe-connect-dismissed', 'true');
+                      }}
+                    >
+                      I'll set this up later
+                    </Button>
+                  </div>
                 </div>
               </div>
             )}
