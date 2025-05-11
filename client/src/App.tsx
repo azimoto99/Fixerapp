@@ -5,7 +5,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { Toaster } from "@/components/ui/toaster";
 import Home from "@/pages/Home";
 import PostJob from "@/pages/PostJob";
-import JobDetails from "@/pages/JobDetails";
+// Using JobDetailPage as the primary job details component
 import JobDetailPage from "@/pages/job-detail-page";
 import EarningsPage from "@/pages/EarningsPage";
 import AuthPage from "@/pages/auth-page";
@@ -15,7 +15,6 @@ import CompleteProfile from "@/pages/CompleteProfile";
 import Checkout from "@/pages/checkout";
 import PaymentConfirmation from "@/pages/PaymentConfirmation";
 import PaymentSettings from "@/pages/PaymentSettings";
-import StripeTest from "@/pages/StripeTest";
 import StripeTester from "@/pages/StripeTester";
 import PaymentSuccess from "@/pages/payment-success";
 import NotificationsPage from "@/pages/notifications-page";
@@ -77,7 +76,7 @@ function RouterWithAuth() {
       <ProtectedRoute path="/payment-success" component={PaymentSuccess} />
       <ProtectedRoute path="/payment-confirmation" component={PaymentConfirmation} />
       <ProtectedRoute path="/payment-settings" component={PaymentSettings} />
-      <ProtectedRoute path="/stripe-test" component={StripeTest} />
+      {/* Removed redundant StripeTest route */}
       <ProtectedRoute path="/stripe-tester" component={StripeTester} />
       <ProtectedRoute path="/notifications" component={NotificationsPage} />
       {/* Payment dashboard is not accessible as there are no job posters */}
