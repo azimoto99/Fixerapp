@@ -285,14 +285,21 @@ export default function Profile() {
                 <div className="space-y-6">
                   {/* Payment Account Setup Card (for all users) */}
                   <Card>
-                    <CardHeader>
-                      <CardTitle>Payment Account Setup</CardTitle>
-                      <CardDescription>
-                        Set up your Stripe Connect account to receive payments directly
-                      </CardDescription>
+                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                      <div>
+                        <CardTitle>Payment Account Setup</CardTitle>
+                        <CardDescription>
+                          Set up your Stripe Connect account to receive payments directly
+                        </CardDescription>
+                      </div>
+                      <Link href="/payment-settings">
+                        <Button variant="outline" size="sm">
+                          Manage Payment Settings
+                        </Button>
+                      </Link>
                     </CardHeader>
                     <CardContent>
-                      <StripeConnectSetup />
+                      <StripeConnectSetup compact={true} />
                     </CardContent>
                   </Card>
                   
