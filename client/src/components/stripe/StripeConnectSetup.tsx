@@ -334,12 +334,17 @@ export default function StripeConnectSetup({ compact = false }: StripeConnectSet
               </Alert>
             ) : (
               <>
-                <Alert>
-                  <Info className="h-4 w-4 mr-2" />
-                  <AlertTitle>About Stripe Connect</AlertTitle>
-                  <AlertDescription>
-                    Stripe Connect allows you to receive payments directly to your bank account. 
-                    We'll help you set up your account to start receiving payments for your work.
+                <Alert className="bg-blue-50 dark:bg-blue-950 border-blue-200 dark:border-blue-800">
+                  <Info className="h-5 w-5 mr-2 text-blue-600 dark:text-blue-400" />
+                  <AlertTitle className="text-blue-800 dark:text-blue-300 font-medium">Get Paid Faster with Stripe Connect</AlertTitle>
+                  <AlertDescription className="text-blue-700 dark:text-blue-400 mt-2">
+                    <p>Stripe Connect allows you to receive payments directly to your bank account. Setting up is quick and secure:</p>
+                    <ul className="list-disc pl-6 mt-3 space-y-1.5">
+                      <li>Fast direct deposits to your bank account</li>
+                      <li>Verify your identity once and get paid for all jobs</li>
+                      <li>Track all payments in one secure dashboard</li>
+                      <li>Industry-leading security and fraud protection</li>
+                    </ul>
                   </AlertDescription>
                 </Alert>
                 
@@ -377,16 +382,24 @@ export default function StripeConnectSetup({ compact = false }: StripeConnectSet
                 
                 <Separator className="my-4" />
                 
-                <div className="space-y-2">
-                  <div className="flex items-center space-x-2">
+                <div className="rounded-lg border border-blue-200 dark:border-blue-800 bg-blue-50/50 dark:bg-blue-950/50 p-4">
+                  <h3 className="text-sm font-medium text-blue-900 dark:text-blue-300 mb-2">Terms & Conditions</h3>
+                  
+                  <div className="flex items-start space-x-3 bg-white dark:bg-slate-900 p-3 rounded border border-blue-100 dark:border-blue-800">
                     <Checkbox 
                       id="terms" 
                       checked={acceptedTerms} 
-                      onCheckedChange={(checked) => setAcceptedTerms(!!checked)} 
+                      onCheckedChange={(checked) => setAcceptedTerms(!!checked)}
+                      className="mt-1" 
                     />
-                    <Label htmlFor="terms" className="text-sm text-muted-foreground">
-                      I accept the <a href="https://stripe.com/connect-account/legal" target="_blank" rel="noopener noreferrer" className="text-primary underline">Stripe Connected Account Agreement</a> and acknowledge the <a href="https://stripe.com/privacy" target="_blank" rel="noopener noreferrer" className="text-primary underline">Stripe Privacy Policy</a>.
-                    </Label>
+                    <div>
+                      <Label htmlFor="terms" className="text-sm font-medium">
+                        I agree to the following terms:
+                      </Label>
+                      <p className="text-sm text-muted-foreground mt-1">
+                        By creating a Stripe Connect account, I accept the <a href="https://stripe.com/connect-account/legal" target="_blank" rel="noopener noreferrer" className="text-primary underline font-medium">Stripe Connected Account Agreement</a> and acknowledge the <a href="https://stripe.com/privacy" target="_blank" rel="noopener noreferrer" className="text-primary underline font-medium">Stripe Privacy Policy</a>. I understand Stripe will process my payments and may require verification of my identity.
+                      </p>
+                    </div>
                   </div>
                 </div>
               </>
@@ -419,20 +432,28 @@ export default function StripeConnectSetup({ compact = false }: StripeConnectSet
               </div>
             ) : (
               <div className="w-full">
-                <Button 
-                  onClick={handleCreateAccount} 
-                  disabled={!acceptedTerms || createAccountMutation.isPending}
-                  className="w-full"
-                >
-                  {createAccountMutation.isPending ? (
-                    <>
-                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                      Creating Account...
-                    </>
-                  ) : (
-                    'Create Stripe Connect Account'
-                  )}
-                </Button>
+                <div className="rounded-lg bg-gradient-to-r from-blue-50 to-indigo-50 p-6 shadow-sm dark:from-blue-950/30 dark:to-indigo-950/30 border border-blue-100 dark:border-blue-900 mb-4">
+                  <h3 className="text-lg font-semibold text-blue-900 dark:text-blue-300 mb-2">Ready to start earning?</h3>
+                  <p className="text-sm text-blue-800 dark:text-blue-400 mb-4">
+                    Complete your Stripe Connect setup to receive payments directly for your work.
+                  </p>
+                
+                  <Button 
+                    onClick={handleCreateAccount} 
+                    disabled={!acceptedTerms || createAccountMutation.isPending}
+                    className="w-full bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white"
+                    size="lg"
+                  >
+                    {createAccountMutation.isPending ? (
+                      <>
+                        <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+                        Setting Up Your Account...
+                      </>
+                    ) : (
+                      <>Set Up Payments with Stripe Connect</>
+                    )}
+                  </Button>
+                </div>
               </div>
             )}
           </CardFooter>
