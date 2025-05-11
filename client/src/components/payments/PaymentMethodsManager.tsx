@@ -8,7 +8,14 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Button } from '@/components/ui/button';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Label } from '@/components/ui/label';
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { 
+  PaymentDialog,
+  PaymentDialogContent,
+  PaymentDialogDescription,
+  PaymentDialogHeader,
+  PaymentDialogTitle,
+  PaymentDialogTrigger 
+} from '@/components/payments/PaymentDialog';
 import { Separator } from '@/components/ui/separator';
 import { 
   CreditCard, 
@@ -158,14 +165,14 @@ const AddPaymentMethodModal = ({ isOpen, onClose }: { isOpen: boolean; onClose: 
   };
 
   return (
-    <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="sm:max-w-md z-[var(--z-critical)]">
-        <DialogHeader>
-          <DialogTitle>Add Payment Method</DialogTitle>
-          <DialogDescription>
+    <PaymentDialog open={isOpen} onOpenChange={onClose}>
+      <PaymentDialogContent className="sm:max-w-md">
+        <PaymentDialogHeader>
+          <PaymentDialogTitle>Add Payment Method</PaymentDialogTitle>
+          <PaymentDialogDescription>
             Add a new payment method to your account for faster checkout.
-          </DialogDescription>
-        </DialogHeader>
+          </PaymentDialogDescription>
+        </PaymentDialogHeader>
         
         {setupIntent.isPending ? (
           <div className="flex justify-center py-8">
@@ -194,8 +201,8 @@ const AddPaymentMethodModal = ({ isOpen, onClose }: { isOpen: boolean; onClose: 
             </Button>
           </div>
         )}
-      </DialogContent>
-    </Dialog>
+      </PaymentDialogContent>
+    </PaymentDialog>
   );
 };
 
