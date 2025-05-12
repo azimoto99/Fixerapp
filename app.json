@@ -1,7 +1,7 @@
 {
   "expo": {
-    "name": "Fixer",
-    "slug": "fixer-app",
+    "name": "fixer",
+    "slug": "fixer",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./attached_assets/ChatGPT_Image_May_7__2025__01_30_03_AM-removebg-preview.png",
@@ -11,34 +11,30 @@
       "resizeMode": "contain",
       "backgroundColor": "#000000"
     },
-    "assetBundlePatterns": [
-      "**/*"
-    ],
+    "assetBundlePatterns": ["**/*"],
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.fixerapp.app"
+      "bundleIdentifier": "com.fixer.app"
+      "infoPlist": {
+        "IOSAppUsesNonExemptEncryption": false,"
+      }
     },
     "android": {
       "adaptiveIcon": {
         "foregroundImage": "./attached_assets/ChatGPT_Image_May_7__2025__01_30_03_AM-removebg-preview.png",
         "backgroundColor": "#000000"
       },
-      "package": "com.fixerapp.app",
-      "permissions": [
-        "ACCESS_COARSE_LOCATION",
-        "ACCESS_FINE_LOCATION"
-      ]
+      "package": "com.fixer.app",
+      "permissions": ["ACCESS_COARSE_LOCATION", "ACCESS_FINE_LOCATION"]
     },
     "web": {
       "favicon": "./attached_assets/ChatGPT_Image_May_7__2025__01_30_03_AM-removebg-preview.png"
     },
-    "plugins": [
-      "expo-updates"
-    ],
-    "scheme": "fixerapp",
+    "plugins": ["expo-updates"],
+    "scheme": "fixer",
     "extra": {
       "eas": {
-        "projectId": "fixer-app"
+        "projectId": "c2dd5237-478c-4d38-b4c7-74054caed1f2"
       }
     },
     "primaryColor": "#68D391",
