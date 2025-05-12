@@ -451,6 +451,16 @@ export class MemStorage implements IStorage {
     const jobs = Array.from(this.jobs.values());
     
     return jobs.filter(job => {
+      // Only include jobs that are 'open' (not assigned, not completed)
+      if (job.status !== 'open') {
+        return false;
+      }
+      
+      // Check if job has valid coordinates
+      if (!job.latitude || !job.longitude) {
+        return false;
+      }
+      
       const distance = this.calculateDistance(
         latitude, 
         longitude, 
