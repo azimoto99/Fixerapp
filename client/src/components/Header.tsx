@@ -62,7 +62,7 @@ const Header: React.FC<HeaderProps> = ({
         <div className="flex items-center">
           <Link href="/">
             <div className="flex-shrink-0 flex items-center cursor-pointer">
-              <div className="bg-emerald-600 text-white h-8 w-8 rounded-full flex items-center justify-center font-bold text-lg">F</div>
+              <img src="/fixer-logo-pin.png" alt="Fixer Logo" className="h-8 w-auto" />
               <span className="ml-2 text-xl font-bold text-emerald-600">Fixer</span>
             </div>
           </Link>
