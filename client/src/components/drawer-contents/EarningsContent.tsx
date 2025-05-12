@@ -1,6 +1,8 @@
 import * as React from 'react'; 
 import { useState } from 'react';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useMutation } from '@tanstack/react-query';
+import { apiRequest, queryClient } from '@/lib/queryClient';
+import { useToast } from '@/hooks/use-toast';
 import { Earning, Job, Application, Review } from '@shared/schema';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from '@/components/ui/badge';
@@ -48,6 +50,79 @@ interface EarningsContentProps {
 
 const EarningsContent: React.FC<EarningsContentProps> = ({ userId }) => {
   const [timeframe, setTimeframe] = useState('all');
+  const { toast } = useToast();
+  const [isCreatingAccount, setIsCreatingAccount] = useState(false);
+  
+  // Check Stripe Connect Account Status
+  const { 
+    data: connectAccount, 
+    isLoading: isLoadingAccount,
+    refetch: refetchAccount
+  } = useQuery({
+    queryKey: ['/api/stripe/connect/account-status'],
+    queryFn: async () => {
+      try {
+        const res = await apiRequest('GET', '/api/stripe/connect/account-status');
+        if (res.status === 404) {
+          // No account yet, which is fine
+          return { exists: false };
+        }
+        if (!res.ok) {
+          const errorData = await res.json();
+          return { exists: false, error: errorData.message || 'Failed to get account status' };
+        }
+        return res.json();
+      } catch (error) {
+        console.error('Error fetching Stripe Connect account:', error);
+        return { exists: false, error: 'Connection error' };
+      }
+    },
+    retry: false,
+  });
+  
+  // Create account mutation
+  const createAccountMutation = useMutation({
+    mutationFn: async () => {
+      setIsCreatingAccount(true);
+      try {
+        const res = await apiRequest('POST', '/api/stripe/connect/create-account', {
+          acceptedTerms: true
+        });
+        if (!res.ok) {
+          const errorData = await res.json();
+          throw new Error(errorData.message || 'Failed to create Stripe Connect account');
+        }
+        return res.json();
+      } catch (error) {
+        console.error('Mutation error:', error);
+        throw error;
+      } finally {
+        setIsCreatingAccount(false);
+      }
+    },
+    onSuccess: (data) => {
+      toast({
+        title: 'Account created!',
+        description: 'Your Stripe Connect account has been created. Redirecting to complete setup...',
+      });
+      
+      // Redirect to the onboarding URL
+      if (data.accountLinkUrl) {
+        setTimeout(() => {
+          window.location.href = data.accountLinkUrl;
+        }, 1000);
+      } else {
+        refetchAccount();
+      }
+    },
+    onError: (error: Error) => {
+      toast({
+        title: 'Error',
+        description: `Failed to create account: ${error.message}`,
+        variant: 'destructive',
+      });
+    }
+  });
   
   const { data: earnings, isLoading } = useQuery<Earning[]>({
     queryKey: [`/api/earnings/worker/${userId}`],
@@ -101,68 +176,23 @@ const EarningsContent: React.FC<EarningsContentProps> = ({ userId }) => {
             <Button 
               className="bg-blue-600 hover:bg-blue-700"
               onClick={() => {
-                // Function to switch to the payments tab
-                // First method - look for a button with text content of "Payments"
-                let paymentsTab: HTMLButtonElement | null = Array.from(document.querySelectorAll('button'))
-                  .find(el => el.textContent?.includes('Payments')) as HTMLButtonElement | null;
-                
-                // Second method - look by attribute
-                if (!paymentsTab) {
-                  const tempTab = document.querySelector('[title="Payments"]');
-                  if (tempTab) {
-                    paymentsTab = tempTab as HTMLButtonElement;
-                  }
-                }
-                
-                // Third method - look for CreditCard icon's parent button
-                if (!paymentsTab) {
-                  const creditCardIcon = document.querySelector('svg.lucide-credit-card');
-                  if (creditCardIcon) {
-                    const tempBtn = creditCardIcon.closest('button');
-                    if (tempBtn) {
-                      paymentsTab = tempBtn;
-                    }
-                  }
-                }
-                
-                if (paymentsTab) {
-                  console.log('Found payments tab, clicking it');
-                  (paymentsTab as HTMLElement).click();
-                  
-                  // Then switch to the setup subtab
-                  setTimeout(() => {
-                    // Try multiple selectors for the setup tab
-                    let setupTab: Element | null = document.querySelector('[value="setup"]');
-                    
-                    if (!setupTab) {
-                      const matchingButton = Array.from(document.querySelectorAll('button'))
-                        .find(el => el.textContent?.includes('Setup') || el.textContent?.includes('Set up'));
-                      if (matchingButton) {
-                        setupTab = matchingButton;
-                      }
-                    }
-                    
-                    if (setupTab) {
-                      console.log('Found setup tab, clicking it');
-                      (setupTab as HTMLElement).click();
-                    } else {
-                      console.log('Could not find setup tab');
-                      // Fallback - try to simulate clicking the "Set up payment account" button in the PaymentsContent
-                      const setupAccountBtn = Array.from(document.querySelectorAll('button'))
-                        .find(el => el.textContent?.includes('Set up payment account'));
-                      
-                      if (setupAccountBtn) {
-                        console.log('Found setup account button, clicking it');
-                        (setupAccountBtn as HTMLElement).click();
-                      }
-                    }
-                  }, 300); // Increased timeout to ensure the payments tab has rendered
-                } else {
-                  console.log('Could not find payments tab');
-                }
+                // Create and setup Stripe Connect account directly
+                console.log("Starting Stripe Connect account creation");
+                createAccountMutation.mutate();
               }}
+              disabled={isCreatingAccount}
             >
-              Set Up Payment Account
+              {isCreatingAccount ? (
+                <>
+                  <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                  </svg>
+                  Creating Account...
+                </>
+              ) : (
+                <>Set Up Payment Account</>
+              )}
             </Button>
           </CardFooter>
         </Card>
@@ -260,68 +290,42 @@ const EarningsContent: React.FC<EarningsContentProps> = ({ userId }) => {
           <Button 
             variant="outline"
             onClick={() => {
-              // Function to switch to the payments tab
-              // First method - look for a button with text content of "Payments"
-              let paymentsTab: HTMLButtonElement | null = Array.from(document.querySelectorAll('button'))
-                .find(el => el.textContent?.includes('Payments')) as HTMLButtonElement | null;
-              
-              // Second method - look by attribute
-              if (!paymentsTab) {
-                const tempTab = document.querySelector('[title="Payments"]');
-                if (tempTab) {
-                  paymentsTab = tempTab as HTMLButtonElement;
-                }
-              }
-              
-              // Third method - look for CreditCard icon's parent button
-              if (!paymentsTab) {
-                const creditCardIcon = document.querySelector('svg.lucide-credit-card');
-                if (creditCardIcon) {
-                  const tempBtn = creditCardIcon.closest('button');
-                  if (tempBtn) {
-                    paymentsTab = tempBtn;
-                  }
-                }
-              }
-              
-              if (paymentsTab) {
-                console.log('Found payments tab, clicking it');
-                (paymentsTab as HTMLElement).click();
-                
-                // Then switch to the setup subtab
-                setTimeout(() => {
-                  // Try multiple selectors for the setup tab
-                  let setupTab: Element | null = document.querySelector('[value="setup"]');
-                  
-                  if (!setupTab) {
-                    const matchingButton = Array.from(document.querySelectorAll('button'))
-                      .find(el => el.textContent?.includes('Setup') || el.textContent?.includes('Set up'));
-                    if (matchingButton) {
-                      setupTab = matchingButton;
+              if (connectAccount?.accountLinkUrl) {
+                // If we have an account link URL, redirect to Stripe Connect dashboard
+                window.location.href = connectAccount.accountLinkUrl;
+              } else if (connectAccount?.hasLoginLink) {
+                // Create login link to existing account dashboard
+                const createLoginLink = async () => {
+                  try {
+                    const res = await apiRequest('POST', '/api/stripe/connect/create-login-link');
+                    if (!res.ok) {
+                      const errorData = await res.json();
+                      throw new Error(errorData.message || 'Failed to create login link');
                     }
-                  }
-                  
-                  if (setupTab) {
-                    console.log('Found setup tab, clicking it');
-                    (setupTab as HTMLElement).click();
-                  } else {
-                    console.log('Could not find setup tab');
-                    // Fallback - try to simulate clicking the "Set up payment account" button in the PaymentsContent
-                    const setupAccountBtn = Array.from(document.querySelectorAll('button'))
-                      .find(el => el.textContent?.includes('Set up payment account'));
+                    const data = await res.json();
                     
-                    if (setupAccountBtn) {
-                      console.log('Found setup account button, clicking it');
-                      (setupAccountBtn as HTMLElement).click();
+                    // Navigate to Stripe dashboard
+                    if (data.url) {
+                      window.location.href = data.url;
                     }
+                  } catch (error) {
+                    toast({
+                      title: 'Error',
+                      description: `Failed to open Stripe dashboard: ${error instanceof Error ? error.message : 'Unknown error'}`,
+                      variant: 'destructive',
+                    });
                   }
-                }, 300); // Increased timeout to ensure the payments tab has rendered
+                };
+                
+                createLoginLink();
               } else {
-                console.log('Could not find payments tab');
+                // Redirect to account creation
+                console.log("No account found, redirecting to account creation");
+                createAccountMutation.mutate();
               }
             }}
           >
-            View Payment Settings
+            Manage Stripe Account
           </Button>
         </CardFooter>
       </Card>
