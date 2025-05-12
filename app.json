@@ -1,7 +1,7 @@
 {
   "expo": {
     "name": "Fixer",
-    "slug": "fixer-app",
+    "slug": "fixer",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./attached_assets/ChatGPT_Image_May_7__2025__01_30_03_AM-removebg-preview.png",
