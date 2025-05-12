@@ -12,37 +12,25 @@ Expo Updates allows you to push updates to your app without going through the ap
 - A/B testing
 - Staged rollouts
 
-## Prerequisites
+## GitHub Integration (Current Setup)
 
-Before using Expo Updates, you need:
+The project is currently integrated with GitHub and Expo's build system:
 
-1. An Expo account (create one at [expo.dev](https://expo.dev))
-2. The EAS CLI installed globally: `npm install -g eas-cli`
-3. Proper configuration in app.json and eas.json (already set up in this project)
+1. Every commit to the GitHub repository automatically triggers a new build in Expo
+2. The build includes the OTA update configuration
+3. When users open the app, they will automatically check for and receive the latest updates
 
-## Publishing Updates
+This means you don't need to manually publish updates - simply commit your changes to GitHub and they will be available to users automatically.
 
-The simplest way to publish an update is to use the provided script:
+## How Updates Work
 
-```
-./publish-update.sh
-```
+When a user opens the app:
+1. The app checks for updates from Expo's servers
+2. If an update is available, it downloads it in the background
+3. The user is prompted to apply the update
+4. When the user agrees, the app reloads with the new version
 
-This script will:
-1. Check if EAS CLI is installed
-2. Verify you're logged in to EAS
-3. Build the web app
-4. Publish the update to Expo
-
-Alternatively, you can publish updates manually:
-
-```bash
-# Build the web app first
-npm run build
-
-# Publish the update
-eas update --auto
-```
+All of this happens without going through the app store review process or requiring a new app download.
 
 ## Update Channels
 
@@ -52,24 +40,28 @@ Updates are published to specific channels, which are defined in eas.json:
 - **preview**: Used for testing updates before pushing to production
 - **development**: Used for development and testing
 
-When building the app, specify which channel to use:
+In our GitHub integration:
+- The main branch builds to the production channel
+- Feature branches (if configured) build to the preview channel
+- This ensures that production users only receive well-tested updates
 
-```bash
-# For production builds
-eas build --profile production --platform android
+## Testing Your Updates
 
-# For testing builds
-eas build --profile preview --platform android
-```
+To test if your updates are working:
 
-## Testing Updates
+1. Make changes to your code
+2. Commit and push to GitHub (this triggers an automatic build)
+3. Wait for the build to complete (check Expo dashboard)
+4. Open the app on your test device and it should receive the update
 
-To test if updates are working:
+## Managing Updates in Expo Dashboard
 
-1. Install a build from a specific channel
-2. Make changes to your app
-3. Publish an update to that channel using `eas update --channel [channel-name]`
-4. Open the app and verify it receives the update
+You can monitor and manage your updates through the Expo dashboard:
+
+1. Go to [expo.dev](https://expo.dev)
+2. Navigate to your project
+3. Click on "Updates" in the sidebar
+4. Here you can see all published updates, their channels, and rollback if needed
 
 ## Rollbacks
 
@@ -80,16 +72,25 @@ If an update causes issues, you can roll back to a previous version:
 3. Find the previous working update
 4. Click "Rollback to this update"
 
+## Version Tracking in the App
+
+The app now displays the current version and update ID at the bottom of the screen:
+- In development mode: "Version 1.0.0 (Dev Mode)"
+- In production: "Version 1.0.0 (Update ID: abcd1234)"
+
+This makes it easy to verify which update is currently installed.
+
 ## Troubleshooting
 
 If updates aren't working:
 
-1. Verify the app is built with the correct channel
-2. Check that app.json has the correct updates configuration
-3. Make sure expo-updates is properly installed and configured
-4. Look at the device logs for any errors related to updates
+1. Check the Expo dashboard to confirm the build completed successfully
+2. Verify the GitHub action ran correctly (under Actions tab in GitHub)
+3. Make sure your app has internet connectivity to fetch updates
+4. Check the device logs for any errors related to updates
 
 ## References
 
 - [Expo Updates Documentation](https://docs.expo.dev/versions/latest/sdk/updates/)
 - [EAS Update Guide](https://docs.expo.dev/eas-update/introduction/)
+- [GitHub Integration Guide](https://docs.expo.dev/guides/github-actions/)
