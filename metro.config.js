@@ -1,15 +1,5 @@
-// Learn more https://docs.expo.io/guides/customizing-metro
-const { getDefaultConfig } = require('@expo/metro-config');
+// This is a shim file that just imports the actual metro.config.cjs
+// to maintain compatibility with any scripts looking for metro.config.js
 
-const config = getDefaultConfig(__dirname);
-
-// Add any custom Metro configurations here
-config.resolver.assetExts.push('png', 'jpg', 'jpeg', 'gif', 'svg');
-
-// Allow importing from the client directory
-config.watchFolders = [
-  ...config.watchFolders || [],
-  './client',
-];
-
-module.exports = config;
+// Re-export the content from metro.config.cjs
+export { default } from './metro.config.cjs';
