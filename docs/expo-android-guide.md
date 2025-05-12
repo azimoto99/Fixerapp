@@ -74,8 +74,44 @@ When using the app on your phone:
 - **Offline** functionality
 - **Native UI** components
 
+## Building a Native Android APK
+
+For a more permanent installation or distribution, you can build a native Android APK:
+
+### Using the Build Script
+
+1. **Make the build script executable:**
+   ```bash
+   chmod +x build-android.sh
+   ```
+
+2. **Run the build script:**
+   ```bash
+   ./build-android.sh
+   ```
+
+3. **Install the APK:**
+   - Transfer the generated `fixer-app.apk` to your Android device
+   - Open the APK file on your device to install
+   - You may need to enable "Install from Unknown Sources" in your device settings
+
+### What the Build Script Does
+
+The script automates the following:
+1. Builds the React web application
+2. Sets up a Capacitor Android project
+3. Syncs the web build to the Android project
+4. Compiles a native Android APK
+5. Makes the APK available for installation
+
+### System Requirements for Building
+
+- Android SDK installed (set in `ANDROID_SDK_ROOT` environment variable)
+- Java Development Kit (JDK) installed
+- Gradle build system
+
 ## Notes
 
-- Changes you make to the code will automatically update on your phone
+- Changes you make to the code will automatically update on your phone when using Expo Go
 - The app may disconnect if your computer goes to sleep or the network changes
-- For production deployment, you'd need to build a proper APK or AAB file
+- The native APK build provides a standalone installation that doesn't require Expo Go

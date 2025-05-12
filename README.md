@@ -37,6 +37,8 @@ Comprehensive documentation is available in the `docs` directory:
 - [User Guide](./docs/user-guide.md) - Complete instructions for end users
 - [API Documentation](./docs/api-documentation.md) - Details of all API endpoints
 - [Environment Configuration](./docs/environment-configuration.md) - Setup and configuration guide
+- [Android Build Guide](./docs/android-build-guide.md) - Build the app for Android devices
+- [Expo Android Guide](./docs/expo-android-guide.md) - Connect to Android with Expo Go
 
 ## Getting Started
 

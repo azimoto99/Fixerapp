@@ -9,18 +9,30 @@ echo
 
 # Check Android SDK environment
 if [ -z "$ANDROID_SDK_ROOT" ]; then
-  export ANDROID_SDK_ROOT="/usr/lib/android-sdk"
-  echo "Setting ANDROID_SDK_ROOT to $ANDROID_SDK_ROOT"
+  ANDROID_SDK_PATHS=("/usr/lib/android-sdk" "/opt/android-sdk" "$HOME/Android/Sdk")
+  
+  for path in "${ANDROID_SDK_PATHS[@]}"; do
+    if [ -d "$path" ]; then
+      export ANDROID_SDK_ROOT="$path"
+      echo "Found Android SDK at $ANDROID_SDK_ROOT"
+      break
+    fi
+  done
+  
+  if [ -z "$ANDROID_SDK_ROOT" ]; then
+    echo "Android SDK not found in common locations"
+    export ANDROID_SDK_ROOT="/tmp/android-sdk"
+    echo "Using placeholder SDK path for web build: $ANDROID_SDK_ROOT"
+    mkdir -p "$ANDROID_SDK_ROOT"
+    BUILD_APK=false
+  else
+    BUILD_APK=true
+  fi
+else
+  BUILD_APK=true
 fi
 
-# Check for Android SDK
-if [ ! -d "$ANDROID_SDK_ROOT" ]; then
-  echo "Error: Android SDK not found at $ANDROID_SDK_ROOT"
-  echo "Please install Android SDK before proceeding."
-  exit 1
-fi
-
-# Create android directory if it doesn't exist
+# Check if Android directory exists
 if [ ! -d "android" ]; then
   echo "Android project not initialized. Setting up now..."
   npx cap add android
@@ -29,6 +41,8 @@ if [ ! -d "android" ]; then
     exit 1
   fi
   echo "✓ Android project initialized"
+else
+  echo "✓ Using existing Android project"
 fi
 
 # Build the web app first
@@ -60,26 +74,39 @@ if [ ! -f "android/app/src/main/res/mipmap-xxxhdpi/ic_launcher.png" ]; then
   cp public/fixer-pin-logo.svg android/app/src/main/res/drawable/app_icon.xml
 fi
 
-# Navigate to the Android directory
-echo "Step 4: Building Android APK..."
-cd android
-ANDROID_HOME=$ANDROID_SDK_ROOT ./gradlew assembleDebug
-if [ $? -ne 0 ]; then
-  echo "Error: Android build failed"
-  exit 1
-fi
-echo "✓ Android APK build successful"
-echo
+# Check if we can build the APK
+if [ "$BUILD_APK" = true ]; then
+  # Navigate to the Android directory
+  echo "Step 4: Building Android APK..."
+  cd android
+  ANDROID_HOME=$ANDROID_SDK_ROOT ./gradlew assembleDebug
+  if [ $? -ne 0 ]; then
+    echo "Error: Android build failed"
+    echo "Continuing without building APK..."
+    BUILD_APK=false
+    cd ..
+  else
+    echo "✓ Android APK build successful"
+    echo
 
-# Copy APK to project root for easy access
-echo "Step 5: Copying APK to project root..."
-cp app/build/outputs/apk/debug/app-debug.apk ../fixer-app.apk
-if [ $? -ne 0 ]; then
-  echo "Error: Failed to copy APK file"
-  exit 1
+    # Copy APK to project root for easy access
+    echo "Step 5: Copying APK to project root..."
+    cp app/build/outputs/apk/debug/app-debug.apk ../fixer-app.apk
+    if [ $? -ne 0 ]; then
+      echo "Error: Failed to copy APK file"
+      BUILD_APK=false
+    else
+      echo "✓ APK created at ./fixer-app.apk"
+    fi
+    echo
+    cd ..
+  fi
+else
+  echo "Step 4: Skipping Android APK build (Android SDK not available)"
+  echo "✓ Web build and Capacitor sync completed successfully"
+  echo "To build the APK, please install Android SDK and run this script again"
+  echo
 fi
-echo "✓ APK created at ./fixer-app.apk"
-echo
 
 # Done
 echo "====================================="
