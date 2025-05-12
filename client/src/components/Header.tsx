@@ -64,16 +64,11 @@ const Header = () => {
         <div className="flex items-center space-x-4">
           {user && <NotificationPopover className="hidden md:flex" />}
           
-          {/* Post Job drawer button - Added to header */}
-          {user && (
-            <div className="flex items-center">
-              <PostJobDrawerButton />
-            </div>
-          )}
+          {/* Post Job+ button removed */}
           
           {/* Mobile menu button - now uses UserDrawerV2 */}
           {user ? (
-            <div className="flex items-center ml-2">
+            <div className="md:hidden">
               <UserDrawerV2>
                 <Button variant="ghost" size="icon">
                   <Menu className="h-5 w-5" />
