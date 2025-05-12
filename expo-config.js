@@ -10,8 +10,18 @@ module.exports = {
     backgroundColor: '#ffffff'
   },
   updates: {
-    fallbackToCacheTimeout: 0
+    enabled: true,
+    fallbackToCacheTimeout: 0,
+    checkAutomatically: 'ON_LOAD',
+    url: 'https://u.expo.dev/fixer-app'
   },
+  plugins: [
+    'expo-updates'
+  ],
+  runtimeVersion: {
+    policy: 'sdkVersion'
+  },
+  sdkVersion: '50.0.0',
   assetBundlePatterns: [
     '**/*'
   ],
@@ -32,6 +42,11 @@ module.exports = {
   extra: {
     eas: {
       projectId: 'fixer-app'
+    },
+    'expo-updates': {
+      requestHeaders: {
+        'expo-channel-name': 'main'
+      }
     }
   }
 }

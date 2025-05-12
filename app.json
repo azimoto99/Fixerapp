@@ -36,11 +36,6 @@
       "expo-updates"
     ],
     "scheme": "fixerapp",
-    "extra": {
-      "eas": {
-        "projectId": "fixer-app"
-      }
-    },
     "primaryColor": "#68D391",
     "notification": {
       "icon": "./attached_assets/ChatGPT_Image_May_7__2025__01_30_03_AM-removebg-preview.png",
@@ -48,11 +43,24 @@
       "androidMode": "default"
     },
     "updates": {
+      "enabled": true,
       "fallbackToCacheTimeout": 0,
-      "url": "https://u.expo.dev/your-project-id"
+      "checkAutomatically": "ON_LOAD",
+      "url": "https://u.expo.dev/fixer-app"
     },
     "runtimeVersion": {
       "policy": "sdkVersion"
+    },
+    "sdkVersion": "50.0.0",
+    "extra": {
+      "eas": {
+        "projectId": "fixer-app"
+      },
+      "expo-updates": {
+        "requestHeaders": {
+          "expo-channel-name": "main"
+        }
+      }
     }
   }
 }
