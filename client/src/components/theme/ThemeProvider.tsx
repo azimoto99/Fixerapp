@@ -1,5 +1,6 @@
+import * as React from "react";
 import { ThemeProvider as NextThemesProvider } from "next-themes";
-import React, { useEffect } from "react";
+import { useEffect } from "react";
 
 export function ThemeProvider({ children, ...props }: React.PropsWithChildren<any>) {
   // Add debugging to track theme changes

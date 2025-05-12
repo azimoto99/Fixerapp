@@ -1,4 +1,5 @@
-import React, { useState, useCallback, createContext, useContext, ReactNode } from 'react';
+import * as React from 'react';
+import { useState, useCallback, createContext, useContext, ReactNode } from 'react';
 import SimpleToast from '@/components/SimpleToast';
 
 type ToastType = 'success' | 'error' | 'info';
