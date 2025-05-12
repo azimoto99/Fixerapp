@@ -513,6 +513,7 @@ const MapSection: React.FC<MapSectionProps> = ({ jobs, selectedJob, onSelectJob,
                   view={mapView} 
                   onChange={setMapView}
                   className="bg-background/60"
+                  totalOpenJobs={jobs.filter(job => job.status === 'open').length}
                 />
               </div>
               
