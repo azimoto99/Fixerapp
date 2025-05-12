@@ -264,7 +264,7 @@ const WorkerDashboard = () => {
   // My Posted Jobs button - positioned to the left of UserDrawer button
   const PostedJobsButton = () => {
     return (
-      <div className="fixed top-4 right-16 z-[var(--z-controls)]">
+      <div className="fixed top-4 right-16 md:right-36 z-[var(--z-controls)]">
         <Button 
           onClick={togglePostedJobs}
           className="bg-blue-600 text-white shadow-lg rounded-full w-10 h-10 flex items-center justify-center transition-all hover:scale-105 active:scale-95 p-0"
