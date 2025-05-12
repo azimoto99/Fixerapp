@@ -30,7 +30,7 @@ import { apiRequest } from '@/lib/queryClient';
 import { useToast } from '@/hooks/use-toast';
 
 // Worker Dashboard Component
-const WorkerDashboard = () => {
+const WorkerDashboard = ({ showPostedJobs }: { showPostedJobs: boolean }) => {
   // Keep all useState calls together and in the same order every render
   const [view, setView] = useState<'list' | 'map'>('map');
   const [selectedJob, setSelectedJob] = useState<Job | undefined>(undefined);
@@ -42,7 +42,6 @@ const WorkerDashboard = () => {
     searchMode: 'location' as 'location' | 'description',
     coordinates: undefined as { latitude: number; longitude: number } | undefined
   });
-  const [showPostedJobs, setShowPostedJobs] = useState(false);
   
   // Keep all custom hook calls after useState hooks
   const { user } = useAuth();
@@ -276,9 +275,7 @@ const WorkerDashboard = () => {
             searchCoordinates={searchParams.coordinates}
           />
           
-          {/* Worker can view jobs they've posted */}
-          <PostedJobsButton />
-          <PostedJobsDrawer />
+          {/* PostedJobsButton has been moved to the Header component */}
           
           {/* Add the NewJobButton component to allow users to post jobs */}
           <NewJobButton />
@@ -440,7 +437,7 @@ export default function Home() {
 
       <main className="flex-1 container max-w-7xl mx-auto px-2 sm:px-4">
         {selectedRole === 'worker' ? (
-          <WorkerDashboard />
+          <WorkerDashboard showPostedJobs={showPostedJobs} />
         ) : (
           <PosterDashboard />
         )}
@@ -453,6 +450,93 @@ export default function Home() {
             setSelectedRole(tab);
           }
         }} />
+      )}
+      
+      {/* Posted Jobs Drawer */}
+      {showPostedJobs && (
+        <div className="fixed top-0 right-0 h-full w-80 bg-card shadow-lg z-[var(--z-drawer)] transform transition-transform duration-300 animate-in slide-in-from-right">
+          {/* X button on the left side */}
+          <button 
+            onClick={togglePostedJobs}
+            className="absolute -left-12 top-4 bg-blue-600 text-white shadow-lg rounded-full w-10 h-10 flex items-center justify-center transform transition-all hover:scale-105 active:scale-95 p-0"
+            aria-label="Close posted jobs panel"
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <line x1="18" y1="6" x2="6" y2="18"></line>
+              <line x1="6" y1="6" x2="18" y2="18"></line>
+            </svg>
+          </button>
+          
+          <div className="bg-blue-600 text-white px-4 py-3 border-b border-blue-700">
+            <div className="flex items-center justify-between">
+              <h3 className="text-lg font-medium">My Posted Jobs</h3>
+            </div>
+          </div>
+          
+          <div className="overflow-y-auto h-full pb-32 pt-0">
+            {!postedJobs ? (
+              <div className="flex justify-center items-center h-32">
+                <div className="h-6 w-6 text-primary animate-spin">⟳</div>
+              </div>
+            ) : postedJobs.length > 0 ? (
+              <div className="divide-y divide-border">
+                {postedJobs.map(job => (
+                  <div key={job.id} className="p-4 hover:bg-muted/50 transition-colors">
+                    <div className="flex justify-between mb-1">
+                      <h4 className="font-medium truncate flex-1">{job.title}</h4>
+                      <span className={`px-2 py-0.5 text-xs rounded-full ${job.status === 'open' ? 'bg-green-100 text-green-800' : job.status === 'assigned' ? 'bg-blue-100 text-blue-800' : 'bg-amber-100 text-amber-800'}`}>
+                        {job.status.charAt(0).toUpperCase() + job.status.slice(1)}
+                      </span>
+                    </div>
+                    <p className="text-sm text-muted-foreground mb-2">{job.location}</p>
+                    <p className="text-sm line-clamp-2 mb-3">{job.description}</p>
+                    <div className="flex items-center gap-2 text-xs text-muted-foreground mb-3">
+                      <span>Posted: {new Date(job.datePosted).toLocaleDateString()}</span>
+                      <span>•</span>
+                      <span>${job.paymentAmount.toFixed(2)}</span>
+                    </div>
+                    <div className="flex space-x-2">
+                      <Button variant="outline" size="sm" className="flex-1 text-xs">
+                        <a 
+                          href="#" 
+                          onClick={(e) => {
+                            e.preventDefault();
+                            window.location.href = `/job/${job.id}`;
+                          }}
+                        >
+                          Manage
+                        </a>
+                      </Button>
+                      <Button variant="destructive" className="flex-1 text-xs">
+                        Cancel Job
+                      </Button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="p-8 text-center">
+                <h3 className="text-lg font-medium mb-2">No Jobs Posted Yet</h3>
+                <p className="text-muted-foreground mb-6">Create your first job listing to start finding workers</p>
+                <Button 
+                  className="bg-primary hover:bg-primary/90"
+                  onClick={() => {
+                    togglePostedJobs(); // Close the drawer first
+                    setTimeout(() => {
+                      // Use the existing NewJobButton functionality
+                      const newJobBtn = document.querySelector('[aria-label="Post a new job"]');
+                      if (newJobBtn) {
+                        (newJobBtn as HTMLElement).click();
+                      }
+                    }, 300);
+                  }}
+                >
+                  Post a Job
+                </Button>
+              </div>
+            )}
+          </div>
+        </div>
       )}
     </div>
   );
