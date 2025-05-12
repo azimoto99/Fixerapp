@@ -484,21 +484,7 @@ const MapSection: React.FC<MapSectionProps> = ({ jobs, selectedJob, onSelectJob,
           </MapContainer>
         )}
         
-        {/* Fallback location notice */}
-        {isUsingFallback && (
-          <div className="absolute top-20 left-1/2 -translate-x-1/2 z-[500]">
-            <div className="bg-card/90 border border-primary/30 rounded-lg shadow-md px-4 py-2 text-foreground text-xs backdrop-blur-sm">
-              <div className="flex items-center">
-                <span className="bg-primary/20 rounded-full p-1 mr-2">
-                  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" className="w-3 h-3 text-primary">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
-                  </svg>
-                </span>
-                <span className="font-medium">Using approximate location</span>
-              </div>
-            </div>
-          </div>
-        )}
+        {/* Removed duplicate fallback location notice - already shown in top control panel */}
         
 
 
