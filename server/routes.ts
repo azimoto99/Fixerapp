@@ -8,12 +8,11 @@ import { stripeRouter } from "./api/stripe-api";
 import { processPayment } from "./api/process-payment";
 import { preauthorizePayment } from "./api/preauthorize-payment";
 import { taskRouter } from "./api/task-api";
-// Temporarily comment out other Stripe imports until we implement them
-// import createPaymentIntentRouter from "./api/stripe-api-create-payment-intent";
-// import { setupStripeWebhooks } from "./api/stripe-webhooks";
-// import { setupStripeTransfersRoutes } from "./api/stripe-transfers";
-// import { setupStripePaymentMethodsRoutes } from "./api/stripe-payment-methods";
-// import "./api/storage-extensions"; // Import to register extended storage methods
+import createPaymentIntentRouter from "./api/stripe-api-create-payment-intent";
+import { setupStripeWebhooks } from "./api/stripe-webhooks";
+import { setupStripeTransfersRoutes } from "./api/stripe-transfers";
+import { setupStripePaymentMethodsRoutes } from "./api/stripe-payment-methods";
+import "./api/storage-extensions"; // Import to register extended storage methods
 import * as crypto from 'crypto';
 import { 
   insertUserSchema, 
