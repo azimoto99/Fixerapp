@@ -57,45 +57,14 @@ const Header = () => {
             </div>
           </Link>
           
-          {/* Desktop navigation - hidden on mobile */}
-          <nav className="hidden md:ml-8 md:flex md:space-x-8">
-            {/* Only show essential links for the app */}
-            <NavLink href="/" isActive={location === '/'}>
-              {user?.accountType === 'worker' ? 'Find Jobs' : 'Browse Workers'}
-            </NavLink>
-            
-            {/* Post Job link */}
-            {user && (
-              <NavLink href="/post-job" isActive={location === '/post-job'}>
-                Post a Job
-              </NavLink>
-            )}
-            
-            {/* My Jobs link for job posters */}
-            {user?.accountType === 'poster' && (
-              <NavLink href="/my-jobs" isActive={location === '/my-jobs'}>
-                My Jobs
-              </NavLink>
-            )}
-          </nav>
+          {/* Desktop navigation links removed */}
         </div>
         
         {/* Right side elements */}
         <div className="flex items-center space-x-4">
           {user && <NotificationPopover className="hidden md:flex" />}
           
-          {/* Post Job+ Button - Hidden on small mobile */}
-          <Link href="/post-job" className="hidden sm:block">
-            <div className="flex text-white bg-emerald-600 hover:bg-emerald-700 font-medium py-2 px-4 rounded-md shadow-md transition-all hover:shadow-lg transform hover:-translate-y-0.5">
-              <span className="flex items-center">
-                <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-1" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                  <line x1="12" y1="5" x2="12" y2="19"></line>
-                  <line x1="5" y1="12" x2="19" y2="12"></line>
-                </svg>
-                <span>Post Job+</span>
-              </span>
-            </div>
-          </Link>
+          {/* Post Job+ button removed */}
           
           {/* Mobile menu button - now uses UserDrawerV2 */}
           {user ? (
