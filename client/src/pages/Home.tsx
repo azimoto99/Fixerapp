@@ -416,6 +416,17 @@ const PosterDashboard = () => {
 export default function Home() {
   const { user } = useAuth();
   const [selectedRole, setSelectedRole] = useState<'worker' | 'poster'>('worker');
+  const [showPostedJobs, setShowPostedJobs] = useState(false);
+  
+  // Get jobs posted by this user (if any)
+  const { data: postedJobs } = useQuery<Job[]>({
+    queryKey: ['/api/jobs', { posterId: user?.id }],
+    enabled: !!user?.id
+  });
+  
+  const togglePostedJobs = () => {
+    setShowPostedJobs(!showPostedJobs);
+  };
 
   // Add role selection at the top
   return (
@@ -423,6 +434,8 @@ export default function Home() {
       <Header
         selectedRole={selectedRole}
         onRoleChange={setSelectedRole}
+        onTogglePostedJobs={togglePostedJobs}
+        postedJobsCount={postedJobs?.length || 0}
       />
 
       <main className="flex-1 container max-w-7xl mx-auto px-2 sm:px-4">
