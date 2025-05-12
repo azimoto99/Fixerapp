@@ -1,168 +1,103 @@
-import React, { useState, useEffect, useRef } from 'react';
-import { Input } from '@/components/ui/input';
-import { geocodeAddress, GeocodingResult } from '@/lib/geocoding';
-import { Loader2, MapPin } from 'lucide-react';
-import { cn } from '@/lib/utils';
+import React, { useState, useEffect, useRef, forwardRef } from 'react';
+import { Input, InputProps } from '@/components/ui/input';
+import { MapPin } from 'lucide-react';
 
-interface AddressAutocompleteProps extends React.InputHTMLAttributes<HTMLInputElement> {
+interface AddressAutocompleteProps extends Omit<InputProps, 'onChange'> {
+  onAddressSelect: (address: string, lat: number, lng: number) => void;
   value: string;
   onChange: (value: string) => void;
-  onLocationSelect?: (result: GeocodingResult) => void;
-  className?: string;
+  placeholder?: string;
 }
 
-/**
- * Address autocomplete component that suggests addresses based on user input
- * and geocodes the selected address.
- */
-const AddressAutocomplete: React.FC<AddressAutocompleteProps> = ({
-  value,
-  onChange,
-  onLocationSelect,
-  className,
-  ...props
-}) => {
-  const [suggestions, setSuggestions] = useState<string[]>([]);
-  const [loading, setLoading] = useState(false);
-  const [showSuggestions, setShowSuggestions] = useState(false);
-  const suggestionRef = useRef<HTMLDivElement>(null);
-  const inputRef = useRef<HTMLInputElement>(null);
-  const timeoutRef = useRef<NodeJS.Timeout | null>(null);
-
-  // Handle input change with debounce
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const newValue = e.target.value;
-    onChange(newValue);
+const AddressAutocomplete = forwardRef<HTMLInputElement, AddressAutocompleteProps>(
+  ({ onAddressSelect, value, onChange, placeholder = "Enter location", ...props }, ref) => {
+    const autocompleteRef = useRef<HTMLInputElement | null>(null);
+    const [autocomplete, setAutocomplete] = useState<google.maps.places.Autocomplete | null>(null);
+    const [showError, setShowError] = useState(false);
     
-    // Clear previous timeout
-    if (timeoutRef.current) {
-      clearTimeout(timeoutRef.current);
-    }
-    
-    if (newValue.length < 3) {
-      setSuggestions([]);
-      setShowSuggestions(false);
-      return;
-    }
-    
-    setLoading(true);
-    
-    // Debounce the API call
-    timeoutRef.current = setTimeout(async () => {
-      try {
-        // For demonstration, we'll use the geocoding API to get address suggestions
-        const response = await fetch(
-          `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(newValue)}&limit=5`,
-          {
-            headers: {
-              'Accept': 'application/json',
-              'User-Agent': 'TheJobApp/1.0',
-              'Referer': window.location.origin
-            },
-            cache: 'no-cache'
-          }
-        );
-
-        if (response.ok) {
-          const data = await response.json();
-          const addressSuggestions = data.map((item: any) => item.display_name);
-          setSuggestions(addressSuggestions);
-          setShowSuggestions(addressSuggestions.length > 0);
-        } else {
-          setSuggestions([]);
+    // Initialize Google Maps Autocomplete
+    useEffect(() => {
+      // Check if Google Maps API is loaded
+      if (window.google && window.google.maps && window.google.maps.places) {
+        // Get the input element to attach autocomplete to
+        const inputElement = autocompleteRef.current;
+        if (inputElement) {
+          // Create the autocomplete object
+          const autocompleteInstance = new google.maps.places.Autocomplete(inputElement, {
+            types: ['address'],
+            fields: ['address_components', 'formatted_address', 'geometry']
+          });
+          
+          // Store the autocomplete instance in state
+          setAutocomplete(autocompleteInstance);
+          
+          // Add place_changed listener
+          autocompleteInstance.addListener('place_changed', () => {
+            const place = autocompleteInstance.getPlace();
+            
+            if (place.geometry && place.geometry.location) {
+              // Get coordinates
+              const lat = place.geometry.location.lat();
+              const lng = place.geometry.location.lng();
+              const formattedAddress = place.formatted_address || '';
+              
+              // Call the callback with the address and coordinates
+              onAddressSelect(formattedAddress, lat, lng);
+              onChange(formattedAddress);
+            }
+          });
         }
-      } catch (error) {
-        console.error('Error fetching address suggestions:', error);
-        setSuggestions([]);
-      } finally {
-        setLoading(false);
+      } else {
+        console.warn('Google Maps JavaScript API not loaded');
+        setShowError(true);
       }
-    }, 500); // 500ms debounce
-  };
-
-  // Handle selection of a suggestion
-  const handleSuggestionClick = async (suggestion: string) => {
-    onChange(suggestion);
-    setShowSuggestions(false);
-    
-    if (onLocationSelect) {
-      setLoading(true);
-      try {
-        const geocoded = await geocodeAddress(suggestion);
-        if (geocoded.success) {
-          onLocationSelect(geocoded);
+      
+      // Cleanup function to remove event listeners
+      return () => {
+        if (autocomplete) {
+          google.maps.event.clearInstanceListeners(autocomplete);
         }
-      } catch (error) {
-        console.error('Error geocoding selected address:', error);
-      } finally {
-        setLoading(false);
-      }
-    }
-  };
-
-  // Close suggestions when clicking outside
-  useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      if (
-        suggestionRef.current && 
-        !suggestionRef.current.contains(event.target as Node) &&
-        inputRef.current && 
-        !inputRef.current.contains(event.target as Node)
-      ) {
-        setShowSuggestions(false);
+      };
+    }, [onAddressSelect, onChange]);
+    
+    // Prevent form submission when Enter is pressed in the autocomplete field
+    const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+      if (e.key === 'Enter') {
+        e.preventDefault();
       }
     };
-
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => {
-      document.removeEventListener('mousedown', handleClickOutside);
-    };
-  }, []);
-
-  return (
-    <div className="relative">
+    
+    return (
       <div className="relative">
+        <MapPin className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
         <Input
-          ref={inputRef}
+          ref={(node) => {
+            // This handles both the forwarded ref and our internal ref
+            if (typeof ref === 'function') {
+              ref(node);
+            } else if (ref) {
+              ref.current = node;
+            }
+            autocompleteRef.current = node;
+          }}
           type="text"
+          placeholder={placeholder}
           value={value}
-          onChange={handleInputChange}
-          className={cn("pr-10 text-gray-800 placeholder:text-gray-500", className)}
-          onFocus={() => value.length >= 3 && suggestions.length > 0 && setShowSuggestions(true)}
+          onChange={(e) => onChange(e.target.value)}
+          onKeyDown={handleKeyDown}
+          className="pl-9"
           {...props}
         />
-        <div className="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
-          {loading ? (
-            <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
-          ) : (
-            <MapPin className="h-4 w-4 text-muted-foreground" />
-          )}
-        </div>
+        {showError && (
+          <div className="text-xs text-red-500 mt-1">
+            Google Maps API not loaded. Address autocomplete is unavailable.
+          </div>
+        )}
       </div>
-      
-      {showSuggestions && (
-        <div
-          ref={suggestionRef}
-          className="absolute z-10 mt-1 w-full bg-card shadow-md rounded-md border border-border overflow-auto max-h-60"
-        >
-          <ul>
-            {suggestions.map((suggestion, index) => (
-              <li
-                key={index}
-                className="px-4 py-2 hover:bg-accent cursor-pointer truncate text-sm"
-                onClick={() => handleSuggestionClick(suggestion)}
-              >
-                <div className="flex items-start">
-                  <MapPin className="h-4 w-4 mr-2 mt-0.5 flex-shrink-0 text-muted-foreground" />
-                  <span>{suggestion}</span>
-                </div>
-              </li>
-            ))}
-          </ul>
-        </div>
-      )}
-    </div>
-  );
-};
+    );
+  }
+);
+
+AddressAutocomplete.displayName = 'AddressAutocomplete';
 
 export default AddressAutocomplete;
