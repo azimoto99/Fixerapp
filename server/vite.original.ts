@@ -3,6 +3,7 @@ import fs from "fs";
 import path from "path";
 import { createServer as createViteServer, createLogger } from "vite";
 import { type Server } from "http";
+import viteConfig from "../vite.config";
 import { nanoid } from "nanoid";
 
 const viteLogger = createLogger();
@@ -25,9 +26,8 @@ export async function setupVite(app: Express, server: Server) {
     allowedHosts: true,
   };
 
-  // Use inline Vite config instead of importing from vite.config.ts
-  // This avoids the top-level await issue
   const vite = await createViteServer({
+    ...viteConfig,
     configFile: false,
     customLogger: {
       ...viteLogger,
@@ -35,21 +35,6 @@ export async function setupVite(app: Express, server: Server) {
         viteLogger.error(msg, options);
         process.exit(1);
       },
-    },
-    plugins: [
-      // Default plugins will be added by Vite automatically
-    ],
-    resolve: {
-      alias: {
-        "@": path.resolve(process.cwd(), "client", "src"),
-        "@shared": path.resolve(process.cwd(), "shared"),
-        "@assets": path.resolve(process.cwd(), "attached_assets"),
-      },
-    },
-    root: path.resolve(process.cwd(), "client"),
-    build: {
-      outDir: path.resolve(process.cwd(), "dist/public"),
-      emptyOutDir: true,
     },
     server: serverOptions,
     appType: "custom",
@@ -61,7 +46,8 @@ export async function setupVite(app: Express, server: Server) {
 
     try {
       const clientTemplate = path.resolve(
-        process.cwd(),
+        import.meta.dirname,
+        "..",
         "client",
         "index.html",
       );
@@ -82,7 +68,7 @@ export async function setupVite(app: Express, server: Server) {
 }
 
 export function serveStatic(app: Express) {
-  const distPath = path.resolve(process.cwd(), "dist", "public");
+  const distPath = path.resolve(import.meta.dirname, "public");
 
   if (!fs.existsSync(distPath)) {
     throw new Error(

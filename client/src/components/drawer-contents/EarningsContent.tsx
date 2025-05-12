@@ -101,16 +101,63 @@ const EarningsContent: React.FC<EarningsContentProps> = ({ userId }) => {
               className="bg-blue-600 hover:bg-blue-700"
               onClick={() => {
                 // Function to switch to the payments tab
-                const paymentsTab = document.querySelector('[title="Payments"]');
+                // First method - look for a button with text content of "Payments"
+                let paymentsTab: HTMLButtonElement | null = Array.from(document.querySelectorAll('button'))
+                  .find(el => el.textContent?.includes('Payments')) as HTMLButtonElement | null;
+                
+                // Second method - look by attribute
+                if (!paymentsTab) {
+                  const tempTab = document.querySelector('[title="Payments"]');
+                  if (tempTab) {
+                    paymentsTab = tempTab as HTMLButtonElement;
+                  }
+                }
+                
+                // Third method - look for CreditCard icon's parent button
+                if (!paymentsTab) {
+                  const creditCardIcon = document.querySelector('svg.lucide-credit-card');
+                  if (creditCardIcon) {
+                    const tempBtn = creditCardIcon.closest('button');
+                    if (tempBtn) {
+                      paymentsTab = tempBtn;
+                    }
+                  }
+                }
+                
                 if (paymentsTab) {
+                  console.log('Found payments tab, clicking it');
                   (paymentsTab as HTMLElement).click();
+                  
                   // Then switch to the setup subtab
                   setTimeout(() => {
-                    const setupTab = document.querySelector('[value="setup"]');
-                    if (setupTab) {
-                      (setupTab as HTMLElement).click();
+                    // Try multiple selectors for the setup tab
+                    let setupTab: Element | null = document.querySelector('[value="setup"]');
+                    
+                    if (!setupTab) {
+                      const matchingButton = Array.from(document.querySelectorAll('button'))
+                        .find(el => el.textContent?.includes('Setup') || el.textContent?.includes('Set up'));
+                      if (matchingButton) {
+                        setupTab = matchingButton;
+                      }
                     }
-                  }, 100);
+                    
+                    if (setupTab) {
+                      console.log('Found setup tab, clicking it');
+                      (setupTab as HTMLElement).click();
+                    } else {
+                      console.log('Could not find setup tab');
+                      // Fallback - try to simulate clicking the "Set up payment account" button in the PaymentsContent
+                      const setupAccountBtn = Array.from(document.querySelectorAll('button'))
+                        .find(el => el.textContent?.includes('Set up payment account'));
+                      
+                      if (setupAccountBtn) {
+                        console.log('Found setup account button, clicking it');
+                        (setupAccountBtn as HTMLElement).click();
+                      }
+                    }
+                  }, 300); // Increased timeout to ensure the payments tab has rendered
+                } else {
+                  console.log('Could not find payments tab');
                 }
               }}
             >
@@ -213,16 +260,54 @@ const EarningsContent: React.FC<EarningsContentProps> = ({ userId }) => {
             variant="outline"
             onClick={() => {
               // Function to switch to the payments tab
-              const paymentsTab = document.querySelector('[title="Payments"]');
+              // First method - look for a button with text content of "Payments"
+              let paymentsTab = Array.from(document.querySelectorAll('button'))
+                .find(el => el.textContent?.includes('Payments'));
+              
+              // Second method - look by attribute
+              if (!paymentsTab) {
+                paymentsTab = document.querySelector('[title="Payments"]');
+              }
+              
+              // Third method - look for CreditCard icon's parent button
+              if (!paymentsTab) {
+                const creditCardIcon = document.querySelector('svg.lucide-credit-card');
+                if (creditCardIcon) {
+                  paymentsTab = creditCardIcon.closest('button');
+                }
+              }
+              
               if (paymentsTab) {
+                console.log('Found payments tab, clicking it');
                 (paymentsTab as HTMLElement).click();
+                
                 // Then switch to the setup subtab
                 setTimeout(() => {
-                  const setupTab = document.querySelector('[value="setup"]');
-                  if (setupTab) {
-                    (setupTab as HTMLElement).click();
+                  // Try multiple selectors for the setup tab
+                  let setupTab = document.querySelector('[value="setup"]');
+                  
+                  if (!setupTab) {
+                    setupTab = Array.from(document.querySelectorAll('button'))
+                      .find(el => el.textContent?.includes('Setup') || el.textContent?.includes('Set up'));
                   }
-                }, 100);
+                  
+                  if (setupTab) {
+                    console.log('Found setup tab, clicking it');
+                    (setupTab as HTMLElement).click();
+                  } else {
+                    console.log('Could not find setup tab');
+                    // Fallback - try to simulate clicking the "Set up payment account" button in the PaymentsContent
+                    const setupAccountBtn = Array.from(document.querySelectorAll('button'))
+                      .find(el => el.textContent?.includes('Set up payment account'));
+                    
+                    if (setupAccountBtn) {
+                      console.log('Found setup account button, clicking it');
+                      (setupAccountBtn as HTMLElement).click();
+                    }
+                  }
+                }, 300); // Increased timeout to ensure the payments tab has rendered
+              } else {
+                console.log('Could not find payments tab');
               }
             }}
           >

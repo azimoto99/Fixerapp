@@ -2,16 +2,62 @@
 
 ## The Problem
 
-When trying to connect to Expo Go, you might encounter this error:
+When trying to connect to Expo Go, you might encounter these errors:
 
 ```
 Error [ERR_REQUIRE_ESM]: require() of ES Module /home/runner/workspace/metro.config.js from /home/runner/workspace/Fixer/node_modules/cosmiconfig/node_modules/import-fresh/index.js not supported.
+```
+
+Or:
+
+```
+SyntaxError: Unexpected token 'export'
+/home/runner/workspace/metro.config.js:5
+export { default } from './metro.config.cjs';
+^^^^^^
 ```
 
 This happens because:
 1. The project is configured with `"type": "module"` in package.json
 2. This makes all .js files ES modules by default
 3. But metro.config.js needs to be a CommonJS module
+
+## Fixed: Metro Configuration
+
+1. We've updated metro.config.js to use CommonJS format instead of ES Module syntax:
+
+```js
+// This is a compatibility file for metro.config.js
+// Using CommonJS syntax since it's being loaded with require()
+
+// Simply load and re-export the actual config from metro.config.cjs
+const metroConfig = require('./metro.config.cjs');
+module.exports = metroConfig;
+```
+
+2. We've installed the required Metro dependencies:
+
+```bash
+yarn add metro-cache metro metro-config metro-core metro-resolver metro-runtime
+```
+
+These packages are necessary for Expo to function properly.
+
+## Fixing Metro Dependencies
+
+If you see the error `Cannot find module 'metro-cache'` (or similar), you're missing key Metro dependencies. To fix this:
+
+1. Run our automated dependency fixer:
+   ```bash
+   ./fix-metro-deps.sh
+   ```
+
+2. Or manually install all needed Metro packages:
+   ```bash
+   yarn add metro metro-cache metro-config metro-core metro-resolver metro-runtime
+   ```
+
+3. Restart the Expo server after installing the dependencies.
 
 ## Solution: Use Our Fixed Scripts
 

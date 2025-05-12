@@ -1,9 +1,10 @@
 /**
- * Simplified Metro configuration that doesn't rely on getDefaultConfig
- * This avoids dependencies on react-native package
+ * Extremely minimal Metro configuration
+ * Designed to work with Expo in web-only mode 
+ * without any other dependencies
  */
 
-// Basic Metro configuration without dependencies on react-native
+// Ultra minimal Metro configuration
 const config = {
   resolver: {
     assetExts: [
@@ -16,17 +17,11 @@ const config = {
       // Other
       'ttf', 'otf', 'xml', 'pdf', 'json'
     ],
-    sourceExts: ['js', 'jsx', 'ts', 'tsx', 'json', 'md', 'mdx'],
-    resolverMainFields: ['react-native', 'browser', 'main'],
+    sourceExts: ['js', 'jsx', 'ts', 'tsx', 'json'],
   },
   transformer: {
+    // We've installed this dependency
     babelTransformerPath: require.resolve('metro-react-native-babel-transformer'),
-    assetRegistryPath: 'react-native/Libraries/Image/AssetRegistry',
-    asyncRequireModulePath: 'metro-runtime/src/modules/asyncRequire',
-  },
-  serializer: {
-    getModulesRunBeforeMainModule: () => [],
-    getPolyfills: () => [],
   },
   watchFolders: [
     // Add paths to watch
@@ -37,7 +32,6 @@ const config = {
   // Server configuration
   server: {
     port: 8081,
-    enhanceMiddleware: (middleware) => middleware,
   },
 };
 
