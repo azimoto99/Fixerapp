@@ -45,6 +45,19 @@ else
   echo "✓ Using existing Android project"
 fi
 
+# Check for expo-updates package
+echo "Step 0: Checking for required packages..."
+if ! grep -q '"expo-updates"' "package.json"; then
+  echo "Installing expo-updates package..."
+  npm install expo-updates
+  if [ $? -ne 0 ]; then
+    echo "Warning: Failed to install expo-updates package"
+    echo "Continuing with build, but OTA updates may not work"
+  else
+    echo "✓ expo-updates package installed"
+  fi
+fi
+
 # Build the web app first
 echo "Step 1: Building web application..."
 npm run build
@@ -54,6 +67,21 @@ if [ $? -ne 0 ]; then
 fi
 echo "✓ Web build successful"
 echo
+
+# Create Expo constants file for updates
+echo "Step 1.5: Creating Expo environment configuration..."
+EXPO_CONSTANTS_DIR="node_modules/expo-updates/android/src/main/java/expo/modules/updates"
+if [ -d "$EXPO_CONSTANTS_DIR" ]; then
+  mkdir -p "$EXPO_CONSTANTS_DIR"
+fi
+
+# Create a file with the project URL
+cat > expo-project-url.js << 'EOL'
+// This file is generated during build to provide the Expo project URL
+export const EXPO_PROJECT_URL = "https://u.expo.dev/fixer-app";
+export const EXPO_CHANNEL = "main";
+EOL
+echo "✓ Expo environment configuration created"
 
 # Copy web build to Capacitor
 echo "Step 2: Syncing files to Android project..."
@@ -72,6 +100,40 @@ if [ ! -f "android/app/src/main/res/mipmap-xxxhdpi/ic_launcher.png" ]; then
   echo "Creating app icon resources..."
   mkdir -p android/app/src/main/res/mipmap-xxxhdpi
   cp public/fixer-pin-logo.svg android/app/src/main/res/drawable/app_icon.xml
+fi
+
+# Ensure expo-updates plugin is added to the build
+echo "Step 3.1: Configuring expo-updates in build..."
+# Check if we need to add the plugin configuration to capacitor.config.ts
+if ! grep -q "ExpoUpdates" "capacitor.config.ts"; then
+  echo "Adding expo-updates plugin to capacitor.config.ts..."
+  
+  # Create a temporary file with the updated configuration
+  cat > capacitor.config.ts.tmp << 'EOL'
+import { CapacitorConfig } from '@capacitor/cli';
+
+const config: CapacitorConfig = {
+  appId: 'com.fixerapp.app',
+  appName: 'Fixer',
+  webDir: 'dist',
+  server: {
+    androidScheme: 'https'
+  },
+  plugins: {
+    ExpoUpdates: {
+      enabled: true,
+      channel: 'main',
+      url: 'https://u.expo.dev/fixer-app'
+    }
+  }
+};
+
+export default config;
+EOL
+
+  # Replace the current file with our modified version
+  mv capacitor.config.ts.tmp capacitor.config.ts
+  echo "✓ expo-updates plugin configured in capacitor.config.ts"
 fi
 
 # Check if we can build the APK

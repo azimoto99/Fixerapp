@@ -39,6 +39,7 @@ Visit our live prototype at [fixer.gg](https://fixer.gg) to experience the platf
 - **State Management**: TanStack Query (React Query)
 - **Real-time Updates**: WebSockets for notifications
 - **UI Components**: Shadcn/UI components
+- **OTA Updates**: Expo Updates for seamless app updates without store approvals
 
 ## Documentation
 
@@ -49,6 +50,7 @@ Comprehensive documentation is available in the `docs` directory:
 - [Environment Configuration](./docs/environment-configuration.md) - Setup and configuration guide
 - [Android Build Guide](./docs/android-build-guide.md) - Build the app for Android devices
 - [Expo Android Guide](./docs/expo-android-guide.md) - Connect to Android with Expo Go
+- [Expo Updates Guide](./docs/expo-updates-guide.md) - How to use OTA updates
 
 ## Getting Started
 
@@ -173,11 +175,17 @@ Fixer can be deployed using several methods:
    - Distribute via Google Play Store or direct download
    - iOS version can be built using Expo services
 
-3. **Docker Deployment** (coming soon):
+3. **GitHub Integration with Expo** (recommended):
+   - GitHub repository is connected to Expo for automatic builds
+   - Every commit triggers a new build in the Expo Cloud
+   - Use Expo's OTA update system for seamless updates
+   - Users receive updates automatically without app store approvals
+
+4. **Docker Deployment** (coming soon):
    - Build and run the Docker image
    - Configure with environment variables
 
-See [deployment-guide.md](./deployment-guide.md) and [mobile-deployment-guide.md](./mobile-deployment-guide.md) for detailed instructions.
+See [deployment-guide.md](./deployment-guide.md), [mobile-deployment-guide.md](./mobile-deployment-guide.md), and [expo-updates-guide.md](./docs/expo-updates-guide.md) for detailed instructions.
 
 ## License
 
