@@ -1,29 +1,34 @@
-# The Job - Gig Economy Platform
+# Fixer - Gig Economy Platform
 
-![The Job Logo](./logo.png)
+![Fixer Logo](./public/fixer-pin-logo.svg)
 
 ## Overview
 
-The Job is a dynamic gig economy platform connecting local workers with job posters through intelligent matching and intuitive user experiences. The platform features advanced geospatial job discovery with proximity-based recommendations, real-time updates, and secure payment processing.
+Fixer is a cutting-edge gig economy platform that revolutionizes job matching, collaboration, and payment workflows for freelancers and employers. It focuses on intuitive user experience and seamless professional connections, featuring advanced geospatial job discovery with proximity-based recommendations, real-time updates, and secure payment processing through Stripe.
 
 ## Key Features
 
-- **Geolocation-powered job matching**: Find jobs within a 2-mile radius
-- **Dual account types**: Create both worker and job poster accounts with the same email
-- **Real-time job discovery**: Search by location or keywords
+- **Geolocation-powered job matching**: Find jobs within a configurable radius of your location
+- **Stripe Connect integration**: Complete payment system for job posters and workers
+- **Task management system**: Break down jobs into tasks and track completion
+- **Real-time notifications**: Get alerts for new jobs, applications, and payments
 - **Mobile-first responsive design**: Optimized for all devices with intuitive touch controls
-- **Secure payment processing**: Integrated Stripe payments with transaction history
+- **Dual account types**: Create both worker and job poster accounts with the same email
+- **Secure payment processing**: Full payment lifecycle with escrow capabilities
 - **Interactive map**: Enhanced map experience with custom controls and visual job indicators
+- **Rating and review system**: Build reputation based on job performance
 
 ## Technology Stack
 
-- **Frontend**: React.js with TypeScript, Tailwind CSS, and shadcn/ui components
+- **Frontend**: React Native with Expo, TypeScript, and Tailwind CSS
 - **Backend**: Node.js with Express
-- **Database**: PostgreSQL with Drizzle ORM
-- **Authentication**: Local authentication and Google OAuth
+- **Database**: Neon PostgreSQL with Drizzle ORM
+- **Authentication**: Passport.js with local strategy
 - **Maps**: Leaflet.js for interactive maps
-- **Payments**: Stripe API integration
+- **Payments**: Stripe Connect API for full payment lifecycle
 - **State Management**: TanStack Query (React Query)
+- **Real-time Updates**: WebSockets for notifications
+- **UI Components**: Shadcn/UI components
 
 ## Documentation
 
@@ -91,12 +96,18 @@ Comprehensive documentation is available in the `docs` directory:
 │   │   ├── pages/       # Page components
 │   │   └── types/       # TypeScript type definitions
 ├── server/            # Backend code
+│   ├── api/           # API module endpoints
+│   ├── types/         # Server-specific types
 │   ├── routes.ts      # API routes
 │   ├── storage.ts     # Data storage interface
 │   ├── auth.ts        # Authentication logic
-│   └── db.ts          # Database connection
+│   ├── db.ts          # Database connection
+│   └── database-storage.ts # Database implementation
 ├── shared/            # Shared code between frontend and backend
 │   └── schema.ts      # Database schema and shared types
+├── public/            # Static assets
+├── migrations/        # Database migrations
+├── scripts/           # Utility scripts
 └── docs/              # Documentation
 ```
 
