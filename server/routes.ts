@@ -157,6 +157,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Set up authentication
   setupAuth(app);
 
+  // Add route for the Expo redirect page
+  app.get('/expo-redirect.html', (req, res) => {
+    res.sendFile('expo-redirect.html', { root: './public' });
+  });
+
   // Create API router
   const apiRouter = express.Router();
 
