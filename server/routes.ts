@@ -1476,8 +1476,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
             console.log(`Processing refund for job ${id} with payment ${payment.stripePaymentIntentId}`);
             
             // Initialize Stripe
+            if (!process.env.STRIPE_SECRET_KEY) {
+              throw new Error("Missing required environment variable: STRIPE_SECRET_KEY");
+            }
             const stripe = new Stripe(process.env.STRIPE_SECRET_KEY, {
-              apiVersion: '2025-04-30.basil' as any
+              apiVersion: '2023-10-16' as any // Using consistent API version
             });
             
             // Process refund through Stripe
@@ -3661,18 +3664,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Preauthorize payment without creating a job
   app.post("/api/payments/preauthorize", isAuthenticated, preauthorizePayment);
   
-  // Comment out the Stripe-related integrations until they're properly implemented
+  // Enable Stripe integration endpoints
   // Use our improved create-payment-intent handler
-  // app.use("/api/stripe", createPaymentIntentRouter);
+  app.use("/api/stripe", createPaymentIntentRouter);
   
   // Initialize Stripe webhooks
-  // setupStripeWebhooks(app);
+  setupStripeWebhooks(app);
   
   // Initialize Stripe transfers API
-  // setupStripeTransfersRoutes(app);
+  setupStripeTransfersRoutes(app);
   
   // Initialize Stripe payment methods API
-  // setupStripePaymentMethodsRoutes(app);
+  setupStripePaymentMethodsRoutes(app);
 
   const httpServer = createServer(app);
   return httpServer;

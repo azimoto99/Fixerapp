@@ -471,6 +471,15 @@ export class FixedDatabaseStorage implements IStorage {
     }
   }
 
+  async getPaymentByJobId(jobId: number) {
+    try {
+      return await this.storage.getPaymentByJobId(jobId);
+    } catch (error) {
+      console.error(`Error in getPaymentByJobId(${jobId}):`, error);
+      return undefined;
+    }
+  }
+
   async getPaymentsForUser(userId: number) {
     try {
       return await this.storage.getPaymentsForUser(userId);
