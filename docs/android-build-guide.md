@@ -1,140 +1,129 @@
-# Building the Fixer Android App
+# Android Build Guide for Fixer App
 
-This guide walks you through the process of building a native Android application from the Fixer web app using Capacitor.
+This guide explains how to build the Fixer App for Android deployment.
 
 ## Prerequisites
 
-Before you begin, ensure you have:
+- Android SDK installed on your local machine
+- JDK 11 or newer
+- Node.js and npm installed
+- Git to clone the project
 
-- **Android SDK** installed
-- **Java Development Kit (JDK)** version 11 or higher
-- **Gradle** build system
-- **Node.js** and NPM
+## Step 1: Build the Web App
 
-## Setup Environment Variables
-
-Ensure your Android SDK is properly configured:
+First, build the web application:
 
 ```bash
-# Set Android SDK environment variables
-export ANDROID_SDK_ROOT=/path/to/your/android/sdk
-export PATH=$PATH:$ANDROID_SDK_ROOT/platform-tools
-export PATH=$PATH:$ANDROID_SDK_ROOT/tools
-```
+# Clone the repository if you haven't already
+git clone https://github.com/your-repo/fixer-app.git
+cd fixer-app
 
-## Building Steps
+# Install dependencies
+npm install
 
-### 1. Using the Build Script (Recommended)
-
-The simplest way to build the Fixer Android application is using our build script:
-
-```bash
-# Make the script executable
-chmod +x build-android.sh
-
-# Run the build script
-./build-android.sh
-```
-
-The script will handle all necessary steps and produce an APK file at `./fixer-app.apk`.
-
-### 2. Manual Build Process
-
-If you prefer to build manually or need to customize the process:
-
-#### Step 1: Build the Web App
-
-```bash
-# Build the web application
+# Build the web app
 npm run build
 ```
 
-#### Step 2: Initialize Capacitor (First time only)
+## Step 2: Set Up Android Project
+
+If you haven't already set up the Android project, run:
 
 ```bash
-# Add Android platform
 npx cap add android
 ```
 
-#### Step 3: Sync Web Build to Android
+This creates an Android project in the `android` directory.
+
+## Step 3: Update Capacitor Config
+
+Make sure `capacitor.config.ts` is properly configured:
+
+```typescript
+import type { CapacitorConfig } from '@capacitor/cli';
+
+const config: CapacitorConfig = {
+  appId: 'com.fixerapp.app',
+  appName: 'Fixer',
+  webDir: 'dist/client', // Make sure this matches your build output directory
+  server: {
+    androidScheme: 'https',
+    iosScheme: 'https',
+    hostname: 'app.fixerapp.com'
+  },
+  // ... other configurations
+};
+
+export default config;
+```
+
+## Step 4: Sync Web Assets to Android
+
+After building the web app, sync the changes to the Android project:
 
 ```bash
-# Sync the built web app to the Android project
 npx cap sync android
 ```
 
-#### Step 4: Update Android Configuration
+## Step 5: Build the APK
 
-Edit Android-specific settings in the Capacitor configuration file: `capacitor.config.ts`
+There are two ways to build the APK:
 
-#### Step 5: Build the Android APK
+### Option 1: Using Android Studio (Recommended)
+
+1. Open Android Studio
+2. Open the `android` directory from your project
+3. Connect your device or set up an emulator
+4. Click on "Run" or use the green play button
+
+### Option 2: Using Gradle Command Line
+
+From the project root:
 
 ```bash
-# Navigate to Android project directory
 cd android
-
-# Build debug APK
 ./gradlew assembleDebug
+```
 
-# Build release APK (requires signing configuration)
+This creates a debug APK at `android/app/build/outputs/apk/debug/app-debug.apk`
+
+For a release build:
+
+```bash
 ./gradlew assembleRelease
 ```
 
-## Release Signing
+**Note:** Release builds require signing configurations.
 
-For production releases, you'll need to sign your APK:
+## Step 6: Testing on a Device
 
-1. Create a keystore file:
-   ```bash
-   keytool -genkey -v -keystore fixer-release-key.keystore -alias fixer -keyalg RSA -keysize 2048 -validity 10000
-   ```
+To install the APK on a connected device:
 
-2. Update `android/app/build.gradle` with your signing configuration.
-
-3. Build a signed release APK:
-   ```bash
-   cd android
-   ./gradlew assembleRelease
-   ```
-
-## Running on a Device
-
-To install the APK on your device:
-
-1. Enable "Install from Unknown Sources" in your device settings
-2. Transfer the APK file to your device
-3. Open the file on your device to install
+```bash
+adb install android/app/build/outputs/apk/debug/app-debug.apk
+```
 
 ## Troubleshooting
 
-### Common Issues
+### Common Issues and Solutions
 
-- **Build Failures**: Check that your Android SDK is correctly installed and environment variables are set.
-- **Gradle Issues**: Clear the Gradle cache with `./gradlew clean`.
-- **App Crashes**: Check that the web build was correctly synced with `npx cap sync android`.
+1. **Build fails with "SDK not found"**
+   - Make sure ANDROID_SDK_ROOT environment variable is set
+   - Install Android SDK through Android Studio
 
-### Android Studio Integration
+2. **Web assets not showing in the app**
+   - Check if the `webDir` in capacitor.config.ts matches your build output
+   - Make sure you ran `npm run build` before running `npx cap sync`
 
-For more complex debugging:
+3. **App crashes on startup**
+   - Check Android logs using `adb logcat`
+   - Make sure all required plugins are properly installed
 
-1. Open the Android project in Android Studio:
-   ```bash
-   npx cap open android
-   ```
+4. **White screen after launch**
+   - This is often due to missing or incorrect web assets
+   - Make sure you've built the web app and synced it to Android
 
-2. Use Android Studio's debugging tools to identify and fix issues.
+### Additional Commands
 
-## App Store Deployment
-
-To publish to the Google Play Store:
-
-1. Build a signed release APK/AAB
-2. Create a Google Play Developer account
-3. Create a new application in the Google Play Console
-4. Upload your signed APK/AAB
-5. Configure store listing, content rating, and pricing
-6. Submit for review
-
----
-
-For further assistance, refer to the [Capacitor Android Documentation](https://capacitorjs.com/docs/android).
+- To update plugins: `npx cap update android`
+- To open project directly in Android Studio: `npx cap open android`
