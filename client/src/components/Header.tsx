@@ -20,12 +20,24 @@ import {
   SheetClose
 } from '@/components/ui/sheet';
 import { Button } from '@/components/ui/button';
-import { Menu, X } from 'lucide-react';
+import { Menu, X, Briefcase } from 'lucide-react';
 import { ThemeToggle } from '@/components/theme';
 import { NotificationPopover } from '@/components/notifications';
 import UserDrawerV2 from '@/components/UserDrawerV2';
 
-const Header = () => {
+interface HeaderProps {
+  selectedRole?: 'worker' | 'poster';
+  onRoleChange?: (role: 'worker' | 'poster') => void;
+  onTogglePostedJobs?: () => void;
+  postedJobsCount?: number;
+}
+
+const Header: React.FC<HeaderProps> = ({ 
+  selectedRole, 
+  onRoleChange,
+  onTogglePostedJobs,
+  postedJobsCount = 0
+}) => {
   const { user, logoutMutation } = useAuth();
   const [location] = useLocation();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -50,7 +62,7 @@ const Header = () => {
         <div className="flex items-center">
           <Link href="/">
             <div className="flex-shrink-0 flex items-center cursor-pointer">
-              <img src="/favicon.png" alt="Fixer Logo" className="h-8 w-8" />
+              <img src="/attached_assets/ChatGPT_Image_May_7__2025__01_30_03_AM-removebg-preview.png" alt="Fixer Logo" className="h-8 w-8" />
               <span className="ml-2 text-xl font-bold text-emerald-600">Fixer</span>
             </div>
           </Link>
@@ -62,7 +74,23 @@ const Header = () => {
         <div className="flex items-center space-x-4">
           {user && <NotificationPopover className="hidden md:flex" />}
           
-          {/* Post Job+ button removed */}
+          {/* Posted Jobs Button (shown only when user is logged in and the toggle function is available) */}
+          {user && onTogglePostedJobs && (
+            <div className="hidden md:block">
+              <Button 
+                onClick={onTogglePostedJobs}
+                className="bg-blue-600 text-white shadow hover:bg-blue-700 rounded-full w-10 h-10 flex items-center justify-center transition-all hover:scale-105 active:scale-95 p-0"
+                aria-label="My Posted Jobs"
+              >
+                <Briefcase className="h-5 w-5" />
+                {postedJobsCount > 0 && (
+                  <span className="absolute -top-1 -right-1 bg-red-500 text-white rounded-full w-5 h-5 flex items-center justify-center text-xs">
+                    {postedJobsCount}
+                  </span>
+                )}
+              </Button>
+            </div>
+          )}
           
           {/* Mobile menu button - now uses UserDrawerV2 */}
           {user ? (
