@@ -1,4 +1,5 @@
-import React, { useState } from 'react';
+import * as React from 'react'; 
+import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Earning, Job, Application, Review } from '@shared/schema';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -261,19 +262,25 @@ const EarningsContent: React.FC<EarningsContentProps> = ({ userId }) => {
             onClick={() => {
               // Function to switch to the payments tab
               // First method - look for a button with text content of "Payments"
-              let paymentsTab = Array.from(document.querySelectorAll('button'))
-                .find(el => el.textContent?.includes('Payments'));
+              let paymentsTab: HTMLButtonElement | null = Array.from(document.querySelectorAll('button'))
+                .find(el => el.textContent?.includes('Payments')) as HTMLButtonElement | null;
               
               // Second method - look by attribute
               if (!paymentsTab) {
-                paymentsTab = document.querySelector('[title="Payments"]');
+                const tempTab = document.querySelector('[title="Payments"]');
+                if (tempTab) {
+                  paymentsTab = tempTab as HTMLButtonElement;
+                }
               }
               
               // Third method - look for CreditCard icon's parent button
               if (!paymentsTab) {
                 const creditCardIcon = document.querySelector('svg.lucide-credit-card');
                 if (creditCardIcon) {
-                  paymentsTab = creditCardIcon.closest('button');
+                  const tempBtn = creditCardIcon.closest('button');
+                  if (tempBtn) {
+                    paymentsTab = tempBtn;
+                  }
                 }
               }
               
@@ -284,11 +291,14 @@ const EarningsContent: React.FC<EarningsContentProps> = ({ userId }) => {
                 // Then switch to the setup subtab
                 setTimeout(() => {
                   // Try multiple selectors for the setup tab
-                  let setupTab = document.querySelector('[value="setup"]');
+                  let setupTab: Element | null = document.querySelector('[value="setup"]');
                   
                   if (!setupTab) {
-                    setupTab = Array.from(document.querySelectorAll('button'))
+                    const matchingButton = Array.from(document.querySelectorAll('button'))
                       .find(el => el.textContent?.includes('Setup') || el.textContent?.includes('Set up'));
+                    if (matchingButton) {
+                      setupTab = matchingButton;
+                    }
                   }
                   
                   if (setupTab) {
