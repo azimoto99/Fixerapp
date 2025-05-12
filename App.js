@@ -1,26 +1,7 @@
-import { registerRootComponent } from "expo";
-import React, { useEffect, useState } from "react";
-import * as Updates from "expo-updates";
-import App from "./client/src/App";
-import Constants from "expo-constants";
-
-const {
-  SESSION_SECRET,
-  DATABASE_URL,
-  PGDATABASE,
-  PGHOST,
-  PGPORT,
-  PGUSER,
-  PGPASSWORD,
-  VITE_STRIPE_PUBLIC_KEY,
-  STRIPE_SECRET_KEY,
-  GOOGLE_CLIENT_ID,
-  GOOGLE_CLIENT_SECRET,
-  STRIPE_WEBHOOK_SECRET,
-  OPENAI_API_KEY,
-} = Constants.expoConfig.extra;
-
-console.log(appVersion, appName, platform);
+import { registerRootComponent } from 'expo';
+import React, { useEffect, useState } from 'react';
+import * as Updates from 'expo-updates';
+import App from './client/src/App';
 
 // Create a wrapper component to handle updates
 function AppWrapper() {
@@ -30,8 +11,8 @@ function AppWrapper() {
   // Check for updates when app starts
   useEffect(() => {
     async function checkForUpdates() {
-      if (process.env.NODE_ENV === "development") {
-        console.log("Running in development mode, skipping updates check");
+      if (process.env.NODE_ENV === 'development') {
+        console.log('Running in development mode, skipping updates check');
         return;
       }
 
@@ -46,7 +27,7 @@ function AppWrapper() {
         }
       } catch (error) {
         // Just log errors, don't crash the app
-        console.log("Error checking for updates:", error);
+        console.log('Error checking for updates:', error);
       } finally {
         setIsCheckingForUpdate(false);
       }
@@ -60,37 +41,35 @@ function AppWrapper() {
     try {
       await Updates.reloadAsync();
     } catch (error) {
-      console.log("Error applying update:", error);
+      console.log('Error applying update:', error);
     }
   };
 
   // If an update is available, show a simple notification
   if (updateAvailable) {
     return (
-      <div
-        style={{
-          position: "absolute",
-          bottom: 20,
-          left: 0,
-          right: 0,
-          backgroundColor: "#4caf50",
-          color: "white",
-          padding: 16,
-          textAlign: "center",
-          zIndex: 9999,
-        }}
-      >
+      <div style={{
+        position: 'absolute', 
+        bottom: 20, 
+        left: 0, 
+        right: 0, 
+        backgroundColor: '#4caf50', 
+        color: 'white',
+        padding: 16,
+        textAlign: 'center',
+        zIndex: 9999
+      }}>
         <p>A new version is available!</p>
-        <button
+        <button 
           onClick={applyUpdate}
           style={{
-            backgroundColor: "white",
-            color: "#4caf50",
-            border: "none",
-            padding: "8px 16px",
+            backgroundColor: 'white', 
+            color: '#4caf50',
+            border: 'none',
+            padding: '8px 16px',
             borderRadius: 4,
-            fontWeight: "bold",
-            cursor: "pointer",
+            fontWeight: 'bold',
+            cursor: 'pointer'
           }}
         >
           Update Now
