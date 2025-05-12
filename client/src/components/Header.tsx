@@ -59,38 +59,23 @@ const Header = () => {
           
           {/* Desktop navigation - hidden on mobile */}
           <nav className="hidden md:ml-8 md:flex md:space-x-8">
-            {/* Links for all users */}
+            {/* Only show essential links for the app */}
             <NavLink href="/" isActive={location === '/'}>
               {user?.accountType === 'worker' ? 'Find Jobs' : 'Browse Workers'}
             </NavLink>
             
-            {/* Post Job link - available to all authenticated users */}
+            {/* Post Job link */}
             {user && (
               <NavLink href="/post-job" isActive={location === '/post-job'}>
                 Post a Job
               </NavLink>
             )}
             
-            {/* Links for workers only */}
-            {user?.accountType === 'worker' && (
-              <NavLink href="/applications" isActive={location === '/applications'}>
-                My Applications
+            {/* My Jobs link for job posters */}
+            {user?.accountType === 'poster' && (
+              <NavLink href="/my-jobs" isActive={location === '/my-jobs'}>
+                My Jobs
               </NavLink>
-            )}
-            
-            {/* Links for authenticated users */}
-            {user && (
-              <>
-                <NavLink 
-                  href={user.accountType === 'poster' ? '/my-jobs' : '/saved-jobs'} 
-                  isActive={location === (user.accountType === 'poster' ? '/my-jobs' : '/saved-jobs')}
-                >
-                  {user.accountType === 'poster' ? 'My Jobs' : 'Saved Jobs'}
-                </NavLink>
-                <NavLink href="/messages" isActive={location === '/messages'}>
-                  Messages
-                </NavLink>
-              </>
             )}
           </nav>
         </div>
@@ -112,119 +97,25 @@ const Header = () => {
             </div>
           </Link>
           
-          {/* Mobile menu button */}
-          <Sheet>
-            <SheetTrigger asChild>
-              <Button variant="ghost" size="icon" className="md:hidden">
-                <Menu className="h-5 w-5" />
-                <span className="sr-only">Open mobile menu</span>
-              </Button>
-            </SheetTrigger>
-            <SheetContent side="right" className="w-[280px] sm:w-[350px]">
-              <div className="py-6 px-2">
-                <div className="flex items-center justify-between mb-6">
-                  <div className="flex items-center">
-                    <svg className="h-8 w-8 text-emerald-600" viewBox="0 0 24 24" fill="currentColor">
-                      <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"></path>
-                    </svg>
-                    <span className="ml-2 text-xl font-bold text-emerald-600">Fixer</span>
-                  </div>
-                  <SheetClose asChild>
-                    <Button variant="ghost" size="icon">
-                      <X className="h-5 w-5" />
-                      <span className="sr-only">Close</span>
-                    </Button>
-                  </SheetClose>
-                </div>
-
-                {/* User info if logged in */}
-                {user && (
-                  <div className="flex items-center mb-6 pb-4 border-b">
-                    <Avatar className="h-10 w-10">
-                      <AvatarImage src={user.avatarUrl || undefined} alt={user.fullName} />
-                      <AvatarFallback>{user.fullName?.charAt(0) || 'U'}</AvatarFallback>
-                    </Avatar>
-                    <div className="ml-3">
-                      <h3 className="font-medium">{user.fullName}</h3>
-                      <p className="text-sm text-muted-foreground">{user.accountType === 'worker' ? 'Worker' : 'Job Poster'}</p>
-                    </div>
-                  </div>
-                )}
-
-                {/* Mobile navigation links */}
-                <nav className="flex flex-col space-y-4">
-                  <NavLink href="/" isActive={location === '/'}>
-                    {user?.accountType === 'worker' ? 'Find Jobs' : 'Browse Workers'}
-                  </NavLink>
-                  
-                  {user && (
-                    <NavLink href="/post-job" isActive={location === '/post-job'}>
-                      Post a Job
-                    </NavLink>
-                  )}
-                  
-                  {user?.accountType === 'worker' && (
-                    <NavLink href="/applications" isActive={location === '/applications'}>
-                      My Applications
-                    </NavLink>
-                  )}
-                  
-                  {user && (
-                    <>
-                      <NavLink 
-                        href={user.accountType === 'poster' ? '/my-jobs' : '/saved-jobs'} 
-                        isActive={location === (user.accountType === 'poster' ? '/my-jobs' : '/saved-jobs')}
-                      >
-                        {user.accountType === 'poster' ? 'My Jobs' : 'Saved Jobs'}
-                      </NavLink>
-                      <NavLink href="/messages" isActive={location === '/messages'}>
-                        Messages
-                      </NavLink>
-                      <NavLink href="/payments" isActive={location === '/payments'}>
-                        Payments
-                      </NavLink>
-                      <NavLink href="/notifications" isActive={location === '/notifications'}>
-                        Notifications
-                      </NavLink>
-                    </>
-                  )}
-                  
-                  {user ? (
-                    <div className="pt-4">
-                      <Button 
-                        variant="outline" 
-                        className="w-full justify-start" 
-                        onClick={handleLogout}
-                      >
-                        <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-2" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                          <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
-                          <polyline points="16 17 21 12 16 7"></polyline>
-                          <line x1="21" y1="12" x2="9" y2="12"></line>
-                        </svg>
-                        Logout
-                      </Button>
-                    </div>
-                  ) : (
-                    <div className="pt-4">
-                      <Link href="/login">
-                        <Button className="w-full">Login</Button>
-                      </Link>
-                      <Link href="/register">
-                        <Button variant="outline" className="w-full mt-2">Register</Button>
-                      </Link>
-                    </div>
-                  )}
-                </nav>
-              </div>
-            </SheetContent>
-          </Sheet>
-          
-          {/* User account section */}
+          {/* Mobile menu button - now uses UserDrawerV2 */}
           {user ? (
-            <div className="hidden md:block cursor-pointer" onClick={(e) => {
-              e.stopPropagation();
-              // The drawer is triggered by this click wrapper
-            }}>
+            <div className="md:hidden">
+              <UserDrawerV2>
+                <Button variant="ghost" size="icon">
+                  <Menu className="h-5 w-5" />
+                  <span className="sr-only">Open menu</span>
+                </Button>
+              </UserDrawerV2>
+            </div>
+          ) : (
+            <Link href="/login" className="md:hidden">
+              <Button size="sm" variant="default">Login</Button>
+            </Link>
+          )}
+          
+          {/* User account section - using UserDrawerV2 */}
+          {user ? (
+            <div className="hidden md:block">
               <UserDrawerV2>
                 <button className="flex items-center text-sm rounded-full focus:outline-none">
                   <Avatar className="h-8 w-8">
@@ -237,7 +128,7 @@ const Header = () => {
             </div>
           ) : (
             <Link href="/login" className="hidden md:block">
-              <div className="text-emerald-600 hover:text-emerald-700 font-medium cursor-pointer">Login</div>
+              <Button variant="outline" size="sm">Login</Button>
             </Link>
           )}
         </div>
