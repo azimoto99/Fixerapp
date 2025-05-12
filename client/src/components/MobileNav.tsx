@@ -2,7 +2,15 @@ import { Link, useLocation } from 'wouter';
 import { useAuth } from '@/hooks/use-auth';
 import { ThemeToggle } from '@/components/theme';
 
-const MobileNav: React.FC = () => {
+interface MobileNavProps {
+  selectedTab?: 'worker' | 'poster';
+  onTabChange?: (tab: string) => void;
+}
+
+const MobileNav: React.FC<MobileNavProps> = ({ 
+  selectedTab = 'worker',
+  onTabChange
+}) => {
   const [location] = useLocation();
   const { user } = useAuth();
   const accountType = user?.accountType || 'worker';

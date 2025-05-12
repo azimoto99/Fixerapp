@@ -74,15 +74,16 @@ const Header: React.FC<HeaderProps> = ({
         <div className="flex items-center space-x-4">
           {user && <NotificationPopover className="hidden md:flex" />}
           
-          {/* Posted Jobs Button (shown only when user is logged in and the toggle function is available) */}
+          {/* Posted Jobs Button - always visible when user is logged in */}
           {user && onTogglePostedJobs && (
-            <div className="hidden md:block">
+            <div>
               <Button 
                 onClick={onTogglePostedJobs}
-                className="bg-blue-600 text-white shadow hover:bg-blue-700 rounded-full w-10 h-10 flex items-center justify-center transition-all hover:scale-105 active:scale-95 p-0"
+                className="bg-blue-600 text-white shadow hover:bg-blue-700 rounded-full flex items-center justify-center transition-all hover:scale-105 active:scale-95 p-2 md:p-2"
                 aria-label="My Posted Jobs"
               >
                 <Briefcase className="h-5 w-5" />
+                <span className="ml-1 hidden md:inline">My Jobs</span>
                 {postedJobsCount > 0 && (
                   <span className="absolute -top-1 -right-1 bg-red-500 text-white rounded-full w-5 h-5 flex items-center justify-center text-xs">
                     {postedJobsCount}
