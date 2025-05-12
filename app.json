@@ -49,6 +49,7 @@
       "eas": {
         "projectId": "c2dd5237-478c-4d38-b4c7-74054caed1f2"
       },
+      "owner": "azimoto9"
       "expo-updates": {
         "requestHeaders": {
           "expo-channel-name": "main"
