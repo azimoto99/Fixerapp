@@ -62,12 +62,7 @@ const Header: React.FC<HeaderProps> = ({
         <div className="flex items-center">
           <Link href="/">
             <div className="flex-shrink-0 flex items-center cursor-pointer">
-              <div className="h-8 w-8 flex items-center justify-center">
-                <svg width="32" height="32" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
-                  <path d="M16 2C8.28 2 2 8.28 2 16C2 23.72 8.28 30 16 30C23.72 30 30 23.72 30 16C30 8.28 23.72 2 16 2Z" fill="black"/>
-                  <path d="M22 10L18 14L20 16L14 22L12 20L18 14L16 12L10 18L12 20L10 22L8 20L10 18L8 16L14 10L16 12L14 14L16 16L20 12L18 10L20 8L22 10Z" fill="#4ADE80"/>
-                </svg>
-              </div>
+              <img src="/fixer-pin-logo.svg" alt="Fixer Logo" className="h-8 w-auto" />
               <span className="ml-2 text-xl font-bold text-emerald-600">Fixer</span>
             </div>
           </Link>
