@@ -2,19 +2,9 @@
 
 ![Fixer Logo](./public/fixer-pin-logo.svg)
 
-**🚀 [Live Prototype Available at fixer.gg](https://fixer.gg)**
-
 ## Overview
 
 Fixer is a cutting-edge gig economy platform that revolutionizes job matching, collaboration, and payment workflows for freelancers and employers. It focuses on intuitive user experience and seamless professional connections, featuring advanced geospatial job discovery with proximity-based recommendations, real-time updates, and secure payment processing through Stripe.
-
-### Try the Prototype
-
-Visit our live prototype at [fixer.gg](https://fixer.gg) to experience the platform's key features including:
-- Interactive job map with location-based discovery
-- Complete job posting and application workflow
-- Stripe Connect payment integration
-- Mobile-optimized interface
 
 ## Key Features
 
@@ -39,7 +29,6 @@ Visit our live prototype at [fixer.gg](https://fixer.gg) to experience the platf
 - **State Management**: TanStack Query (React Query)
 - **Real-time Updates**: WebSockets for notifications
 - **UI Components**: Shadcn/UI components
-- **OTA Updates**: Expo Updates for seamless app updates without store approvals
 
 ## Documentation
 
@@ -50,7 +39,6 @@ Comprehensive documentation is available in the `docs` directory:
 - [Environment Configuration](./docs/environment-configuration.md) - Setup and configuration guide
 - [Android Build Guide](./docs/android-build-guide.md) - Build the app for Android devices
 - [Expo Android Guide](./docs/expo-android-guide.md) - Connect to Android with Expo Go
-- [Expo Updates Guide](./docs/expo-updates-guide.md) - How to use OTA updates
 
 ## Getting Started
 
@@ -148,44 +136,6 @@ The resulting APK will be available at `./fixer-app.apk` for installation on And
 ## Contributing
 
 Contributions are welcome! Please read our [Contributing Guidelines](./CONTRIBUTING.md) for details on the process for submitting pull requests.
-
-## Deployment
-
-### Production Version
-
-The production version of Fixer is deployed at [fixer.gg](https://fixer.gg). This deployment includes:
-
-- Full production environment with optimized builds
-- Integrated Stripe Connect payment processing
-- PostgreSQL database with geospatial capabilities
-- Mobile-optimized experience
-- Secure HTTPS connections
-
-### Deployment Options
-
-Fixer can be deployed using several methods:
-
-1. **Standard Web Deployment**:
-   - Build using `./build-for-deploy.sh`
-   - Deploy the `dist` directory to your web server
-   - Configure environment variables per [deployment guide](./deployment-guide.md)
-
-2. **Mobile App Deployment**:
-   - Build Android APK using `./build-android.sh`
-   - Distribute via Google Play Store or direct download
-   - iOS version can be built using Expo services
-
-3. **GitHub Integration with Expo** (recommended):
-   - GitHub repository is connected to Expo for automatic builds
-   - Every commit triggers a new build in the Expo Cloud
-   - Use Expo's OTA update system for seamless updates
-   - Users receive updates automatically without app store approvals
-
-4. **Docker Deployment** (coming soon):
-   - Build and run the Docker image
-   - Configure with environment variables
-
-See [deployment-guide.md](./deployment-guide.md), [mobile-deployment-guide.md](./mobile-deployment-guide.md), and [expo-updates-guide.md](./docs/expo-updates-guide.md) for detailed instructions.
 
 ## License
 
