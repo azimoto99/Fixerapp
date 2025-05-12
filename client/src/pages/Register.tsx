@@ -87,7 +87,7 @@ export default function Register({ onModeChange }: RegisterProps) {
         <div className="flex justify-center">
           <div className="bg-gray-100 p-5 rounded-xl shadow-sm">
             <img 
-              src="/src/assets/logo.png" 
+              src={logoImg} 
               alt="Fixer" 
               className="h-28 w-auto" 
             />
