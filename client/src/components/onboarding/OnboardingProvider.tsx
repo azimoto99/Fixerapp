@@ -1,4 +1,5 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import * as React from 'react';
+import { createContext, useContext, useState, useEffect } from 'react';
 import GuidedTooltip from './GuidedTooltip';
 import OnboardingTour, { TourStep } from './OnboardingTour';
 import { useAuth } from '@/hooks/use-auth';
