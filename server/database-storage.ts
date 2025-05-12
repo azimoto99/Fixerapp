@@ -1,4 +1,4 @@
-import { eq, and, like, desc, or, asc } from 'drizzle-orm';
+import { eq, and, like, notLike, desc, or, asc } from 'drizzle-orm';
 import { db } from './db';
 import { IStorage } from './storage';
 import {
@@ -761,6 +761,19 @@ export class DatabaseStorage implements IStorage {
   async getPaymentByTransactionId(transactionId: string): Promise<Payment | undefined> {
     const [payment] = await db.select().from(payments).where(eq(payments.transactionId, transactionId));
     return payment;
+  }
+  
+  async getPaymentByJobId(jobId: number): Promise<Payment | undefined> {
+    // Find the most recent payment for this job (not a refund)
+    // Get all payments for this job first
+    const jobPayments = await db.select()
+      .from(payments)
+      .where(eq(payments.jobId, jobId))
+      .orderBy(desc(payments.createdAt));
+      
+    // Filter out refunds in JavaScript
+    const nonRefundPayment = jobPayments.find(payment => !payment.type.includes('refund'));
+    return nonRefundPayment;
   }
 
   async getPaymentsForUser(userId: number): Promise<Payment[]> {
