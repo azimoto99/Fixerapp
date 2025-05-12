@@ -1,8 +1,9 @@
 // App.expo.js - Special Expo entry point for Expo Go
 
-import { View, Text, StyleSheet, ScrollView, Linking, TouchableOpacity } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, Linking, TouchableOpacity, Alert } from 'react-native';
 import React, { useEffect, useState } from 'react';
 import { StatusBar } from 'expo-status-bar';
+import * as Updates from 'expo-updates';
 
 // Get the current Replit URL
 const getWebUrl = () => {
@@ -19,9 +20,51 @@ export default function App() {
   const webUrl = getWebUrl();
 
   useEffect(() => {
+    // Check for app updates first
+    const checkForUpdates = async () => {
+      if (!__DEV__) {
+        try {
+          const update = await Updates.checkForUpdateAsync();
+          
+          if (update.isAvailable) {
+            // Fetch the update
+            await Updates.fetchUpdateAsync();
+            
+            // Alert user about the update
+            Alert.alert(
+              "Update Available",
+              "A new version is available. Would you like to update now?",
+              [
+                {
+                  text: "Later",
+                  style: "cancel"
+                },
+                { 
+                  text: "Update", 
+                  onPress: async () => {
+                    try {
+                      await Updates.reloadAsync();
+                    } catch (err) {
+                      console.error("Failed to apply update:", err);
+                    }
+                  }
+                }
+              ]
+            );
+          }
+        } catch (err) {
+          console.error("Error checking for updates:", err);
+        }
+      }
+    };
+
     // Check if the web app is available
     const checkWebApp = async () => {
       try {
+        // Check for updates first
+        await checkForUpdates();
+        
+        // Then check web connection
         const response = await fetch(webUrl);
         if (response.ok) {
           setLoading(false);
@@ -91,6 +134,11 @@ export default function App() {
           <Text style={styles.infoText}>
             3. Certain features like notifications and location services will work better when you add the
             web app to your home screen.
+          </Text>
+        </View>
+        <View style={styles.versionInfo}>
+          <Text style={styles.versionText}>
+            Version 1.0.0 {!__DEV__ ? `(Update ID: ${Updates.updateId?.slice(0, 8) || 'none'})` : '(Dev Mode)'}
           </Text>
         </View>
       </ScrollView>
@@ -224,5 +272,16 @@ const styles = StyleSheet.create({
     color: '#666',
     marginBottom: 8,
     lineHeight: 22,
+  },
+  versionInfo: {
+    marginTop: 20,
+    alignItems: 'center',
+    paddingVertical: 15,
+    borderTopWidth: 1,
+    borderTopColor: '#f0f0f0',
+  },
+  versionText: {
+    fontSize: 12,
+    color: '#999',
   },
 });

@@ -1,25 +1,42 @@
 {
   "cli": {
-    "version": ">= 3.15.1"
+    "version": ">= 3.15.1",
+    "requireCommit": false,
+    "appVersionSource": "remote"
   },
   "build": {
     "development": {
       "developmentClient": true,
-      "distribution": "internal"
+      "distribution": "internal",
+      "channel": "development"
     },
     "preview": {
       "distribution": "internal",
+      "channel": "preview",
       "android": {
         "buildType": "apk"
       }
     },
     "production": {
+      "channel": "production",
       "android": {
         "buildType": "app-bundle"
+      }
+    },
+    "androidApk": {
+      "channel": "production",
+      "android": {
+        "buildType": "apk"
       }
     }
   },
   "submit": {
     "production": {}
+  },
+  "updates": {
+    "url": "https://u.expo.dev/fixer-app",
+    "requestHeaders": {
+      "expo-channel-name": "main"
+    }
   }
 }
