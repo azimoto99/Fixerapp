@@ -33,10 +33,4 @@
   "submit": {
     "production": {}
   },
-  "updates": {
-    "url": "https://u.expo.dev/fixer-app",
-    "requestHeaders": {
-      "expo-channel-name": "main"
-    }
-  }
 }
