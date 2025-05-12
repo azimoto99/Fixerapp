@@ -3,7 +3,7 @@ import type { CapacitorConfig } from '@capacitor/cli';
 const config: CapacitorConfig = {
   appId: 'com.fixerapp.app',
   appName: 'Fixer',
-  webDir: 'dist/public',
+  webDir: 'dist/client',
   server: {
     androidScheme: 'https',
     iosScheme: 'https',

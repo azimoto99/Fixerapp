@@ -45,7 +45,27 @@ Comprehensive documentation is available in the `docs` directory:
 - Node.js (v18+)
 - PostgreSQL database
 - Stripe account for payment processing
-- Google Developer account (for OAuth)
+- Android SDK (for building mobile app)
+
+### Mobile App Builds
+
+You can build Fixer as a native Android application using our build script:
+
+```bash
+# Make the script executable
+chmod +x build-android.sh
+
+# Run the build script
+./build-android.sh
+```
+
+The script will:
+1. Build the web application
+2. Initialize or update the Android project
+3. Build an Android APK file
+4. Create a QR code for downloading the APK (optional)
+
+The resulting APK will be available at `./fixer-app.apk` for installation on Android devices.
 
 ### Installation
 
