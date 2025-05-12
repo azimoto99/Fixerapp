@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import Header from '@/components/Header';
 import MobileNav from '@/components/MobileNav';
@@ -30,7 +30,7 @@ import { apiRequest } from '@/lib/queryClient';
 import { useToast } from '@/hooks/use-toast';
 
 // Worker Dashboard Component
-const WorkerDashboard = ({ showPostedJobs }: { showPostedJobs: boolean }) => {
+const WorkerDashboard = () => {
   // Keep all useState calls together and in the same order every render
   const [view, setView] = useState<'list' | 'map'>('map');
   const [selectedJob, setSelectedJob] = useState<Job | undefined>(undefined);
@@ -52,12 +52,6 @@ const WorkerDashboard = ({ showPostedJobs }: { showPostedJobs: boolean }) => {
   }, searchParams);
   const { toast } = useToast();
   const queryClient = useQueryClient();
-  
-  // Get jobs posted by this worker (if any)
-  const { data: postedJobs, isLoading: isLoadingPostedJobs } = useQuery<Job[]>({
-    queryKey: ['/api/jobs', { posterId: user?.id }],
-    enabled: !!user?.id
-  });
   
   // Job cancellation mutation
   const cancelJobMutation = useMutation({
@@ -126,13 +120,6 @@ const WorkerDashboard = ({ showPostedJobs }: { showPostedJobs: boolean }) => {
   const handleViewChange = (newView: 'list' | 'map') => {
     setView(newView);
   };
-  
-  const togglePostedJobs = () => {
-    setShowPostedJobs(!showPostedJobs);
-  };
-  
-  // We no longer auto-select the first job to avoid unwanted drawer opening
-  // This gives users full control over when job details are displayed
 
   if (isLoading) {
     return (
@@ -141,126 +128,6 @@ const WorkerDashboard = ({ showPostedJobs }: { showPostedJobs: boolean }) => {
       </div>
     );
   }
-  
-  // Jobs Posted by Worker Drawer
-  const PostedJobsDrawer = () => {
-    if (!showPostedJobs) return null;
-    
-    return (
-      <div className="fixed top-0 right-0 h-full w-80 bg-card shadow-lg z-[var(--z-drawer)] transform transition-transform duration-300 animate-in slide-in-from-right">
-        {/* X button on the left side */}
-        <button 
-          onClick={togglePostedJobs}
-          className="absolute -left-12 top-4 bg-blue-600 text-white shadow-lg rounded-full w-10 h-10 flex items-center justify-center transform transition-all hover:scale-105 active:scale-95 p-0"
-          aria-label="Close posted jobs panel"
-        >
-          <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-            <line x1="18" y1="6" x2="6" y2="18"></line>
-            <line x1="6" y1="6" x2="18" y2="18"></line>
-          </svg>
-        </button>
-        
-        <div className="bg-blue-600 text-white px-4 py-3 border-b border-blue-700">
-          <div className="flex items-center justify-between">
-            <h3 className="text-lg font-medium">My Posted Jobs</h3>
-          </div>
-        </div>
-        
-        <div className="p-4 overflow-y-auto" style={{ maxHeight: 'calc(100vh - 60px)' }}>
-          {isLoadingPostedJobs ? (
-            <div className="flex justify-center items-center py-8">
-              <Loader2 className="h-6 w-6 animate-spin text-primary" />
-            </div>
-          ) : postedJobs && postedJobs.length > 0 ? (
-            <div className="space-y-3">
-              {postedJobs.map((job: Job) => (
-                <div key={job.id} className="border border-border rounded-md p-3 hover:bg-secondary/30 transition-colors">
-                  <h4 className="font-medium text-foreground">{job.title}</h4>
-                  <p className="text-sm text-muted-foreground mt-1 line-clamp-2">{job.description}</p>
-                  <div className="flex items-center justify-between mt-2">
-                    <span className={`px-2 py-0.5 text-xs rounded-full ${
-                      job.status === 'open' ? 'bg-emerald-600 text-white' : 
-                      job.status === 'assigned' ? 'bg-emerald-700 text-white' : 
-                      job.status === 'completed' ? 'bg-emerald-800 text-white' :
-                      'bg-emerald-600 text-white'
-                    }`}>
-                      {job.status ? job.status.charAt(0).toUpperCase() + job.status.slice(1) : 'Open'}
-                    </span>
-                    {job.paymentAmount && (
-                      <span className="text-xs text-muted-foreground">
-                        ${job.paymentAmount} {job.paymentType === 'hourly' ? '/hr' : ''}
-                      </span>
-                    )}
-                  </div>
-                  <div className="mt-3 flex gap-2">
-                    <Button 
-                      size="sm" 
-                      variant="default" 
-                      className="flex-1"
-                      onClick={(e) => {
-                        e.preventDefault();
-                        // Open the job card instead of navigating to detail page
-                        setSelectedJob(job);
-                      }}
-                    >
-                      <i className="ri-settings-4-line mr-1"></i> Manage
-                    </Button>
-                    <Button 
-                      size="sm" 
-                      variant="destructive" 
-                      className="flex-1"
-                      onClick={(e) => {
-                        e.preventDefault();
-                        // Show cancel confirmation dialog
-                        setCancelJobId(job.id);
-                        setShowCancelDialog(true);
-                      }}
-                    >
-                      <i className="ri-close-circle-line mr-1"></i> Cancel Job
-                    </Button>
-                  </div>
-                </div>
-              ))}
-            </div>
-          ) : (
-            <div className="text-center py-8">
-              <div className="w-16 h-16 bg-muted rounded-full flex items-center justify-center mx-auto mb-4">
-                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-muted-foreground">
-                  <path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"></path>
-                  <polyline points="14 2 14 8 20 8"></polyline>
-                  <line x1="12" y1="18" x2="12" y2="12"></line>
-                  <line x1="9" y1="15" x2="15" y2="15"></line>
-                </svg>
-              </div>
-              <h3 className="text-lg font-medium mb-2">No Jobs Posted Yet</h3>
-              <p className="text-muted-foreground mb-6">Create your first job listing to start finding workers</p>
-              <Button 
-                className="bg-primary hover:bg-primary/90"
-                onClick={() => {
-                  togglePostedJobs(); // Close the drawer first
-                  setTimeout(() => {
-                    // Use the existing NewJobButton functionality
-                    const newJobBtn = document.querySelector('[aria-label="Post a new job"]');
-                    if (newJobBtn) {
-                      (newJobBtn as HTMLElement).click();
-                    }
-                  }, 300);
-                }}
-              >
-                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="mr-2">
-                  <line x1="12" y1="5" x2="12" y2="19"></line>
-                  <line x1="5" y1="12" x2="19" y2="12"></line>
-                </svg>
-                Post Your First Job
-              </Button>
-            </div>
-          )}
-        </div>
-      </div>
-    );
-  };
-  
-  // PostedJobsButton has been moved to the Header component
 
   return (
     <>
@@ -274,8 +141,6 @@ const WorkerDashboard = ({ showPostedJobs }: { showPostedJobs: boolean }) => {
             onSelectJob={handleSelectJob}
             searchCoordinates={searchParams.coordinates}
           />
-          
-          {/* PostedJobsButton has been moved to the Header component */}
           
           {/* Add the NewJobButton component to allow users to post jobs */}
           <NewJobButton />
@@ -351,7 +216,7 @@ const PosterDashboard = () => {
       </div>
 
       {/* When no jobs exist */}
-      {jobs.length === 0 ? (
+      {!jobs || jobs.length === 0 ? (
         <Card className="w-full text-center py-8">
           <CardContent>
             <div className="mx-auto w-16 h-16 rounded-full bg-muted text-muted-foreground flex items-center justify-center mb-4">
@@ -389,15 +254,29 @@ const PosterDashboard = () => {
                   )}
                 </div>
               </CardHeader>
-              <CardContent>
-                <p className="text-sm text-muted-foreground mb-4 line-clamp-2">{job.description}</p>
-                <div className="flex space-x-2">
-                  <Button variant="default" className="flex-1 text-xs" asChild>
-                    <a href={`/jobs/${job.id}`}>
-                      Manage
-                    </a>
+              <CardContent className="pb-4">
+                <p className="text-sm text-muted-foreground mb-2 line-clamp-2">
+                  {job.description}
+                </p>
+                <div className="mt-3">
+                  <Button 
+                    variant="outline" 
+                    size="sm" 
+                    className="mr-2"
+                    onClick={() => {
+                      // Navigate to job detail page
+                      window.location.href = `/job/${job.id}`;
+                    }}
+                  >
+                    Manage
                   </Button>
-                  <Button variant="destructive" className="flex-1 text-xs">
+                  <Button 
+                    variant="destructive" 
+                    size="sm"
+                    onClick={() => {
+                      // Code for cancelling or removing job would go here
+                    }}
+                  >
                     Cancel Job
                   </Button>
                 </div>
@@ -425,7 +304,6 @@ export default function Home() {
     setShowPostedJobs(!showPostedJobs);
   };
 
-  // Add role selection at the top
   return (
     <div className="flex flex-col min-h-screen">
       <Header
@@ -437,7 +315,7 @@ export default function Home() {
 
       <main className="flex-1 container max-w-7xl mx-auto px-2 sm:px-4">
         {selectedRole === 'worker' ? (
-          <WorkerDashboard showPostedJobs={showPostedJobs} />
+          <WorkerDashboard />
         ) : (
           <PosterDashboard />
         )}
@@ -445,11 +323,14 @@ export default function Home() {
 
       {/* Only show mobile nav when not in worker map view to avoid cluttering the map interface */}
       {!(selectedRole === 'worker') && (
-        <MobileNav selectedTab={selectedRole === 'worker' ? 'worker' : 'poster'} onTabChange={(tab) => {
-          if (tab === 'worker' || tab === 'poster') {
-            setSelectedRole(tab);
-          }
-        }} />
+        <MobileNav 
+          selectedTab={selectedRole} 
+          onTabChange={(tab: any) => {
+            if (tab === 'worker' || tab === 'poster') {
+              setSelectedRole(tab);
+            }
+          }} 
+        />
       )}
       
       {/* Posted Jobs Drawer */}
