@@ -1,4 +1,4 @@
-import * as React from "react";
+import React from "@/lib/ensure-react";
 import { createContext, ReactNode, useContext } from "react";
 import {
   useQuery,

@@ -1,3 +1,4 @@
+import React from '@/lib/ensure-react';
 import { useState } from 'react';
 import { Link } from 'wouter';
 import { useNotifications } from '@/hooks/use-notifications';

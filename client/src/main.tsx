@@ -1,4 +1,4 @@
-import * as React from "react";
+import React from "@/lib/ensure-react";
 import { createRoot } from "react-dom/client";
 import App from "./App";
 import "./index.css";
