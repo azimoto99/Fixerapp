@@ -50,9 +50,7 @@ const Header = () => {
         <div className="flex items-center">
           <Link href="/">
             <div className="flex-shrink-0 flex items-center cursor-pointer">
-              <svg className="h-8 w-8 text-emerald-600" viewBox="0 0 24 24" fill="currentColor">
-                <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"></path>
-              </svg>
+              <img src="/favicon.png" alt="Fixer Logo" className="h-8 w-8" />
               <span className="ml-2 text-xl font-bold text-emerald-600">Fixer</span>
             </div>
           </Link>
