@@ -1,29 +1,18 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Input } from "@/components/ui/input";
-import { 
-  Command,
-  CommandEmpty,
-  CommandGroup,
-  CommandInput,
-  CommandItem,
-  CommandList
-} from "@/components/ui/command";
 import { MapPin } from "lucide-react";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import mapboxgl from 'mapbox-gl';
+import MapboxGeocoder from '@mapbox/mapbox-gl-geocoder';
+import '@mapbox/mapbox-gl-geocoder/dist/mapbox-gl-geocoder.css';
+import 'mapbox-gl/dist/mapbox-gl.css';
 
-// Common US address suggestions for demo purposes
-const COMMON_ADDRESSES = [
-  { address: "123 Main St, New York, NY 10001", lat: 40.7128, lng: -74.0060 },
-  { address: "456 Market St, San Francisco, CA 94103", lat: 37.7749, lng: -122.4194 },
-  { address: "789 Michigan Ave, Chicago, IL 60611", lat: 41.8781, lng: -87.6298 },
-  { address: "101 Pine St, Seattle, WA 98101", lat: 47.6062, lng: -122.3321 },
-  { address: "202 Peachtree St, Atlanta, GA 30303", lat: 33.7490, lng: -84.3880 },
-  { address: "303 South St, Boston, MA 02111", lat: 42.3601, lng: -71.0589 },
-  { address: "404 Congress Ave, Austin, TX 78701", lat: 30.2672, lng: -97.7431 },
-  { address: "505 Lincoln Rd, Miami Beach, FL 33139", lat: 25.7617, lng: -80.1918 },
-  { address: "606 Canal St, New Orleans, LA 70130", lat: 29.9511, lng: -90.0715 },
-  { address: "707 Pike St, Seattle, WA 98101", lat: 47.6062, lng: -122.3321 },
-];
+// Set the access token from environment variable
+const accessToken = import.meta.env.VITE_MAPBOX_ACCESS_TOKEN;
+if (accessToken) {
+  mapboxgl.accessToken = accessToken;
+} else {
+  console.error('Mapbox access token is missing!');
+}
 
 interface AddressAutocompleteInputProps {
   value: string;
@@ -38,80 +27,116 @@ export function AddressAutocompleteInput({
   placeholder = "Enter an address",
   className = ""
 }: AddressAutocompleteInputProps) {
-  const [open, setOpen] = useState(false);
+  const containerRef = useRef<HTMLDivElement>(null);
+  const geocoderRef = useRef<MapboxGeocoder | null>(null);
   const [inputValue, setInputValue] = useState(value);
-  const [suggestions, setSuggestions] = useState<typeof COMMON_ADDRESSES>([]);
-  const inputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
-    setInputValue(value);
+    if (!containerRef.current) return;
+
+    // Clear any existing controls
+    if (containerRef.current.firstChild) {
+      containerRef.current.innerHTML = '';
+    }
+
+    // Create the geocoder instance
+    const geocoder = new MapboxGeocoder({
+      accessToken: mapboxgl.accessToken,
+      types: 'address,place,neighborhood',
+      placeholder: placeholder,
+      countries: 'us', // Limit to United States
+      mapboxgl: mapboxgl,
+      marker: false
+    });
+
+    // Store reference for cleanup
+    geocoderRef.current = geocoder;
+
+    // Add to container
+    // We need to pass a dummy element since onAdd requires an HTMLElement in newer Mapbox versions
+    const dummyMap = document.createElement('div');
+    containerRef.current.appendChild(geocoder.onAdd(dummyMap as any));
+
+    // Set initial value
+    if (value) {
+      geocoder.setInput(value);
+    }
+
+    // Handle result selection
+    geocoder.on('result', (event) => {
+      const result = event.result;
+      const address = result.place_name;
+      const [lng, lat] = result.center;
+      
+      setInputValue(address);
+      onChange(address, lat, lng);
+    });
+
+    // Handle clear event
+    geocoder.on('clear', () => {
+      setInputValue('');
+      onChange('');
+    });
+
+    // Handle manual input
+    geocoder.on('loading', (e) => {
+      const query = e.query;
+      if (query && query !== inputValue) {
+        setInputValue(query);
+        onChange(query);
+      }
+    });
+
+    return () => {
+      // Cleanup
+      if (geocoderRef.current && containerRef.current?.firstChild) {
+        geocoderRef.current = null;
+      }
+    };
+  }, []);
+
+  // Update when value prop changes
+  useEffect(() => {
+    if (geocoderRef.current && value !== inputValue) {
+      geocoderRef.current.setInput(value);
+      setInputValue(value);
+    }
   }, [value]);
 
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const value = e.target.value;
-    setInputValue(value);
-    
-    // Filter suggestions based on input
-    if (value.length > 2) {
-      const filtered = COMMON_ADDRESSES.filter(item => 
-        item.address.toLowerCase().includes(value.toLowerCase())
-      );
-      setSuggestions(filtered);
-      setOpen(true);
-    } else {
-      setSuggestions([]);
-      setOpen(false);
-    }
-    
-    // Call parent onChange with just the address string
-    onChange(value);
-  };
-
-  const handleSelectAddress = (item: typeof COMMON_ADDRESSES[0]) => {
-    setInputValue(item.address);
-    // Call parent onChange with address, lat, and lng
-    onChange(item.address, item.lat, item.lng);
-    setOpen(false);
-  };
-
   return (
-    <div className="relative w-full">
-      <Popover open={open} onOpenChange={setOpen}>
-        <PopoverTrigger asChild>
-          <div className="flex items-center w-full">
-            <MapPin className="mr-2 h-4 w-4 text-muted-foreground" />
-            <Input
-              ref={inputRef}
-              value={inputValue}
-              onChange={handleInputChange}
-              placeholder={placeholder}
-              className={className}
-              onFocus={() => inputValue.length > 2 && setSuggestions.length > 0 && setOpen(true)}
-            />
-          </div>
-        </PopoverTrigger>
-        {suggestions.length > 0 && (
-          <PopoverContent className="p-0 w-[300px] sm:w-[400px]" align="start">
-            <Command>
-              <CommandList>
-                <CommandEmpty>No matches found</CommandEmpty>
-                <CommandGroup>
-                  {suggestions.map((item, index) => (
-                    <CommandItem
-                      key={index}
-                      value={item.address}
-                      onSelect={() => handleSelectAddress(item)}
-                    >
-                      <MapPin className="mr-2 h-4 w-4" />
-                      <span>{item.address}</span>
-                    </CommandItem>
-                  ))}
-                </CommandGroup>
-              </CommandList>
-            </Command>
-          </PopoverContent>
-        )}
-      </Popover>
+    <div className="w-full">
+      {/* Wrapper for styling */}
+      <div className="flex items-center w-full">
+        <MapPin className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground z-10 pointer-events-none" />
+        <div 
+          ref={containerRef}
+          className={`w-full mapbox-geocoder-custom ${className}`}
+        />
+      </div>
+      
+      {/* Add custom styling for the geocoder */}
+      <style jsx global>{`
+        .mapbox-geocoder-custom .mapboxgl-ctrl-geocoder {
+          width: 100%;
+          max-width: 100%;
+          box-shadow: none;
+          border: 1px solid var(--input-border);
+          border-radius: var(--radius);
+        }
+        
+        .mapbox-geocoder-custom .mapboxgl-ctrl-geocoder input {
+          padding-left: 2.5rem;
+          height: 40px;
+        }
+        
+        .mapbox-geocoder-custom .mapboxgl-ctrl-geocoder--icon-search {
+          display: none;
+        }
+        
+        .mapbox-geocoder-custom .mapboxgl-ctrl-geocoder--button {
+          background: transparent;
+        }
+      `}</style>
     </div>
   );
 }
