@@ -1,6 +1,6 @@
 import * as React from 'react';
 import { useState, useEffect, createContext, useContext } from 'react';
-import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { useMutation, useQueryClient, useQuery } from '@tanstack/react-query';
 import { apiRequest } from '@/lib/queryClient';
 import { useToast } from '@/hooks/use-toast';
 import { Elements, PaymentElement, useStripe, useElements } from '@stripe/react-stripe-js';
@@ -189,6 +189,9 @@ export const PaymentDialogProvider: React.FC<{ children: React.ReactNode }> = ({
     // Store callbacks
     setPaymentMethodSelectCallbacks(options);
     
+    // Fetch payment methods if needed
+    queryClient.invalidateQueries({ queryKey: ['payment-methods'] });
+    
     // Then open payment methods dialog
     setTimeout(() => {
       setIsSelectPaymentMethodOpen(true);
@@ -240,6 +243,18 @@ export const PaymentDialogProvider: React.FC<{ children: React.ReactNode }> = ({
       document.body.style.overflow = ''; // Clean up
     };
   }, [isAddPaymentMethodOpen, isSelectPaymentMethodOpen]);
+
+  // Payment methods query 
+  const paymentMethodsQuery = useQuery({
+    queryKey: ['payment-methods'],
+    queryFn: async () => {
+      const response = await apiRequest('GET', '/api/stripe/payment-methods');
+      if (!response.ok) {
+        throw new Error('Failed to load payment methods');
+      }
+      return response.json();
+    }
+  });
 
   return (
     <PaymentDialogContext.Provider value={{ openAddPaymentMethod, openPaymentMethodsDialog }}>
@@ -297,47 +312,71 @@ export const PaymentDialogProvider: React.FC<{ children: React.ReactNode }> = ({
           
           {/* Payment methods list */}
           <div className="py-4">
-            {/* We'll use the PaymentMethodsList component here */}
             <div className="space-y-4">
-              <Button
-                onClick={() => {
-                  // For now, simulate selecting a payment method with a hardcoded ID
-                  // In a real app, this would come from a list of the user's saved payment methods
-                  handlePaymentMethodSelect('pm_mock_123456789');
-                }}
-                className="w-full justify-start text-left font-normal"
-                variant="outline"
-              >
-                <span className="flex items-center">
-                  <svg
-                    className="h-4 w-6 mr-2"
-                    viewBox="0 0 40 24"
-                    fill="none"
-                    xmlns="http://www.w3.org/2000/svg"
+              {paymentMethodsQuery.isLoading ? (
+                <div className="flex justify-center py-4">
+                  <Loader2 className="h-6 w-6 animate-spin text-primary" />
+                </div>
+              ) : paymentMethodsQuery.isError ? (
+                <div className="text-center py-4">
+                  <p className="text-sm text-muted-foreground">Failed to load payment methods.</p>
+                  <Button 
+                    variant="outline" 
+                    size="sm" 
+                    onClick={() => paymentMethodsQuery.refetch()} 
+                    className="mt-2"
                   >
-                    <rect width="40" height="24" rx="4" fill="#252525" />
-                    <path
-                      fillRule="evenodd"
-                      clipRule="evenodd"
-                      d="M14.5 11.75H11.75V15.25H14.5V11.75Z"
-                      fill="#FF5F00"
-                    />
-                    <path
-                      d="M12.125 8.5C10.8 8.5 9.625 9.05 8.75 9.925C9.7 10.875 10.25 12.2 10.25 13.525C10.25 14.85 9.7 16.175 8.75 17.125C9.625 18 10.8 18.55 12.125 18.55C14.775 18.55 16.75 16.3 16.75 13.525C16.75 10.75 14.775 8.5 12.125 8.5Z"
-                      fill="#EB001B"
-                    />
-                    <path
-                      d="M27.875 8.5C26.55 8.5 25.375 9.05 24.5 9.925C25.45 10.875 26 12.2 26 13.525C26 14.85 25.45 16.175 24.5 17.125C25.375 18 26.55 18.55 27.875 18.55C30.525 18.55 32.5 16.3 32.5 13.525C32.5 10.75 30.525 8.5 27.875 8.5Z"
-                      fill="#F79E1B"
-                    />
-                  </svg>
-                  
-                  <span>
-                    <span className="font-medium">Credit Card</span>
-                    <span className="text-muted-foreground ml-2">•••• 4242</span>
-                  </span>
-                </span>
-              </Button>
+                    Try Again
+                  </Button>
+                </div>
+              ) : (
+                <>
+                  {paymentMethodsQuery.data?.length > 0 ? (
+                    paymentMethodsQuery.data.map((method: any) => (
+                      <Button
+                        key={method.id}
+                        onClick={() => handlePaymentMethodSelect(method.id)}
+                        className="w-full justify-start text-left font-normal"
+                        variant="outline"
+                      >
+                        <span className="flex items-center">
+                          <svg
+                            className="h-4 w-6 mr-2"
+                            viewBox="0 0 40 24"
+                            fill="none"
+                            xmlns="http://www.w3.org/2000/svg"
+                          >
+                            <rect width="40" height="24" rx="4" fill="#252525" />
+                            <path
+                              fillRule="evenodd"
+                              clipRule="evenodd"
+                              d="M14.5 11.75H11.75V15.25H14.5V11.75Z"
+                              fill="#FF5F00"
+                            />
+                            <path
+                              d="M12.125 8.5C10.8 8.5 9.625 9.05 8.75 9.925C9.7 10.875 10.25 12.2 10.25 13.525C10.25 14.85 9.7 16.175 8.75 17.125C9.625 18 10.8 18.55 12.125 18.55C14.775 18.55 16.75 16.3 16.75 13.525C16.75 10.75 14.775 8.5 12.125 8.5Z"
+                              fill="#EB001B"
+                            />
+                            <path
+                              d="M27.875 8.5C26.55 8.5 25.375 9.05 24.5 9.925C25.45 10.875 26 12.2 26 13.525C26 14.85 25.45 16.175 24.5 17.125C25.375 18 26.55 18.55 27.875 18.55C30.525 18.55 32.5 16.3 32.5 13.525C32.5 10.75 30.525 8.5 27.875 8.5Z"
+                              fill="#F79E1B"
+                            />
+                          </svg>
+                          
+                          <span>
+                            <span className="font-medium">{method.card?.brand || 'Card'}</span>
+                            <span className="text-muted-foreground ml-2">•••• {method.card?.last4 || '****'}</span>
+                          </span>
+                        </span>
+                      </Button>
+                    ))
+                  ) : (
+                    <div className="text-center py-2">
+                      <p className="text-sm text-muted-foreground mb-2">No payment methods found.</p>
+                    </div>
+                  )}
+                </>
+              )}
               
               <Button
                 onClick={() => openAddPaymentMethod()}

@@ -70,4 +70,19 @@ export function getEnv(key: string, defaultValue: string = ''): string {
 
 // Export specific environment variables
 export const STRIPE_PUBLIC_KEY = getEnv('VITE_STRIPE_PUBLIC_KEY', '');
+export const STRIPE_SECRET_KEY = getEnv('STRIPE_SECRET_KEY', '');
 export const APP_URL = getEnv('APP_URL', 'https://fixer.replit.app');
+
+// Log availability status (debug only)
+console.log(`Stripe public key available: ${!!STRIPE_PUBLIC_KEY}`);
+
+// Initialize Stripe key in global scope for React Native
+if (typeof global !== 'undefined' && STRIPE_PUBLIC_KEY) {
+  try {
+    // Use proper TypeScript declaration to avoid errors
+    (global as any).__STRIPE_PK = STRIPE_PUBLIC_KEY;
+    console.log('Initialized Stripe key in global scope for React Native');
+  } catch (e) {
+    console.error('Failed to set global Stripe key', e);
+  }
+}
