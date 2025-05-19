@@ -53,8 +53,21 @@ export default function MapboxMap({
       interactive: interactive
     });
     
+    // Single load event handler for both styling and state management
     map.current.on('load', () => {
+      // Set map loaded state
       setMapLoaded(true);
+      
+      try {
+        // Add custom styling to make roads light green
+        map.current.setPaintProperty('road', 'line-color', '#a5d6a7'); // Light green
+        map.current.setPaintProperty('road-street', 'line-color', '#a5d6a7');
+        map.current.setPaintProperty('road-secondary-tertiary', 'line-color', '#81c784'); // Slightly darker green
+        map.current.setPaintProperty('road-primary', 'line-color', '#66bb6a'); // Medium green
+        map.current.setPaintProperty('highway', 'line-color', '#4caf50'); // Darker green for highways
+      } catch (error) {
+        console.warn('Could not set custom road colors:', error);
+      }
     });
     
     if (onMapClick) {
