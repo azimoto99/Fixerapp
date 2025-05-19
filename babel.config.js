@@ -9,6 +9,7 @@ module.exports = function (api) {
     plugins: [
       // Add any Babel plugins here
       "transform-inline-environment-variables",
+      "@babel/plugin-transform-export-namespace-from",
       ["module:react-native-dotenv", {
         "moduleName": "@env",
         "path": ".env",
