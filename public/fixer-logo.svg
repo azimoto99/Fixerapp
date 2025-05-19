@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg width="512" height="512" viewBox="0 0 512 512" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!-- Background circle -->
+  <circle cx="256" cy="256" r="240" fill="#10B981"/>
+  
+  <!-- Wrench shape - white -->
+  <path d="M323 160C290 160 263 187 263 220C263 226 264 231 265 236L176 325C171 324 166 323 160 323C127 323 100 350 100 383C100 416 127 443 160 443C193 443 220 416 220 383C220 377 219 372 218 367L307 278C312 279 317 280 323 280C356 280 383 253 383 220C383 187 356 160 323 160Z" fill="white"/>
+  
+  <!-- Center hole detail -->
+  <circle cx="323" cy="220" r="25" fill="#10B981"/>
+  <circle cx="160" cy="383" r="25" fill="#10B981"/>
+</svg>
