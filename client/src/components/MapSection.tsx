@@ -232,46 +232,7 @@ const MapSection: React.FC<MapSectionProps> = ({ jobs, selectedJob, onSelectJob,
       if (realJobMarkers.length > 0) return realJobMarkers;
     }
     
-    // If no real jobs with coordinates or empty jobs array, 
-    // create sample job markers for demonstration purposes
-    if (position) {
-      return [
-        {
-          latitude: position.latitude + 0.002,
-          longitude: position.longitude + 0.003,
-          title: "Home Cleaning",
-          description: "$120 - Fixed Price",
-          onClick: () => toast({
-            title: "Sample Job Pin",
-            description: "This is a demo pin. Create real jobs to see them on the map.",
-            variant: "default"
-          })
-        },
-        {
-          latitude: position.latitude - 0.002,
-          longitude: position.longitude - 0.001,
-          title: "Computer Repair",
-          description: "$85 - Hourly Rate",
-          onClick: () => toast({
-            title: "Sample Job Pin",
-            description: "This is a demo pin. Create real jobs to see them on the map.",
-            variant: "default"
-          })
-        },
-        {
-          latitude: position.latitude + 0.001,
-          longitude: position.longitude - 0.002,
-          title: "Garden Maintenance",
-          description: "$95 - Fixed Price",
-          onClick: () => toast({
-            title: "Sample Job Pin",
-            description: "This is a demo pin. Create real jobs to see them on the map.",
-            variant: "default"
-          })
-        }
-      ];
-    }
-    
+    // If no real jobs with coordinates, return an empty array
     return [];
   }, [jobs, handleMarkerClick, position, toast]);
   
