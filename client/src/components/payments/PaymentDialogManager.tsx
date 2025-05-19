@@ -17,7 +17,13 @@ import {
 } from '@/components/payments/PaymentDialog';
 
 // Load Stripe outside of component render for better performance
-const stripePromise = loadStripe(import.meta.env.VITE_STRIPE_PUBLIC_KEY);
+// Using process.env for React Native compatibility
+const STRIPE_PK = typeof process !== 'undefined' && process.env ? 
+  process.env.VITE_STRIPE_PUBLIC_KEY : 
+  (typeof global !== 'undefined' && global.__STRIPE_PK ? global.__STRIPE_PK : null);
+
+// Fallback to empty to prevent errors (should be properly set before usage)
+const stripePromise = loadStripe(STRIPE_PK || '');
 
 // Create context for payment dialog
 type PaymentDialogContextType = {
