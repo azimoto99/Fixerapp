@@ -64,13 +64,13 @@ const Header: React.FC<HeaderProps> = ({
           <Link href="/">
             <div className="flex-shrink-0 flex items-center cursor-pointer">
               <img 
-                src="/assets/fixer-logo.png" 
+                src="/public/fixer-logo.png" 
                 alt="Fixer" 
                 className="h-10" 
                 onError={(e) => {
                   const target = e.target as HTMLImageElement;
                   target.onerror = null;
-                  target.src = '/logo.svg'; // Fallback to SVG if PNG fails
+                  target.src = '/logo.png'; // Fallback if the main logo fails
                 }}
               />
               <span className="ml-2 text-xl font-bold text-emerald-600">Fixer</span>
