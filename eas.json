@@ -29,7 +29,9 @@
     "production": {
       "android": {
         "buildType": "app-bundle",
-        "gradleCommand": ":app:bundleRelease"
+        "gradleCommand": ":app:bundleRelease",
+        "credentialsSource": "remote",
+        "autoIncrement": true
       },
       "env": {
         "EXPO_PUBLIC_STRIPE_KEY": "${process.env.VITE_STRIPE_PUBLIC_KEY}"
@@ -38,7 +40,9 @@
     "androidApk": {
       "android": {
         "buildType": "apk",
-        "gradleCommand": ":app:assembleRelease"
+        "gradleCommand": ":app:assembleRelease",
+        "credentialsSource": "remote",
+        "autoIncrement": true
       },
       "env": {
         "EXPO_PUBLIC_STRIPE_KEY": "${process.env.VITE_STRIPE_PUBLIC_KEY}"
@@ -48,7 +52,9 @@
       "android": {
         "buildType": "apk",
         "image": "latest",
-        "withoutCredentials": true
+        "withoutCredentials": false,
+        "credentialsSource": "remote",
+        "autoIncrement": true
       },
       "env": {
         "EXPO_PUBLIC_STRIPE_KEY": "${process.env.VITE_STRIPE_PUBLIC_KEY}"

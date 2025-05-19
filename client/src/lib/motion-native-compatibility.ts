@@ -44,10 +44,10 @@ export const motion = {
 };
 
 // AnimatePresence compatibility
-export const AnimatePresence = isWeb && framerMotion
+export const AnimatePresence: React.FC<{children?: React.ReactNode}> = isWeb && framerMotion
   ? framerMotion.AnimatePresence
-  : function AnimatePresence({ children }: { children: React.ReactNode }) { 
-      return <>{children}</>;
+  : ({ children }) => {
+      return React.createElement(React.Fragment, null, children);
     };
 
 // Export animation helpers as no-ops for native
