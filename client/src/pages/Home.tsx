@@ -389,7 +389,45 @@ export default function Home() {
                           Manage
                         </a>
                       </Button>
-                      <Button variant="destructive" className="flex-1 text-xs">
+                      <Button 
+                        variant="destructive" 
+                        className="flex-1 text-xs"
+                        onClick={async () => {
+                          if (confirm(`Are you sure you want to cancel this job: ${job.title}?`)) {
+                            try {
+                              const response = await fetch(`/api/jobs/${job.id}`, {
+                                method: 'PATCH',
+                                headers: {
+                                  'Content-Type': 'application/json'
+                                },
+                                body: JSON.stringify({ status: 'cancelled' })
+                              });
+                              
+                              if (response.ok) {
+                                toast({
+                                  title: "Job Cancelled",
+                                  description: "The job has been cancelled successfully",
+                                });
+                                // Refresh the job list
+                                queryClient.invalidateQueries({ queryKey: ['/api/jobs'] });
+                              } else {
+                                toast({
+                                  title: "Error",
+                                  description: "Failed to cancel the job",
+                                  variant: "destructive"
+                                });
+                              }
+                            } catch (error) {
+                              console.error("Error cancelling job:", error);
+                              toast({
+                                title: "Error",
+                                description: "Failed to cancel the job",
+                                variant: "destructive"
+                              });
+                            }
+                          }
+                        }}
+                      >
                         Cancel Job
                       </Button>
                     </div>

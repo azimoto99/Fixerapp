@@ -103,48 +103,43 @@ export default function PostJobDrawer({ isOpen, onOpenChange }: PostJobDrawerPro
       return;
     }
 
-    // All job types require a payment method
-    if (!data.paymentMethodId) {
-      console.log('Job posting requires payment method selection');
-      
-      // Store the pending job data
-      setPendingJobData(data);
-      
-      // Open the payment method selection dialog
-      openPaymentMethodsDialog({
-        onSelect: (paymentMethodId) => {
-          console.log('Payment method selected:', paymentMethodId);
-          
-          // Update the form with the selected payment method
-          form.setValue('paymentMethodId', paymentMethodId);
-          
-          // Log to confirm we received the payment method ID
-          console.log(`Received payment method ID: ${paymentMethodId}`);
-          console.log(`Job will proceed with payment method: ${paymentMethodId}`);
-          
-          // Continue with submission
-          const updatedData = {
-            ...data,
-            paymentMethodId
-          };
-          processPaymentAndCreateJob(updatedData);
-        },
-        onClose: () => {
-          console.log('Payment method dialog closed without selection');
-          setIsSubmitting(false);
-          toast({
-            title: "Payment Method Required",
-            description: "You need to select a payment method to post a job",
-            variant: "destructive"
-          });
-        }
-      });
-      
-      return;
-    }
+    setIsSubmitting(true);
     
-    // For hourly jobs or if we already have a payment method
-    await processPaymentAndCreateJob(data);
+    // Always require payment selection for job posting
+    console.log('Job posting requires payment method selection');
+    
+    // Store the pending job data
+    setPendingJobData(data);
+    
+    // Open the payment method selection dialog
+    openPaymentMethodsDialog({
+      onSelect: (paymentMethodId) => {
+        console.log('Payment method selected:', paymentMethodId);
+        
+        // Update the form with the selected payment method
+        form.setValue('paymentMethodId', paymentMethodId);
+        
+        // Log to confirm we received the payment method ID
+        console.log(`Received payment method ID: ${paymentMethodId}`);
+        console.log(`Job will proceed with payment method: ${paymentMethodId}`);
+        
+        // Continue with submission
+        const updatedData = {
+          ...data,
+          paymentMethodId
+        };
+        processPaymentAndCreateJob(updatedData);
+      },
+      onClose: () => {
+        console.log('Payment method dialog closed without selection');
+        setIsSubmitting(false);
+        toast({
+          title: "Payment Method Required",
+          description: "You need to select a payment method to post a job",
+          variant: "destructive"
+        });
+      }
+    });
   };
   
   // Function to process payment and create job
