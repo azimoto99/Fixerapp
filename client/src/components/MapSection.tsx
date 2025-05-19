@@ -1,21 +1,10 @@
 import React, { useState, useEffect, useMemo, useCallback, memo } from 'react';
 import { useGeolocation } from '@/lib/geolocation';
 import JobDetail from './JobDetail';
-import { JobMarker } from './JobMarker';
 import UserDrawerV2 from './UserDrawerV2';
-import HeatmapLayer from './HeatmapLayer';
 import MapViewToggle from './MapViewToggle';
 import { Job } from '@shared/schema';
-import {
-  MapContainer, 
-  TileLayer, 
-  Circle, 
-  useMap, 
-  CircleMarker, 
-  Popup
-} from 'react-leaflet';
-import 'leaflet/dist/leaflet.css';
-import { LatLngExpression } from 'leaflet';
+import MapboxMap from './MapboxMap';
 import { Loader2, Plus } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/hooks/use-auth';

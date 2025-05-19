@@ -115,28 +115,32 @@ export function AddressAutocompleteInput({
       </div>
       
       {/* Add custom styling for the geocoder */}
-      <style jsx global>{`
-        .mapbox-geocoder-custom .mapboxgl-ctrl-geocoder {
-          width: 100%;
-          max-width: 100%;
-          box-shadow: none;
-          border: 1px solid var(--input-border);
-          border-radius: var(--radius);
-        }
-        
-        .mapbox-geocoder-custom .mapboxgl-ctrl-geocoder input {
-          padding-left: 2.5rem;
-          height: 40px;
-        }
-        
-        .mapbox-geocoder-custom .mapboxgl-ctrl-geocoder--icon-search {
-          display: none;
-        }
-        
-        .mapbox-geocoder-custom .mapboxgl-ctrl-geocoder--button {
-          background: transparent;
-        }
-      `}</style>
+      <style 
+        dangerouslySetInnerHTML={{
+          __html: `
+            .mapbox-geocoder-custom .mapboxgl-ctrl-geocoder {
+              width: 100%;
+              max-width: 100%;
+              box-shadow: none;
+              border: 1px solid var(--input-border);
+              border-radius: var(--radius);
+            }
+            
+            .mapbox-geocoder-custom .mapboxgl-ctrl-geocoder input {
+              padding-left: 2.5rem;
+              height: 40px;
+            }
+            
+            .mapbox-geocoder-custom .mapboxgl-ctrl-geocoder--icon-search {
+              display: none;
+            }
+            
+            .mapbox-geocoder-custom .mapboxgl-ctrl-geocoder--button {
+              background: transparent;
+            }
+          `
+        }}
+      />
     </div>
   );
 }
