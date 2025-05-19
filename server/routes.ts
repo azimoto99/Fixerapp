@@ -3812,6 +3812,67 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Use our improved create-payment-intent handler
   app.use("/api/stripe", createPaymentIntentRouter);
   
+  // Add enhanced payment intent route that supports return_url for proper 3D Secure flow
+  app.post("/api/stripe/create-payment-intent", isAuthenticated, async (req: Request, res: Response) => {
+    try {
+      const { amount, description, metadata = {}, return_url } = req.body;
+      
+      if (!amount || typeof amount !== 'number' || amount <= 0) {
+        return res.status(400).json({ message: "Invalid amount" });
+      }
+      
+      // Get or create customer ID
+      const user = await storage.getUser(req.user.id);
+      if (!user) {
+        return res.status(404).json({ message: "User not found" });
+      }
+      
+      let customerId = user.stripeCustomerId;
+      
+      if (!customerId) {
+        // Create a customer for this user
+        const customer = await stripe.customers.create({
+          name: user.fullName || user.username,
+          email: user.email || undefined,
+          metadata: {
+            userId: user.id.toString()
+          }
+        });
+        
+        customerId = customer.id;
+        await storage.updateUser(user.id, { stripeCustomerId: customerId });
+      }
+      
+      // Create payment intent with all the needed parameters
+      const paymentIntent = await stripe.paymentIntents.create({
+        amount: Math.round(amount * 100), // Convert to cents
+        currency: 'usd',
+        customer: customerId,
+        metadata: {
+          userId: req.user.id.toString(),
+          ...metadata
+        },
+        description: description || 'Payment for services',
+        automatic_payment_methods: {
+          enabled: true
+        },
+        ...(return_url && { confirmation_method: 'automatic', return_url })
+      });
+      
+      // Return the client secret and payment intent ID
+      return res.json({
+        clientSecret: paymentIntent.client_secret,
+        paymentIntentId: paymentIntent.id
+      });
+    } catch (error) {
+      console.error('Error creating payment intent:', error);
+      return res.status(500).json({ 
+        message: 'Failed to create payment intent', 
+        error: error instanceof Error ? error.message : String(error)
+      });
+    }
+  });
+  
   // Initialize Stripe webhooks
   setupStripeWebhooks(app);
   
