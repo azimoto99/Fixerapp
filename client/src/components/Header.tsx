@@ -64,7 +64,7 @@ const Header: React.FC<HeaderProps> = ({
           <Link href="/">
             <div className="flex-shrink-0 flex items-center cursor-pointer">
               <img 
-                src="/fixer-logo.png" 
+                src="/header-icon.png" 
                 alt="Fixer" 
                 width="40"
                 height="40"
@@ -72,7 +72,7 @@ const Header: React.FC<HeaderProps> = ({
                 onError={(e) => {
                   const target = e.target as HTMLImageElement;
                   target.onerror = null;
-                  target.src = '/logo.png'; // Fallback if the main logo fails
+                  target.src = '/assets/logo.png'; // Fallback if the main logo fails
                 }}
               />
               <span className="ml-2 text-xl font-bold text-emerald-600">Fixer</span>
