@@ -1257,18 +1257,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Job endpoints
   apiRouter.post("/jobs", isAuthenticated, async (req: Request, res: Response) => {
     try {
-      // Parse the request with the extended schema that includes paymentMethodId
-      const { paymentMethodId, ...jobData } = jobWithPaymentSchema.parse(req.body);
+      console.log("Creating job with data:", req.body);
       
       // Ensure the job poster ID matches the authenticated user
-      if (jobData.posterId !== req.user.id) {
+      if (req.body.posterId !== req.user.id) {
         return res.status(403).json({ 
           message: "Forbidden: You can only create jobs with your own user ID" 
         });
       }
       
       // Filter for prohibited or spammy content
-      const contentFilterResult = filterJobContent(jobData.title, jobData.description);
+      const contentFilterResult = filterJobContent(req.body.title, req.body.description);
       if (!contentFilterResult.isApproved) {
         return res.status(400).json({ 
           message: contentFilterResult.reason || "Your job post contains prohibited content."
@@ -1276,12 +1275,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       
       // Validate payment amount
-      const paymentValidation = validatePaymentAmount(jobData.paymentAmount);
+      const paymentValidation = validatePaymentAmount(req.body.paymentAmount);
       if (!paymentValidation.isApproved) {
         return res.status(400).json({ 
           message: paymentValidation.reason || "The payment amount is invalid."
         });
       }
+      
+      // Extract payment method ID if provided
+      const paymentMethodId = req.body.paymentMethodId;
+      const { paymentMethodId: _, ...jobData } = req.body;
       
       // Allow any user to post jobs regardless of their account type (both workers and posters)
       // Service fee and total amount are calculated in storage.createJob
