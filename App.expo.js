@@ -16,27 +16,63 @@ const getWebUrl = () => {
 export default function App() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [appReady, setAppReady] = useState(false);
   const webUrl = getWebUrl();
 
+  // Global error boundary for the whole app
   useEffect(() => {
+    // Set up global error handler for uncaught JS errors
+    const errorHandler = (error) => {
+      console.error('Global error caught:', error);
+      setError(`App error: ${error.message || 'Unknown error'}`);
+      setLoading(false);
+    };
+    
+    // Add event listener for uncaught errors
+    if (global.ErrorUtils) {
+      const originalGlobalHandler = global.ErrorUtils.getGlobalHandler();
+      global.ErrorUtils.setGlobalHandler((error, isFatal) => {
+        errorHandler(error);
+        originalGlobalHandler(error, isFatal);
+      });
+    }
+
+    // Set app as ready
+    setAppReady(true);
+    
+    return () => {
+      // Clean up if needed
+    };
+  }, []);
+
+  // Connect to web app
+  useEffect(() => {
+    if (!appReady) return;
+    
     // Check if the web app is available
     const checkWebApp = async () => {
       try {
-        const response = await fetch(webUrl);
+        console.log('Connecting to web URL:', webUrl);
+        const response = await fetch(webUrl, { 
+          method: 'GET',
+          headers: { 'Accept': 'text/html' },
+          timeout: 10000 // 10 second timeout
+        });
         if (response.ok) {
           setLoading(false);
         } else {
           setError(`Server returned ${response.status}`);
         }
       } catch (err) {
-        setError(`Failed to connect: ${err.message}`);
+        console.error('Connection error:', err);
+        setError(`Failed to connect: ${err.message || 'Network error'}`);
       } finally {
         setLoading(false);
       }
     };
 
     checkWebApp();
-  }, [webUrl]);
+  }, [webUrl, appReady]);
 
   const openWebApp = () => {
     Linking.openURL(webUrl);
@@ -47,12 +83,12 @@ export default function App() {
       <ScrollView contentContainerStyle={styles.contentContainer}>
         <View style={styles.header}>
           <View style={styles.logoContainer}>
-            <Image 
-              source={require('./public/fixer-logo.png')} 
-              style={styles.logoImage} 
-              resizeMode="contain" 
-              onError={(e) => console.error('Failed to load logo:', e.nativeEvent.error)}
-            />
+            <View style={styles.fixerIcon}>
+              <View style={styles.fixerIconCircle}>
+                <View style={styles.fixerIconTool} />
+                <View style={styles.fixerIconHandle} />
+              </View>  
+            </View>
             <Text style={styles.logo}>Fixer</Text>
           </View>
           <Text style={styles.subtitle}>Mobile Companion</Text>
@@ -126,10 +162,41 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     marginBottom: 5,
   },
-  logoImage: {
+  fixerIcon: {
     width: 40,
     height: 40,
     marginRight: 10,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  fixerIconCircle: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: '#10B981', // Emerald/teal color
+    justifyContent: 'center',
+    alignItems: 'center',
+    position: 'relative',
+  },
+  fixerIconTool: {
+    width: 20,
+    height: 8,
+    backgroundColor: 'white',
+    borderRadius: 4,
+    position: 'absolute',
+    top: 12,
+    left: 10,
+    transform: [{ rotate: '45deg' }],
+  },
+  fixerIconHandle: {
+    width: 6,
+    height: 16,
+    backgroundColor: 'white',
+    borderRadius: 3,
+    position: 'absolute',
+    bottom: 10,
+    right: 12,
+    transform: [{ rotate: '45deg' }],
   },
   logo: {
     fontSize: 40,

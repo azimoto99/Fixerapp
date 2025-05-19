@@ -5,12 +5,12 @@
     "owner": "azimoto9",
     "version": "1.0.0",
     "orientation": "portrait",
-    "icon": "./icon.png",
+    "icon": "./public/fixer-icon-512.png",
     "userInterfaceStyle": "automatic",
     "splash": {
-      "image": "./logo.png",
+      "image": "./public/fixer-logo.png",
       "resizeMode": "contain",
-      "backgroundColor": "#000000"
+      "backgroundColor": "#10B981"
     },
     "assetBundlePatterns": [
       "**/*"
@@ -21,8 +21,8 @@
     },
     "android": {
       "adaptiveIcon": {
-        "foregroundImage": "./icon.png",
-        "backgroundColor": "#000000"
+        "foregroundImage": "./public/fixer-icon-512.png",
+        "backgroundColor": "#10B981"
       },
       "package": "com.fixer",
       "permissions": [

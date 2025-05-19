@@ -1,5 +1,5 @@
 import { registerRootComponent } from 'expo';
-import App from './client/src/App';
+import AppExpo from './App.expo';
 
-// Register the main component for Expo
-registerRootComponent(App);
+// Use the dedicated Expo entry point for better mobile compatibility
+registerRootComponent(AppExpo);
