@@ -169,61 +169,80 @@ export default function PostJobDrawer({ isOpen, onOpenChange }: PostJobDrawerPro
       
       console.log('Creating job with data:', jobData);
       
-      // Create the job first
-      const jobResponse = await apiRequest('POST', '/api/jobs', jobData);
-      
-      if (!jobResponse.ok) {
-        const errorData = await jobResponse.json();
-        throw new Error(errorData.message || 'Failed to create job');
-      }
-      
-      const createdJob = await jobResponse.json();
-      console.log('Job created successfully:', createdJob);
-      
-      // If tasks were provided, create them for the job
-      if (tasks.length > 0) {
-        try {
-          // Format tasks for API
-          const taskData = tasks.map((task) => ({
-            jobId: createdJob.id,
-            description: task.description,
-            position: task.position,
-            isOptional: task.isOptional,
-            dueTime: task.dueTime,
-            location: task.location,
-            latitude: task.latitude,
-            longitude: task.longitude,
-            bonusAmount: task.bonusAmount
-          }));
+      try {
+        // Process payment first before creating the job
+        if (data.paymentMethodId) {
+          console.log(`Pre-verifying payment with method ID ${data.paymentMethodId}`);
           
-          // Create tasks in batch
-          await apiRequest('POST', `/api/jobs/${createdJob.id}/tasks/batch`, { tasks: taskData });
-          console.log('Tasks created successfully for job:', createdJob.id);
-        } catch (taskError) {
-          console.error("Error creating tasks:", taskError);
-        }
-      }
-      
-      // Now process payment with the created job ID
-      if (data.paymentMethodId) {
-        let paymentSuccessful = false;
-        
-        try {
-          console.log(`Processing payment for job #${createdJob.id} with amount $${data.paymentAmount}`);
-          
-          // Process the actual payment with the real job ID
-          console.log('Sending payment request with data:', {
-            jobId: createdJob.id,
-            paymentMethodId: data.paymentMethodId,
-            amount: data.paymentAmount,
-            paymentType: data.paymentType
+          // Create a payment confirmation intent first
+          const verifyPaymentResponse = await apiRequest('POST', '/api/stripe/create-payment-intent', {
+            amount: Number(data.paymentAmount),
+            description: `Payment for job: ${data.title}`,
+            metadata: {
+              jobTitle: data.title,
+              paymentType: data.paymentType
+            }
           });
+          
+          if (!verifyPaymentResponse.ok) {
+            const errorData = await verifyPaymentResponse.json();
+            throw new Error(errorData.message || "Payment verification failed");
+          }
+          
+          const { clientSecret, paymentIntentId } = await verifyPaymentResponse.json();
+          
+          console.log("Payment verification successful. Proceeding with job creation.");
+          
+          // Now that we've verified payment can be processed, create the job
+          const enrichedJobData = {
+            ...jobData,
+            paymentIntentId: paymentIntentId // Store the payment intent ID with the job
+          };
+          
+          // Create the job with payment intent ID attached
+          const jobResponse = await apiRequest('POST', '/api/jobs', enrichedJobData);
+          
+          if (!jobResponse.ok) {
+            const errorData = await jobResponse.json();
+            throw new Error(errorData.message || 'Failed to create job');
+          }
+          
+          const createdJob = await jobResponse.json();
+          console.log('Job created successfully:', createdJob);
+          
+          // If tasks were provided, create them for the job
+          if (tasks.length > 0) {
+            try {
+              // Format tasks for API
+              const taskData = tasks.map((task) => ({
+                jobId: createdJob.id,
+                description: task.description,
+                position: task.position,
+                isOptional: task.isOptional,
+                dueTime: task.dueTime,
+                location: task.location,
+                latitude: task.latitude,
+                longitude: task.longitude,
+                bonusAmount: task.bonusAmount
+              }));
+              
+              // Create tasks in batch
+              await apiRequest('POST', `/api/jobs/${createdJob.id}/tasks/batch`, { tasks: taskData });
+              console.log('Tasks created successfully for job:', createdJob.id);
+            } catch (taskError) {
+              console.error("Error creating tasks:", taskError);
+            }
+          }
+          
+          // Now confirm the payment with the created job ID
+          console.log(`Processing payment for job #${createdJob.id} with amount $${data.paymentAmount}`);
           
           const paymentResponse = await apiRequest('POST', `/api/payment/process-payment`, {
             jobId: createdJob.id,
             paymentMethodId: data.paymentMethodId,
-            amount: Number(data.paymentAmount), // Convert to number to avoid any type issues
-            paymentType: data.paymentType
+            amount: Number(data.paymentAmount),
+            paymentType: data.paymentType,
+            paymentIntentId: paymentIntentId
           });
           
           if (!paymentResponse.ok) {
@@ -235,13 +254,17 @@ export default function PostJobDrawer({ isOpen, onOpenChange }: PostJobDrawerPro
             } catch (e) {
               console.error('Could not parse payment error response:', e);
             }
+            
+            // Mark the job as payment failed
+            await apiRequest('PATCH', `/api/jobs/${createdJob.id}`, { 
+              status: 'payment_failed'
+            });
+            
             throw new Error(errorMessage);
           }
           
           const paymentData = await paymentResponse.json();
           console.log('Payment successful with data:', paymentData);
-          
-          paymentSuccessful = true;
           
           // Update job status to active since payment was successful
           await apiRequest('PATCH', `/api/jobs/${createdJob.id}`, { 
@@ -265,40 +288,22 @@ export default function PostJobDrawer({ isOpen, onOpenChange }: PostJobDrawerPro
           
           // Refresh job listings
           queryClient.invalidateQueries({ queryKey: ['jobs'] });
-          
-        } catch (error) {
-          console.error('Payment processing error:', error);
-          const errorMessage = error instanceof Error ? error.message : 'An error occurred while processing payment';
-          
-          // Mark the job as payment failed
-          await apiRequest('PATCH', `/api/jobs/${createdJob.id}`, { 
-            status: 'payment_failed'
-          });
-          
-          // Show payment failure dialog
-          toast({
-            title: "Payment Failed",
-            description: `Your job was created but payment failed: ${errorMessage}. Please try again from your jobs dashboard.`,
-            variant: "destructive"
-          });
-          
-          setIsSubmitting(false);
-          onOpenChange(false);
-          return;
+        } else {
+          throw new Error('Payment method is required to post a job');
         }
+      } catch (error) {
+        console.error('Error in job creation/payment process:', error);
+        const errorMessage = error instanceof Error ? error.message : 'An error occurred while processing your request';
         
-        if (!paymentSuccessful) {
-          // Mark the job as payment failed
-          await apiRequest('PATCH', `/api/jobs/${createdJob.id}`, { 
-            status: 'payment_failed'
-          });
-          
-          setIsSubmitting(false);
-          onOpenChange(false);
-          return;
-        }
+        toast({
+          title: "Job Posting Failed",
+          description: errorMessage,
+          variant: "destructive"
+        });
+        
+        setIsSubmitting(false);
+        return;
       }
-      
       // Reset the form
       form.reset({
         title: '',
