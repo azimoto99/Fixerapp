@@ -5,13 +5,8 @@
 // For React Native environment
 let envFromNative: Record<string, string> = {};
 
-try {
-  // Dynamic import to avoid issues with webpack
-  const env = require('@env');
-  envFromNative = env || {};
-} catch (e) {
-  // Silently fail if @env is not available (web environment)
-}
+// We're not going to use @env directly as it's causing build issues
+// Instead, we'll rely on the other environment variable methods
 
 // Define a type for the global namespace extension
 declare global {

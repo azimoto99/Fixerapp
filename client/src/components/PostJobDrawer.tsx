@@ -113,7 +113,7 @@ export default function PostJobDrawer({ isOpen, onOpenChange }: PostJobDrawerPro
           
           // Log to confirm we received the payment method ID
           console.log(`Received payment method ID: ${paymentMethodId}`);
-          console.log(`Job will proceed with fixed payment and method: ${paymentMethodId}`);
+          console.log(`Job will proceed with payment method: ${paymentMethodId}`);
           
           // Continue with submission
           const updatedData = {
@@ -125,6 +125,11 @@ export default function PostJobDrawer({ isOpen, onOpenChange }: PostJobDrawerPro
         onClose: () => {
           console.log('Payment method dialog closed without selection');
           setIsSubmitting(false);
+          toast({
+            title: "Payment Method Required",
+            description: "You need to select a payment method to post a job",
+            variant: "destructive"
+          });
         }
       });
       
