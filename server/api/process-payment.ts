@@ -122,9 +122,14 @@ export async function processPayment(req: Request, res: Response) {
           customer: customerId,
           payment_method: paymentMethodId,
           confirm: true, // Confirm immediately to charge the card
+          confirmation_method: 'manual',
           capture_method: 'automatic', // Automatically capture the funds
           description: `Payment for fixed-price job: ${job.title}`,
           return_url: `${req.protocol}://${req.get('host')}/jobs/${jobId}`,
+          automatic_payment_methods: {
+            enabled: true,
+            allow_redirects: 'always'
+          },
           metadata: {
             jobId: jobId.toString(),
             posterId: req.user.id.toString(),
@@ -233,8 +238,13 @@ export async function processPayment(req: Request, res: Response) {
           customer: customerId,
           payment_method: paymentMethodId,
           confirm: true,
+          confirmation_method: 'manual',
           capture_method: 'automatic', // Automatically capture funds
           return_url: `${req.protocol}://${req.get('host')}/jobs/${jobId}`,
+          automatic_payment_methods: {
+            enabled: true,
+            allow_redirects: 'always'
+          },
           application_fee_amount: Math.round(serviceFee * 100),
           transfer_data: {
             destination: worker.stripeConnectAccountId || '',
