@@ -156,8 +156,9 @@ export default function PostJobDrawer({ isOpen, onOpenChange }: PostJobDrawerPro
       const jobData = {
         ...data,
         posterId: user?.id,
-        dateNeeded: new Date(data.dateNeeded).toISOString(),
-        datePosted: new Date().toISOString(),
+        // Convert string date to Date object for database compatibility
+        dateNeeded: data.dateNeeded ? new Date(data.dateNeeded) : null,
+        datePosted: new Date(),
         status: 'pending_payment' // Start as pending until payment is processed
       };
       
