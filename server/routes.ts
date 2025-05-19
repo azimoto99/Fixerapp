@@ -1260,7 +1260,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       console.log("Creating job with data:", req.body);
       
       // Ensure the job poster ID matches the authenticated user
-      if (req.body.posterId !== req.user.id) {
+      if (req.body.posterId !== req.user?.id) {
         return res.status(403).json({ 
           message: "Forbidden: You can only create jobs with your own user ID" 
         });
@@ -1275,7 +1275,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       
       // Validate payment amount
-      const paymentValidation = validatePaymentAmount(req.body.paymentAmount);
+      // Convert string to number if needed (common with form submissions)
+      const paymentAmount = typeof req.body.paymentAmount === 'string' 
+        ? parseFloat(req.body.paymentAmount) 
+        : req.body.paymentAmount;
+        
+      const paymentValidation = validatePaymentAmount(paymentAmount);
       if (!paymentValidation.isApproved) {
         return res.status(400).json({ 
           message: paymentValidation.reason || "The payment amount is invalid."
@@ -1286,9 +1291,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const paymentMethodId = req.body.paymentMethodId;
       const { paymentMethodId: _, ...jobData } = req.body;
       
+      // Ensure latitude and longitude are properly formatted numbers
+      const formattedJobData = {
+        ...jobData,
+        paymentAmount: paymentAmount,
+        latitude: typeof jobData.latitude === 'string' ? parseFloat(jobData.latitude) : jobData.latitude,
+        longitude: typeof jobData.longitude === 'string' ? parseFloat(jobData.longitude) : jobData.longitude,
+        // Parse dateNeeded if it's a string format
+        dateNeeded: typeof jobData.dateNeeded === 'string' && !jobData.dateNeeded.includes('T') 
+          ? new Date(jobData.dateNeeded + 'T00:00:00') 
+          : jobData.dateNeeded
+      };
+      
       // Allow any user to post jobs regardless of their account type (both workers and posters)
       // Service fee and total amount are calculated in storage.createJob
-      const newJob = await storage.createJob(jobData);
+      const newJob = await storage.createJob(formattedJobData);
       
       // For fixed price jobs with payment method ID, process payment upfront
       if (jobData.paymentType === 'fixed' && paymentMethodId) {

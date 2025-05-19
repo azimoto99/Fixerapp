@@ -156,6 +156,11 @@ export default function PostJobDrawer({ isOpen, onOpenChange }: PostJobDrawerPro
       const jobData = {
         ...data,
         posterId: user?.id,
+        // Ensure we have proper coordinates from Mapbox
+        latitude: data.latitude ? Number(data.latitude) : userLocation?.latitude || 37.7749,
+        longitude: data.longitude ? Number(data.longitude) : userLocation?.longitude || -122.4194,
+        // Format payment amount as number
+        paymentAmount: Number(data.paymentAmount),
         // For date fields, we need to send them in the proper format expected by the server
         dateNeeded: new Date(data.dateNeeded), // Convert string date to Date object
         // Don't set datePosted, the database will default it to now()
@@ -491,7 +496,7 @@ export default function PostJobDrawer({ isOpen, onOpenChange }: PostJobDrawerPro
                   name="location"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Location</FormLabel>
+                      <FormLabel>Job Location</FormLabel>
                       <FormControl>
                         <AddressAutocompleteInput
                           value={field.value}
@@ -504,12 +509,12 @@ export default function PostJobDrawer({ isOpen, onOpenChange }: PostJobDrawerPro
                               console.log(`Location updated: ${address} (${lat}, ${lng})`);
                             }
                           }}
-                          placeholder="Enter the job location"
+                          placeholder="Search for an address"
                           className="w-full"
                         />
                       </FormControl>
                       <FormDescription>
-                        The exact location where the job needs to be performed
+                        Select an address from the dropdown suggestions for accurate job placement on the map
                       </FormDescription>
                       <FormMessage />
                     </FormItem>
