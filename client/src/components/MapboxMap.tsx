@@ -47,7 +47,7 @@ export default function MapboxMap({
     
     map.current = new mapboxgl.Map({
       container: mapContainer.current,
-      style: 'mapbox://styles/mapbox/streets-v12',
+      style: 'mapbox://styles/mapbox/dark-v11', // Using dark theme for better contrast with our green markers
       center: [longitude, latitude],
       zoom: zoom,
       interactive: interactive
