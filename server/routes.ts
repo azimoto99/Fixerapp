@@ -1320,6 +1320,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
             payment_method: paymentMethodId,
             confirm: true, // Confirm the payment immediately
             confirmation_method: 'manual',
+            return_url: `${req.protocol}://${req.get('host')}/payment-confirmation`,
             metadata: {
               jobId: newJob.id.toString(),
               posterId: newJob.posterId.toString(),
