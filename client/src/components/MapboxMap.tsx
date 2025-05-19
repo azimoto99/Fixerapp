@@ -70,6 +70,7 @@ export default function MapboxMap({
         map.current = null;
       }
     };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
   
   // Add markers when they change or map is loaded
@@ -82,54 +83,54 @@ export default function MapboxMap({
     while (existingMarkers[0]) {
       existingMarkers[0].remove();
     }
+    
+    // Add new markers
+    markers.forEach(marker => {
+      // Create a styled popup if there's a title or description
+      let popup;
+      if (marker.title || marker.description) {
+        popup = new mapboxgl.Popup({ 
+          offset: 25,
+          closeButton: false,
+          className: 'custom-mapbox-popup'
+        }).setHTML(
+          `<div style="padding: 5px;">
+            <h3 style="margin: 0 0 5px; font-size: 14px; font-weight: 600;">${marker.title || ''}</h3>
+            <p style="margin: 0; font-size: 12px; color: #10b981;">${marker.description || ''}</p>
+          </div>`
+        );
+      }
       
-      // Add new markers
-      markers.forEach(marker => {
-        // Create a styled popup if there's a title or description
-        let popup;
-        if (marker.title || marker.description) {
-          popup = new mapboxgl.Popup({ 
-            offset: 25,
-            closeButton: false,
-            className: 'custom-mapbox-popup'
-          }).setHTML(
-            `<div style="padding: 5px;">
-              <h3 style="margin: 0 0 5px; font-size: 14px; font-weight: 600;">${marker.title || ''}</h3>
-              <p style="margin: 0; font-size: 12px; color: #10b981;">${marker.description || ''}</p>
-            </div>`
-          );
-        }
+      // Create a custom marker element
+      const markerEl = document.createElement('div');
+      markerEl.className = 'map-marker';
+      markerEl.style.width = '30px';
+      markerEl.style.height = '30px';
+      markerEl.style.borderRadius = '50%';
+      markerEl.style.backgroundColor = '#10b981'; // Using primary color
+      markerEl.style.border = '2px solid white';
+      markerEl.style.boxShadow = '0 2px 4px rgba(0,0,0,0.3)';
+      markerEl.style.cursor = 'pointer';
+      
+      // Add the marker to the map
+      const mapboxMarker = new mapboxgl.Marker(markerEl)
+        .setLngLat([marker.longitude, marker.latitude]);
         
-        // Create a custom marker element
-        const markerEl = document.createElement('div');
-        markerEl.className = 'map-marker';
-        markerEl.style.width = '30px';
-        markerEl.style.height = '30px';
-        markerEl.style.borderRadius = '50%';
-        markerEl.style.backgroundColor = '#10b981'; // Using primary color
-        markerEl.style.border = '2px solid white';
-        markerEl.style.boxShadow = '0 2px 4px rgba(0,0,0,0.3)';
-        markerEl.style.cursor = 'pointer';
-        
-        // Add the marker to the map
-        const mapboxMarker = new mapboxgl.Marker(markerEl)
-          .setLngLat([marker.longitude, marker.latitude]);
-          
-        if (popup) {
-          mapboxMarker.setPopup(popup);
-        }
-        
-        if (marker.onClick) {
-          // Add the click event to the element
-          markerEl.addEventListener('click', marker.onClick);
-        }
-        
-        // Safe to add marker if map.current exists
-        if (map.current) {
-          mapboxMarker.addTo(map.current);
-        }
-      });
-    }
+      if (popup) {
+        mapboxMarker.setPopup(popup);
+      }
+      
+      if (marker.onClick) {
+        // Add the click event to the element
+        markerEl.addEventListener('click', marker.onClick);
+      }
+      
+      // Safe to add marker if map.current exists
+      if (map.current) {
+        mapboxMarker.addTo(map.current);
+      }
+    });
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [markers, mapLoaded]);
   
   // Update map center when latitude/longitude props change
@@ -141,6 +142,7 @@ export default function MapboxMap({
         essential: true
       });
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [latitude, longitude, zoom, mapLoaded]);
   
   return (
