@@ -152,7 +152,7 @@ export default function PostJobDrawer({ isOpen, onOpenChange }: PostJobDrawerPro
     setIsSubmitting(true);
     
     try {
-      // Create the job first
+      // Prepare the job data
       const jobData = {
         ...data,
         posterId: user?.id,
@@ -167,143 +167,129 @@ export default function PostJobDrawer({ isOpen, onOpenChange }: PostJobDrawerPro
         status: 'pending_payment' // Start as pending until payment is processed
       };
       
-      console.log('Creating job with data:', jobData);
+      console.log('Processing payment and creating job with data:', jobData);
       
-      try {
-        // Process payment first before creating the job
-        if (data.paymentMethodId) {
-          console.log(`Pre-verifying payment with method ID ${data.paymentMethodId}`);
-          
-          // Create a payment confirmation intent first
-          const verifyPaymentResponse = await apiRequest('POST', '/api/stripe/create-payment-intent', {
-            amount: Number(data.paymentAmount),
-            description: `Payment for job: ${data.title}`,
-            metadata: {
-              jobTitle: data.title,
-              paymentType: data.paymentType
-            }
-          });
-          
-          if (!verifyPaymentResponse.ok) {
-            const errorData = await verifyPaymentResponse.json();
-            throw new Error(errorData.message || "Payment verification failed");
-          }
-          
-          const { clientSecret, paymentIntentId } = await verifyPaymentResponse.json();
-          
-          console.log("Payment verification successful. Proceeding with job creation.");
-          
-          // Now that we've verified payment can be processed, create the job
-          const enrichedJobData = {
-            ...jobData,
-            paymentIntentId: paymentIntentId // Store the payment intent ID with the job
-          };
-          
-          // Create the job with payment intent ID attached
-          const jobResponse = await apiRequest('POST', '/api/jobs', enrichedJobData);
-          
-          if (!jobResponse.ok) {
-            const errorData = await jobResponse.json();
-            throw new Error(errorData.message || 'Failed to create job');
-          }
-          
-          const createdJob = await jobResponse.json();
-          console.log('Job created successfully:', createdJob);
-          
-          // If tasks were provided, create them for the job
-          if (tasks.length > 0) {
-            try {
-              // Format tasks for API
-              const taskData = tasks.map((task) => ({
-                jobId: createdJob.id,
-                description: task.description,
-                position: task.position,
-                isOptional: task.isOptional,
-                dueTime: task.dueTime,
-                location: task.location,
-                latitude: task.latitude,
-                longitude: task.longitude,
-                bonusAmount: task.bonusAmount
-              }));
-              
-              // Create tasks in batch
-              await apiRequest('POST', `/api/jobs/${createdJob.id}/tasks/batch`, { tasks: taskData });
-              console.log('Tasks created successfully for job:', createdJob.id);
-            } catch (taskError) {
-              console.error("Error creating tasks:", taskError);
-            }
-          }
-          
-          // Now confirm the payment with the created job ID
-          console.log(`Processing payment for job #${createdJob.id} with amount $${data.paymentAmount}`);
-          
-          const paymentResponse = await apiRequest('POST', `/api/payment/process-payment`, {
+      if (!data.paymentMethodId) {
+        throw new Error('Payment method is required to post a job');
+      }
+      
+      // STEP 1: Create a payment intent to verify the payment can be processed
+      console.log(`Pre-verifying payment with method ID ${data.paymentMethodId}`);
+      
+      const verifyPaymentResponse = await apiRequest('POST', '/api/stripe/create-payment-intent', {
+        amount: Number(data.paymentAmount),
+        description: `Payment for job: ${data.title}`,
+        metadata: {
+          jobTitle: data.title,
+          paymentType: data.paymentType
+        },
+        return_url: window.location.origin + '/jobs' // Add return URL for better payment flow
+      });
+      
+      if (!verifyPaymentResponse.ok) {
+        const errorData = await verifyPaymentResponse.json();
+        throw new Error(errorData.message || "Payment verification failed");
+      }
+      
+      const { clientSecret, paymentIntentId } = await verifyPaymentResponse.json();
+      console.log("Payment intent created successfully:", paymentIntentId);
+      
+      // STEP 2: Create the job with the payment intent ID
+      const enrichedJobData = {
+        ...jobData,
+        paymentIntentId: paymentIntentId
+      };
+      
+      console.log('Creating job with payment intent ID:', paymentIntentId);
+      const jobResponse = await apiRequest('POST', '/api/jobs', enrichedJobData);
+      
+      if (!jobResponse.ok) {
+        const errorData = await jobResponse.json();
+        throw new Error(errorData.message || 'Failed to create job');
+      }
+      
+      const createdJob = await jobResponse.json();
+      console.log('Job created successfully:', createdJob);
+      
+      // STEP 3: Add tasks if provided
+      if (tasks.length > 0) {
+        try {
+          const taskData = tasks.map((task) => ({
             jobId: createdJob.id,
-            paymentMethodId: data.paymentMethodId,
-            amount: Number(data.paymentAmount),
-            paymentType: data.paymentType,
-            paymentIntentId: paymentIntentId
-          });
+            description: task.description,
+            position: task.position,
+            isOptional: task.isOptional,
+            dueTime: task.dueTime,
+            location: task.location,
+            latitude: task.latitude,
+            longitude: task.longitude,
+            bonusAmount: task.bonusAmount
+          }));
           
-          if (!paymentResponse.ok) {
-            let errorMessage = 'Payment processing failed';
-            try {
-              const errorData = await paymentResponse.json();
-              errorMessage = errorData.message || errorMessage;
-              console.error('Payment error details:', errorData);
-            } catch (e) {
-              console.error('Could not parse payment error response:', e);
-            }
-            
-            // Mark the job as payment failed
-            await apiRequest('PATCH', `/api/jobs/${createdJob.id}`, { 
-              status: 'payment_failed'
-            });
-            
-            throw new Error(errorMessage);
-          }
-          
-          const paymentData = await paymentResponse.json();
-          console.log('Payment successful with data:', paymentData);
-          
-          // Update job status to active since payment was successful
-          await apiRequest('PATCH', `/api/jobs/${createdJob.id}`, { 
-            status: 'open'
-          });
-          
-          // Show success dialog with job details
-          toast({
-            title: "Job Posted Successfully",
-            description: "Your job has been posted and payment has been processed!",
-            variant: "default"
-          });
-          
-          // Store the job details for the success modal
-          setCreatedJobId(createdJob.id);
-          setCreatedJobTitle(createdJob.title);
-          
-          // Close the drawer and show success modal
-          onOpenChange(false);
-          setShowSuccessModal(true);
-          
-          // Refresh job listings
-          queryClient.invalidateQueries({ queryKey: ['jobs'] });
-        } else {
-          throw new Error('Payment method is required to post a job');
+          await apiRequest('POST', `/api/jobs/${createdJob.id}/tasks/batch`, { tasks: taskData });
+          console.log('Tasks created successfully for job:', createdJob.id);
+        } catch (taskError) {
+          console.error("Error creating tasks:", taskError);
+          // Continue with payment even if tasks fail
         }
-      } catch (error) {
-        console.error('Error in job creation/payment process:', error);
-        const errorMessage = error instanceof Error ? error.message : 'An error occurred while processing your request';
+      }
+      
+      // STEP 4: Process the payment
+      console.log(`Processing payment for job #${createdJob.id} with amount $${data.paymentAmount}`);
+      
+      const paymentResponse = await apiRequest('POST', `/api/payment/process-payment`, {
+        jobId: createdJob.id,
+        paymentMethodId: data.paymentMethodId,
+        amount: Number(data.paymentAmount),
+        paymentType: data.paymentType,
+        paymentIntentId: paymentIntentId,
+        return_url: window.location.origin + '/jobs' // Include return URL
+      });
+      
+      if (!paymentResponse.ok) {
+        let errorMessage = 'Payment processing failed';
+        try {
+          const errorData = await paymentResponse.json();
+          errorMessage = errorData.message || errorMessage;
+          console.error('Payment error details:', errorData);
+        } catch (e) {
+          console.error('Could not parse payment error response:', e);
+        }
         
-        toast({
-          title: "Job Posting Failed",
-          description: errorMessage,
-          variant: "destructive"
+        // Mark the job as payment failed
+        await apiRequest('PATCH', `/api/jobs/${createdJob.id}`, { 
+          status: 'payment_failed'
         });
         
-        setIsSubmitting(false);
-        return;
+        throw new Error(errorMessage);
       }
+      
+      const paymentData = await paymentResponse.json();
+      console.log('Payment successful with data:', paymentData);
+      
+      // STEP 5: Update job status and finalize
+      await apiRequest('PATCH', `/api/jobs/${createdJob.id}`, { 
+        status: 'open'
+      });
+      
+      // STEP 6: Show success message and update UI
+      toast({
+        title: "Job Posted Successfully",
+        description: "Your job has been posted and payment has been processed!",
+        variant: "default"
+      });
+      
+      // Store the job details for the success modal
+      setCreatedJobId(createdJob.id);
+      setCreatedJobTitle(createdJob.title);
+      
+      // Close the drawer and show success modal
+      onOpenChange(false);
+      setShowSuccessModal(true);
+      
+      // Refresh job listings
+      queryClient.invalidateQueries({ queryKey: ['jobs'] });
+      
       // Reset the form
       form.reset({
         title: '',
@@ -322,18 +308,18 @@ export default function PostJobDrawer({ isOpen, onOpenChange }: PostJobDrawerPro
       
       // Reset tasks
       setTasks([]);
-      
-      // Done submitting
-      setIsSubmitting(false);
-      
     } catch (error) {
-      console.error('Error creating job:', error);
-      setIsSubmitting(false);
+      console.error('Error in payment/job creation process:', error);
+      const errorMessage = error instanceof Error ? error.message : 'An unknown error occurred';
+      
       toast({
-        title: "Error",
-        description: error instanceof Error ? error.message : 'Failed to create job',
+        title: "Job Posting Failed",
+        description: errorMessage,
         variant: "destructive"
       });
+    } finally {
+      // Always ensure submitting is set to false
+      setIsSubmitting(false);
     }
   };
 
@@ -420,14 +406,156 @@ export default function PostJobDrawer({ isOpen, onOpenChange }: PostJobDrawerPro
                   
                   <FormField
                     control={form.control}
+                    name="requiredSkills"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Required Skills (Optional)</FormLabel>
+                        <Select
+                          onValueChange={(value) => {
+                            const currentSkills = field.value || [];
+                            if (!currentSkills.includes(value)) {
+                              field.onChange([...currentSkills, value]);
+                            }
+                          }}
+                        >
+                          <FormControl>
+                            <SelectTrigger>
+                              <SelectValue placeholder="Select skills" />
+                            </SelectTrigger>
+                          </FormControl>
+                          <SelectContent>
+                            {SKILLS.filter(skill => !field.value?.includes(skill)).map((skill) => (
+                              <SelectItem key={skill} value={skill}>
+                                {skill}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                        
+                        <div className="flex flex-wrap gap-2 mt-2">
+                          {field.value?.map((skill) => (
+                            <Badge key={skill} variant="secondary" className="flex items-center gap-1">
+                              {skill}
+                              <button 
+                                type="button"
+                                className="ml-1 rounded-full hover:bg-secondary h-4 w-4 inline-flex items-center justify-center text-xs"
+                                onClick={() => {
+                                  field.onChange(field.value?.filter(s => s !== skill));
+                                }}
+                              >
+                                ✕
+                              </button>
+                            </Badge>
+                          ))}
+                        </div>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </div>
+                
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <FormField
+                    control={form.control}
+                    name="paymentType"
+                    render={({ field }) => (
+                      <FormItem className="space-y-3">
+                        <FormLabel>Payment Type</FormLabel>
+                        <FormControl>
+                          <RadioGroup
+                            onValueChange={field.onChange}
+                            defaultValue={field.value}
+                            className="flex flex-col space-y-1"
+                          >
+                            <div className="flex items-center space-x-2">
+                              <RadioGroupItem value="fixed" id="fixed" />
+                              <label htmlFor="fixed" className="font-medium cursor-pointer">Fixed Price</label>
+                            </div>
+                            <div className="flex items-center space-x-2">
+                              <RadioGroupItem value="hourly" id="hourly" />
+                              <label htmlFor="hourly" className="font-medium cursor-pointer">Hourly Rate</label>
+                            </div>
+                          </RadioGroup>
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  
+                  <FormField
+                    control={form.control}
+                    name="paymentAmount"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Payment Amount ($)</FormLabel>
+                        <FormControl>
+                          <div className="relative">
+                            <DollarSign className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                            <Input
+                              type="number"
+                              min="5"
+                              step="0.01"
+                              className="pl-9"
+                              {...field}
+                            />
+                          </div>
+                        </FormControl>
+                        <FormMessage />
+                        <FormDescription>
+                          {form.watch('paymentType') === 'fixed' 
+                            ? 'Total amount for the job'
+                            : 'Hourly rate'
+                          }
+                        </FormDescription>
+                      </FormItem>
+                    )}
+                  />
+                </div>
+                
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <FormField
+                    control={form.control}
+                    name="location"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Job Location</FormLabel>
+                        <FormControl>
+                          <div className="relative">
+                            <MapPin className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                            <AddressAutocompleteInput
+                              value={field.value}
+                              onChange={(value, coords) => {
+                                field.onChange(value);
+                                if (coords) {
+                                  form.setValue('latitude', coords.lat);
+                                  form.setValue('longitude', coords.lng);
+                                }
+                              }}
+                              placeholder="Enter job address"
+                              className="pl-9"
+                            />
+                          </div>
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  
+                  <FormField
+                    control={form.control}
                     name="dateNeeded"
                     render={({ field }) => (
                       <FormItem>
                         <FormLabel>Date Needed</FormLabel>
                         <FormControl>
-                          <div className="flex items-center">
-                            <Calendar className="mr-2 h-4 w-4 text-muted-foreground" />
-                            <Input type="date" {...field} />
+                          <div className="relative">
+                            <Calendar className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                            <Input
+                              type="date"
+                              className="pl-9"
+                              min={new Date().toISOString().split('T')[0]}
+                              {...field}
+                            />
                           </div>
                         </FormControl>
                         <FormMessage />
@@ -438,144 +566,9 @@ export default function PostJobDrawer({ isOpen, onOpenChange }: PostJobDrawerPro
                 
                 <FormField
                   control={form.control}
-                  name="paymentType"
-                  render={({ field }) => (
-                    <FormItem className="space-y-3">
-                      <FormLabel>Payment Type</FormLabel>
-                      <FormControl>
-                        <RadioGroup
-                          onValueChange={field.onChange}
-                          defaultValue={field.value}
-                          className="flex flex-col space-y-1"
-                        >
-                          <FormItem className="flex items-center space-x-3 space-y-0">
-                            <FormControl>
-                              <RadioGroupItem value="hourly" />
-                            </FormControl>
-                            <FormLabel className="font-normal cursor-pointer">
-                              Hourly
-                            </FormLabel>
-                          </FormItem>
-                          <FormItem className="flex items-center space-x-3 space-y-0">
-                            <FormControl>
-                              <RadioGroupItem value="fixed" />
-                            </FormControl>
-                            <FormLabel className="font-normal cursor-pointer">
-                              Fixed Price
-                            </FormLabel>
-                          </FormItem>
-                        </RadioGroup>
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                
-                <FormField
-                  control={form.control}
-                  name="paymentAmount"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>
-                        {form.watch('paymentType') === 'hourly' ? 'Hourly Rate ($)' : 'Fixed Price ($)'}
-                      </FormLabel>
-                      <FormControl>
-                        <div className="flex items-center">
-                          <DollarSign className="mr-2 h-4 w-4 text-muted-foreground" />
-                          <Input 
-                            type="number" 
-                            min="1" 
-                            step="0.01" 
-                            placeholder="25.00"
-                            {...field} 
-                          />
-                        </div>
-                      </FormControl>
-                      <FormDescription>
-                        {/* Calculate and display service fee */}
-                        Service fee: ${(Number(field.value || 0) * 0.1).toFixed(2)} (10%)
-                      </FormDescription>
-                      <FormDescription>
-                        {/* Calculate and display total amount */}
-                        Total amount: ${(Number(field.value || 0) * 1.1).toFixed(2)}
-                      </FormDescription>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                
-                <FormField
-                  control={form.control}
-                  name="location"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Job Location</FormLabel>
-                      <FormControl>
-                        <AddressAutocompleteInput
-                          value={field.value}
-                          onChange={(address, lat, lng) => {
-                            field.onChange(address);
-                            // Update latitude and longitude fields when address changes
-                            if (lat && lng) {
-                              form.setValue('latitude', lat);
-                              form.setValue('longitude', lng);
-                              console.log(`Location updated: ${address} (${lat}, ${lng})`);
-                            }
-                          }}
-                          placeholder="Search for an address"
-                          className="w-full"
-                        />
-                      </FormControl>
-                      <FormDescription>
-                        Select an address from the dropdown suggestions for accurate job placement on the map
-                      </FormDescription>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                
-                <FormField
-                  control={form.control}
-                  name="requiredSkills"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Required Skills</FormLabel>
-                      <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
-                        {SKILLS.map((skill) => (
-                          <FormItem
-                            key={skill}
-                            className="flex items-center space-x-2 bg-muted/40 rounded-md p-2"
-                          >
-                            <FormControl>
-                              <Checkbox
-                                checked={field.value?.includes(skill)}
-                                onCheckedChange={(checked) => {
-                                  if (checked) {
-                                    field.onChange([...(field.value || []), skill]);
-                                  } else {
-                                    field.onChange(
-                                      field.value?.filter((s) => s !== skill) || []
-                                    );
-                                  }
-                                }}
-                              />
-                            </FormControl>
-                            <FormLabel className="text-sm font-normal cursor-pointer">
-                              {skill}
-                            </FormLabel>
-                          </FormItem>
-                        ))}
-                      </div>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                
-                <FormField
-                  control={form.control}
                   name="equipmentProvided"
                   render={({ field }) => (
-                    <FormItem className="flex items-center space-x-2">
+                    <FormItem className="flex flex-row items-start space-x-3 space-y-0 rounded-md p-4 border border-border">
                       <FormControl>
                         <Checkbox
                           checked={field.value}
