@@ -356,7 +356,7 @@
     color: hsl(var(--primary-foreground)) !important;
   }
   
-  /* Custom styles for leaflet map popups - adaptive for both light/dark modes */
+  /* Custom styles for map popups - adaptive for both light/dark modes */
   .leaflet-popup-content-wrapper {
     background-color: hsl(var(--card));
     color: hsl(var(--card-foreground));
@@ -375,6 +375,40 @@
     margin: 10px 12px;
     font-weight: 500;
     color: hsl(var(--foreground));
+  }
+  
+  /* Mapbox custom styles */
+  .mapboxgl-popup-content {
+    background-color: hsl(var(--card));
+    color: hsl(var(--card-foreground));
+    border-radius: 12px;
+    box-shadow: 0 3px 14px rgba(0, 0, 0, 0.2);
+    border: 2px solid hsl(var(--primary) / 0.5);
+    padding: 10px 12px;
+  }
+  
+  .mapboxgl-popup-tip {
+    border-top-color: hsl(var(--card)) !important;
+    border-bottom-color: hsl(var(--card)) !important;
+  }
+  
+  /* Map marker styling */
+  .map-marker {
+    animation: bounce-in 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+    position: relative;
+  }
+  
+  .map-marker::after {
+    content: '';
+    position: absolute;
+    top: -5px;
+    left: -5px;
+    width: calc(100% + 10px);
+    height: calc(100% + 10px);
+    border-radius: 50%;
+    background-color: rgba(16, 185, 129, 0.4);
+    animation: pulse-marker 2s infinite;
+    z-index: -1;
   }
   
   /* Make map labels adaptive */

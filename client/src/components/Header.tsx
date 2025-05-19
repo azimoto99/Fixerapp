@@ -64,7 +64,7 @@ const Header: React.FC<HeaderProps> = ({
           <Link href="/">
             <div className="flex-shrink-0 flex items-center cursor-pointer">
               <img 
-                src="/assets/images/fixer-logo.png" 
+                src="/assets/fixer-logo.png" 
                 alt="Fixer" 
                 className="h-10" 
                 onError={(e) => {
