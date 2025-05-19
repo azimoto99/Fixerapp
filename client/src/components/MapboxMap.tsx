@@ -87,18 +87,40 @@ export default function MapboxMap({
     // Add new markers
     markers.forEach(marker => {
       // Create a styled popup if there's a title or description
-      let popup;
+      let popup: mapboxgl.Popup | undefined;
       if (marker.title || marker.description) {
+        // Create a popup element
+        const popupElement = document.createElement('div');
+        popupElement.className = 'custom-mapbox-popup-content';
+        popupElement.innerHTML = `
+          <div style="padding: 8px; cursor: pointer;">
+            <h3 style="margin: 0 0 5px; font-size: 15px; font-weight: 600; color: #111;">${marker.title || ''}</h3>
+            <p style="margin: 0; font-size: 13px; color: #10b981; font-weight: 500;">${marker.description || ''}</p>
+          </div>
+        `;
+        
+        // Create popup with the custom element
         popup = new mapboxgl.Popup({ 
           offset: 25,
           closeButton: false,
           className: 'custom-mapbox-popup'
-        }).setHTML(
-          `<div style="padding: 8px;">
-            <h3 style="margin: 0 0 5px; font-size: 15px; font-weight: 600; color: #111;">${marker.title || ''}</h3>
-            <p style="margin: 0; font-size: 13px; color: #10b981; font-weight: 500;">${marker.description || ''}</p>
-          </div>`
-        );
+        });
+        
+        popup.setDOMContent(popupElement);
+        
+        // Add click event to the popup content
+        if (marker.onClick) {
+          popupElement.addEventListener('click', (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            if (marker.onClick) {
+              marker.onClick();
+            }
+            if (popup) {
+              popup.remove(); // Close popup after clicking
+            }
+          });
+        }
       }
       
       // Create a custom marker element with a dollar sign icon
