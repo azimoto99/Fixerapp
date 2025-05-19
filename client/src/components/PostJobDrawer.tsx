@@ -145,75 +145,150 @@ export default function PostJobDrawer({ isOpen, onOpenChange }: PostJobDrawerPro
     setIsSubmitting(true);
     
     try {
-      // Pre-authorize payment for all job types before creating the job
-      if (data.paymentMethodId) {
-        let paymentSuccessful = false;
-        let paymentError = null;
-        let paymentResponse = null;
-        
-        try {
-          console.log(`Processing payment for ${data.paymentType} job before creating job`);
-          // Pre-authorize payment but don't create the job yet
-          paymentResponse = await apiRequest('POST', `/api/payments/preauthorize`, {
-            paymentMethodId: data.paymentMethodId,
-            amount: data.paymentAmount,
-            paymentType: data.paymentType
-          });
-          
-          if (!paymentResponse.ok) {
-            const errorData = await paymentResponse.json();
-            paymentError = errorData.message || 'Payment processing failed';
-            console.error('Payment processing failed:', errorData);
-            
-            // Show payment failure dialog and don't create the job
-            toast({
-              title: "Payment Failed",
-              description: `Your job could not be posted because your payment was declined: ${paymentError}. Please update your payment method in the payment settings.`,
-              variant: "destructive"
-            });
-            
-            setIsSubmitting(false);
-            return; // Exit early without creating job
-          } else {
-            console.log('Payment pre-authorized for fixed-price job');
-            paymentSuccessful = true;
-          }
-        } catch (error) {
-          console.error('Payment processing error:', error);
-          paymentError = 'An error occurred while processing payment';
-          
-          // Show payment failure dialog and don't create the job
-          toast({
-            title: "Payment Failed",
-            description: `Your job could not be posted because your payment could not be processed: ${paymentError}`,
-            variant: "destructive"
-          });
-          
-          setIsSubmitting(false);
-          return; // Exit early without creating job
-        }
-        
-        // Only proceed to create the job if payment was successful
-        if (!paymentSuccessful) {
-          setIsSubmitting(false);
-          return; // Exit early
-        }
-      }
-      
-      // If we reach here, payment was successful or not required (hourly job)
+      // First create the job, then proceed with payment
       const jobData = {
         ...data,
         posterId: user?.id,
         dateNeeded: new Date(data.dateNeeded).toISOString(),
         datePosted: new Date().toISOString(),
-        status: 'open'
+        status: 'pending_payment' // Start as pending until payment is processed
       };
       
       console.log('Creating job with data:', jobData);
       
-      // Create the job
+      // Create the job first
       const response = await apiRequest('POST', '/api/jobs', jobData);
+      
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || 'Failed to create job');
+      }
+      
       const jobResponse = await response.json();
+      console.log('Job created successfully:', jobResponse);
+      
+      // If tasks were provided, create them for the job
+      if (tasks.length > 0) {
+        try {
+          // Format tasks for API
+          const taskData = tasks.map((task) => ({
+            jobId: jobResponse.id,
+            description: task.description,
+            position: task.position,
+            isOptional: task.isOptional,
+            dueTime: task.dueTime,
+            location: task.location,
+            latitude: task.latitude,
+            longitude: task.longitude,
+            bonusAmount: task.bonusAmount
+          }));
+          
+          // Create tasks in batch
+          await apiRequest('POST', `/api/jobs/${jobResponse.id}/tasks/batch`, { tasks: taskData });
+          console.log('Tasks created successfully for job:', jobResponse.id);
+        } catch (taskError) {
+          console.error("Error creating tasks:", taskError);
+        }
+      }
+      
+      // Now process payment with the created job ID
+      if (data.paymentMethodId) {
+        let paymentSuccessful = false;
+        let paymentIntentId = null;
+        
+        try {
+          console.log(`Processing payment for job #${jobResponse.id} with amount $${data.paymentAmount}`);
+          
+          // Process the actual payment with the real job ID
+          const paymentResponse = await apiRequest('POST', `/api/process-payment`, {
+            jobId: jobResponse.id,
+            paymentMethodId: data.paymentMethodId,
+            amount: data.paymentAmount
+          });
+          
+          if (!paymentResponse.ok) {
+            const errorData = await paymentResponse.json();
+            throw new Error(errorData.message || 'Payment processing failed');
+          }
+          
+          const paymentData = await paymentResponse.json();
+          console.log('Payment successful with data:', paymentData);
+          
+          paymentIntentId = paymentData.paymentId;
+          paymentSuccessful = true;
+          
+          // Update job status to active since payment was successful
+          await apiRequest('PATCH', `/api/jobs/${jobResponse.id}`, { 
+            status: 'open',
+            stripePaymentIntentId: paymentIntentId
+          });
+          
+          // Show success dialog with job details
+          toast({
+            title: "Job Posted Successfully",
+            description: "Your job has been posted and payment has been processed!",
+            variant: "default"
+          });
+          
+          // Close the drawer
+          onOpenChange(false);
+          
+          // Show success modal
+          setSuccessModalOpen(true);
+          setCreatedJobId(jobResponse.id);
+          setCreatedJobTitle(jobResponse.title);
+          
+        } catch (error) {
+          console.error('Payment processing error:', error);
+          const errorMessage = error instanceof Error ? error.message : 'An error occurred while processing payment';
+          
+          // Mark the job as payment failed
+          await apiRequest('PATCH', `/api/jobs/${jobResponse.id}`, { 
+            status: 'payment_failed'
+          });
+          
+          // Show payment failure dialog
+          toast({
+            title: "Payment Failed",
+            description: `Your job was created but payment failed: ${errorMessage}. Please try again from your jobs dashboard.`,
+            variant: "destructive"
+          });
+          
+          setIsSubmitting(false);
+          onOpenChange(false);
+          return;
+        }
+        
+        if (!paymentSuccessful) {
+          // Mark the job as payment failed
+          await apiRequest('PATCH', `/api/jobs/${jobResponse.id}`, { 
+            status: 'payment_failed'
+          });
+          
+          setIsSubmitting(false);
+          onOpenChange(false);
+          return;
+        }
+      }
+      
+      // We're already done with job creation and payment processing
+      setIsSubmitting(false);
+      
+      // Reset the form
+      form.reset({
+        title: '',
+        description: '',
+        category: JOB_CATEGORIES[0],
+        paymentType: 'hourly',
+        paymentAmount: 25,
+        location: '',
+        latitude: userLocation?.latitude || 37.7749,
+        longitude: userLocation?.longitude || -122.4194,
+        dateNeeded: new Date(Date.now() + 86400000).toISOString().split('T')[0],
+        requiredSkills: [],
+        equipmentProvided: false,
+        posterId: user?.id || 0
+      });
       
       // If there are tasks, create them
       if (tasks.length > 0) {
