@@ -161,8 +161,8 @@ export default function PostJobDrawer({ isOpen, onOpenChange }: PostJobDrawerPro
         longitude: data.longitude ? Number(data.longitude) : userLocation?.longitude || -122.4194,
         // Format payment amount as number
         paymentAmount: Number(data.paymentAmount),
-        // For date fields, we need to send them in the proper format expected by the server
-        dateNeeded: new Date(data.dateNeeded), // Convert string date to Date object
+        // Format the date as an ISO string which the server can handle
+        dateNeeded: data.dateNeeded ? new Date(data.dateNeeded).toISOString() : new Date().toISOString(),
         // Don't set datePosted, the database will default it to now()
         status: 'pending_payment' // Start as pending until payment is processed
       };
