@@ -191,7 +191,9 @@ export default function PostJobDrawer({ isOpen, onOpenChange }: PostJobDrawerPro
         throw new Error(errorData.message || "Payment verification failed");
       }
       
-      const { clientSecret, paymentIntentId } = await verifyPaymentResponse.json();
+      // Use clone to avoid the error "body already consumed"
+      const verifyPaymentResponseClone = verifyPaymentResponse.clone();
+      const { clientSecret, paymentIntentId } = await verifyPaymentResponseClone.json();
       console.log("Payment intent created successfully:", paymentIntentId);
       
       // STEP 2: Create the job with the payment intent ID
