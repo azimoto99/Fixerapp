@@ -37,10 +37,11 @@ export function filterJobContent(title: string, description: string) {
     };
   }
 
-  if (title.length < 5 || description.length < 20) {
+  // Reduced minimum length requirements to make posting jobs easier
+  if (title.length < 3 || description.length < 5) {
     return {
       isApproved: false,
-      reason: 'Title or description is too short'
+      reason: 'Title must be at least 3 characters and description at least 5 characters'
     };
   }
 

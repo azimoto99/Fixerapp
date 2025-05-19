@@ -36,11 +36,11 @@ import PostJobSuccessModal from '@/components/PostJobSuccessModal';
 
 // Form schema with validation
 const formSchema = insertJobSchema.extend({
-  title: z.string().min(5, 'Title must be at least 5 characters'),
-  description: z.string().min(10, 'Description must be at least 10 characters'),
+  title: z.string().min(3, 'Title must be at least 3 characters'),
+  description: z.string().min(5, 'Description must be at least 5 characters'),
   paymentAmount: z.coerce
     .number()
-    .min(10, 'Minimum payment amount is $10')
+    .min(5, 'Minimum payment amount is $5')
     .positive('Payment amount must be positive'),
   dateNeeded: z.string(),
   paymentMethodId: z.string().optional(),
