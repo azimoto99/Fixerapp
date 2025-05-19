@@ -8,6 +8,8 @@ import { formatCurrency, formatDate } from '@/lib/utils';
 
 // UI Components
 import { TabsContent, Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Card, CardContent, CardFooter, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { Separator } from "@/components/ui/separator";
 import {
   Table,
   TableBody,
