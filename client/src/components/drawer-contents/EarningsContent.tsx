@@ -55,16 +55,6 @@ interface EarningsContentProps {
   userId: number;
 }
 
-interface MockEarning {
-  id: number;
-  jobId: number;
-  workerId: number;
-  amount: number;
-  status: 'pending' | 'paid';
-  dateEarned: string;
-  datePaid?: string;
-}
-
 const EarningsContent: React.FC<EarningsContentProps> = ({ userId }) => {
   const [timeframe, setTimeframe] = useState('month');
   const { toast } = useToast();
@@ -141,18 +131,28 @@ const EarningsContent: React.FC<EarningsContentProps> = ({ userId }) => {
     }
   });
   
-  // Fetch earnings data with error handling
+  // Fetch earnings data
   const { 
     data: earnings, 
     isLoading,
     error: earningsError
-  } = useQuery<Earning[]>({
+  } = useQuery<any[]>({
     queryKey: [`/api/earnings/worker/${userId}`],
-    onError: (error) => {
-      console.error("Error fetching earnings:", error);
+    queryFn: async () => {
+      try {
+        const res = await apiRequest('GET', `/api/earnings/worker/${userId}`);
+        if (!res.ok) {
+          // Return empty array on error
+          console.error("Error fetching earnings:", await res.text());
+          return [];
+        }
+        return res.json();
+      } catch (error) {
+        console.error("Error fetching earnings:", error);
+        return [];
+      }
     },
-    // Short retry time in case of database issues
-    retry: 1
+    retry: false
   });
   
   // Fetch job data the worker has completed
@@ -172,52 +172,13 @@ const EarningsContent: React.FC<EarningsContentProps> = ({ userId }) => {
   
   // Get reviews for the worker
   const { data: reviews } = useQuery<Review[]>({
-    queryKey: [`/api/reviews/user/${userId}`],
-    onError: (error) => {
-      console.error("Error fetching reviews:", error);
-    }
+    queryKey: [`/api/reviews/user/${userId}`]
   });
   
   // Get applications for the worker
   const { data: applications } = useQuery<Application[]>({
-    queryKey: [`/api/applications/worker/${userId}`],
-    onError: (error) => {
-      console.error("Error fetching applications:", error);
-    }
+    queryKey: [`/api/applications/worker/${userId}`]
   });
-
-  // Use mock earnings data if there's a database error
-  const mockEarnings: MockEarning[] = [
-    { 
-      id: 1, 
-      jobId: 101, 
-      workerId: userId, 
-      amount: 120.00, 
-      status: 'paid', 
-      dateEarned: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000).toISOString(),
-      datePaid: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString()
-    },
-    { 
-      id: 2, 
-      jobId: 102, 
-      workerId: userId, 
-      amount: 85.50, 
-      status: 'paid', 
-      dateEarned: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString(),
-      datePaid: new Date(Date.now() - 6 * 24 * 60 * 60 * 1000).toISOString()
-    },
-    { 
-      id: 3, 
-      jobId: 103, 
-      workerId: userId, 
-      amount: 45.00, 
-      status: 'pending', 
-      dateEarned: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000).toISOString()
-    }
-  ];
-  
-  // Use either real earnings or mock data if there's a database error
-  const earningsData = earningsError ? mockEarnings : earnings;
   
   if (isLoading) {
     return (
@@ -227,7 +188,7 @@ const EarningsContent: React.FC<EarningsContentProps> = ({ userId }) => {
     );
   }
 
-  if (!earningsData || earningsData.length === 0) {
+  if (!earnings || earnings.length === 0) {
     return (
       <div className="space-y-6">
         <div className="flex items-center justify-between pb-2 border-b">
@@ -295,9 +256,9 @@ const EarningsContent: React.FC<EarningsContentProps> = ({ userId }) => {
     );
   }
 
-  // Calculate total and pending earnings using either real or mock data
-  const totalEarnings = earningsData.reduce((acc, curr) => acc + curr.amount, 0);
-  const paidEarnings = earningsData
+  // Calculate total and pending earnings
+  const totalEarnings = earnings.reduce((acc, curr) => acc + curr.amount, 0);
+  const paidEarnings = earnings
     .filter(e => e.status === 'paid')
     .reduce((acc, curr) => acc + curr.amount, 0);
   const pendingEarnings = totalEarnings - paidEarnings;
@@ -311,9 +272,9 @@ const EarningsContent: React.FC<EarningsContentProps> = ({ userId }) => {
 
   // Filter earnings by timeframe
   const getFilteredEarnings = () => {
-    if (!earningsData || earningsData.length === 0) return [];
+    if (!earnings || earnings.length === 0) return [];
     
-    if (timeframe === 'all') return earningsData;
+    if (timeframe === 'all') return earnings;
     
     const now = new Date();
     let startDate = new Date();
@@ -326,7 +287,7 @@ const EarningsContent: React.FC<EarningsContentProps> = ({ userId }) => {
       startDate.setFullYear(now.getFullYear() - 1);
     }
     
-    return earningsData.filter((e: any) => e.dateEarned ? new Date(e.dateEarned) >= startDate : false);
+    return earnings.filter((e: any) => e.dateEarned ? new Date(e.dateEarned) >= startDate : false);
   };
 
   const filteredEarnings = getFilteredEarnings();
