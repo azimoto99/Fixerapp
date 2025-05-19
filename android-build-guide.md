@@ -1,143 +1,74 @@
-# Fixer App - Android Build Guide
+# Android Build Guide
 
-This guide walks you through building the Fixer app for Android using Git export.
+This guide provides instructions for building the Fixer app for Android through GitHub.
 
-## Prerequisites
+## Common Build Errors
 
-1. Make sure your app has the following dependencies installed:
-   - @emotion/is-prop-valid
-   - @babel/core
-   - @babel/plugin-transform-export-namespace-from
-   - @expo/metro-config
+### Keystore Generation Error
 
-2. Ensure your babel.config.js includes:
-   ```js
-   module.exports = function (api) {
-     api.cache(true);
-     return {
-       presets: [
-         ["babel-preset-expo", {
-           "unstable_transformImportMeta": true
-         }]
-       ],
-       plugins: [
-         "transform-inline-environment-variables",
-         "@babel/plugin-transform-export-namespace-from",
-         ["module:react-native-dotenv", {
-           "moduleName": "@env",
-           "path": ".env",
-           "blacklist": null,
-           "whitelist": null,
-           "safe": false,
-           "allowUndefined": true
-         }],
-         ["babel-plugin-transform-import-meta", {
-           "module": "ES6"
-         }]
-       ],
-       env: {
-         production: {
-           plugins: ["transform-remove-console"]
-         }
-       }
-     };
-   };
+If you encounter this error during an EAS build:
+```
+Generating a new Keystore is not supported in --non-interactive mode
+Error: build:internal command failed.
+```
+
+This happens because EAS is trying to create a new signing keystore but can't do this in non-interactive mode.
+
+## Solution Steps
+
+1. Run the `build-android-fix.sh` script to modify the build configuration:
+   ```bash
+   ./build-android-fix.sh
    ```
 
-3. Proper metro.config.js extending Expo's configuration:
-   ```js
-   const { getDefaultConfig } = require('@expo/metro-config');
-   const defaultConfig = getDefaultConfig(__dirname);
-   
-   module.exports = {
-     ...defaultConfig,
-     resolver: {
-       ...defaultConfig.resolver,
-       assetExts: [
-         ...defaultConfig.resolver.assetExts,
-         'mp3', 'wav', 'ogg', 'mp4', 'avi', 'mov', 'wmv', 'xml', 'pdf'
-       ],
-       sourceExts: [
-         ...defaultConfig.resolver.sourceExts,
-         'md', 'mdx'
-       ],
-     },
-     watchFolders: [
-       ...defaultConfig.watchFolders,
-       __dirname + '/client/src',
-       __dirname + '/shared',
-     ],
-   };
+2. Use one of these build commands:
+
+   **For development testing:**
+   ```bash
+   eas build --platform android --profile development --non-interactive
    ```
 
-## Building with EAS
-
-For the smoothest experience, use Expo Application Services (EAS) to build your app.
-
-### Setup 
-
-1. Make sure you're logged in:
-   ```
-   npx eas-cli login
+   **For an APK file:**
+   ```bash
+   eas build --platform android --profile androidApk --non-interactive
    ```
 
-2. Configure your build in eas.json (already done)
-
-### Build Options
-
-To build the app using EAS, select one of the following commands:
-
-1. **For development testing:**
-   ```
-   npx eas build --platform android --profile development
+   **For a production build:**
+   ```bash
+   eas build --platform android --profile simpleBuild --non-interactive
    ```
 
-2. **For internal distribution (APK):**
-   ```
-   npx eas build --platform android --profile preview
-   ```
-
-3. **For production Play Store release (AAB):**
-   ```
-   npx eas build --platform android --profile production
+3. After building, restore your original EAS configuration:
+   ```bash
+   mv eas.json.bak eas.json
    ```
 
-4. **For direct APK distribution:**
+## GitHub Build Steps
+
+If you're building through GitHub:
+
+1. Push your changes to GitHub
+2. In your GitHub workflow or Actions:
+   - Add a step to run `./build-android-fix.sh`
+   - Run the build command with the `--non-interactive` flag
+   - Use the `androidApk` or `simpleBuild` profile
+
+## Alternative: Use Pre-Generated Keystore
+
+For a more permanent solution, you can:
+
+1. Generate a keystore locally:
+   ```bash
+   keytool -genkeypair -v -keystore fixer.keystore -alias fixer -keyalg RSA -keysize 2048 -validity 10000
    ```
-   npx eas build --platform android --profile androidApk
+
+2. Upload the keystore to EAS using:
+   ```bash
+   eas credentials --platform android
    ```
 
-5. **Quick build without credentials:**
-   ```
-   npx eas build --platform android --profile simpleBuild
-   ```
+3. Then your builds will use the stored credentials instead of trying to generate them.
 
-## Common Build Issues
+## Need Help?
 
-If you encounter errors during the build process:
-
-1. **Metro bundler errors:**
-   - Ensure metro.config.js extends @expo/metro-config
-   - Check for any React Native/web compatibility issues
-
-2. **Missing dependencies:**
-   - Make sure all required packages are installed
-   - Check for peer dependency warnings
-
-3. **Environment variables:**
-   - Ensure Stripe public key is accessible in the Expo environment
-   - Verify eas.json env configuration
-
-4. **Platform-specific code:**
-   - Ensure components use proper .native.tsx extensions where needed
-   - Fix any direct React Native imports in web components
-
-## Git Export
-
-When exporting to Git for building:
-
-1. Commit all necessary files
-2. Exclude build artifacts and unnecessary files
-3. Include all dependencies in package.json
-
-EAS Build will clone your repository and build from your source code.
+If you continue to experience issues with the build process, you might need to adjust the build settings based on your specific GitHub workflow or consider using EAS's remote credentials system.
