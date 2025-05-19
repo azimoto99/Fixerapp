@@ -74,30 +74,42 @@ export default function MapboxMap({
   
   // Add markers when they change or map is loaded
   useEffect(() => {
-    if (mapLoaded && map.current) {
-      // Clear existing markers (if any implementation uses this)
-      const existingMarkers = document.getElementsByClassName('mapboxgl-marker');
-      while (existingMarkers[0]) {
-        existingMarkers[0].remove();
-      }
+    // Only proceed if map is loaded and map.current exists
+    if (!mapLoaded || !map.current) return;
+    
+    // Clear existing markers (if any implementation uses this)
+    const existingMarkers = document.getElementsByClassName('mapboxgl-marker');
+    while (existingMarkers[0]) {
+      existingMarkers[0].remove();
+    }
       
       // Add new markers
       markers.forEach(marker => {
-        // Create a popup if there's a title or description
+        // Create a styled popup if there's a title or description
         let popup;
         if (marker.title || marker.description) {
-          popup = new mapboxgl.Popup({ offset: 25 }).setHTML(
-            `<h3>${marker.title || ''}</h3><p>${marker.description || ''}</p>`
+          popup = new mapboxgl.Popup({ 
+            offset: 25,
+            closeButton: false,
+            className: 'custom-mapbox-popup'
+          }).setHTML(
+            `<div style="padding: 5px;">
+              <h3 style="margin: 0 0 5px; font-size: 14px; font-weight: 600;">${marker.title || ''}</h3>
+              <p style="margin: 0; font-size: 12px; color: #10b981;">${marker.description || ''}</p>
+            </div>`
           );
         }
         
-        // Create the marker
+        // Create a custom marker element
         const markerEl = document.createElement('div');
         markerEl.className = 'map-marker';
-        markerEl.style.width = '24px';
-        markerEl.style.height = '24px';
-        markerEl.style.backgroundImage = 'url(/marker-icon.png)';
-        markerEl.style.backgroundSize = 'cover';
+        markerEl.style.width = '30px';
+        markerEl.style.height = '30px';
+        markerEl.style.borderRadius = '50%';
+        markerEl.style.backgroundColor = '#10b981'; // Using primary color
+        markerEl.style.border = '2px solid white';
+        markerEl.style.boxShadow = '0 2px 4px rgba(0,0,0,0.3)';
+        markerEl.style.cursor = 'pointer';
         
         // Add the marker to the map
         const mapboxMarker = new mapboxgl.Marker(markerEl)
@@ -108,10 +120,14 @@ export default function MapboxMap({
         }
         
         if (marker.onClick) {
+          // Add the click event to the element
           markerEl.addEventListener('click', marker.onClick);
         }
         
-        mapboxMarker.addTo(map.current);
+        // Safe to add marker if map.current exists
+        if (map.current) {
+          mapboxMarker.addTo(map.current);
+        }
       });
     }
   }, [markers, mapLoaded]);

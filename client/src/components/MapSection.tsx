@@ -202,7 +202,7 @@ const MapSection: React.FC<MapSectionProps> = ({ jobs, selectedJob, onSelectJob,
         description: `$${job.paymentAmount} - ${job.paymentType}`,
         onClick: () => handleMarkerClick(job)
       }));
-  }, [jobs]);
+  }, [jobs, handleMarkerClick]);
   
   // If no user location yet, show loading
   if (!position) {
