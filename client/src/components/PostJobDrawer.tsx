@@ -329,7 +329,7 @@ export default function PostJobDrawer({ isOpen, onOpenChange }: PostJobDrawerPro
           </DrawerHeader>
           <div className="flex-1 overflow-y-auto p-4 pb-16">
             <Form {...form}>
-              <form id="post-job-form" onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+              <form id="post-job-form" onSubmit={form.handleSubmit(onSubmit)} className="space-y-4 relative">
                 <FormField
                   control={form.control}
                   name="title"
