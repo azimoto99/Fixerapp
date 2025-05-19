@@ -12,6 +12,9 @@
         "buildType": "apk",
         "gradleCommand": ":app:assembleDebug"
       },
+      "ios": {
+        "resourceClass": "m-medium"
+      },
       "env": {
         "EXPO_PUBLIC_STRIPE_KEY": "${process.env.VITE_STRIPE_PUBLIC_KEY}"
       }
@@ -21,6 +24,9 @@
       "android": {
         "buildType": "apk",
         "gradleCommand": ":app:assembleRelease"
+      },
+      "ios": {
+        "resourceClass": "m-medium"
       },
       "env": {
         "EXPO_PUBLIC_STRIPE_KEY": "${process.env.VITE_STRIPE_PUBLIC_KEY}"
@@ -33,6 +39,9 @@
         "buildType": "app-bundle",
         "gradleCommand": ":app:bundleRelease",
         "withoutCredentials": true
+      },
+      "ios": {
+        "resourceClass": "m-medium"
       },
       "env": {
         "EXPO_PUBLIC_STRIPE_KEY": "${process.env.VITE_STRIPE_PUBLIC_KEY}"
