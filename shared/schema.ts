@@ -219,11 +219,9 @@ export const insertJobSchema = createInsertSchema(jobs).omit({
   totalAmount: true,
   autoAccept: true, // Will be explicitly set in the form
 }).extend({
-  paymentAmount: z.number().min(10, "Minimum payment amount is $10"),
-  // Allow dateNeeded to be a string which will be converted to a Date on the server
-  dateNeeded: z.union([z.string(), z.date()]).transform(val => 
-    typeof val === 'string' ? new Date(val) : val
-  ),
+  paymentAmount: z.number().min(5, "Minimum payment amount is $5"),
+  // Accept string dates but don't transform them - we'll handle this in the API
+  dateNeeded: z.string(),
   autoAccept: z.boolean().default(false),
 });
 
