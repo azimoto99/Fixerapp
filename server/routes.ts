@@ -2785,11 +2785,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const { jobId, paymentMethodId, amount, paymentType } = req.body;
       
-      if (!jobId || !paymentMethodId || !amount) {
+      if (!jobId || !paymentMethodId || amount === undefined || amount === null) {
         return res.status(400).json({ message: "Missing required fields for payment" });
       }
       
-      console.log(`Processing payment for job ${jobId}: $${amount} with method ${paymentMethodId}`);
+      // Ensure amount is a number
+      const paymentAmount = typeof amount === 'string' ? parseFloat(amount) : Number(amount);
+      
+      if (isNaN(paymentAmount)) {
+        return res.status(400).json({ message: "Invalid payment amount" });
+      }
+      
+      console.log(`Processing payment for job ${jobId}: $${paymentAmount} with method ${paymentMethodId}`);
       
       // Get the job to validate ownership
       const job = await storage.getJob(jobId);
@@ -2832,7 +2839,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       let paymentIntent;
       try {
         paymentIntent = await stripe.paymentIntents.create({
-          amount: Math.round(amount * 100), // Convert to cents
+          amount: Math.round(paymentAmount * 100), // Convert to cents
           currency: 'usd',
           customer: customerId,
           payment_method: paymentMethodId,

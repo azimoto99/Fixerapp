@@ -217,7 +217,7 @@ export default function PostJobDrawer({ isOpen, onOpenChange }: PostJobDrawerPro
           const paymentResponse = await apiRequest('POST', `/api/payment/process-payment`, {
             jobId: createdJob.id,
             paymentMethodId: data.paymentMethodId,
-            amount: parseFloat(data.paymentAmount), // Ensure amount is a number, not string
+            amount: Number(data.paymentAmount), // Convert to number to avoid any type issues
             paymentType: data.paymentType
           });
           
