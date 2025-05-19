@@ -36,7 +36,14 @@ const MapSection: React.FC<MapSectionProps> = ({ jobs, selectedJob, onSelectJob,
     setIsUserDrawerOpen(isOpen);
   }, []);
   const [showStripeConnectRequired, setShowStripeConnectRequired] = useState(false);
+  // Map view is handled differently in Mapbox vs Leaflet
   const [mapView, setMapView] = useState<'standard' | 'heatmap'>('standard');
+  
+  // Update map style when view changes
+  useEffect(() => {
+    // We'll implement heatmap functionality later
+    console.log(`Map view changed to: ${mapView}`);
+  }, [mapView]);
   const { user } = useAuth();
   const { toast } = useToast();
   
@@ -182,18 +189,18 @@ const MapSection: React.FC<MapSectionProps> = ({ jobs, selectedJob, onSelectJob,
     }
   }, [selectedJob, previousSelectedJobId]);
   
-  // Use actual job coordinates from database
-  const jobPositions = useMemo(() => {
+  // Create markers for Mapbox map
+  const jobMarkers = useMemo(() => {
     if (!jobs || jobs.length === 0) return [];
     
     return jobs
       .filter(job => job.latitude && job.longitude) // Only use jobs with coordinates
       .map(job => ({
-        job,
-        position: [
-          job.latitude,
-          job.longitude
-        ] as LatLngExpression
+        latitude: job.latitude,
+        longitude: job.longitude,
+        title: job.title,
+        description: `$${job.paymentAmount} - ${job.paymentType}`,
+        onClick: () => handleMarkerClick(job)
       }));
   }, [jobs]);
   
@@ -265,20 +272,14 @@ const MapSection: React.FC<MapSectionProps> = ({ jobs, selectedJob, onSelectJob,
         `}</style>
         
         {position && (
-          <JobLocationMap
-            jobs={jobs}
-            center={position}
+          <MapboxMap
+            latitude={position.latitude}
+            longitude={position.longitude}
             zoom={15}
-            selectedJobId={selectedJob?.id}
-            onJobSelect={(jobId) => {
-              const job = jobs.find(j => j.id === jobId);
-              if (job && onSelectJob) {
-                onSelectJob(job);
-                setShowJobDetail(true);
-              }
-            }}
-            height="100%"
-            className="w-full"
+            markers={jobMarkers}
+            onMapClick={handleMapClick}
+            style={{ width: '100%', height: '100%' }}
+            interactive={true}
           />
         )}
         
@@ -286,22 +287,19 @@ const MapSection: React.FC<MapSectionProps> = ({ jobs, selectedJob, onSelectJob,
         
 
 
-        {/* Map controls and overlay - fixed actions on top (z-index below drawer) */}
-        <div className="absolute top-0 right-0 z-[500] w-full">
+        {/* Map controls overlay */}
+        <div className="absolute top-0 right-0 z-50 w-full">
           {/* Floating control panel */}
           <div className="bg-background/70 backdrop-blur-md border-b border-border/20 dark:border-border/20 shadow-sm px-4 py-2">
             <div className="flex justify-between items-center">
-              {/* Left side: Map toggle controls */}
+              {/* Left: Open jobs count */}
               <div className="flex gap-2">
-                <MapViewToggle 
-                  view={mapView} 
-                  onChange={setMapView}
-                  className="bg-background/60"
-                  totalOpenJobs={jobs.filter(job => job.status === 'open').length}
-                />
+                <div className="bg-primary/10 text-primary text-xs px-3 py-1 rounded-full flex items-center">
+                  <span>{jobs.filter(job => job.status === 'open').length} open jobs</span>
+                </div>
               </div>
               
-              {/* Center: Location status - Enhanced for mobile */}
+              {/* Center: Location status */}
               <div className="flex flex-col items-center">
                 {isUsingFallback ? (
                   <div className="bg-primary/10 text-primary text-xs px-3 py-1 rounded-full flex items-center">
@@ -320,9 +318,11 @@ const MapSection: React.FC<MapSectionProps> = ({ jobs, selectedJob, onSelectJob,
                 )}
               </div>
               
-              {/* Right side area - now empty as user button is handled in header */}
+              {/* Right: Mapbox credit */}
               <div className="flex items-center">
-                {/* Map additional controls can go here if needed */}
+                <div className="text-xs text-muted-foreground">
+                  Powered by Mapbox
+                </div>
               </div>
             </div>
           </div>
