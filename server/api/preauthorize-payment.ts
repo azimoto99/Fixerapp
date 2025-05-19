@@ -1,5 +1,6 @@
 import { Request, Response } from 'express';
 import Stripe from 'stripe';
+import { storage } from '../storage';
 
 if (!process.env.STRIPE_SECRET_KEY) {
   throw new Error('Missing Stripe secret key');
@@ -30,9 +31,14 @@ export async function preauthorizePayment(req: Request, res: Response) {
   
 
   try {
-    // Create a payment intent with manual confirmation
-    // This will validate the payment method without actually charging it
-    const paymentIntent = await stripe.paymentIntents.create({
+    // First check if this user has a Stripe customer ID
+    const user = await storage.getUser(req.user.id);
+    if (!user) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+
+    // Create payment intent options
+    const paymentIntentOptions: Stripe.PaymentIntentCreateParams = {
       amount: Math.round(amount * 100), // Convert to cents
       currency: 'usd',
       payment_method: paymentMethodId,
@@ -44,7 +50,15 @@ export async function preauthorizePayment(req: Request, res: Response) {
         preauthorization: 'true',
         paymentType: paymentType || 'fixed',
       },
-    });
+    };
+
+    // If the user has a Stripe customer ID, include it in the payment intent
+    if (user.stripeCustomerId) {
+      paymentIntentOptions.customer = user.stripeCustomerId;
+    }
+    
+    // Create the payment intent
+    const paymentIntent = await stripe.paymentIntents.create(paymentIntentOptions);
 
     // Return success since the payment method was valid
     return res.status(200).json({
