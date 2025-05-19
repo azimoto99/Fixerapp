@@ -8,36 +8,51 @@
 import React from 'react';
 import { Platform, View, Text } from 'react-native';
 
+// Determine if we're in a web environment
+const isWeb = Platform.OS === 'web';
+
+// Import framer-motion only in web environment to avoid errors
+let framerMotion: any = null;
+if (isWeb) {
+  try {
+    framerMotion = require('framer-motion');
+  } catch (e) {
+    console.warn('Framer Motion not available');
+  }
+}
+
 // For web, export the real components
 // For native, export simple wrappers that pass through props
 export const motion = {
-  div: Platform.OS === 'web' 
-    ? require('framer-motion').motion.div 
+  div: isWeb && framerMotion
+    ? framerMotion.motion.div 
     : (props: any) => React.createElement(View, props),
     
-  span: Platform.OS === 'web'
-    ? require('framer-motion').motion.span
+  span: isWeb && framerMotion
+    ? framerMotion.motion.span
     : (props: any) => React.createElement(Text, props),
     
-  button: Platform.OS === 'web'
-    ? require('framer-motion').motion.button
-    : (props: any) => {
+  button: isWeb && framerMotion
+    ? framerMotion.motion.button
+    : ((props: any) => {
         // Extract motion props that would cause issues in RN
         const { whileHover, whileTap, ...otherProps } = props;
         return React.createElement(View, otherProps);
-      },
+      }),
     
   // Add other motion components as needed
 };
 
 // AnimatePresence compatibility
-export const AnimatePresence = Platform.OS === 'web'
-  ? require('framer-motion').AnimatePresence
-  : ({ children }: { children: React.ReactNode }) => <>{children}</>;
+export const AnimatePresence = isWeb && framerMotion
+  ? framerMotion.AnimatePresence
+  : function AnimatePresence({ children }: { children: React.ReactNode }) { 
+      return <>{children}</>;
+    };
 
 // Export animation helpers as no-ops for native
-export const useAnimation = Platform.OS === 'web'
-  ? require('framer-motion').useAnimation
+export const useAnimation = isWeb && framerMotion
+  ? framerMotion.useAnimation
   : () => ({
       start: () => Promise.resolve(),
       stop: () => {},
@@ -45,11 +60,11 @@ export const useAnimation = Platform.OS === 'web'
     });
 
 // Spring animation config
-export const spring = Platform.OS === 'web'
-  ? require('framer-motion').spring
+export const spring = isWeb && framerMotion
+  ? framerMotion.spring
   : (config: any) => config;
 
 // Animation variants
 export function useAnimationVariants(variants: any) {
-  return Platform.OS === 'web' ? variants : {};
+  return isWeb ? variants : {};
 }
