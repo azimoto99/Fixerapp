@@ -1,18 +1,10 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Input } from "@/components/ui/input";
 import { MapPin } from "lucide-react";
-import mapboxgl from 'mapbox-gl';
-import MapboxGeocoder from '@mapbox/mapbox-gl-geocoder';
-import '@mapbox/mapbox-gl-geocoder/dist/mapbox-gl-geocoder.css';
-import 'mapbox-gl/dist/mapbox-gl.css';
+import { Spinner } from "@/components/ui/spinner";
 
 // Set the access token from environment variable
-const accessToken = import.meta.env.VITE_MAPBOX_ACCESS_TOKEN;
-if (accessToken) {
-  mapboxgl.accessToken = accessToken;
-} else {
-  console.error('Mapbox access token is missing!');
-}
+const MAPBOX_ACCESS_TOKEN = import.meta.env.VITE_MAPBOX_ACCESS_TOKEN;
 
 interface AddressAutocompleteInputProps {
   value: string;
@@ -21,126 +13,178 @@ interface AddressAutocompleteInputProps {
   className?: string;
 }
 
+interface GeocodingResult {
+  place_name: string;
+  center: [number, number]; // [longitude, latitude]
+}
+
 export function AddressAutocompleteInput({
   value,
   onChange,
   placeholder = "Enter an address",
   className = ""
 }: AddressAutocompleteInputProps) {
-  const containerRef = useRef<HTMLDivElement>(null);
-  const geocoderRef = useRef<MapboxGeocoder | null>(null);
   const [inputValue, setInputValue] = useState(value);
+  const [suggestions, setSuggestions] = useState<GeocodingResult[]>([]);
+  const [isLoading, setIsLoading] = useState(false);
+  const [showSuggestions, setShowSuggestions] = useState(false);
+  const debounceTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
 
-  useEffect(() => {
-    if (!containerRef.current) return;
-
-    // Clear any existing controls
-    if (containerRef.current.firstChild) {
-      containerRef.current.innerHTML = '';
-    }
-
-    // Create the geocoder instance
-    const geocoder = new MapboxGeocoder({
-      accessToken: mapboxgl.accessToken,
-      types: 'address,place,neighborhood',
-      placeholder: placeholder,
-      countries: 'us', // Limit to United States
-      mapboxgl: mapboxgl,
-      marker: false
-    });
-
-    // Store reference for cleanup
-    geocoderRef.current = geocoder;
-
-    // Add to container
-    // We need to pass a dummy element since onAdd requires an HTMLElement in newer Mapbox versions
-    const dummyMap = document.createElement('div');
-    containerRef.current.appendChild(geocoder.onAdd(dummyMap as any));
-
-    // Set initial value
-    if (value) {
-      geocoder.setInput(value);
-    }
-
-    // Handle result selection
-    geocoder.on('result', (event) => {
-      const result = event.result;
-      const address = result.place_name;
-      const [lng, lat] = result.center;
+  // Fetch address suggestions from Mapbox Geocoding API
+  const fetchSuggestions = async (query: string) => {
+    if (!query || query.length < 3 || !MAPBOX_ACCESS_TOKEN) return;
+    
+    setIsLoading(true);
+    try {
+      console.log('Attempting to geocode address:', query);
+      const endpoint = `https://api.mapbox.com/geocoding/v5/mapbox.places/${encodeURIComponent(query)}.json`;
+      const params = new URLSearchParams({
+        access_token: MAPBOX_ACCESS_TOKEN,
+        country: 'us',
+        types: 'address,place,neighborhood,locality',
+        limit: '5',
+      });
       
-      setInputValue(address);
-      onChange(address, lat, lng);
-    });
-
-    // Handle clear event
-    geocoder.on('clear', () => {
-      setInputValue('');
-      onChange('');
-    });
-
-    // Handle manual input
-    geocoder.on('loading', (e) => {
-      const query = e.query;
-      if (query && query !== inputValue) {
-        setInputValue(query);
-        onChange(query);
+      const response = await fetch(`${endpoint}?${params.toString()}`);
+      const data = await response.json();
+      
+      if (data.features && Array.isArray(data.features)) {
+        setSuggestions(data.features.map((feature: any) => ({
+          place_name: feature.place_name,
+          center: feature.center,
+        })));
+        setShowSuggestions(true);
       }
-    });
+    } catch (error) {
+      console.error('Error fetching address suggestions:', error);
+      // Try using Nominatim as fallback (OpenStreetMap)
+      try {
+        const endpoint = `https://nominatim.openstreetmap.org/search`;
+        const params = new URLSearchParams({
+          q: query,
+          format: 'json',
+          limit: '5',
+          addressdetails: '1',
+          countrycodes: 'us',
+        });
+        
+        const response = await fetch(`${endpoint}?${params.toString()}`, {
+          headers: {
+            'Accept-Language': 'en-US,en',
+            'User-Agent': 'Fixer App'
+          }
+        });
+        const data = await response.json();
+        console.log('Nominatim response:', data);
+        
+        if (Array.isArray(data) && data.length > 0) {
+          setSuggestions(data.map((item: any) => ({
+            place_name: item.display_name,
+            center: [parseFloat(item.lon), parseFloat(item.lat)]
+          })));
+          setShowSuggestions(true);
+        }
+      } catch (fallbackError) {
+        console.error('Error with fallback geocoding:', fallbackError);
+      }
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
+  // Handle input change with debounce
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const newValue = e.target.value;
+    setInputValue(newValue);
+    onChange(newValue); // Update the form value immediately
+    
+    // Clear any existing timer
+    if (debounceTimerRef.current) {
+      clearTimeout(debounceTimerRef.current);
+    }
+    
+    // Set a new timer for debounce
+    debounceTimerRef.current = setTimeout(() => {
+      fetchSuggestions(newValue);
+    }, 500); // 500ms debounce
+  };
+
+  // Handle suggestion selection
+  const handleSuggestionSelect = (suggestion: GeocodingResult) => {
+    const address = suggestion.place_name;
+    const [lng, lat] = suggestion.center;
+    
+    setInputValue(address);
+    onChange(address, lat, lng);
+    setSuggestions([]);
+    setShowSuggestions(false);
+  };
+
+  // Close suggestions when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (inputRef.current && !inputRef.current.contains(e.target as Node)) {
+        setShowSuggestions(false);
+      }
+    };
+    
+    document.addEventListener('click', handleClickOutside);
     return () => {
-      // Cleanup
-      if (geocoderRef.current && containerRef.current?.firstChild) {
-        geocoderRef.current = null;
-      }
+      document.removeEventListener('click', handleClickOutside);
     };
   }, []);
 
-  // Update when value prop changes
+  // Update input value when prop changes
   useEffect(() => {
-    if (geocoderRef.current && value !== inputValue) {
-      geocoderRef.current.setInput(value);
+    if (value !== inputValue) {
       setInputValue(value);
     }
   }, [value]);
 
+  // Clear debounce timer on unmount
+  useEffect(() => {
+    return () => {
+      if (debounceTimerRef.current) {
+        clearTimeout(debounceTimerRef.current);
+      }
+    };
+  }, []);
+
   return (
-    <div className="w-full">
-      {/* Wrapper for styling */}
-      <div className="flex items-center w-full">
-        <MapPin className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground z-10 pointer-events-none" />
-        <div 
-          ref={containerRef}
-          className={`w-full mapbox-geocoder-custom ${className}`}
+    <div className="w-full relative">
+      <div className="flex items-center w-full relative">
+        <MapPin className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground z-10" />
+        <Input
+          ref={inputRef}
+          value={inputValue}
+          onChange={handleInputChange}
+          placeholder={placeholder}
+          className={`pl-10 pr-10 ${className}`}
+          onFocus={() => inputValue.length >= 3 && setSuggestions.length > 0 && setShowSuggestions(true)}
         />
+        {isLoading && (
+          <div className="absolute right-3 top-1/2 transform -translate-y-1/2">
+            <Spinner size="sm" />
+          </div>
+        )}
       </div>
       
-      {/* Add custom styling for the geocoder */}
-      <style 
-        dangerouslySetInnerHTML={{
-          __html: `
-            .mapbox-geocoder-custom .mapboxgl-ctrl-geocoder {
-              width: 100%;
-              max-width: 100%;
-              box-shadow: none;
-              border: 1px solid var(--input-border);
-              border-radius: var(--radius);
-            }
-            
-            .mapbox-geocoder-custom .mapboxgl-ctrl-geocoder input {
-              padding-left: 2.5rem;
-              height: 40px;
-            }
-            
-            .mapbox-geocoder-custom .mapboxgl-ctrl-geocoder--icon-search {
-              display: none;
-            }
-            
-            .mapbox-geocoder-custom .mapboxgl-ctrl-geocoder--button {
-              background: transparent;
-            }
-          `
-        }}
-      />
+      {/* Suggestions dropdown */}
+      {showSuggestions && suggestions.length > 0 && (
+        <div className="absolute z-50 w-full mt-1 bg-background border border-input rounded-md shadow-lg max-h-60 overflow-y-auto">
+          {suggestions.map((suggestion, index) => (
+            <div
+              key={index}
+              className="px-4 py-2 hover:bg-muted cursor-pointer text-sm flex items-start"
+              onClick={() => handleSuggestionSelect(suggestion)}
+            >
+              <MapPin className="h-4 w-4 mr-2 mt-0.5 flex-shrink-0 text-muted-foreground" />
+              <span>{suggestion.place_name}</span>
+            </div>
+          ))}
+        </div>
+      )}
     </div>
   );
 }
