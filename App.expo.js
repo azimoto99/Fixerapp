@@ -48,9 +48,10 @@ export default function App() {
         <View style={styles.header}>
           <View style={styles.logoContainer}>
             <Image 
-              source={require('./logo.png')} 
+              source={require('./public/fixer-logo.png')} 
               style={styles.logoImage} 
               resizeMode="contain" 
+              onError={(e) => console.error('Failed to load logo:', e.nativeEvent.error)}
             />
             <Text style={styles.logo}>Fixer</Text>
           </View>
