@@ -219,22 +219,47 @@ const MapSection: React.FC<MapSectionProps> = ({ jobs, selectedJob, onSelectJob,
   const jobMarkers = useMemo(() => {
     // If we have jobs with coordinates, use those
     if (jobs && jobs.length > 0) {
-      const realJobMarkers = jobs
-        .filter(job => job.latitude && job.longitude) // Only use jobs with coordinates
-        .map(job => ({
-          latitude: job.latitude,
-          longitude: job.longitude,
-          title: job.title,
-          description: `$${job.paymentAmount} - ${job.paymentType}`,
-          onClick: () => handleMarkerClick(job)
-        }));
+      console.log('Processing jobs for markers:', jobs.length, 'jobs');
       
+      const realJobMarkers = jobs
+        .filter(job => {
+          // Log jobs without coordinates for debugging
+          if (!job.latitude || !job.longitude) {
+            console.log('Job missing coordinates:', job.id, job.title);
+            return false;
+          }
+          return true;
+        })
+        .map(job => {
+          console.log('Creating marker for job:', job.id, job.title, job.latitude, job.longitude);
+          return {
+            latitude: job.latitude,
+            longitude: job.longitude,
+            title: job.title,
+            description: `$${job.paymentAmount?.toFixed(2)} - ${job.paymentType}`,
+            onClick: () => handleMarkerClick(job)
+          };
+        });
+      
+      console.log('Created markers:', realJobMarkers.length);
       if (realJobMarkers.length > 0) return realJobMarkers;
+    }
+    
+    // If no real jobs with coordinates, create one test marker at the user location
+    if (position) {
+      console.log('Creating fallback marker at user location');
+      return [{
+        latitude: position.latitude,
+        longitude: position.longitude,
+        title: 'Your Location',
+        description: 'No jobs found nearby',
+        onClick: () => {}
+      }];
     }
     
     // If no real jobs with coordinates, return an empty array
     return [];
-  }, [jobs, handleMarkerClick, position, toast]);
+  }, [jobs, handleMarkerClick, position]);
   
   // If no user location yet, show loading
   if (!position) {
