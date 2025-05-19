@@ -31,6 +31,7 @@ import TaskEditor, { Task } from '@/components/TaskEditor';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { usePaymentDialog } from '@/components/payments/PaymentDialogManager';
+import PostJobSuccessModal from '@/components/PostJobSuccessModal';
 
 // Form schema with validation
 const formSchema = insertJobSchema.extend({
@@ -60,6 +61,11 @@ export default function PostJobDrawer({ isOpen, onOpenChange }: PostJobDrawerPro
   const [showPaymentDialog, setShowPaymentDialog] = useState(false);
   const [pendingJobData, setPendingJobData] = useState<any>(null);
   const { openPaymentMethodsDialog } = usePaymentDialog();
+  
+  // For success modal
+  const [showSuccessModal, setShowSuccessModal] = useState(false);
+  const [createdJobId, setCreatedJobId] = useState<number | null>(null);
+  const [createdJobTitle, setCreatedJobTitle] = useState<string>('');
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -120,7 +126,7 @@ export default function PostJobDrawer({ isOpen, onOpenChange }: PostJobDrawerPro
             ...data,
             paymentMethodId
           };
-          submitJobWithValidData(updatedData);
+          processPaymentAndCreateJob(updatedData);
         },
         onClose: () => {
           console.log('Payment method dialog closed without selection');
@@ -137,15 +143,15 @@ export default function PostJobDrawer({ isOpen, onOpenChange }: PostJobDrawerPro
     }
     
     // For hourly jobs or if we already have a payment method
-    await submitJobWithValidData(data);
+    await processPaymentAndCreateJob(data);
   };
   
-  // Function to submit job data after validation and payment method selection (if needed)
-  const submitJobWithValidData = async (data: z.infer<typeof formSchema>) => {
+  // Function to process payment and create job
+  const processPaymentAndCreateJob = async (data: z.infer<typeof formSchema>) => {
     setIsSubmitting(true);
     
     try {
-      // First create the job, then proceed with payment
+      // Create the job first
       const jobData = {
         ...data,
         posterId: user?.id,
@@ -157,22 +163,22 @@ export default function PostJobDrawer({ isOpen, onOpenChange }: PostJobDrawerPro
       console.log('Creating job with data:', jobData);
       
       // Create the job first
-      const response = await apiRequest('POST', '/api/jobs', jobData);
+      const jobResponse = await apiRequest('POST', '/api/jobs', jobData);
       
-      if (!response.ok) {
-        const errorData = await response.json();
+      if (!jobResponse.ok) {
+        const errorData = await jobResponse.json();
         throw new Error(errorData.message || 'Failed to create job');
       }
       
-      const jobResponse = await response.json();
-      console.log('Job created successfully:', jobResponse);
+      const createdJob = await jobResponse.json();
+      console.log('Job created successfully:', createdJob);
       
       // If tasks were provided, create them for the job
       if (tasks.length > 0) {
         try {
           // Format tasks for API
           const taskData = tasks.map((task) => ({
-            jobId: jobResponse.id,
+            jobId: createdJob.id,
             description: task.description,
             position: task.position,
             isOptional: task.isOptional,
@@ -184,8 +190,8 @@ export default function PostJobDrawer({ isOpen, onOpenChange }: PostJobDrawerPro
           }));
           
           // Create tasks in batch
-          await apiRequest('POST', `/api/jobs/${jobResponse.id}/tasks/batch`, { tasks: taskData });
-          console.log('Tasks created successfully for job:', jobResponse.id);
+          await apiRequest('POST', `/api/jobs/${createdJob.id}/tasks/batch`, { tasks: taskData });
+          console.log('Tasks created successfully for job:', createdJob.id);
         } catch (taskError) {
           console.error("Error creating tasks:", taskError);
         }
@@ -194,14 +200,13 @@ export default function PostJobDrawer({ isOpen, onOpenChange }: PostJobDrawerPro
       // Now process payment with the created job ID
       if (data.paymentMethodId) {
         let paymentSuccessful = false;
-        let paymentIntentId = null;
         
         try {
-          console.log(`Processing payment for job #${jobResponse.id} with amount $${data.paymentAmount}`);
+          console.log(`Processing payment for job #${createdJob.id} with amount $${data.paymentAmount}`);
           
           // Process the actual payment with the real job ID
           const paymentResponse = await apiRequest('POST', `/api/process-payment`, {
-            jobId: jobResponse.id,
+            jobId: createdJob.id,
             paymentMethodId: data.paymentMethodId,
             amount: data.paymentAmount
           });
@@ -214,13 +219,11 @@ export default function PostJobDrawer({ isOpen, onOpenChange }: PostJobDrawerPro
           const paymentData = await paymentResponse.json();
           console.log('Payment successful with data:', paymentData);
           
-          paymentIntentId = paymentData.paymentId;
           paymentSuccessful = true;
           
           // Update job status to active since payment was successful
-          await apiRequest('PATCH', `/api/jobs/${jobResponse.id}`, { 
-            status: 'open',
-            stripePaymentIntentId: paymentIntentId
+          await apiRequest('PATCH', `/api/jobs/${createdJob.id}`, { 
+            status: 'open'
           });
           
           // Show success dialog with job details
@@ -230,20 +233,23 @@ export default function PostJobDrawer({ isOpen, onOpenChange }: PostJobDrawerPro
             variant: "default"
           });
           
-          // Close the drawer
-          onOpenChange(false);
+          // Store the job details for the success modal
+          setCreatedJobId(createdJob.id);
+          setCreatedJobTitle(createdJob.title);
           
-          // Show success modal
-          setSuccessModalOpen(true);
-          setCreatedJobId(jobResponse.id);
-          setCreatedJobTitle(jobResponse.title);
+          // Close the drawer and show success modal
+          onOpenChange(false);
+          setShowSuccessModal(true);
+          
+          // Refresh job listings
+          queryClient.invalidateQueries({ queryKey: ['jobs'] });
           
         } catch (error) {
           console.error('Payment processing error:', error);
           const errorMessage = error instanceof Error ? error.message : 'An error occurred while processing payment';
           
           // Mark the job as payment failed
-          await apiRequest('PATCH', `/api/jobs/${jobResponse.id}`, { 
+          await apiRequest('PATCH', `/api/jobs/${createdJob.id}`, { 
             status: 'payment_failed'
           });
           
@@ -261,7 +267,7 @@ export default function PostJobDrawer({ isOpen, onOpenChange }: PostJobDrawerPro
         
         if (!paymentSuccessful) {
           // Mark the job as payment failed
-          await apiRequest('PATCH', `/api/jobs/${jobResponse.id}`, { 
+          await apiRequest('PATCH', `/api/jobs/${createdJob.id}`, { 
             status: 'payment_failed'
           });
           
@@ -270,9 +276,6 @@ export default function PostJobDrawer({ isOpen, onOpenChange }: PostJobDrawerPro
           return;
         }
       }
-      
-      // We're already done with job creation and payment processing
-      setIsSubmitting(false);
       
       // Reset the form
       form.reset({
@@ -290,395 +293,302 @@ export default function PostJobDrawer({ isOpen, onOpenChange }: PostJobDrawerPro
         posterId: user?.id || 0
       });
       
-      // If there are tasks, create them
-      if (tasks.length > 0) {
-        try {
-          // Format tasks for API
-          const taskData = tasks.map((task) => ({
-            jobId: jobResponse.id,
-            description: task.description,
-            position: task.position,
-            isOptional: task.isOptional,
-            dueTime: task.dueTime,
-            location: task.location,
-            latitude: task.latitude,
-            longitude: task.longitude,
-            bonusAmount: task.bonusAmount
-          }));
-          
-          // Create tasks in batch
-          await apiRequest('POST', `/api/jobs/${jobResponse.id}/tasks/batch`, { tasks: taskData });
-        } catch (taskError) {
-          console.error("Error creating tasks:", taskError);
-          // We don't fail the entire submission if tasks fail
-          toast({
-            title: "Job Posted",
-            description: "Your job was posted, but there was an error adding tasks.",
-            variant: "default"
-          });
-        }
-      }
-      
-      // For fixed-price jobs, finalize the payment with the job ID
-      if (data.paymentType === 'fixed' && data.paymentMethodId) {
-        try {
-          console.log('Finalizing payment for fixed-price job');
-          const paymentResponse = await apiRequest('POST', `/api/payments/process`, {
-            jobId: jobResponse.id,
-            paymentMethodId: data.paymentMethodId,
-            amount: data.paymentAmount
-          });
-          
-          if (!paymentResponse.ok) {
-            const errorData = await paymentResponse.json();
-            console.error('Payment finalization failed:', errorData);
-            
-            // The job is already created at this point, but payment finalization failed
-            // This is a rare case that would require admin intervention
-            toast({
-              title: "Payment Finalization Issue",
-              description: "Your job was posted, but there was an issue finalizing the payment. An administrator will contact you.",
-              variant: "destructive"
-            });
-          } else {
-            console.log('Payment finalized successfully for fixed-price job');
-            
-            // Show payment success dialog
-            toast({
-              title: "Payment Successful",
-              description: "Your job has been posted and payment has been processed successfully!",
-              variant: "default"
-            });
-          }
-        } catch (error) {
-          console.error('Payment finalization error:', error);
-          
-          // The job is already created at this point, but payment finalization failed
-          toast({
-            title: "Payment Finalization Issue",
-            description: "Your job was posted, but there was an issue finalizing the payment. An administrator will review this transaction.",
-            variant: "destructive"
-          });
-        }
-      } else {
-        // For hourly jobs, just show success
-        toast({
-          title: "Job Posted",
-          description: "Your hourly job has been posted successfully! Find it on the map or in your jobs list.",
-          variant: "default"
-        });
-      }
-      
-      form.reset();
+      // Reset tasks
       setTasks([]);
-      onOpenChange(false);
       
-      queryClient.invalidateQueries({ queryKey: ['/api/jobs'] });
-      queryClient.invalidateQueries({ queryKey: ['/api/jobs/nearby/location'] });
+      // Done submitting
+      setIsSubmitting(false);
       
-      // Navigate to home page
-      navigate('/');
-      
-      console.log(`Job created successfully with ID: ${jobResponse.id}`);
     } catch (error) {
+      console.error('Error creating job:', error);
+      setIsSubmitting(false);
       toast({
         title: "Error",
-        description: "Failed to post job. Please try again.",
+        description: error instanceof Error ? error.message : 'Failed to create job',
         variant: "destructive"
       });
-    } finally {
-      setIsSubmitting(false);
     }
   };
 
   return (
-    <Drawer open={isOpen} onOpenChange={onOpenChange}>
-      <DrawerContent className="bg-background">
-        <DrawerHeader className="border-b border-border">
-          <DrawerTitle className="text-foreground">Post a New Job</DrawerTitle>
-          <DrawerDescription className="text-muted-foreground">
-            Fill out the form below to post a new job
-          </DrawerDescription>
-        </DrawerHeader>
-        
-        <div className="px-4 py-4 overflow-y-auto max-h-[50vh]">
-          <Form {...form}>
-            <form 
-              id="post-job-form" 
-              onSubmit={form.handleSubmit(
-                onSubmit, 
-                (errors) => {
-                  console.error('Form validation errors:', errors);
-                  toast({
-                    title: "Form Validation Error",
-                    description: "Please check the form fields and try again.",
-                    variant: "destructive"
-                  });
-                }
-              )} 
-              className="space-y-4">
-              {/* Job Title */}
-              <FormField
-                control={form.control}
-                name="title"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Job Title</FormLabel>
-                    <FormControl>
-                      <Input placeholder="e.g. Lawn Mowing, Furniture Assembly" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              
-              {/* Job Category */}
-              <FormField
-                control={form.control}
-                name="category"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Category</FormLabel>
-                    <Select onValueChange={field.onChange} defaultValue={field.value}>
+    <>
+      <PostJobSuccessModal 
+        open={showSuccessModal}
+        onClose={() => setShowSuccessModal(false)}
+        jobId={createdJobId || 0}
+        jobTitle={createdJobTitle}
+      />
+      
+      <Drawer open={isOpen} onOpenChange={onOpenChange}>
+        <DrawerContent className="max-h-[90vh] flex flex-col">
+          <DrawerHeader className="border-b border-border">
+            <DrawerTitle>Post a New Job</DrawerTitle>
+            <DrawerDescription>
+              Fill out the details for your job posting.
+            </DrawerDescription>
+          </DrawerHeader>
+          <div className="flex-1 overflow-y-auto p-4 pb-16">
+            <Form {...form}>
+              <form id="post-job-form" onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+                <FormField
+                  control={form.control}
+                  name="title"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Job Title</FormLabel>
                       <FormControl>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Select a category" />
-                        </SelectTrigger>
+                        <Input placeholder="e.g. Lawn Mowing" {...field} />
                       </FormControl>
-                      <SelectContent>
-                        {JOB_CATEGORIES.map((category) => (
-                          <SelectItem key={category} value={category}>
-                            {category}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              
-              {/* Job Description */}
-              <FormField
-                control={form.control}
-                name="description"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Description</FormLabel>
-                    <FormControl>
-                      <Textarea placeholder="Describe the job in detail..." className="min-h-28" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              
-              {/* Payment Type */}
-              <FormField
-                control={form.control}
-                name="paymentType"
-                render={({ field }) => (
-                  <FormItem className="space-y-3">
-                    <FormLabel>Payment Type</FormLabel>
-                    <FormControl>
-                      <RadioGroup
-                        onValueChange={field.onChange}
-                        defaultValue={field.value}
-                        className="flex flex-col space-y-1"
-                      >
-                        <FormItem className="flex items-center space-x-3 space-y-0">
-                          <FormControl>
-                            <RadioGroupItem value="hourly" />
-                          </FormControl>
-                          <FormLabel className="font-normal">Hourly Rate</FormLabel>
-                        </FormItem>
-                        <FormItem className="flex items-center space-x-3 space-y-0">
-                          <FormControl>
-                            <RadioGroupItem value="fixed" />
-                          </FormControl>
-                          <FormLabel className="font-normal">Fixed Price</FormLabel>
-                        </FormItem>
-                      </RadioGroup>
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              
-              {/* Payment Amount */}
-              <FormField
-                control={form.control}
-                name="paymentAmount"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>
-                      {form.watch('paymentType') === 'hourly' ? 'Hourly Rate ($)' : 'Fixed Price ($)'}
-                    </FormLabel>
-                    <FormControl>
-                      <div className="relative">
-                        <DollarSign className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                        <Input type="number" min="10" className="pl-9" {...field} />
-                      </div>
-                    </FormControl>
-                    <FormDescription>
-                      Price should reflect the complexity and time required for the job
-                    </FormDescription>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              
-              {/* Location */}
-              <FormField
-                control={form.control}
-                name="location"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Location</FormLabel>
-                    <FormControl>
-                      <div className="relative">
-                        <MapPin className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                        <Input 
-                          placeholder="Enter job location" 
-                          className="pl-9" 
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                
+                <FormField
+                  control={form.control}
+                  name="description"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Description</FormLabel>
+                      <FormControl>
+                        <Textarea 
+                          placeholder="Describe the job in detail..." 
+                          className="min-h-[100px]"
                           {...field} 
                         />
-                      </div>
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              
-              {/* Date Needed */}
-              <FormField
-                control={form.control}
-                name="dateNeeded"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Date Needed</FormLabel>
-                    <FormControl>
-                      <div className="relative">
-                        <Calendar className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                        <Input type="date" min={new Date().toISOString().split('T')[0]} className="pl-9" {...field} />
-                      </div>
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              
-              {/* Required Skills */}
-              <FormField
-                control={form.control}
-                name="requiredSkills"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Required Skills</FormLabel>
-                    <FormControl>
-                      <div className="border border-border rounded-md p-3 h-auto flex flex-wrap gap-2">
-                        {SKILLS.map((skill) => {
-                          const isSelected = (field.value || []).includes(skill);
-                          return (
-                            <Badge
-                              key={skill}
-                              variant={isSelected ? "default" : "outline"}
-                              className={`cursor-pointer ${
-                                isSelected ? "bg-primary text-primary-foreground" : "bg-secondary/50 hover:bg-secondary"
-                              }`}
-                              onClick={() => {
-                                const currentValue = field.value || [];
-                                const updatedSkills = currentValue.includes(skill)
-                                  ? currentValue.filter((s: string) => s !== skill)
-                                  : [...currentValue, skill];
-                                field.onChange(updatedSkills);
-                              }}
-                            >
-                              {skill}
-                              {isSelected && (
-                                <Check className="h-3 w-3 ml-1" />
-                              )}
-                            </Badge>
-                          );
-                        })}
-                      </div>
-                    </FormControl>
-                    <FormDescription>
-                      Select skills that are required for this job
-                    </FormDescription>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              
-              {/* Equipment Provided */}
-              <FormField
-                control={form.control}
-                name="equipmentProvided"
-                render={({ field }) => (
-                  <FormItem className="flex flex-row items-start space-x-3 space-y-0 rounded-md border border-border p-4">
-                    <FormControl>
-                      <Checkbox
-                        checked={field.value}
-                        onCheckedChange={field.onChange}
-                      />
-                    </FormControl>
-                    <div className="space-y-1 leading-none">
-                      <FormLabel>Equipment Provided</FormLabel>
-                      <FormDescription>
-                        Check if you will provide necessary tools and equipment
-                      </FormDescription>
-                    </div>
-                  </FormItem>
-                )}
-              />
-              
-              {/* Divider */}
-              <div className="relative my-6">
-                <div className="absolute inset-0 flex items-center">
-                  <span className="w-full border-t border-border" />
-                </div>
-                <div className="relative flex justify-center text-xs uppercase">
-                  <span className="bg-background px-2 text-muted-foreground flex items-center">
-                    <ListChecks className="h-4 w-4 mr-1" />
-                    Job Tasks
-                  </span>
-                </div>
-              </div>
-              
-              {/* Task Editor */}
-              <div className="mb-4">
-                <TaskEditor
-                  tasks={tasks}
-                  onChange={handleTasksChange}
-                  disabled={isSubmitting}
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
                 />
-              </div>
-            </form>
-          </Form>
-        </div>
-        
-        <DrawerFooter className="border-t border-border">
-          <Button 
-            onClick={() => {
-              console.log('Post Job button clicked directly');
-              // Find and submit the form
-              document.getElementById('post-job-form')?.dispatchEvent(
-                new Event('submit', { cancelable: true, bubbles: true })
-              );
-            }}
-            className="bg-primary text-primary-foreground hover:bg-primary/90" 
-            disabled={isSubmitting}
-          >
-            {isSubmitting ? 'Posting...' : 'Post Job'}
-          </Button>
-          <DrawerClose asChild>
-            <Button variant="outline" className="border-border hover:bg-accent hover:text-accent-foreground">
-              Cancel
+                
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <FormField
+                    control={form.control}
+                    name="category"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Category</FormLabel>
+                        <Select 
+                          onValueChange={field.onChange} 
+                          defaultValue={field.value}
+                        >
+                          <FormControl>
+                            <SelectTrigger>
+                              <SelectValue placeholder="Select a category" />
+                            </SelectTrigger>
+                          </FormControl>
+                          <SelectContent>
+                            {JOB_CATEGORIES.map((category) => (
+                              <SelectItem key={category} value={category}>
+                                {category}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  
+                  <FormField
+                    control={form.control}
+                    name="dateNeeded"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Date Needed</FormLabel>
+                        <FormControl>
+                          <div className="flex items-center">
+                            <Calendar className="mr-2 h-4 w-4 text-muted-foreground" />
+                            <Input type="date" {...field} />
+                          </div>
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </div>
+                
+                <FormField
+                  control={form.control}
+                  name="paymentType"
+                  render={({ field }) => (
+                    <FormItem className="space-y-3">
+                      <FormLabel>Payment Type</FormLabel>
+                      <FormControl>
+                        <RadioGroup
+                          onValueChange={field.onChange}
+                          defaultValue={field.value}
+                          className="flex flex-col space-y-1"
+                        >
+                          <FormItem className="flex items-center space-x-3 space-y-0">
+                            <FormControl>
+                              <RadioGroupItem value="hourly" />
+                            </FormControl>
+                            <FormLabel className="font-normal cursor-pointer">
+                              Hourly
+                            </FormLabel>
+                          </FormItem>
+                          <FormItem className="flex items-center space-x-3 space-y-0">
+                            <FormControl>
+                              <RadioGroupItem value="fixed" />
+                            </FormControl>
+                            <FormLabel className="font-normal cursor-pointer">
+                              Fixed Price
+                            </FormLabel>
+                          </FormItem>
+                        </RadioGroup>
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                
+                <FormField
+                  control={form.control}
+                  name="paymentAmount"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>
+                        {form.watch('paymentType') === 'hourly' ? 'Hourly Rate ($)' : 'Fixed Price ($)'}
+                      </FormLabel>
+                      <FormControl>
+                        <div className="flex items-center">
+                          <DollarSign className="mr-2 h-4 w-4 text-muted-foreground" />
+                          <Input 
+                            type="number" 
+                            min="1" 
+                            step="0.01" 
+                            placeholder="25.00"
+                            {...field} 
+                          />
+                        </div>
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                
+                <FormField
+                  control={form.control}
+                  name="location"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Location</FormLabel>
+                      <FormControl>
+                        <div className="flex items-center">
+                          <MapPin className="mr-2 h-4 w-4 text-muted-foreground" />
+                          <Input placeholder="e.g. 123 Main St, City, State" {...field} />
+                        </div>
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                
+                <FormField
+                  control={form.control}
+                  name="requiredSkills"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Required Skills</FormLabel>
+                      <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
+                        {SKILLS.map((skill) => (
+                          <FormItem
+                            key={skill}
+                            className="flex items-center space-x-2 bg-muted/40 rounded-md p-2"
+                          >
+                            <FormControl>
+                              <Checkbox
+                                checked={field.value?.includes(skill)}
+                                onCheckedChange={(checked) => {
+                                  if (checked) {
+                                    field.onChange([...(field.value || []), skill]);
+                                  } else {
+                                    field.onChange(
+                                      field.value?.filter((s) => s !== skill) || []
+                                    );
+                                  }
+                                }}
+                              />
+                            </FormControl>
+                            <FormLabel className="text-sm font-normal cursor-pointer">
+                              {skill}
+                            </FormLabel>
+                          </FormItem>
+                        ))}
+                      </div>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                
+                <FormField
+                  control={form.control}
+                  name="equipmentProvided"
+                  render={({ field }) => (
+                    <FormItem className="flex items-center space-x-2">
+                      <FormControl>
+                        <Checkbox
+                          checked={field.value}
+                          onCheckedChange={field.onChange}
+                        />
+                      </FormControl>
+                      <div className="space-y-1 leading-none">
+                        <FormLabel className="cursor-pointer">
+                          Equipment Provided
+                        </FormLabel>
+                        <FormDescription>
+                          Check if you will provide the equipment needed for this job
+                        </FormDescription>
+                      </div>
+                    </FormItem>
+                  )}
+                />
+                
+                <div className="bg-muted/30 p-3 rounded-md border border-border mb-4">
+                  <div className="flex items-center mb-2">
+                    <ListChecks className="mr-2 h-5 w-5 text-primary" />
+                    <span className="font-medium">
+                      Job Tasks (Optional)
+                    </span>
+                  </div>
+                  
+                  {/* Task Editor */}
+                  <div className="mb-4">
+                    <TaskEditor
+                      tasks={tasks}
+                      onChange={handleTasksChange}
+                      disabled={isSubmitting}
+                    />
+                  </div>
+                </div>
+              </form>
+            </Form>
+          </div>
+          
+          <DrawerFooter className="border-t border-border">
+            <Button 
+              onClick={() => {
+                console.log('Post Job button clicked directly');
+                // Find and submit the form
+                document.getElementById('post-job-form')?.dispatchEvent(
+                  new Event('submit', { cancelable: true, bubbles: true })
+                );
+              }}
+              className="bg-primary text-primary-foreground hover:bg-primary/90" 
+              disabled={isSubmitting}
+            >
+              {isSubmitting ? 'Posting...' : 'Post Job'}
             </Button>
-          </DrawerClose>
-        </DrawerFooter>
-      </DrawerContent>
-    </Drawer>
+            <DrawerClose asChild>
+              <Button variant="outline" className="border-border hover:bg-accent hover:text-accent-foreground">
+                Cancel
+              </Button>
+            </DrawerClose>
+          </DrawerFooter>
+        </DrawerContent>
+      </Drawer>
+    </>
   );
 }

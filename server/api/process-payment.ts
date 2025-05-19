@@ -89,12 +89,40 @@ export async function processPayment(req: Request, res: Response) {
       const amountInCents = Math.round(totalAmount * 100);
       
       try {
-        // Create a payment intent for the fixed-price job
+        // Get the user to check for their customer ID
+        const user = await storage.getUser(req.user.id);
+        if (!user) {
+          return res.status(404).json({ message: 'User not found' });
+        }
+        
+        // Check if user has a Stripe customer ID
+        let customerId = user.stripeCustomerId;
+        
+        if (!customerId) {
+          // Create a new Stripe customer for this user
+          const customer = await stripe.customers.create({
+            name: user.fullName || user.username,
+            email: user.email || undefined,
+            metadata: {
+              userId: user.id.toString()
+            }
+          });
+          
+          customerId = customer.id;
+          
+          // Update the user with their new Stripe customer ID
+          await storage.updateUser(user.id, { stripeCustomerId: customerId });
+          console.log(`Created new Stripe customer for user ${user.id}: ${customerId}`);
+        }
+        
+        // Create a payment intent for the fixed-price job with the customer ID
         paymentIntent = await stripe.paymentIntents.create({
           amount: amountInCents,
           currency: 'usd',
+          customer: customerId,
           payment_method: paymentMethodId,
-          confirm: true,
+          confirm: true, // Confirm immediately to charge the card
+          capture_method: 'automatic', // Automatically capture the funds
           description: `Payment for fixed-price job: ${job.title}`,
           return_url: `${req.protocol}://${req.get('host')}/jobs/${jobId}`,
           metadata: {
@@ -172,12 +200,40 @@ export async function processPayment(req: Request, res: Response) {
       }
 
       try {
-        // Create a payment intent
+        // Get the user to check for their customer ID
+        const poster = await storage.getUser(req.user.id);
+        if (!poster) {
+          return res.status(404).json({ message: 'User not found' });
+        }
+
+        // Ensure the poster has a Stripe customer ID
+        let customerId = poster.stripeCustomerId;
+        
+        if (!customerId) {
+          // Create a new Stripe customer for this user
+          const customer = await stripe.customers.create({
+            name: poster.fullName || poster.username,
+            email: poster.email || undefined,
+            metadata: {
+              userId: poster.id.toString()
+            }
+          });
+          
+          customerId = customer.id;
+          
+          // Update the user with their new Stripe customer ID
+          await storage.updateUser(poster.id, { stripeCustomerId: customerId });
+          console.log(`Created new Stripe customer for user ${poster.id}: ${customerId}`);
+        }
+
+        // Create a payment intent with auto-capture
         paymentIntent = await stripe.paymentIntents.create({
           amount: amountInCents,
           currency: 'usd',
+          customer: customerId,
           payment_method: paymentMethodId,
           confirm: true,
+          capture_method: 'automatic', // Automatically capture funds
           return_url: `${req.protocol}://${req.get('host')}/jobs/${jobId}`,
           application_fee_amount: Math.round(serviceFee * 100),
           transfer_data: {
