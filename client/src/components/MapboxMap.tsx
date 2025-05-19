@@ -94,23 +94,30 @@ export default function MapboxMap({
           closeButton: false,
           className: 'custom-mapbox-popup'
         }).setHTML(
-          `<div style="padding: 5px;">
-            <h3 style="margin: 0 0 5px; font-size: 14px; font-weight: 600;">${marker.title || ''}</h3>
-            <p style="margin: 0; font-size: 12px; color: #10b981;">${marker.description || ''}</p>
+          `<div style="padding: 8px;">
+            <h3 style="margin: 0 0 5px; font-size: 15px; font-weight: 600; color: #111;">${marker.title || ''}</h3>
+            <p style="margin: 0; font-size: 13px; color: #10b981; font-weight: 500;">${marker.description || ''}</p>
           </div>`
         );
       }
       
-      // Create a custom marker element
+      // Create a custom marker element with a dollar sign icon
       const markerEl = document.createElement('div');
       markerEl.className = 'map-marker';
-      markerEl.style.width = '30px';
-      markerEl.style.height = '30px';
+      markerEl.style.width = '36px';
+      markerEl.style.height = '36px';
       markerEl.style.borderRadius = '50%';
       markerEl.style.backgroundColor = '#10b981'; // Using primary color
-      markerEl.style.border = '2px solid white';
-      markerEl.style.boxShadow = '0 2px 4px rgba(0,0,0,0.3)';
+      markerEl.style.border = '3px solid white';
+      markerEl.style.boxShadow = '0 2px 8px rgba(0,0,0,0.4)';
       markerEl.style.cursor = 'pointer';
+      markerEl.style.display = 'flex';
+      markerEl.style.alignItems = 'center';
+      markerEl.style.justifyContent = 'center';
+      markerEl.style.color = 'white';
+      markerEl.style.fontSize = '18px';
+      markerEl.style.fontWeight = 'bold';
+      markerEl.innerHTML = '$';
       
       // Add the marker to the map
       const mapboxMarker = new mapboxgl.Marker(markerEl)

@@ -390,6 +390,17 @@
   .mapboxgl-popup-tip {
     border-top-color: hsl(var(--card)) !important;
     border-bottom-color: hsl(var(--card)) !important;
+    border-left-color: hsl(var(--card)) !important;
+    border-right-color: hsl(var(--card)) !important;
+  }
+  
+  .dark .mapboxgl-popup-content h3 {
+    color: white !important;
+  }
+  
+  .dark .mapboxgl-popup-content {
+    background-color: hsl(var(--card));
+    border-color: hsl(var(--primary) / 0.7);
   }
   
   /* Map marker styling */
