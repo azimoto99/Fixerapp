@@ -157,7 +157,7 @@ export default function PostJobDrawer({ isOpen, onOpenChange }: PostJobDrawerPro
         ...data,
         posterId: user?.id,
         // For date fields, we need to send them in the proper format expected by the server
-        dateNeeded: data.dateNeeded,
+        dateNeeded: new Date(data.dateNeeded), // Convert string date to Date object
         // Don't set datePosted, the database will default it to now()
         status: 'pending_payment' // Start as pending until payment is processed
       };
