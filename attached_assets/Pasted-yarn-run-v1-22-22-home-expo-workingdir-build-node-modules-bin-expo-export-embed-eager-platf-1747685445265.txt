@@ -1,0 +1,36 @@
+yarn run v1.22.22
+$ /home/expo/workingdir/build/node_modules/.bin/expo export:embed --eager --platform android --dev false
+Starting Metro Bundler
+Android node_modules/expo/AppEntry.js ▓▓▓▓░░░░░░░░░░░░ 25.0% ( 38/178)
+Android node_modules/expo/AppEntry.js ▓▓▓▓▓▓▓▓▓▓▓▓▓░░░ 84.4% (406/442)
+Android Bundling failed 8362ms node_modules/expo/AppEntry.js (554 modules)
+Error: Unable to resolve module expo-status-bar from /home/expo/workingdir/build/App.expo.js: expo-status-bar could not be found within the project or in these directories:
+  node_modules
+[0m [90m 3 |[39m [36mimport[39m { [33mView[39m[33m,[39m [33mText[39m[33m,[39m [33mStyleSheet[39m[33m,[39m [33mScrollView[39m[33m,[39m [33mLinking[39m[33m,[39m [33mTouchableOpacity[39m[33m,[39m [33mImage[39m } [36mfrom[39m [32m'react-native'[39m[33m;[39m
+ [90m 4 |[39m [36mimport[39m [33mReact[39m[33m,[39m { useEffect[33m,[39m useState } [36mfrom[39m [32m'react'[39m[33m;[39m
+[31m[1m>[22m[39m[90m 5 |[39m [36mimport[39m { [33mStatusBar[39m } [36mfrom[39m [32m'expo-status-bar'[39m[33m;[39m
+ [90m   |[39m                            [31m[1m^[22m[39m
+ [90m 6 |[39m
+ [90m 7 |[39m [90m// Get the current Replit URL[39m
+ [90m 8 |[39m [36mconst[39m getWebUrl [33m=[39m () [33m=>[39m {[0m
+Error: Unable to resolve module expo-status-bar from /home/expo/workingdir/build/App.expo.js: expo-status-bar could not be found within the project or in these directories:
+  node_modules
+[0m [90m 3 |[39m [36mimport[39m { [33mView[39m[33m,[39m [33mText[39m[33m,[39m [33mStyleSheet[39m[33m,[39m [33mScrollView[39m[33m,[39m [33mLinking[39m[33m,[39m [33mTouchableOpacity[39m[33m,[39m [33mImage[39m } [36mfrom[39m [32m'react-native'[39m[33m;[39m
+ [90m 4 |[39m [36mimport[39m [33mReact[39m[33m,[39m { useEffect[33m,[39m useState } [36mfrom[39m [32m'react'[39m[33m;[39m
+[31m[1m>[22m[39m[90m 5 |[39m [36mimport[39m { [33mStatusBar[39m } [36mfrom[39m [32m'expo-status-bar'[39m[33m;[39m
+ [90m   |[39m                            [31m[1m^[22m[39m
+ [90m 6 |[39m
+ [90m 7 |[39m [90m// Get the current Replit URL[39m
+ [90m 8 |[39m [36mconst[39m getWebUrl [33m=[39m () [33m=>[39m {[0m
+    at ModuleResolver.resolveDependency (/home/expo/workingdir/build/node_modules/metro/src/node-haste/DependencyGraph/ModuleResolution.js:150:15)
+    at DependencyGraph.resolveDependency (/home/expo/workingdir/build/node_modules/metro/src/node-haste/DependencyGraph.js:239:43)
+    at /home/expo/workingdir/build/node_modules/metro/src/lib/transformHelpers.js:165:21
+    at resolveDependencies (/home/expo/workingdir/build/node_modules/metro/src/DeltaBundler/buildSubgraph.js:42:25)
+    at visit (/home/expo/workingdir/build/node_modules/metro/src/DeltaBundler/buildSubgraph.js:83:30)
+    at processTicksAndRejections (node:internal/process/task_queues:95:5)
+    at async Promise.all (index 1)
+    at visit (/home/expo/workingdir/build/node_modules/metro/src/DeltaBundler/buildSubgraph.js:92:5)
+    at async Promise.all (index 2)
+    at visit (/home/expo/workingdir/build/node_modules/metro/src/DeltaBundler/buildSubgraph.js:92:5)
+error Command failed with exit code 1.
+info Visit https://yarnpkg.com/en/docs/cli/run for documentation about this command.

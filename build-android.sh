@@ -4,7 +4,7 @@
 echo "====================================="
 echo "Fixer - Android Build Script"
 echo "====================================="
-echo "Building Android app package..."
+echo "Building Android app package with white screen fix..."
 echo
 
 # Check Android SDK environment

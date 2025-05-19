@@ -73,6 +73,7 @@
     "embla-carousel-react": "^8.6.0",
     "expo": "^53.0.9",
     "expo-build-properties": "^0.14.6",
+    "expo-status-bar": "^2.2.3",
     "express": "^4.21.2",
     "express-session": "^1.18.1",
     "framer-motion": "^11.18.2",

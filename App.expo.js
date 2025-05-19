@@ -53,11 +53,17 @@ export default function App() {
     const checkWebApp = async () => {
       try {
         console.log('Connecting to web URL:', webUrl);
+        // Use a try-catch with timeout for better Android compatibility
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 10000);
+        
         const response = await fetch(webUrl, { 
           method: 'GET',
           headers: { 'Accept': 'text/html' },
-          timeout: 10000 // 10 second timeout
+          signal: controller.signal
         });
+        
+        clearTimeout(timeoutId);
         if (response.ok) {
           setLoading(false);
         } else {
