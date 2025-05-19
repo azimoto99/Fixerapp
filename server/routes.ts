@@ -167,6 +167,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Create API router
   const apiRouter = express.Router();
 
+  // Register the admin API routes
+  app.use("/api/admin", adminRouter);
+
   // Handle account type setting (always worker now)
   apiRouter.post("/set-account-type", async (req: Request, res: Response) => {
     const schema = z.object({

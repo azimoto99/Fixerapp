@@ -4,9 +4,9 @@ import { useEffect, useState } from 'react';
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { useLocation } from 'wouter';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Loader2, CheckCircle2, XCircle, CreditCard } from 'lucide-react';
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
+import { Loader2 } from "lucide-react";
 
 // Make sure to call `loadStripe` outside of a component's render to avoid
 // recreating the `Stripe` object on every render.
@@ -15,14 +15,20 @@ if (!import.meta.env.VITE_STRIPE_PUBLIC_KEY) {
 }
 const stripePromise = loadStripe(import.meta.env.VITE_STRIPE_PUBLIC_KEY);
 
-const CheckoutForm = ({ jobId, amount }: { jobId: number; amount: number }) => {
+interface CheckoutFormProps {
+  amount: number;
+  jobId?: number;
+  description: string;
+  onSuccess?: () => void;
+}
+
+const CheckoutForm = ({ amount, jobId, description, onSuccess }: CheckoutFormProps) => {
   const stripe = useStripe();
   const elements = useElements();
-  const [isProcessing, setIsProcessing] = useState(false);
-  const [isCompleted, setIsCompleted] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const { toast } = useToast();
   const [, navigate] = useLocation();
-
+  
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
@@ -30,13 +36,13 @@ const CheckoutForm = ({ jobId, amount }: { jobId: number; amount: number }) => {
       return;
     }
 
-    setIsProcessing(true);
+    setIsSubmitting(true);
 
     try {
       const { error, paymentIntent } = await stripe.confirmPayment({
         elements,
         confirmParams: {
-          return_url: `${window.location.origin}/payment-confirmation`,
+          return_url: window.location.origin + '/payment-success',
         },
         redirect: 'if_required',
       });
@@ -44,192 +50,193 @@ const CheckoutForm = ({ jobId, amount }: { jobId: number; amount: number }) => {
       if (error) {
         toast({
           title: "Payment Failed",
-          description: error.message || "An unexpected error occurred",
+          description: error.message,
           variant: "destructive",
         });
+        setIsSubmitting(false);
       } else if (paymentIntent && paymentIntent.status === 'succeeded') {
-        setIsCompleted(true);
         toast({
           title: "Payment Successful",
           description: "Thank you for your payment!",
         });
         
-        // Wait a moment before redirecting
-        setTimeout(() => {
-          navigate(`/job/${jobId}`);
-        }, 2000);
+        // Navigate to the success page with payment information
+        navigate(`/payment-success?paymentId=${paymentIntent.id}&amount=${amount}&jobId=${jobId || ''}`);
+        
+        if (onSuccess) {
+          onSuccess();
+        }
       }
-    } catch (err: any) {
+    } catch (err) {
+      console.error('Payment error:', err);
       toast({
         title: "Payment Error",
-        description: err.message || "An unexpected error occurred",
+        description: "An unexpected error occurred. Please try again.",
         variant: "destructive",
       });
-    } finally {
-      setIsProcessing(false);
+      setIsSubmitting(false);
     }
-  }
-
-  if (isCompleted) {
-    return (
-      <div className="flex flex-col items-center justify-center py-8 text-center">
-        <CheckCircle2 className="w-16 h-16 text-green-500 mb-4" />
-        <h3 className="text-2xl font-bold">Payment Successful!</h3>
-        <p className="text-muted-foreground mt-2">
-          Your payment has been processed successfully.
-        </p>
-        <p className="text-muted-foreground mt-1">
-          Redirecting you back to the job...
-        </p>
-      </div>
-    );
-  }
+  };
 
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
-      <PaymentElement />
-      
-      <div className="pt-4">
-        <Button 
-          type="submit" 
-          className="w-full" 
-          size="lg"
-          disabled={isProcessing || !stripe || !elements}
-        >
-          {isProcessing ? (
-            <>
-              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-              Processing...
-            </>
-          ) : (
-            <>
-              <CreditCard className="mr-2 h-4 w-4" />
-              Pay ${amount.toFixed(2)}
-            </>
-          )}
-        </Button>
-      </div>
+      <PaymentElement 
+        options={{
+          layout: {
+            type: 'tabs',
+            defaultCollapsed: false
+          }
+        }}
+      />
+      <Button 
+        type="submit" 
+        className="w-full" 
+        size="lg"
+        disabled={!stripe || isSubmitting}
+      >
+        {isSubmitting ? (
+          <>
+            <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Processing
+          </>
+        ) : (
+          `Pay $${amount.toFixed(2)}`
+        )}
+      </Button>
     </form>
   );
 };
 
+interface CheckoutPageProps {
+  jobId?: string;
+  amount?: string;
+  description?: string;
+  returnUrl?: string;
+}
+
 export default function Checkout() {
-  const [jobId, setJobId] = useState<number | null>(null);
-  const [amount, setAmount] = useState<number>(0);
   const [clientSecret, setClientSecret] = useState("");
   const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [, navigate] = useLocation();
-  const { toast } = useToast();
+  const [paymentDetails, setPaymentDetails] = useState<{
+    amount: number;
+    jobId?: number;
+    description: string;
+    jobTitle?: string;
+  }>({
+    amount: 0,
+    description: ''
+  });
+
+  // Get query parameters
+  const queryParams = new URLSearchParams(window.location.search);
+  const amount = queryParams.get('amount');
+  const jobId = queryParams.get('jobId'); 
+  const description = queryParams.get('description') || 'Payment for services';
 
   useEffect(() => {
-    // Extract amount and jobId from URL path params
-    const pathParts = window.location.pathname.split('/');
-    // Format is /checkout/amount/jobId
-    const amountParam = pathParts[2];  // /checkout/:amount/:jobId
-    const jobIdParam = pathParts[3];   // /checkout/:amount/:jobId
+    if (!amount) {
+      console.error('Missing amount parameter');
+      return;
+    }
+
+    const amountValue = parseFloat(amount);
     
-    if (!jobIdParam || !amountParam) {
-      setError('Missing required parameters: amount and jobId');
-      setIsLoading(false);
+    if (isNaN(amountValue) || amountValue <= 0) {
+      console.error('Invalid amount value');
       return;
     }
-
-    const parsedAmount = parseFloat(amountParam);
-    const parsedJobId = parseInt(jobIdParam);
-
-    if (isNaN(parsedJobId) || isNaN(parsedAmount)) {
-      setError('Invalid parameters: jobId must be a number and amount must be a valid price');
-      setIsLoading(false);
-      return;
-    }
-
-    setJobId(parsedJobId);
-    setAmount(parsedAmount);
-
+    
+    // Set payment details
+    setPaymentDetails({
+      amount: amountValue,
+      jobId: jobId ? parseInt(jobId) : undefined,
+      description: description || 'Payment for services',
+      jobTitle: queryParams.get('jobTitle') || undefined
+    });
+    
     // Create PaymentIntent as soon as the page loads
+    setIsLoading(true);
+    
     apiRequest("POST", "/api/create-payment-intent", { 
-      jobId: parsedJobId,
-      amount: parsedAmount
+      amount: amountValue,
+      jobId: jobId ? parseInt(jobId) : undefined,
+      description: description
     })
-      .then((res) => {
-        if (!res.ok) {
-          return res.json().then(err => {
-            throw new Error(err.message || 'Failed to create payment intent');
-          });
-        }
-        return res.json();
-      })
+      .then((res) => res.json())
       .then((data) => {
         setClientSecret(data.clientSecret);
         setIsLoading(false);
       })
-      .catch((error) => {
-        setError(error.message || 'Failed to initialize payment');
+      .catch(error => {
+        console.error('Error creating payment intent:', error);
         setIsLoading(false);
-        toast({
-          title: "Payment Setup Failed",
-          description: error.message || 'Failed to initialize payment',
-          variant: "destructive",
-        });
       });
-  }, [toast]);
+  }, [amount, jobId, description]);
 
-  if (isLoading) {
+  if (isLoading || !clientSecret) {
     return (
-      <div className="h-full flex items-center justify-center py-16">
-        <div className="flex flex-col items-center">
-          <Loader2 className="h-12 w-12 animate-spin text-primary mb-4" />
-          <p className="text-muted-foreground">Setting up payment...</p>
-        </div>
-      </div>
-    );
-  }
-
-  if (error) {
-    return (
-      <div className="h-full flex items-center justify-center py-16">
+      <div className="min-h-screen flex items-center justify-center bg-background">
         <Card className="w-full max-w-md">
           <CardHeader>
-            <div className="flex items-center justify-center mb-2">
-              <XCircle className="h-12 w-12 text-destructive" />
-            </div>
-            <CardTitle className="text-center">Payment Setup Failed</CardTitle>
-            <CardDescription className="text-center text-destructive">
-              {error}
-            </CardDescription>
+            <CardTitle>Processing Payment</CardTitle>
+            <CardDescription>Please wait while we prepare your payment...</CardDescription>
           </CardHeader>
-          <CardContent>
-            <Button 
-              variant="outline" 
-              className="w-full"
-              onClick={() => navigate('/')}
-            >
-              Return to Home
-            </Button>
+          <CardContent className="flex justify-center py-8">
+            <Loader2 className="h-12 w-12 animate-spin text-primary" />
           </CardContent>
         </Card>
       </div>
     );
   }
 
+  // Make SURE to wrap the form in <Elements> which provides the stripe context.
   return (
-    <div className="container max-w-2xl py-12">
-      <Card>
+    <div className="min-h-screen flex items-center justify-center bg-background p-4">
+      <Card className="w-full max-w-md">
         <CardHeader>
-          <CardTitle>Complete Your Payment</CardTitle>
+          <CardTitle>Secure Payment</CardTitle>
           <CardDescription>
-            Secure payment for Job #{jobId}
+            {paymentDetails.jobTitle 
+              ? `Payment for job: ${paymentDetails.jobTitle}`
+              : 'Complete your payment securely'}
           </CardDescription>
         </CardHeader>
         <CardContent>
-          {clientSecret && jobId && (
-            <Elements stripe={stripePromise} options={{ clientSecret }}>
-              <CheckoutForm jobId={jobId} amount={amount} />
-            </Elements>
-          )}
+          <div className="mb-6">
+            <div className="flex justify-between mb-2">
+              <span className="text-muted-foreground">Amount:</span>
+              <span className="font-medium">${paymentDetails.amount.toFixed(2)}</span>
+            </div>
+            <div className="flex justify-between">
+              <span className="text-muted-foreground">Description:</span>
+              <span className="font-medium">{paymentDetails.description}</span>
+            </div>
+          </div>
+          
+          <Elements 
+            stripe={stripePromise} 
+            options={{ 
+              clientSecret,
+              appearance: {
+                theme: 'flat',
+                variables: {
+                  colorPrimary: '#0ea5e9',
+                  colorBackground: 'transparent',
+                  fontFamily: 'Inter, system-ui, sans-serif',
+                }
+              }
+            }}
+          >
+            <CheckoutForm 
+              amount={paymentDetails.amount}
+              jobId={paymentDetails.jobId}
+              description={paymentDetails.description}
+            />
+          </Elements>
         </CardContent>
+        <CardFooter className="flex justify-center text-xs text-muted-foreground">
+          <p>Your payment is secured with 256-bit SSL encryption</p>
+        </CardFooter>
       </Card>
     </div>
   );
-}
+};
