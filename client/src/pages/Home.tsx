@@ -378,16 +378,19 @@ export default function Home() {
                       <span>${job.paymentAmount.toFixed(2)}</span>
                     </div>
                     <div className="flex space-x-2">
-                      <Button variant="outline" size="sm" className="flex-1 text-xs">
-                        <a 
-                          href="#" 
-                          onClick={(e) => {
-                            e.preventDefault();
-                            window.location.href = `/job/${job.id}`;
-                          }}
-                        >
-                          Manage
-                        </a>
+                      <Button 
+                        variant="outline" 
+                        size="sm" 
+                        className="flex-1 text-xs"
+                        onClick={() => {
+                          // Show job details in a dialog/card instead of navigating
+                          setSelectedJob(job);
+                          if (!showJobDetails) {
+                            setShowJobDetails(true);
+                          }
+                        }}
+                      >
+                        Details
                       </Button>
                       <Button 
                         variant="destructive" 
