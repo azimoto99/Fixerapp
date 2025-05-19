@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { useGeolocation } from '@/lib/geolocation';
 import JobDetail from './JobDetail';
+import JobDetailCard from './JobDetailCard';
 import UserDrawerV2 from './UserDrawerV2';
 import MapViewToggle from './MapViewToggle';
 import { Job } from '@shared/schema';
@@ -446,7 +447,7 @@ const MapSection: React.FC<MapSectionProps> = ({ jobs, selectedJob, onSelectJob,
               </div>
             </div>
             
-            <JobDetail job={selectedJob} onClose={handleCloseDetail} />
+            <JobDetailCard job={selectedJob} onClose={handleCloseDetail} />
             
             {/* Apply button fixed at bottom */}
             <div className="sticky bottom-0 left-0 right-0 bg-card p-4 border-t border-border z-[900] pb-[calc(0.5rem+env(safe-area-inset-bottom))]">
