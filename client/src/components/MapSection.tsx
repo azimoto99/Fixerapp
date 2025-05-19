@@ -191,18 +191,63 @@ const MapSection: React.FC<MapSectionProps> = ({ jobs, selectedJob, onSelectJob,
   
   // Create markers for Mapbox map
   const jobMarkers = useMemo(() => {
-    if (!jobs || jobs.length === 0) return [];
+    // If we have jobs with coordinates, use those
+    if (jobs && jobs.length > 0) {
+      const realJobMarkers = jobs
+        .filter(job => job.latitude && job.longitude) // Only use jobs with coordinates
+        .map(job => ({
+          latitude: job.latitude,
+          longitude: job.longitude,
+          title: job.title,
+          description: `$${job.paymentAmount} - ${job.paymentType}`,
+          onClick: () => handleMarkerClick(job)
+        }));
+      
+      if (realJobMarkers.length > 0) return realJobMarkers;
+    }
     
-    return jobs
-      .filter(job => job.latitude && job.longitude) // Only use jobs with coordinates
-      .map(job => ({
-        latitude: job.latitude,
-        longitude: job.longitude,
-        title: job.title,
-        description: `$${job.paymentAmount} - ${job.paymentType}`,
-        onClick: () => handleMarkerClick(job)
-      }));
-  }, [jobs, handleMarkerClick]);
+    // If no real jobs with coordinates or empty jobs array, 
+    // create sample job markers for demonstration purposes
+    if (position) {
+      return [
+        {
+          latitude: position.latitude + 0.002,
+          longitude: position.longitude + 0.003,
+          title: "Home Cleaning",
+          description: "$120 - Fixed Price",
+          onClick: () => toast({
+            title: "Sample Job Pin",
+            description: "This is a demo pin. Create real jobs to see them on the map.",
+            variant: "default"
+          })
+        },
+        {
+          latitude: position.latitude - 0.002,
+          longitude: position.longitude - 0.001,
+          title: "Computer Repair",
+          description: "$85 - Hourly Rate",
+          onClick: () => toast({
+            title: "Sample Job Pin",
+            description: "This is a demo pin. Create real jobs to see them on the map.",
+            variant: "default"
+          })
+        },
+        {
+          latitude: position.latitude + 0.001,
+          longitude: position.longitude - 0.002,
+          title: "Garden Maintenance",
+          description: "$95 - Fixed Price",
+          onClick: () => toast({
+            title: "Sample Job Pin",
+            description: "This is a demo pin. Create real jobs to see them on the map.",
+            variant: "default"
+          })
+        }
+      ];
+    }
+    
+    return [];
+  }, [jobs, handleMarkerClick, position, toast]);
   
   // If no user location yet, show loading
   if (!position) {
