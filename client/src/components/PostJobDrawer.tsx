@@ -8,6 +8,7 @@ import { apiRequest } from '@/lib/queryClient';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/hooks/use-auth';
 import { useGeolocation } from '@/lib/geolocation';
+import { AddressAutocompleteInput } from '@/components/AddressAutocompleteInput';
 import {
   Drawer,
   DrawerClose,
@@ -478,7 +479,20 @@ export default function PostJobDrawer({ isOpen, onOpenChange }: PostJobDrawerPro
                       <FormControl>
                         <div className="flex items-center">
                           <MapPin className="mr-2 h-4 w-4 text-muted-foreground" />
-                          <Input placeholder="e.g. 123 Main St, City, State" {...field} />
+                          <Input 
+                            placeholder="e.g. 123 Main St, City, State" 
+                            {...field} 
+                            list="address-suggestions" 
+                          />
+                          <datalist id="address-suggestions">
+                            <option value="123 Main St, New York, NY 10001" />
+                            <option value="456 Market St, San Francisco, CA 94103" />
+                            <option value="789 Michigan Ave, Chicago, IL 60611" />
+                            <option value="101 Pine St, Seattle, WA 98101" />
+                            <option value="202 Peachtree St, Atlanta, GA 30303" />
+                            <option value="600 Berry St, Apt 111, Encinal, TX 78019" />
+                            <option value="505 Lincoln Rd, Miami Beach, FL 33139" />
+                          </datalist>
                         </div>
                       </FormControl>
                       <FormMessage />
