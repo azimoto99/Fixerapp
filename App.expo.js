@@ -1,6 +1,6 @@
 // App.expo.js - Special Expo entry point for Expo Go
 
-import { View, Text, StyleSheet, ScrollView, Linking, TouchableOpacity } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, Linking, TouchableOpacity, Image } from 'react-native';
 import React, { useEffect, useState } from 'react';
 import { StatusBar } from 'expo-status-bar';
 
@@ -46,7 +46,14 @@ export default function App() {
     <View style={styles.container}>
       <ScrollView contentContainerStyle={styles.contentContainer}>
         <View style={styles.header}>
-          <Text style={styles.logo}>🔧 Fixer</Text>
+          <View style={styles.logoContainer}>
+            <Image 
+              source={require('./logo.png')} 
+              style={styles.logoImage} 
+              resizeMode="contain" 
+            />
+            <Text style={styles.logo}>Fixer</Text>
+          </View>
           <Text style={styles.subtitle}>Mobile Companion</Text>
         </View>
 
@@ -112,8 +119,19 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginBottom: 30,
   },
+  logoContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 5,
+  },
+  logoImage: {
+    width: 40,
+    height: 40,
+    marginRight: 10,
+  },
   logo: {
-    fontSize: 48,
+    fontSize: 40,
     fontWeight: 'bold',
     color: '#333',
   },
