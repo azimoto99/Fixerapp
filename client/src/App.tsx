@@ -21,6 +21,7 @@ import StripeTester from "@/pages/StripeTester";
 import PaymentSuccess from "@/pages/payment-success";
 import PaymentsPage from "@/pages/payments-page";
 import NotificationsPage from "@/pages/notifications-page";
+import AdminPanel from "@/pages/AdminPanel";
 import { AuthProvider } from "@/hooks/use-auth";
 import { NotificationProvider } from "@/hooks/use-notifications";
 import { ProtectedRoute } from "@/lib/protected-route";
@@ -84,6 +85,7 @@ function RouterWithAuth() {
       {/* Removed redundant StripeTest route */}
       <ProtectedRoute path="/stripe-tester" component={StripeTester} />
       <ProtectedRoute path="/notifications" component={NotificationsPage} />
+      <ProtectedRoute path="/admin" component={AdminPanel} />
       {/* Payment dashboard is not accessible as there are no job posters */}
       <Route path="/auth" component={AuthPage} />
       <Route path="/login" component={RedirectToAuth} />

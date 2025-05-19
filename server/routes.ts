@@ -12,7 +12,9 @@ import createPaymentIntentRouter from "./api/stripe-api-create-payment-intent";
 import { setupStripeWebhooks } from "./api/stripe-webhooks";
 import { setupStripeTransfersRoutes } from "./api/stripe-transfers";
 import { setupStripePaymentMethodsRoutes } from "./api/stripe-payment-methods";
+import { adminRouter } from "./api/admin-api";
 import "./api/storage-extensions"; // Import to register extended storage methods
+import "./storage-extensions"; // Import admin and payment extensions
 import * as crypto from 'crypto';
 import { 
   insertUserSchema, 
