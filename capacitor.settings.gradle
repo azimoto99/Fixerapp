@@ -1,18 +1,14 @@
 // Capacitor settings for Gradle
-// This file is referenced in the android/settings.gradle
+// This fallback file prevents build errors
 
-// Include Capacitor Android as a dependency if present
-includeIfExists = { path ->
-  if (file(path).exists()) {
-    include path
-    return true
-  }
-  return false
+// Safe method to include files only if they exist
+def includeIfExists = { dir, name ->
+    def path = "${dir}/${name}"
+    if (new File(path).exists()) {
+        include(name)
+        project(":${name}").projectDir = new File(path)
+    }
 }
 
-// Include Capacitor Android
-def capacitorPath = '../node_modules/@capacitor/android/capacitor'
-if (file(capacitorPath).exists()) {
-  include ':capacitor-android'
-  project(':capacitor-android').projectDir = new File(capacitorPath)
-}
+// Try to include Capacitor Android if available
+includeIfExists("../node_modules/@capacitor/android", "capacitor-android")
