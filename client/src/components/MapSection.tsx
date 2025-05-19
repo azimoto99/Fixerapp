@@ -1,10 +1,11 @@
-import React, { useState, useEffect, useMemo, useCallback, memo } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { useGeolocation } from '@/lib/geolocation';
 import JobDetail from './JobDetail';
 import UserDrawerV2 from './UserDrawerV2';
 import MapViewToggle from './MapViewToggle';
 import { Job } from '@shared/schema';
 import MapboxMap from './MapboxMap';
+import JobLocationMap from './JobLocationMap';
 import { Loader2, Plus } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/hooks/use-auth';
@@ -19,22 +20,9 @@ interface MapSectionProps {
   searchCoordinates?: { latitude: number; longitude: number };
 }
 
-// Component to recenter map when user location changes - memoized for performance
-const RecenterMap = memo(({ position }: { position: LatLngExpression | null }) => {
-  const map = useMap();
-  
-  useEffect(() => {
-    if (position) {
-      map.setView(position, 15);
-    }
-  }, [position, map]);
-  
-  return null;
-});
-
 // Custom controls removed - no longer needed
 
-// DoorDash-style interactive map component for showing nearby gigs
+// DoorDash-style interactive map component for showing nearby gigs with Mapbox
 const MapSection: React.FC<MapSectionProps> = ({ jobs, selectedJob, onSelectJob, searchCoordinates }) => {
   const { userLocation, locationError, isUsingFallback } = useGeolocation();
   const [showJobDetail, setShowJobDetail] = useState<boolean>(false);
@@ -47,20 +35,25 @@ const MapSection: React.FC<MapSectionProps> = ({ jobs, selectedJob, onSelectJob,
     console.log('MapSection: User drawer state changed to:', isOpen);
     setIsUserDrawerOpen(isOpen);
   }, []);
-  const [lastSearchLocation, setLastSearchLocation] = useState<LatLngExpression | null>(null);
   const [showStripeConnectRequired, setShowStripeConnectRequired] = useState(false);
   const [mapView, setMapView] = useState<'standard' | 'heatmap'>('standard');
   const { user } = useAuth();
   const { toast } = useToast();
   
   // Use search coordinates if provided, otherwise fall back to user location
-  const position: LatLngExpression | null = useMemo(() => {
+  const position = useMemo(() => {
     // Prioritize search coordinates over geolocation
     if (searchCoordinates) {
-      return [searchCoordinates.latitude, searchCoordinates.longitude] as LatLngExpression;
+      return {
+        latitude: searchCoordinates.latitude,
+        longitude: searchCoordinates.longitude
+      };
     }
     return userLocation 
-      ? [userLocation.latitude, userLocation.longitude] 
+      ? {
+          latitude: userLocation.latitude,
+          longitude: userLocation.longitude
+        }
       : null;
   }, [searchCoordinates, userLocation]);
   
@@ -242,71 +235,8 @@ const MapSection: React.FC<MapSectionProps> = ({ jobs, selectedJob, onSelectJob,
           onSkip={() => setShowStripeConnectRequired(false)}
         />
       )}
-      <div className="relative h-screen max-h-[calc(100vh-64px)] overflow-hidden" style={{ zIndex: 1 }}>
+      <div className="relative h-screen max-h-[calc(100vh-64px)] overflow-hidden">
         <style>{`
-          /* Force map container below all other elements */
-          #map-container {
-            z-index: 1 !important;
-            position: relative;
-          }
-          
-          .leaflet-container {
-            height: 100%;
-            width: 100%;
-            touch-action: manipulation;
-            z-index: var(--z-map-base) !important;
-          }
-          
-          /* Apply consistent z-index to map elements based on our global strategy */
-          .leaflet-control,
-          .leaflet-top,
-          .leaflet-bottom {
-            z-index: var(--z-map-controls) !important;
-          }
-          
-          .leaflet-pane {
-            z-index: var(--z-map-tiles) !important;
-          }
-          
-          /* Map visualization elements */
-          .leaflet-map-pane canvas, 
-          .leaflet-map-pane svg {
-            z-index: var(--z-map-markers) !important;
-          }
-          
-          .leaflet-popup {
-            z-index: var(--z-map-popups) !important;
-          }
-          
-          /* Let's make sure everything is consistent */
-          .leaflet-map-pane {
-            z-index: var(--z-map-tiles) !important;
-          }
-          
-          /* Fixing z-index for specific map elements */
-          .leaflet-marker-pane, 
-          .leaflet-overlay-pane {
-            z-index: var(--z-map-markers) !important;
-          }
-          
-          /* Any markers or pop-ups need to be above the map but below UI elements */
-          .marker-cluster {
-            z-index: calc(var(--z-map-markers) + 10) !important;
-          }
-          /* Ensure all map elements have lower z-index than our drawer */
-          .leaflet-popup-pane {
-            z-index: var(--z-map-popups) !important;
-          }
-          .custom-job-marker {
-            background: none;
-            border: none;
-          }
-          .custom-job-marker div {
-            display: flex;
-            align-items: center;
-            justify-content: center;
-          }
-          
           /* Animation for markers */
           @keyframes bounce-in {
             0% { transform: scale(0.8); opacity: 0; }
@@ -328,59 +258,6 @@ const MapSection: React.FC<MapSectionProps> = ({ jobs, selectedJob, onSelectJob,
             animation: pulse-marker 2s infinite;
           }
           
-          /* Mobile optimizations */
-          @media (max-width: 768px) {
-            .leaflet-control-zoom {
-              display: none;
-            }
-            .leaflet-control-attribution {
-              font-size: 8px;
-              max-width: 70%;
-              white-space: nowrap;
-              overflow: hidden;
-              text-overflow: ellipsis;
-            }
-            .leaflet-touch .leaflet-bar {
-              border: none;
-              box-shadow: 0 1px 5px rgba(0,0,0,0.2);
-            }
-            .leaflet-control-container .leaflet-bottom .leaflet-control {
-              margin-bottom: 70px; /* Give space for the job search bar */
-            }
-            /* Larger touch targets for mobile */
-            .leaflet-touch .leaflet-bar a {
-              width: 40px;
-              height: 40px;
-              line-height: 40px;
-              font-size: 20px;
-            }
-            /* Space buttons for easier tapping */
-            .leaflet-bottom .leaflet-control .leaflet-control-zoom {
-              margin-bottom: 10px;
-            }
-          }
-          
-          /* Improve tap targets */
-          .leaflet-touch .leaflet-control-layers, 
-          .leaflet-touch .leaflet-bar {
-            border: none;
-            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
-          }
-          
-          /* Loading performance optimizations */
-          .leaflet-tile {
-            will-change: transform;
-          }
-          .leaflet-fade-anim .leaflet-tile {
-            will-change: opacity;
-          }
-          
-          /* Custom controls spacing */
-          .leaflet-control-container .leaflet-bottom .leaflet-control button {
-            margin-top: 10px;
-            display: block;
-          }
-          
           /* Smooth transition for panel */
           .job-detail-panel {
             transition: transform 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
@@ -388,89 +265,21 @@ const MapSection: React.FC<MapSectionProps> = ({ jobs, selectedJob, onSelectJob,
         `}</style>
         
         {position && (
-          <MapContainer 
-            id="map-container"
-            center={position as [number, number]} 
-            zoom={15} 
-            zoomControl={false}
-            attributionControl={false}
-            doubleClickZoom={true}
-            dragging={true}
-            scrollWheelZoom={false}
-            touchZoom={true}
-            className="mobile-optimized-map"
-            style={{ zIndex: 1 }}
-          >
-            <TileLayer
-              attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>'
-              url="https://{s}.basemaps.cartocdn.com/dark_nolabels/{z}/{x}/{y}{r}.png"
-              eventHandlers={{
-                click: handleMapClick,
-              }}
-            />
-            {/* Add a more vibrant street layer on top */}
-            <TileLayer
-              url="https://{s}.basemaps.cartocdn.com/dark_only_labels/{z}/{x}/{y}{r}.png"
-              className="map-labels-layer"
-            />
-            
-            {/* 2-mile radius circle around user's location */}
-            <Circle 
-              center={position}
-              pathOptions={{ 
-                fillColor: 'hsl(160, 84%, 65%)', // Even brighter primary color for dark background
-                fillOpacity: 0.15, 
-                color: 'hsl(160, 84%, 70%)',
-                weight: 2,
-                dashArray: '5, 10', // Dashed line for better visibility
-              }}
-              radius={3218} // 2 miles in meters
-              className="map-radius-circle"
-            />
-            
-            {/* User's location marker */}
-            <CircleMarker 
-              center={position}
-              pathOptions={{ 
-                fillColor: 'hsl(160, 84%, 75%)', // Even brighter primary color for dark background
-                fillOpacity: 0.9, 
-                color: 'white',
-                weight: 3
-              }}
-              radius={8}
-              className="user-location-marker"
-            >
-              <Popup className="leaflet-popup-dark">Your location</Popup>
-            </CircleMarker>
-            
-            {/* Job markers - only show them in standard view */}
-            {mapView === 'standard' && jobPositions.map(({ job, position }) => (
-              <JobMarker 
-                key={job.id}
-                job={job}
-                position={position}
-                isSelected={selectedJob?.id === job.id}
-                onClick={handleMarkerClick}
-              />
-            ))}
-            
-            {/* Heat map layer - only show in heatmap view */}
-            <HeatmapLayer 
-              jobs={jobPositions}
-              visible={mapView === 'heatmap'}
-              radius={25} 
-              blur={15}
-              intensity={0.7}
-            />
-            
-            {/* Recenter map component */}
-            <RecenterMap position={position} />
-
-            {/* Map View Toggle Control - placed at top left for better visibility */}
-            <div className="leaflet-control-container">
-              {/* Map controls and toggle removed as they are now in the top control bar */}
-            </div>
-          </MapContainer>
+          <JobLocationMap
+            jobs={jobs}
+            center={position}
+            zoom={15}
+            selectedJobId={selectedJob?.id}
+            onJobSelect={(jobId) => {
+              const job = jobs.find(j => j.id === jobId);
+              if (job && onSelectJob) {
+                onSelectJob(job);
+                setShowJobDetail(true);
+              }
+            }}
+            height="100%"
+            className="w-full"
+          />
         )}
         
         {/* Removed duplicate fallback location notice - already shown in top control panel */}

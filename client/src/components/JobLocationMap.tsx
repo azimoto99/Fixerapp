@@ -30,7 +30,6 @@ export default function JobLocationMap({
   const [mapCenter, setMapCenter] = useState(center);
   const [mapZoom, setMapZoom] = useState(zoom);
   const [selectedJob, setSelectedJob] = useState<Job | null>(null);
-  const navigate = useNavigate();
 
   useEffect(() => {
     // Update map center when center prop changes
@@ -73,7 +72,7 @@ export default function JobLocationMap({
   // Handle map click to view job details
   const handleJobClick = () => {
     if (selectedJob) {
-      navigate(`/jobs/${selectedJob.id}`);
+      window.location.href = `/jobs/${selectedJob.id}`;
     }
   };
 
