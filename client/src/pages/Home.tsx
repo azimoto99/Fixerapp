@@ -9,6 +9,15 @@ import JobListSection from '@/components/JobListSection';
 import MapSection from '@/components/MapSection';
 import NewJobButton from '@/components/NewJobButton';
 import PostJobDrawer from '@/components/PostJobDrawer';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogClose
+} from "@/components/ui/dialog";
 
 import { useJobs } from '@/hooks/useJobs';
 import { Job } from '@shared/schema';
@@ -294,6 +303,10 @@ export default function Home() {
   const { user } = useAuth();
   const [selectedRole, setSelectedRole] = useState<'worker' | 'poster'>('worker');
   const [showPostedJobs, setShowPostedJobs] = useState(false);
+  const [showJobDetails, setShowJobDetails] = useState(false);
+  const [selectedJob, setSelectedJob] = useState<Job | null>(null);
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
   
   // Get jobs posted by this user (if any)
   const { data: postedJobs } = useQuery<Job[]>({
@@ -321,6 +334,50 @@ export default function Home() {
           <PosterDashboard />
         )}
       </main>
+
+      {/* Job Details Dialog */}
+      <Dialog open={showJobDetails} onOpenChange={setShowJobDetails}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>{selectedJob?.title}</DialogTitle>
+            <DialogDescription>
+              Posted on {selectedJob?.datePosted ? new Date(selectedJob.datePosted).toLocaleDateString() : 'Unknown date'}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div>
+              <h4 className="text-sm font-medium mb-1">Location</h4>
+              <p className="text-sm">{selectedJob?.location}</p>
+            </div>
+            <div>
+              <h4 className="text-sm font-medium mb-1">Description</h4>
+              <p className="text-sm">{selectedJob?.description}</p>
+            </div>
+            <div>
+              <h4 className="text-sm font-medium mb-1">Payment</h4>
+              <p className="text-sm">${selectedJob?.paymentAmount?.toFixed(2)} ({selectedJob?.paymentType})</p>
+            </div>
+            <div>
+              <h4 className="text-sm font-medium mb-1">Status</h4>
+              <p className="text-sm capitalize">{selectedJob?.status}</p>
+            </div>
+          </div>
+          <DialogFooter className="sm:justify-between">
+            <DialogClose asChild>
+              <Button type="button" variant="secondary">Close</Button>
+            </DialogClose>
+            <Button 
+              type="button" 
+              variant="default"
+              onClick={() => {
+                window.location.href = `/job/${selectedJob?.id}`;
+              }}
+            >
+              View Full Details
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {/* Only show mobile nav when not in worker map view to avoid cluttering the map interface */}
       {!(selectedRole === 'worker') && (
@@ -385,9 +442,7 @@ export default function Home() {
                         onClick={() => {
                           // Show job details in a dialog/card instead of navigating
                           setSelectedJob(job);
-                          if (!showJobDetails) {
-                            setShowJobDetails(true);
-                          }
+                          setShowJobDetails(true);
                         }}
                       >
                         Details
