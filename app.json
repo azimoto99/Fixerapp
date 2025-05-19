@@ -5,10 +5,10 @@
     "owner": "azimoto9",
     "version": "1.0.0",
     "orientation": "portrait",
-    "icon": "./icon.svg",
+    "icon": "./icon.png",
     "userInterfaceStyle": "automatic",
     "splash": {
-      "image": "./logo.svg",
+      "image": "./logo.png",
       "resizeMode": "contain",
       "backgroundColor": "#000000"
     },
@@ -21,7 +21,7 @@
     },
     "android": {
       "adaptiveIcon": {
-        "foregroundImage": "./icon.svg",
+        "foregroundImage": "./icon.png",
         "backgroundColor": "#000000"
       },
       "package": "com.fixer",
@@ -31,7 +31,7 @@
       ]
     },
     "web": {
-      "favicon": "./icon.svg"
+      "favicon": "./icon.png"
     },
     "scheme": "fixerapp",
     "extra": {
@@ -41,7 +41,7 @@
     },
     "primaryColor": "#68D391",
     "notification": {
-      "icon": "./icon.svg",
+      "icon": "./icon.png",
       "color": "#000000",
       "androidMode": "default"
     },
