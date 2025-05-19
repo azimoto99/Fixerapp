@@ -27,12 +27,11 @@
       }
     },
     "production": {
-      "autoIncrement": true,
-      "distribution": "store",
       "android": {
         "buildType": "app-bundle",
         "gradleCommand": ":app:bundleRelease",
-        "withoutCredentials": true
+        "credentialsSource": "remote",
+        "autoIncrement": true
       },
       "env": {
         "EXPO_PUBLIC_STRIPE_KEY": "${process.env.VITE_STRIPE_PUBLIC_KEY}"
@@ -42,7 +41,8 @@
       "android": {
         "buildType": "apk",
         "gradleCommand": ":app:assembleRelease",
-        "withoutCredentials": true
+        "credentialsSource": "remote",
+        "autoIncrement": true
       },
       "env": {
         "EXPO_PUBLIC_STRIPE_KEY": "${process.env.VITE_STRIPE_PUBLIC_KEY}"
@@ -52,7 +52,9 @@
       "android": {
         "buildType": "apk",
         "image": "latest",
-        "withoutCredentials": true
+        "withoutCredentials": false,
+        "credentialsSource": "remote",
+        "autoIncrement": true
       },
       "env": {
         "EXPO_PUBLIC_STRIPE_KEY": "${process.env.VITE_STRIPE_PUBLIC_KEY}"
