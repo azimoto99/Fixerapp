@@ -70,6 +70,31 @@ const MapSection: React.FC<MapSectionProps> = ({ jobs, selectedJob, onSelectJob,
     if (onSelectJob) {
       onSelectJob(job);
       setShowJobDetail(true);
+      
+      // If we're showing a sample job from a marker click, create a temp job object
+      if (!job.id) {
+        const tempJob: Job = {
+          id: 0,
+          title: job.title || 'Sample Job',
+          description: 'This is a sample job to demonstrate the job detail card functionality.',
+          category: 'Cleaning',
+          posterId: 1,
+          workerId: null,
+          status: 'open',
+          paymentType: job.paymentType || 'fixed',
+          paymentAmount: parseFloat((job.description || '').replace(/\$/g, '')) || 100,
+          serviceFee: 5,
+          totalAmount: parseFloat((job.description || '').replace(/\$/g, '')) + 5 || 105,
+          latitude: job.latitude,
+          longitude: job.longitude,
+          location: 'Sample Location',
+          datePosted: new Date().toISOString(),
+          dateNeeded: null,
+          dateCompleted: null,
+          autoAccept: false
+        };
+        onSelectJob(tempJob);
+      }
     }
   };
   
