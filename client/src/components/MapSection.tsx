@@ -6,27 +6,16 @@ import UserDrawerV2 from './UserDrawerV2';
 import HeatmapLayer from './HeatmapLayer';
 import MapViewToggle from './MapViewToggle';
 import { Job } from '@shared/schema';
-import { Platform, View, Text } from 'react-native';
-
-// Only import Leaflet and its CSS in web environment
-let MapContainer, TileLayer, Circle, useMap, CircleMarker, Popup, LatLngExpression;
-if (Platform.OS === 'web') {
-  // Dynamic import for web platform
-  const reactLeaflet = require('react-leaflet');
-  MapContainer = reactLeaflet.MapContainer;
-  TileLayer = reactLeaflet.TileLayer;
-  Circle = reactLeaflet.Circle;
-  useMap = reactLeaflet.useMap;
-  CircleMarker = reactLeaflet.CircleMarker;
-  Popup = reactLeaflet.Popup;
-  
-  // Import leaflet CSS
-  require('leaflet/dist/leaflet.css');
-  
-  // Import leaflet types
-  const leaflet = require('leaflet');
-  LatLngExpression = leaflet.LatLngExpression;
-}
+import {
+  MapContainer, 
+  TileLayer, 
+  Circle, 
+  useMap, 
+  CircleMarker, 
+  Popup
+} from 'react-leaflet';
+import 'leaflet/dist/leaflet.css';
+import { LatLngExpression } from 'leaflet';
 import { Loader2, Plus } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/hooks/use-auth';
