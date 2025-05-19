@@ -53,18 +53,36 @@ export default function MapboxMap({
       interactive: interactive
     });
     
-    // Single load event handler for both styling and state management
+    // Add event handler for map load
     map.current.on('load', () => {
       // Set map loaded state
       setMapLoaded(true);
       
       try {
-        // Add custom styling to make roads light green
-        map.current.setPaintProperty('road', 'line-color', '#a5d6a7'); // Light green
-        map.current.setPaintProperty('road-street', 'line-color', '#a5d6a7');
-        map.current.setPaintProperty('road-secondary-tertiary', 'line-color', '#81c784'); // Slightly darker green
-        map.current.setPaintProperty('road-primary', 'line-color', '#66bb6a'); // Medium green
-        map.current.setPaintProperty('highway', 'line-color', '#4caf50'); // Darker green for highways
+        // We need to get all layer ids first to find the road layers
+        const layers = map.current.getStyle().layers || [];
+        
+        // Apply green styling to any layer that contains 'road' in its id
+        layers.forEach(layer => {
+          const layerId = layer.id;
+          
+          if (layerId.toLowerCase().includes('road') && layer.type === 'line') {
+            console.log('Styling road layer:', layerId);
+            
+            // Different shades of green based on road type
+            let color = '#a5d6a7'; // Default light green
+            
+            if (layerId.includes('highway') || layerId.includes('major')) {
+              color = '#4caf50'; // Darker green for highways/major roads
+            } else if (layerId.includes('primary') || layerId.includes('trunk')) {
+              color = '#66bb6a'; // Medium green for primary roads
+            } else if (layerId.includes('secondary') || layerId.includes('tertiary')) {
+              color = '#81c784'; // Slightly darker for secondary/tertiary roads
+            }
+            
+            map.current.setPaintProperty(layerId, 'line-color', color);
+          }
+        });
       } catch (error) {
         console.warn('Could not set custom road colors:', error);
       }
