@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<svg width="512" height="512" viewBox="0 0 512 512" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!-- Background circle -->
+  <circle cx="256" cy="256" r="256" fill="#68D391"/>
+  
+  <!-- Tool icon - Wrench -->
+  <path d="M350.4 168.5C346.9 164.9 342.3 162.6 337.3 161.9C332.3 161.2 327.3 162.2 323 164.8C318.7 167.3 315.3 171.3 313.5 176C311.7 180.7 311.5 185.9 313 190.7L273.8 229.9C268.7 226.6 262.7 224.8 256.5 224.8C250.3 224.8 244.3 226.6 239.2 229.9L168.5 159.2C165.9 156.6 162.4 155.2 158.7 155.2C155 155.2 151.5 156.6 148.9 159.2C146.3 161.8 144.9 165.3 144.9 169C144.9 172.7 146.3 176.2 148.9 178.8L219.6 249.5C216.3 254.6 214.5 260.6 214.5 266.8C214.5 276.1 218.1 285 224.6 291.5C231.1 298 240 301.6 249.3 301.6C258.6 301.6 267.5 298 274 291.5C280.5 285 284.1 276.1 284.1 266.8C284.1 260.6 282.3 254.6 279 249.5L318.2 210.3C322.8 211.7 327.8 211.6 332.4 209.9C337 208.2 340.9 205.1 343.4 201C345.9 196.8 347 191.9 346.3 187C345.6 182.1 343.4 177.6 339.8 174.1L350.4 168.5Z" 
+        fill="white" stroke="#2E7D32" stroke-width="12" stroke-linecap="round" stroke-linejoin="round"/>
+  
+  <!-- Letter F -->
+  <path d="M155 352H194V320H235V292H194V270H246V242H155V352Z" 
+        fill="white" stroke="#2E7D32" stroke-width="12" stroke-linecap="round" stroke-linejoin="round"/>
+  
+  <!-- Dots for job points -->
+  <circle cx="292" cy="352" r="14" fill="white" stroke="#2E7D32" stroke-width="8"/>
+  <circle cx="332" cy="322" r="14" fill="white" stroke="#2E7D32" stroke-width="8"/>
+  <circle cx="357" cy="275" r="14" fill="white" stroke="#2E7D32" stroke-width="8"/>
+</svg>
