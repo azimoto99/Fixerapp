@@ -53,7 +53,8 @@ import {
   CheckCircle,
   XCircle,
   Ban,
-  LockKeyhole
+  LockKeyhole,
+  AlertTriangle
 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -65,6 +66,17 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 
 const AdminPanel = () => {
   const { toast } = useToast();
@@ -183,8 +195,117 @@ const AdminPanel = () => {
     if (activeTab === 'payments') refetchPayments();
   };
 
-  // Handle user actions
-  const handleUserAction = async (userId: number, action: string) => {
+  // State for confirmation dialogs
+  const [confirmationState, setConfirmationState] = useState<{
+    open: boolean;
+    userId?: number;
+    username?: string;
+    action?: string;
+    title: string;
+    description: string;
+    dangerous: boolean;
+  }>({
+    open: false,
+    title: '',
+    description: '',
+    dangerous: false
+  });
+  
+  // Open confirmation dialog for actions that need confirmation
+  const openConfirmation = (userId: number, action: string, username: string) => {
+    let title = 'Confirm Action';
+    let description = `Are you sure you want to perform this action?`;
+    let dangerous = false;
+    
+    if (action === 'delete') {
+      title = 'Delete User';
+      description = `Are you sure you want to permanently delete the user "${username}"? This action cannot be undone.`;
+      dangerous = true;
+    } else if (action === 'reset-password') {
+      title = 'Reset Password';
+      description = `Are you sure you want to reset the password for user "${username}"? They will need to create a new password.`;
+      dangerous = false;
+    } else if (action === 'deactivate') {
+      title = 'Deactivate User';
+      description = `Are you sure you want to deactivate user "${username}"? They will no longer be able to access the platform.`;
+      dangerous = false;
+    }
+    
+    setConfirmationState({
+      open: true,
+      userId,
+      username,
+      action,
+      title,
+      description,
+      dangerous
+    });
+  };
+  
+  // Close confirmation dialog
+  const closeConfirmation = () => {
+    setConfirmationState({
+      ...confirmationState,
+      open: false
+    });
+  };
+
+  // Execute the confirmed action
+  const executeUserAction = async () => {
+    if (!confirmationState.userId || !confirmationState.action) return;
+    
+    const userId = confirmationState.userId;
+    const action = confirmationState.action;
+    
+    try {
+      const res = await apiRequest('POST', '/api/admin/users/action', {
+        userId,
+        action
+      });
+
+      if (!res.ok) {
+        const error = await res.json();
+        throw new Error(error.message || 'Action failed');
+      }
+
+      toast({
+        title: 'Success',
+        description: `User action "${action}" completed successfully`,
+      });
+
+      // Close the confirmation dialog
+      closeConfirmation();
+      
+      // Refresh user data
+      refetchUsers();
+    } catch (error: any) {
+      toast({
+        title: 'Error',
+        description: error.message || 'Failed to perform action',
+        variant: 'destructive',
+      });
+      
+      // Keep the dialog open on error
+      setConfirmationState({
+        ...confirmationState,
+        description: `Error: ${error.message || 'Unknown error occurred'}`
+      });
+    }
+  };
+  
+  // Handle user actions - determines whether to show confirmation or execute directly
+  const handleUserAction = (userId: number, action: string, username: string) => {
+    // Actions that require confirmation
+    if (['delete', 'reset-password', 'deactivate'].includes(action)) {
+      openConfirmation(userId, action, username);
+    } else {
+      // Actions that can be executed immediately
+      executeAction(userId, action);
+    }
+  };
+  
+  // Direct execution for actions that don't need confirmation
+  const executeAction = async (userId: number, action: string) => {
     try {
       const res = await apiRequest('POST', '/api/admin/users/action', {
         userId,
@@ -585,21 +706,21 @@ const AdminPanel = () => {
                                 View Profile
                               </DropdownMenuItem>
                               <DropdownMenuSeparator />
-                              <DropdownMenuItem onClick={() => handleUserAction(user.id, user.isActive ? 'deactivate' : 'activate')}>
+                              <DropdownMenuItem onClick={() => handleUserAction(user.id, user.isActive ? 'deactivate' : 'activate', user.username)}>
                                 {user.isActive ? 'Deactivate User' : 'Activate User'}
                               </DropdownMenuItem>
-                              <DropdownMenuItem onClick={() => handleUserAction(user.id, 'verify')}>
+                              <DropdownMenuItem onClick={() => handleUserAction(user.id, 'verify', user.username)}>
                                 Verify Identity
                               </DropdownMenuItem>
                               <DropdownMenuItem 
-                                onClick={() => handleUserAction(user.id, 'reset-password')}
+                                onClick={() => handleUserAction(user.id, 'reset-password', user.username)}
                                 className="text-amber-600 dark:text-amber-400"
                               >
                                 Reset Password
                               </DropdownMenuItem>
                               <DropdownMenuSeparator />
                               <DropdownMenuItem 
-                                onClick={() => handleUserAction(user.id, 'delete')}
+                                onClick={() => handleUserAction(user.id, 'delete', user.username)}
                                 className="text-red-600 dark:text-red-400"
                               >
                                 Delete User
