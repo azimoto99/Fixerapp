@@ -7,7 +7,7 @@ channel = "stable-24_05"
 
 [deployment]
 deploymentTarget = "autoscale"
-build = ["sh", "-c", "NODE_ENV=production npm run build"]
+build = ["sh", "-c", "NODE_ENV=production VITE_CJS_IGNORE_WARNING=true npm run build"]
 run = ["sh", "-c", "npm run start"]
 
 [[ports]]
