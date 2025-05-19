@@ -1297,10 +1297,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
         paymentAmount: paymentAmount,
         latitude: typeof jobData.latitude === 'string' ? parseFloat(jobData.latitude) : jobData.latitude,
         longitude: typeof jobData.longitude === 'string' ? parseFloat(jobData.longitude) : jobData.longitude,
-        // Parse dateNeeded if it's a string format
-        dateNeeded: typeof jobData.dateNeeded === 'string' && !jobData.dateNeeded.includes('T') 
-          ? new Date(jobData.dateNeeded + 'T00:00:00') 
-          : jobData.dateNeeded
+        // Properly handle date format for dateNeeded
+        dateNeeded: typeof jobData.dateNeeded === 'string' 
+          ? new Date(jobData.dateNeeded) // Convert any string date format to a Date object
+          : (jobData.dateNeeded instanceof Date ? jobData.dateNeeded : new Date())
       };
       
       // Allow any user to post jobs regardless of their account type (both workers and posters)
