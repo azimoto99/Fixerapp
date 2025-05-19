@@ -11,10 +11,15 @@
       "resizeMode": "contain",
       "backgroundColor": "#000000"
     },
-    "assetBundlePatterns": ["**/*"],
+    "assetBundlePatterns": [
+      "**/*"
+    ],
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.fixerapp.app"
+      "bundleIdentifier": "com.fixerapp.app",
+      "infoPlist": {
+        "ITSAppUsesNonExemptEncryption": false
+      }
     },
     "android": {
       "adaptiveIcon": {
@@ -22,7 +27,10 @@
         "backgroundColor": "#000000"
       },
       "package": "com.fixerapp.app",
-      "permissions": ["ACCESS_COARSE_LOCATION", "ACCESS_FINE_LOCATION"]
+      "permissions": [
+        "ACCESS_COARSE_LOCATION",
+        "ACCESS_FINE_LOCATION"
+      ]
     },
     "web": {
       "favicon": "./attached_assets/ChatGPT_Image_May_7__2025__01_30_03_AM-removebg-preview.png"
@@ -38,10 +46,6 @@
       "icon": "./attached_assets/ChatGPT_Image_May_7__2025__01_30_03_AM-removebg-preview.png",
       "color": "#000000",
       "androidMode": "default"
-    },
-    "updates": {
-      "fallbackToCacheTimeout": 0,
-      "url": "https://u.expo.dev/your-project-id"
     },
     "runtimeVersion": {
       "policy": "sdkVersion"
