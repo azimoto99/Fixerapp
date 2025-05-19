@@ -11,6 +11,9 @@
       "android": {
         "buildType": "apk",
         "gradleCommand": ":app:assembleDebug"
+      },
+      "env": {
+        "EXPO_PUBLIC_STRIPE_KEY": "${process.env.VITE_STRIPE_PUBLIC_KEY}"
       }
     },
     "preview": {
@@ -18,18 +21,27 @@
       "android": {
         "buildType": "apk",
         "gradleCommand": ":app:assembleRelease"
+      },
+      "env": {
+        "EXPO_PUBLIC_STRIPE_KEY": "${process.env.VITE_STRIPE_PUBLIC_KEY}"
       }
     },
     "production": {
       "android": {
         "buildType": "app-bundle",
         "gradleCommand": ":app:bundleRelease"
+      },
+      "env": {
+        "EXPO_PUBLIC_STRIPE_KEY": "${process.env.VITE_STRIPE_PUBLIC_KEY}"
       }
     },
     "androidApk": {
       "android": {
         "buildType": "apk",
         "gradleCommand": ":app:assembleRelease"
+      },
+      "env": {
+        "EXPO_PUBLIC_STRIPE_KEY": "${process.env.VITE_STRIPE_PUBLIC_KEY}"
       }
     },
     "simpleBuild": {
@@ -37,6 +49,9 @@
         "buildType": "apk",
         "image": "latest",
         "withoutCredentials": true
+      },
+      "env": {
+        "EXPO_PUBLIC_STRIPE_KEY": "${process.env.VITE_STRIPE_PUBLIC_KEY}"
       }
     }
   },

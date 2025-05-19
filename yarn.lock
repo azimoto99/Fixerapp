@@ -1632,6 +1632,31 @@
     postcss "~8.4.32"
     resolve-from "^5.0.0"
 
+"@expo/metro-config@^0.20.14":
+  version "0.20.14"
+  resolved "https://registry.yarnpkg.com/@expo/metro-config/-/metro-config-0.20.14.tgz#5abf8cd6454fe7f75c1f8529cf79619da32af82d"
+  integrity sha512-tYDDubuZycK+NX00XN7BMu73kBur/evOPcKfxc+UBeFfgN2EifOITtdwSUDdRsbtJ2OnXwMY1HfRUG3Lq3l4cw==
+  dependencies:
+    "@babel/core" "^7.20.0"
+    "@babel/generator" "^7.20.5"
+    "@babel/parser" "^7.20.0"
+    "@babel/types" "^7.20.0"
+    "@expo/config" "~11.0.9"
+    "@expo/env" "~1.0.5"
+    "@expo/json-file" "~9.1.4"
+    "@expo/spawn-async" "^1.7.2"
+    chalk "^4.1.0"
+    debug "^4.3.2"
+    dotenv "~16.4.5"
+    dotenv-expand "~11.0.6"
+    getenv "^1.0.0"
+    glob "^10.4.2"
+    jsc-safe-url "^0.2.4"
+    lightningcss "~1.27.0"
+    minimatch "^9.0.0"
+    postcss "~8.4.32"
+    resolve-from "^5.0.0"
+
 "@expo/osascript@^2.2.4":
   version "2.2.4"
   resolved "https://registry.npmjs.org/@expo/osascript/-/osascript-2.2.4.tgz"

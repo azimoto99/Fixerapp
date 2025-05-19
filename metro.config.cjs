@@ -1,44 +1,38 @@
 /**
- * Simplified Metro configuration that doesn't rely on getDefaultConfig
- * This avoids dependencies on react-native package
+ * Metro configuration for Expo
+ * This extends the Expo Metro config for compatibility
  */
 
-// Basic Metro configuration without dependencies on react-native
+// Import Expo's Metro configuration
+const { getDefaultConfig } = require('@expo/metro-config');
+
+// Get the default configuration
+const defaultConfig = getDefaultConfig(__dirname);
+
+// Extend default config with our custom settings
 const config = {
+  ...defaultConfig,
   resolver: {
+    ...defaultConfig.resolver,
     assetExts: [
-      // Default
-      'bmp', 'gif', 'jpg', 'jpeg', 'png', 'psd', 'svg', 'webp',
+      ...defaultConfig.resolver.assetExts,
       // Audio
       'mp3', 'wav', 'ogg',
       // Video
       'mp4', 'avi', 'mov', 'wmv', 
       // Other
-      'ttf', 'otf', 'xml', 'pdf', 'json'
+      'xml', 'pdf'
     ],
-    sourceExts: ['js', 'jsx', 'ts', 'tsx', 'json', 'md', 'mdx'],
-    resolverMainFields: ['react-native', 'browser', 'main'],
-  },
-  transformer: {
-    babelTransformerPath: require.resolve('metro-react-native-babel-transformer'),
-    assetRegistryPath: 'react-native/Libraries/Image/AssetRegistry',
-    asyncRequireModulePath: 'metro-runtime/src/modules/asyncRequire',
-  },
-  serializer: {
-    getModulesRunBeforeMainModule: () => [],
-    getPolyfills: () => [],
+    sourceExts: [
+      ...defaultConfig.resolver.sourceExts,
+      'md', 'mdx'
+    ],
   },
   watchFolders: [
-    // Add paths to watch
-    __dirname,
+    ...defaultConfig.watchFolders,
     __dirname + '/client/src',
     __dirname + '/shared',
   ],
-  // Server configuration
-  server: {
-    port: 8081,
-    enhanceMiddleware: (middleware) => middleware,
-  },
 };
 
 module.exports = config;
