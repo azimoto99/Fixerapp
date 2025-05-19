@@ -1,0 +1,43 @@
+yarn run v1.22.22
+$ /home/expo/workingdir/build/node_modules/.bin/expo export:embed --eager --platform android --dev false
+Starting Metro Bundler
+Android node_modules/expo/AppEntry.js ▓▓░░░░░░░░░░░░░░ 16.0% ( 55/262)
+Android node_modules/expo/AppEntry.js ▓▓▓░░░░░░░░░░░░░ 24.0% (217/443)
+Android node_modules/expo/AppEntry.js ▓▓▓▓▓▓▓░░░░░░░░░ 46.8% (418/611)
+Android node_modules/expo/AppEntry.js ▓▓▓▓▓▓▓░░░░░░░░░ 48.6% ( 500/1030)
+Android node_modules/expo/AppEntry.js ▓▓▓▓▓▓▓░░░░░░░░░ 48.6% ( 643/1132)
+Android node_modules/expo/AppEntry.js ▓▓▓▓▓▓▓▓▓▓░░░░░░ 66.8% (1044/1277)
+Android node_modules/expo/AppEntry.js ▓▓▓▓▓▓▓▓▓▓░░░░░░ 68.3% (1091/1347)
+Android node_modules/expo/AppEntry.js ▓▓▓▓▓▓▓▓▓▓▓▓░░░░ 75.6% (1351/1560)
+Android node_modules/expo/AppEntry.js ▓▓▓▓▓▓▓▓▓▓▓▓▓░░░ 85.7% (1941/2097)
+Android Bundling failed 32420ms node_modules/expo/AppEntry.js (2355 modules)
+Error: Unable to resolve module @emotion/is-prop-valid from /home/expo/workingdir/build/node_modules/framer-motion/dist/es/render/dom/utils/filter-props.mjs: @emotion/is-prop-valid could not be found within the project or in these directories:
+  node_modules
+[0m [90m 27 |[39m [90m     * in favour of explicit injection.[39m
+ [90m 28 |[39m [90m     */[39m
+[31m[1m>[22m[39m[90m 29 |[39m     loadExternalIsValidProp(require([32m"@emotion/is-prop-valid"[39m)[33m.[39m[36mdefault[39m)[33m;[39m
+ [90m    |[39m                                      [31m[1m^[22m[39m
+ [90m 30 |[39m }
+ [90m 31 |[39m [36mcatch[39m (_a) {
+ [90m 32 |[39m     [90m// We don't need to actually do anything here - the fallback is the existing `isPropValid`.[39m[0m
+Error: Unable to resolve module @emotion/is-prop-valid from /home/expo/workingdir/build/node_modules/framer-motion/dist/es/render/dom/utils/filter-props.mjs: @emotion/is-prop-valid could not be found within the project or in these directories:
+  node_modules
+[0m [90m 27 |[39m [90m     * in favour of explicit injection.[39m
+ [90m 28 |[39m [90m     */[39m
+[31m[1m>[22m[39m[90m 29 |[39m     loadExternalIsValidProp(require([32m"@emotion/is-prop-valid"[39m)[33m.[39m[36mdefault[39m)[33m;[39m
+ [90m    |[39m                                      [31m[1m^[22m[39m
+ [90m 30 |[39m }
+ [90m 31 |[39m [36mcatch[39m (_a) {
+ [90m 32 |[39m     [90m// We don't need to actually do anything here - the fallback is the existing `isPropValid`.[39m[0m
+    at ModuleResolver.resolveDependency (/home/expo/workingdir/build/node_modules/metro/src/node-haste/DependencyGraph/ModuleResolution.js:150:15)
+    at DependencyGraph.resolveDependency (/home/expo/workingdir/build/node_modules/metro/src/node-haste/DependencyGraph.js:239:43)
+    at /home/expo/workingdir/build/node_modules/metro/src/lib/transformHelpers.js:165:21
+    at resolveDependencies (/home/expo/workingdir/build/node_modules/metro/src/DeltaBundler/buildSubgraph.js:42:25)
+    at visit (/home/expo/workingdir/build/node_modules/metro/src/DeltaBundler/buildSubgraph.js:83:30)
+    at processTicksAndRejections (node:internal/process/task_queues:95:5)
+    at async Promise.all (index 99)
+    at visit (/home/expo/workingdir/build/node_modules/metro/src/DeltaBundler/buildSubgraph.js:92:5)
+    at async Promise.all (index 3)
+    at visit (/home/expo/workingdir/build/node_modules/metro/src/DeltaBundler/buildSubgraph.js:92:5)
+error Command failed with exit code 1.
+info Visit https://yarnpkg.com/en/docs/cli/run for documentation about this command.
