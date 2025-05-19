@@ -112,39 +112,7 @@ const PaymentsContent: React.FC<PaymentsContentProps> = ({ userId }) => {
   const [makePaymentOpen, setMakePaymentOpen] = useState(false);
   const [, navigate] = useLocation();
   
-  // Mock payments for fallback when API fails
-  const mockPayments: MockPayment[] = [
-    {
-      id: 1,
-      description: "Lawn Mowing Service",
-      amount: 85.50,
-      status: "completed",
-      createdAt: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString(),
-      type: "payment",
-      jobId: 101,
-      transactionId: "tx_mock1"
-    },
-    {
-      id: 2,
-      description: "Furniture Assembly",
-      amount: 120.00,
-      status: "completed",
-      createdAt: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000).toISOString(),
-      type: "payment",
-      jobId: 102,
-      transactionId: "tx_mock2"
-    },
-    {
-      id: 3,
-      description: "Home Cleaning",
-      amount: 95.00,
-      status: "pending",
-      createdAt: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000).toISOString(),
-      type: "payment",
-      jobId: 103,
-      transactionId: "tx_mock3"
-    }
-  ];
+  // No mock payment data - only use authentic data from API
   
   // Fetch payments from the API
   const { 
@@ -166,8 +134,8 @@ const PaymentsContent: React.FC<PaymentsContentProps> = ({ userId }) => {
     },
   });
 
-  // Use either real payments or mock data
-  const paymentsData = payments && payments.length > 0 ? payments : mockPayments;
+  // Use only real payments data from API, never mock data
+  const paymentsData = payments || [];
   
   // Filter payments based on search term and status
   const filteredPayments = paymentsData
