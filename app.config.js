@@ -8,6 +8,13 @@ module.exports = ({ config }) => {
   // For production builds where we use EAS, make sure we don't
   // have conflicts with native projects
   if (process.env.EAS_BUILD_PLATFORM) {
+    // Save important Android package info
+    const androidPackage = appConfig.android?.package || 'com.fixer';
+    const androidPermissions = appConfig.android?.permissions || [
+      'ACCESS_COARSE_LOCATION',
+      'ACCESS_FINE_LOCATION'
+    ];
+    
     // Remove properties that would be managed by the native project
     delete appConfig.orientation;
     delete appConfig.icon;
@@ -19,6 +26,12 @@ module.exports = ({ config }) => {
     delete appConfig.primaryColor;
     delete appConfig.notification;
     delete appConfig.plugins;
+    
+    // Restore essential Android properties
+    appConfig.android = {
+      package: androidPackage,
+      permissions: androidPermissions
+    };
   }
   
   return withAndroidManifest(appConfig, config => {
