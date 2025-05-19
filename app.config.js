@@ -8,12 +8,13 @@ module.exports = ({ config }) => {
   // For production builds where we use EAS, make sure we don't
   // have conflicts with native projects
   if (process.env.EAS_BUILD_PLATFORM) {
-    // Save important Android package info
+    // Save important Android and iOS package info
     const androidPackage = appConfig.android?.package || 'com.fixer';
     const androidPermissions = appConfig.android?.permissions || [
       'ACCESS_COARSE_LOCATION',
       'ACCESS_FINE_LOCATION'
     ];
+    const iosBundleId = appConfig.ios?.bundleIdentifier || 'com.fixer.app';
     
     // Remove properties that would be managed by the native project
     delete appConfig.orientation;
@@ -27,10 +28,15 @@ module.exports = ({ config }) => {
     delete appConfig.notification;
     delete appConfig.plugins;
     
-    // Restore essential Android properties
+    // Restore essential Android and iOS properties
     appConfig.android = {
       package: androidPackage,
       permissions: androidPermissions
+    };
+    
+    // Restore essential iOS properties
+    appConfig.ios = {
+      bundleIdentifier: iosBundleId
     };
   }
   
