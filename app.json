@@ -5,10 +5,10 @@
     "owner": "azimoto9",
     "version": "1.0.0",
     "orientation": "portrait",
-    "icon": "./attached_assets/ChatGPT_Image_May_7__2025__01_30_03_AM-removebg-preview.png",
+    "icon": "./icon.svg",
     "userInterfaceStyle": "automatic",
     "splash": {
-      "image": "./attached_assets/ChatGPT_Image_May_7__2025__01_31_24_AM-removebg-preview.png",
+      "image": "./logo.svg",
       "resizeMode": "contain",
       "backgroundColor": "#000000"
     },
@@ -21,7 +21,7 @@
     },
     "android": {
       "adaptiveIcon": {
-        "foregroundImage": "./attached_assets/ChatGPT_Image_May_7__2025__01_30_03_AM-removebg-preview.png",
+        "foregroundImage": "./icon.svg",
         "backgroundColor": "#000000"
       },
       "package": "com.fixer",
