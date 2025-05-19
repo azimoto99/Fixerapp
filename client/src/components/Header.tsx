@@ -66,7 +66,9 @@ const Header: React.FC<HeaderProps> = ({
               <img 
                 src="/fixer-logo.png" 
                 alt="Fixer" 
-                className="h-10" 
+                width="40"
+                height="40"
+                className="h-10 w-auto object-contain" 
                 onError={(e) => {
                   const target = e.target as HTMLImageElement;
                   target.onerror = null;
