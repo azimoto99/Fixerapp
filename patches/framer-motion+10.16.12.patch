@@ -1,0 +1,48 @@
+diff --git a/node_modules/framer-motion/dist/es/render/dom/utils/filter-props.mjs b/node_modules/framer-motion/dist/es/render/dom/utils/filter-props.mjs
+index 5d93be2..8ee78e2 100644
+--- a/node_modules/framer-motion/dist/es/render/dom/utils/filter-props.mjs
++++ b/node_modules/framer-motion/dist/es/render/dom/utils/filter-props.mjs
+@@ -9,9 +9,9 @@ const validProps = new Set([
+     // Custom props
+     "custom",
+     "children",
+-    // Base HTML styles
++    // All HTML attributes
+     "id",
+-    "className"
++    "className",
+ ]);
+ /**
+  * A list of all valid HTML attributes.
+@@ -21,16 +21,13 @@ const validProps = new Set([
+  * them in the DOM rendering measurement.
+  */
+ const htmlProps = new Set([
+-    "draggable"
++    "draggable",
++    "style",
++    "title",
++    "alt"
+ ]);
+-try {
+-    /**
+-     * Try to load the Wasm-version of isPropValid.
+-     * This is a lot faster than the JS version and should be preferred
+-     * in favour of explicit injection.
+-     */
+-    loadExternalIsValidProp(require("@emotion/is-prop-valid").default);
+-}
++
++const isValidProp = (key) => validProps.has(key) || htmlProps.has(key);
+ catch (_a) {
+     // We don't need to actually do anything here - the fallback is the existing `isPropValid`.
+ }
+@@ -57,7 +54,7 @@ export function filterProps(props, isDom, forwardMotionProps) {
+         const key = keys[i];
+         let containsKey = false;
+         // If the key is a valid HTML attribute and we're rendering a DOM component
+-        if (isValidProp(key) && (!isDom || isDom && htmlProps.has(key))) {
++        if (isValidProp(key)) {
+             // Include in filtered props
+             filteredProps[key] = props[key];
+             containsKey = true;

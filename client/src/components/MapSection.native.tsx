@@ -41,16 +41,14 @@ const MapSection: React.FC<MapSectionProps> = ({
               selectedJob?.id === job.id ? styles.selectedJob : null
             ]}>
               <Text style={styles.jobTitle}>{job.title}</Text>
-              <Text style={styles.jobDetail}>${job.budget} • {job.category}</Text>
+              <Text style={styles.jobDetail}>${job.paymentAmount} • {job.category}</Text>
               <Text style={styles.jobLocation}>{job.location || 'Remote'}</Text>
               
-              <Button 
-                onPress={() => handleSelectJob(job)} 
-                variant="default"
-                size="sm"
-              >
-                View Details
-              </Button>
+              <View style={styles.buttonContainer}>
+                <Text style={styles.buttonText} onPress={() => handleSelectJob(job)}>
+                  View Details
+                </Text>
+              </View>
             </View>
           ))}
         </View>
@@ -104,6 +102,19 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: '#666',
     marginBottom: 8
+  },
+  buttonContainer: {
+    backgroundColor: '#68D391',
+    borderRadius: 6,
+    paddingVertical: 8,
+    paddingHorizontal: 16,
+    alignItems: 'center',
+    marginTop: 8
+  },
+  buttonText: {
+    color: '#fff',
+    fontWeight: '600',
+    fontSize: 14
   },
   emptyState: {
     padding: 32,
