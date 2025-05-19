@@ -13,6 +13,9 @@ module.exports = function (api) {
         "safe": false,
         "allowUndefined": true
       }],
+      ["babel-plugin-transform-import-meta", {
+        "module": "ES6"
+      }]
     ],
     env: {
       production: {

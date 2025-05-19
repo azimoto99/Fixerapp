@@ -41,7 +41,7 @@
       "eas": {
         "projectId": "c2dd5237-478c-4d38-b4c7-74054caed1f2"
       },
-      "stripePublicKey": process.env.VITE_STRIPE_PUBLIC_KEY
+      "stripePublicKey": ""
     },
     "primaryColor": "#68D391",
     "notification": {

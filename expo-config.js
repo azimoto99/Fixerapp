@@ -6,6 +6,10 @@ try {
   // Continue even if dotenv fails
 }
 
+// Get Stripe public key from environment
+const stripePublicKey = process.env.VITE_STRIPE_PUBLIC_KEY || '';
+console.log('Stripe public key available:', !!stripePublicKey);
+
 module.exports = {
   name: 'Fixer',
   slug: 'fixer',
@@ -44,7 +48,7 @@ module.exports = {
     eas: {
       projectId: 'c2dd5237-478c-4d38-b4c7-74054caed1f2'
     },
-    stripePublicKey: process.env.VITE_STRIPE_PUBLIC_KEY
+    stripePublicKey: stripePublicKey
   },
   plugins: [
     [
