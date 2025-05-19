@@ -1,7 +1,11 @@
 module.exports = function (api) {
   api.cache(true);
   return {
-    presets: ["babel-preset-expo"],
+    presets: [
+      ["babel-preset-expo", {
+        "unstable_transformImportMeta": true
+      }]
+    ],
     plugins: [
       // Add any Babel plugins here
       "transform-inline-environment-variables",
