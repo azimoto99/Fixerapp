@@ -5,6 +5,19 @@ module.exports = function (api) {
     plugins: [
       // Add any Babel plugins here
       "transform-inline-environment-variables",
+      ["module:react-native-dotenv", {
+        "moduleName": "@env",
+        "path": ".env",
+        "blacklist": null,
+        "whitelist": null,
+        "safe": false,
+        "allowUndefined": true
+      }],
     ],
+    env: {
+      production: {
+        plugins: ["transform-remove-console"]
+      }
+    }
   };
 };
