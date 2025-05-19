@@ -2780,6 +2780,104 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
   
+  // Process payment for job creation
+  apiRouter.post("/payment/process-payment", isAuthenticated, async (req: Request, res: Response) => {
+    try {
+      const { jobId, paymentMethodId, amount, paymentType } = req.body;
+      
+      if (!jobId || !paymentMethodId || !amount) {
+        return res.status(400).json({ message: "Missing required fields for payment" });
+      }
+      
+      console.log(`Processing payment for job ${jobId}: $${amount} with method ${paymentMethodId}`);
+      
+      // Get the job to validate ownership
+      const job = await storage.getJob(jobId);
+      if (!job) {
+        return res.status(404).json({ message: "Job not found" });
+      }
+      
+      // Validate that the requester is the job poster
+      if (job.posterId !== req.user.id) {
+        return res.status(403).json({ 
+          message: "Forbidden: Only the job poster can process this payment" 
+        });
+      }
+      
+      // Get the user to retrieve their customer ID
+      const user = await storage.getUser(req.user.id);
+      if (!user) {
+        return res.status(404).json({ message: "User not found" });
+      }
+      
+      // Create or get Stripe customer ID
+      let customerId = user.stripeCustomerId;
+      if (!customerId) {
+        // Create a new customer
+        const customer = await stripe.customers.create({
+          name: user.fullName || user.username,
+          email: user.email || undefined,
+          metadata: {
+            userId: user.id.toString()
+          }
+        });
+        
+        customerId = customer.id;
+        await storage.updateUser(user.id, { stripeCustomerId: customerId });
+      }
+      
+      // Create a payment intent
+      const paymentIntent = await stripe.paymentIntents.create({
+        amount: Math.round(amount * 100), // Convert to cents
+        currency: 'usd',
+        customer: customerId,
+        payment_method: paymentMethodId,
+        confirm: true, // Confirm immediately
+        capture_method: 'automatic', // Capture the funds immediately
+        description: `Payment for job: ${job.title}`,
+        metadata: {
+          jobId: job.id.toString(),
+          userId: req.user.id.toString(),
+          paymentType: paymentType || 'fixed'
+        }
+      });
+      
+      // Create a payment record
+      const payment = await storage.createPayment({
+        userId: req.user.id,
+        amount: amount,
+        serviceFee: amount * 0.1, // 10% service fee
+        type: 'job_payment',
+        status: paymentIntent.status,
+        paymentMethod: 'card',
+        transactionId: paymentIntent.id,
+        stripePaymentIntentId: paymentIntent.id,
+        stripeCustomerId: customerId,
+        jobId: job.id,
+        description: `Payment for job: ${job.title}`
+      });
+      
+      // Update the job status from pending_payment to open
+      await storage.updateJob(job.id, { 
+        status: 'open',
+      });
+      
+      // Return success
+      return res.status(200).json({
+        success: true,
+        paymentId: paymentIntent.id,
+        status: paymentIntent.status,
+        jobId: job.id
+      });
+    } catch (error) {
+      console.error("Payment processing error:", error);
+      return res.status(400).json({ 
+        message: error instanceof Error ? error.message : "Payment processing failed",
+        error: error
+      });
+    }
+  });
+  
   apiRouter.post("/stripe/create-setup-intent", isAuthenticated, async (req: Request, res: Response) => {
     try {
       // Make sure we have a customer ID

@@ -206,10 +206,11 @@ export default function PostJobDrawer({ isOpen, onOpenChange }: PostJobDrawerPro
           console.log(`Processing payment for job #${createdJob.id} with amount $${data.paymentAmount}`);
           
           // Process the actual payment with the real job ID
-          const paymentResponse = await apiRequest('POST', `/api/process-payment`, {
+          const paymentResponse = await apiRequest('POST', `/api/payment/process-payment`, {
             jobId: createdJob.id,
             paymentMethodId: data.paymentMethodId,
-            amount: data.paymentAmount
+            amount: data.paymentAmount,
+            paymentType: data.paymentType
           });
           
           if (!paymentResponse.ok) {
