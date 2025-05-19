@@ -63,7 +63,16 @@ const Header: React.FC<HeaderProps> = ({
         <div className="flex items-center">
           <Link href="/">
             <div className="flex-shrink-0 flex items-center cursor-pointer">
-              <img src="/logo.svg" alt="Fixer" className="h-8" />
+              <img 
+                src="/logo.svg" 
+                alt="Fixer" 
+                className="h-8" 
+                onError={(e) => {
+                  const target = e.target as HTMLImageElement;
+                  target.onerror = null;
+                  target.src = '/icon.png'; // Fallback to PNG if SVG fails
+                }}
+              />
               <span className="ml-2 text-xl font-bold text-emerald-600">Fixer</span>
             </div>
           </Link>
