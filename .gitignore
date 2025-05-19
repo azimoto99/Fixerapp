@@ -7,3 +7,5 @@ vite.config.ts.*
 # Native build folders
 /android
 /ios
+android/
+ios/

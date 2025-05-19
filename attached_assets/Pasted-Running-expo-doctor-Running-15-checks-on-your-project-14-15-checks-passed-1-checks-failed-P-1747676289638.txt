@@ -1,0 +1,12 @@
+Running "expo doctor"
+Running 15 checks on your project...
+14/15 checks passed. 1 checks failed. Possible issues detected:
+Use the --verbose flag to see more details about passed checks.
+
+✖ Validate packages against React Native Directory package metadata
+The following issues were found when validating your dependencies against React Native Directory:
+  No metadata available: @babel/core, @babel/plugin-transform-export-namespace-from, @babel/runtime, @capacitor/android, @capacitor/cli, @capacitor/core, @emotion/is-prop-valid, @hookform/resolvers, @jridgewell/trace-mapping, @neondatabase/serverless, @radix-ui/react-accordion, @radix-ui/react-alert-dialog, @radix-ui/react-aspect-ratio, @radix-ui/react-avatar, @radix-ui/react-checkbox, @radix-ui/react-collapsible, @radix-ui/react-context-menu, @radix-ui/react-dialog, @radix-ui/react-dropdown-menu, @radix-ui/react-hover-card, @radix-ui/react-label, @radix-ui/react-menubar, @radix-ui/react-navigation-menu, @radix-ui/react-popover, @radix-ui/react-progress, @radix-ui/react-radio-group, @radix-ui/react-scroll-area, @radix-ui/react-select, @radix-ui/react-separator, @radix-ui/react-slider, @radix-ui/react-slot, @radix-ui/react-switch, @radix-ui/react-tabs, @radix-ui/react-toast, @radix-ui/react-toggle, @radix-ui/react-toggle-group, @radix-ui/react-tooltip, @react-google-maps/api, @stripe/react-stripe-js, @stripe/stripe-js, @tailwindcss/vite, babel, class-variance-authority, cmdk, connect-pg-simple, dotenv, drizzle-orm, drizzle-zod, embla-carousel-react, express, express-session, framer-motion, input-otp, jspdf, leaflet, leaflet.heat, lucide-react, memorystore, metro, metro-cache, metro-config, metro-core, metro-react-native-babel-transformer, metro-resolver, metro-runtime, next-themes, passport, passport-facebook, passport-google-oauth20, passport-local, patch-package, qrcode, react-day-picker, react-icons, react-leaflet, react-resizable-panels, recharts, remixicon, stripe, tailwindcss-animate, tw-animate-css, vaul, wouter, ws, zod, zod-validation-error
+Advice:
+Update React Native Directory to include metadata for unknown packages. Alternatively, set expo.doctor.reactNativeDirectoryCheck.listUnknownPackages in package.json to false to skip warnings about packages with no metadata, if the warning is not relevant.
+1 check failed, indicating possible issues with the project.
+Command "expo doctor" failed.
