@@ -2826,21 +2826,34 @@ export async function registerRoutes(app: Express): Promise<Server> {
         await storage.updateUser(user.id, { stripeCustomerId: customerId });
       }
       
-      // Create a payment intent
-      const paymentIntent = await stripe.paymentIntents.create({
-        amount: Math.round(amount * 100), // Convert to cents
-        currency: 'usd',
-        customer: customerId,
-        payment_method: paymentMethodId,
-        confirm: true, // Confirm immediately
-        capture_method: 'automatic', // Capture the funds immediately
-        description: `Payment for job: ${job.title}`,
-        metadata: {
-          jobId: job.id.toString(),
-          userId: req.user.id.toString(),
-          paymentType: paymentType || 'fixed'
-        }
-      });
+      console.log("Creating payment intent with amount:", amount, "and payment method:", paymentMethodId);
+      
+      // Try to create a payment intent with better error handling
+      let paymentIntent;
+      try {
+        paymentIntent = await stripe.paymentIntents.create({
+          amount: Math.round(amount * 100), // Convert to cents
+          currency: 'usd',
+          customer: customerId,
+          payment_method: paymentMethodId,
+          confirm: true, // Confirm immediately
+          capture_method: 'automatic', // Capture the funds immediately
+          description: `Payment for job: ${job.title}`,
+          metadata: {
+            jobId: job.id.toString(),
+            userId: req.user.id.toString(),
+            paymentType: paymentType || 'fixed'
+          }
+        });
+        
+        console.log("Payment intent created successfully:", paymentIntent.id, "with status:", paymentIntent.status);
+      } catch (stripeError) {
+        console.error("Stripe payment intent creation failed:", stripeError);
+        return res.status(400).json({
+          message: stripeError instanceof Error ? stripeError.message : "Failed to process payment with Stripe",
+          error: stripeError
+        });
+      }
       
       // Create a payment record
       const payment = await storage.createPayment({

@@ -207,16 +207,30 @@ export default function PostJobDrawer({ isOpen, onOpenChange }: PostJobDrawerPro
           console.log(`Processing payment for job #${createdJob.id} with amount $${data.paymentAmount}`);
           
           // Process the actual payment with the real job ID
-          const paymentResponse = await apiRequest('POST', `/api/payment/process-payment`, {
+          console.log('Sending payment request with data:', {
             jobId: createdJob.id,
             paymentMethodId: data.paymentMethodId,
             amount: data.paymentAmount,
             paymentType: data.paymentType
           });
           
+          const paymentResponse = await apiRequest('POST', `/api/payment/process-payment`, {
+            jobId: createdJob.id,
+            paymentMethodId: data.paymentMethodId,
+            amount: parseFloat(data.paymentAmount), // Ensure amount is a number, not string
+            paymentType: data.paymentType
+          });
+          
           if (!paymentResponse.ok) {
-            const errorData = await paymentResponse.json();
-            throw new Error(errorData.message || 'Payment processing failed');
+            let errorMessage = 'Payment processing failed';
+            try {
+              const errorData = await paymentResponse.json();
+              errorMessage = errorData.message || errorMessage;
+              console.error('Payment error details:', errorData);
+            } catch (e) {
+              console.error('Could not parse payment error response:', e);
+            }
+            throw new Error(errorMessage);
           }
           
           const paymentData = await paymentResponse.json();
