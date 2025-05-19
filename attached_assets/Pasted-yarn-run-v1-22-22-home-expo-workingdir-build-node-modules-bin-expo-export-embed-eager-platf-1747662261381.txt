@@ -1,0 +1,89 @@
+yarn run v1.22.22
+$ /home/expo/workingdir/build/node_modules/.bin/expo export:embed --eager --platform android --dev false
+Starting Metro Bundler
+Android Bundling failed 182ms node_modules/expo/AppEntry.js (1 module)
+SyntaxError: node_modules/expo/AppEntry.js: Cannot find module 'babel-plugin-transform-remove-console'
+Require stack:
+- /home/expo/workingdir/build/node_modules/@babel/core/lib/config/files/plugins.js
+- /home/expo/workingdir/build/node_modules/@babel/core/lib/config/files/index.js
+- /home/expo/workingdir/build/node_modules/@babel/core/lib/index.js
+- /home/expo/workingdir/build/node_modules/metro-transform-worker/src/index.js
+- /home/expo/workingdir/build/node_modules/metro/src/DeltaBundler/Worker.flow.js
+- /home/expo/workingdir/build/node_modules/metro/src/DeltaBundler/Worker.js
+- /home/expo/workingdir/build/node_modules/jest-worker/build/workers/processChild.js
+
+Make sure that all the Babel plugins and presets you are using
+are defined as dependencies or devDependencies in your package.json
+file. It's possible that the missing plugin is loaded by a preset
+you are using that forgot to add the plugin to its dependencies: you
+can workaround this problem by explicitly adding the missing package
+to your top-level package.json.
+
+Error: Cannot find module 'babel-plugin-transform-remove-console'
+Require stack:
+- /home/expo/workingdir/build/node_modules/@babel/core/lib/config/files/plugins.js
+- /home/expo/workingdir/build/node_modules/@babel/core/lib/config/files/index.js
+- /home/expo/workingdir/build/node_modules/@babel/core/lib/index.js
+- /home/expo/workingdir/build/node_modules/metro-transform-worker/src/index.js
+- /home/expo/workingdir/build/node_modules/metro/src/DeltaBundler/Worker.flow.js
+- /home/expo/workingdir/build/node_modules/metro/src/DeltaBundler/Worker.js
+- /home/expo/workingdir/build/node_modules/jest-worker/build/workers/processChild.js
+
+Make sure that all the Babel plugins and presets you are using
+are defined as dependencies or devDependencies in your package.json
+file. It's possible that the missing plugin is loaded by a preset
+you are using that forgot to add the plugin to its dependencies: you
+can workaround this problem by explicitly adding the missing package
+to your top-level package.json.
+
+    at Module._resolveFilename (node:internal/modules/cjs/loader:1225:15)
+    at resolve (node:internal/modules/helpers:190:19)
+    at tryRequireResolve (/home/expo/workingdir/build/node_modules/@babel/core/lib/config/files/plugins.js:128:11)
+    at resolveStandardizedNameForRequire (/home/expo/workingdir/build/node_modules/@babel/core/lib/config/files/plugins.js:162:19)
+    at resolveStandardizedName (/home/expo/workingdir/build/node_modules/@babel/core/lib/config/files/plugins.js:183:12)
+    at loadPlugin (/home/expo/workingdir/build/node_modules/@babel/core/lib/config/files/plugins.js:56:7)
+    at loadPlugin.next (<anonymous>)
+    at createDescriptor (/home/expo/workingdir/build/node_modules/@babel/core/lib/config/config-descriptors.js:140:16)
+    at createDescriptor.next (<anonymous>)
+    at evaluateSync (/home/expo/workingdir/build/node_modules/gensync/index.js:251:28)
+    at /home/expo/workingdir/build/node_modules/gensync/index.js:31:34
+    at Array.map (<anonymous>)
+    at Function.sync (/home/expo/workingdir/build/node_modules/gensync/index.js:31:22)
+    at Function.all (/home/expo/workingdir/build/node_modules/gensync/index.js:210:24)
+    at Generator.next (<anonymous>)
+    at createDescriptors (/home/expo/workingdir/build/node_modules/@babel/core/lib/config/config-descriptors.js:102:41)
+    at createDescriptors.next (<anonymous>)
+    at createPluginDescriptors (/home/expo/workingdir/build/node_modules/@babel/core/lib/config/config-descriptors.js:99:17)
+    at createPluginDescriptors.next (<anonymous>)
+    at /home/expo/workingdir/build/node_modules/@babel/core/lib/gensync-utils/functional.js:22:27
+    at Generator.next (<anonymous>)
+    at mergeChainOpts (/home/expo/workingdir/build/node_modules/@babel/core/lib/config/config-chain.js:349:34)
+    at mergeChainOpts.next (<anonymous>)
+    at chainWalker (/home/expo/workingdir/build/node_modules/@babel/core/lib/config/config-chain.js:316:14)
+    at chainWalker.next (<anonymous>)
+    at loadFileChain (/home/expo/workingdir/build/node_modules/@babel/core/lib/config/config-chain.js:191:24)
+    at loadFileChain.next (<anonymous>)
+    at mergeExtendsChain (/home/expo/workingdir/build/node_modules/@babel/core/lib/config/config-chain.js:328:28)
+    at mergeExtendsChain.next (<anonymous>)
+    at chainWalker (/home/expo/workingdir/build/node_modules/@babel/core/lib/config/config-chain.js:312:20)
+    at chainWalker.next (<anonymous>)
+    at buildRootChain (/home/expo/workingdir/build/node_modules/@babel/core/lib/config/config-chain.js:56:36)
+    at buildRootChain.next (<anonymous>)
+    at loadPrivatePartialConfig (/home/expo/workingdir/build/node_modules/@babel/core/lib/config/partial.js:72:62)
+    at loadPrivatePartialConfig.next (<anonymous>)
+    at loadFullConfig (/home/expo/workingdir/build/node_modules/@babel/core/lib/config/full.js:36:46)
+    at loadFullConfig.next (<anonymous>)
+    at parse (/home/expo/workingdir/build/node_modules/@babel/core/lib/parse.js:21:44)
+    at parse.next (<anonymous>)
+    at evaluateSync (/home/expo/workingdir/build/node_modules/gensync/index.js:251:28)
+    at sync (/home/expo/workingdir/build/node_modules/gensync/index.js:89:14)
+    at stopHiding - secret - don't use this - v1 (/home/expo/workingdir/build/node_modules/@babel/core/lib/errors/rewrite-stack-trace.js:47:12)
+    at parseSync (/home/expo/workingdir/build/node_modules/@babel/core/lib/parse.js:40:72)
+    at Object.transform (/home/expo/workingdir/build/node_modules/metro-react-native-babel-transformer/src/index.js:210:11)
+    at transformJSWithBabel (/home/expo/workingdir/build/node_modules/metro-transform-worker/src/index.js:308:45)
+    at Object.transform (/home/expo/workingdir/build/node_modules/metro-transform-worker/src/index.js:438:18)
+    at transformFile (/home/expo/workingdir/build/node_modules/metro/src/DeltaBundler/Worker.flow.js:57:36)
+    at Object.transform (/home/expo/workingdir/build/node_modules/metro/src/DeltaBundler/Worker.flow.js:33:10)
+    at execFunction (/home/expo/workingdir/build/node_modules/jest-worker/build/workers/processChild.js:149:17)
+error Command failed with exit code 1.
+info Visit https://yarnpkg.com/en/docs/cli/run for documentation about this command.
