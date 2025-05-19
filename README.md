@@ -1,6 +1,6 @@
 # Fixer - Gig Economy Platform
 
-![Fixer Logo](./public/fixer-pin-logo.svg)
+![Fixer Logo](./logo.png)
 
 ## Overview
 
@@ -24,7 +24,7 @@ Fixer is a cutting-edge gig economy platform that revolutionizes job matching, c
 - **Backend**: Node.js with Express
 - **Database**: Neon PostgreSQL with Drizzle ORM
 - **Authentication**: Passport.js with local strategy
-- **Maps**: Leaflet.js for interactive maps
+- **Maps**: Mapbox GL JS for interactive maps with traffic data
 - **Payments**: Stripe Connect API for full payment lifecycle
 - **State Management**: TanStack Query (React Query)
 - **Real-time Updates**: WebSockets for notifications
