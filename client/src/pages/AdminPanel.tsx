@@ -1,6 +1,8 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { apiRequest } from '@/lib/queryClient';
+import { useAuth } from '@/hooks/use-auth';
+import { useLocation } from 'wouter';
 import { 
   Tabs, 
   TabsContent, 
@@ -50,7 +52,8 @@ import {
   MoreHorizontal,
   CheckCircle,
   XCircle,
-  Ban
+  Ban,
+  LockKeyhole
 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -65,8 +68,32 @@ import {
 
 const AdminPanel = () => {
   const { toast } = useToast();
+  const { user } = useAuth();
+  const [, navigate] = useLocation();
   const [activeTab, setActiveTab] = useState('dashboard');
   const [searchQuery, setSearchQuery] = useState('');
+  
+  // Check if user is authorized to access the admin panel (only azi with ID 20)
+  useEffect(() => {
+    if (!user) {
+      toast({
+        title: "Authentication Required",
+        description: "Please log in to continue.",
+        variant: "destructive"
+      });
+      navigate('/login');
+      return;
+    }
+    
+    if (user.id !== 20) {
+      toast({
+        title: "Access Denied",
+        description: "You don't have permission to access the admin panel.",
+        variant: "destructive"
+      });
+      navigate('/');
+    }
+  }, [user, navigate, toast]);
 
   // Dashboard stats query
   const { 
