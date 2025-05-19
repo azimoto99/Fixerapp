@@ -1264,15 +1264,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       console.log("Creating job with data:", req.body);
       
-      // Ensure the job poster ID matches the authenticated user
-      if (req.body.posterId !== req.user?.id) {
+      // Ensure user is authenticated
+      if (!req.user) {
+        return res.status(401).json({ message: "Unauthorized - Please login again" });
+      }
+      
+      // If posterId is provided, ensure it matches the authenticated user
+      const posterId = req.body.posterId || req.user.id;
+      if (posterId !== req.user.id) {
         return res.status(403).json({ 
           message: "Forbidden: You can only create jobs with your own user ID" 
         });
       }
       
       // Filter for prohibited or spammy content
-      const contentFilterResult = filterJobContent(req.body.title, req.body.description);
+      const contentFilterResult = filterJobContent(req.body.title || "", req.body.description || "");
       if (!contentFilterResult.isApproved) {
         return res.status(400).json({ 
           message: contentFilterResult.reason || "Your job post contains prohibited content."
@@ -1283,7 +1289,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Convert string to number if needed (common with form submissions)
       const paymentAmount = typeof req.body.paymentAmount === 'string' 
         ? parseFloat(req.body.paymentAmount) 
-        : req.body.paymentAmount;
+        : (req.body.paymentAmount || 0);
         
       const paymentValidation = validatePaymentAmount(paymentAmount);
       if (!paymentValidation.isApproved) {
@@ -1296,17 +1302,30 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const paymentMethodId = req.body.paymentMethodId;
       const { paymentMethodId: _, ...jobData } = req.body;
       
+      // Ensure all required fields are present
+      if (!jobData.title || !jobData.description || !jobData.category || 
+          !jobData.paymentType || !jobData.location) {
+        return res.status(400).json({
+          message: "Missing required fields. Please provide title, description, category, paymentType, and location."
+        });
+      }
+      
       // Ensure latitude and longitude are properly formatted numbers
       const formattedJobData = {
         ...jobData,
+        posterId: posterId, // Ensure posterId is included and valid
         paymentAmount: paymentAmount,
-        latitude: typeof jobData.latitude === 'string' ? parseFloat(jobData.latitude) : jobData.latitude,
-        longitude: typeof jobData.longitude === 'string' ? parseFloat(jobData.longitude) : jobData.longitude,
+        latitude: typeof jobData.latitude === 'string' ? parseFloat(jobData.latitude) : (jobData.latitude || 0),
+        longitude: typeof jobData.longitude === 'string' ? parseFloat(jobData.longitude) : (jobData.longitude || 0),
         // Properly handle date format for dateNeeded
         dateNeeded: typeof jobData.dateNeeded === 'string' 
           ? new Date(jobData.dateNeeded) // Convert any string date format to a Date object
-          : (jobData.dateNeeded instanceof Date ? jobData.dateNeeded : new Date())
+          : (jobData.dateNeeded instanceof Date ? jobData.dateNeeded : new Date()),
+        // Ensure requiredSkills is an array
+        requiredSkills: Array.isArray(jobData.requiredSkills) ? jobData.requiredSkills : []
       };
+      
+      console.log("Creating job with formatted data:", formattedJobData);
       
       // Allow any user to post jobs regardless of their account type (both workers and posters)
       // Service fee and total amount are calculated in storage.createJob
@@ -1372,40 +1391,50 @@ export async function registerRoutes(app: Express): Promise<Server> {
         // Default radius is 5 miles, but can be specified in the request
         const radiusMiles = req.body.radiusMiles || 5;
         
-        // Send notifications to nearby workers
-        const notificationCount = await storage.notifyNearbyWorkers(newJob.id, radiusMiles);
-        
-        // If notifications were sent, add this info to the response
-        if (notificationCount > 0) {
-          console.log(`Automatically notified ${notificationCount} workers about new job #${newJob.id}`);
+        let notificationCount = 0;
+        // Try to notify nearby workers if the method is available
+        if (typeof storage.notifyNearbyWorkers === 'function') {
+          // Send notifications to nearby workers
+          notificationCount = await storage.notifyNearbyWorkers(newJob.id, radiusMiles);
           
-          // Create a notification for the job poster confirming worker notifications
-          await storage.createNotification({
-            userId: req.user.id,
-            title: 'Workers Notified',
-            message: `${notificationCount} nearby workers have been notified about your job "${newJob.title}".`,
-            type: 'workers_notified',
-            sourceId: newJob.id,
-            sourceType: 'job',
-            metadata: {
-              count: notificationCount
+          // If notifications were sent, add this info to the response
+          if (notificationCount > 0) {
+            console.log(`Automatically notified ${notificationCount} workers about new job #${newJob.id}`);
+            
+            // Try to create a notification for the job poster confirming worker notifications
+            if (typeof storage.createNotification === 'function' && req.user) {
+              await storage.createNotification({
+                userId: req.user.id,
+                title: 'Workers Notified',
+                message: `${notificationCount} nearby workers have been notified about your job "${newJob.title}".`,
+                type: 'workers_notified',
+                sourceId: newJob.id,
+                sourceType: 'job',
+                metadata: {
+                  count: notificationCount
+                }
+              });
             }
-          });
-          
-          // Return the job with notification info
-          return res.status(201).json({
-            ...newJob,
-            workersNotified: notificationCount,
-            message: `Job created successfully. ${notificationCount} nearby workers have been notified.`
-          });
+          }
         }
+        
+        // Return the job with proper response
+        return res.status(201).json({
+          ...newJob,
+          workersNotified: notificationCount,
+          message: notificationCount > 0 
+            ? `Job created successfully. ${notificationCount} nearby workers have been notified.`
+            : 'Job created successfully.'
+        });
+        
       } catch (notifyError) {
         console.error('Error notifying nearby workers:', notifyError);
-        // If notification fails, we still want to return the created job
+        // Even if notification fails, we still want to return the created job
+        return res.status(201).json({
+          ...newJob,
+          message: 'Job created successfully, but there was an issue notifying workers.'
+        });
       }
-      
-      // If we reach here, either notifications weren't sent or there was an error
-      res.status(201).json(newJob);
     } catch (error) {
       res.status(400).json({ message: (error as Error).message });
     }
