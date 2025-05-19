@@ -486,6 +486,14 @@ export default function PostJobDrawer({ isOpen, onOpenChange }: PostJobDrawerPro
                           />
                         </div>
                       </FormControl>
+                      <FormDescription>
+                        {/* Calculate and display service fee */}
+                        Service fee: ${(Number(field.value || 0) * 0.1).toFixed(2)} (10%)
+                      </FormDescription>
+                      <FormDescription>
+                        {/* Calculate and display total amount */}
+                        Total amount: ${(Number(field.value || 0) * 1.1).toFixed(2)}
+                      </FormDescription>
                       <FormMessage />
                     </FormItem>
                   )}
