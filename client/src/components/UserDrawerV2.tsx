@@ -398,6 +398,24 @@ const UserDrawerV2: React.FC<UserDrawerProps> = ({
                       </TooltipContent>
                     </Tooltip>
                     
+                    {/* Admin Dashboard - only visible for admin users */}
+                    {user.id === 20 && (
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <button 
+                            onClick={() => navigateTo('/admin')}
+                            className="flex flex-col items-center justify-center w-14 h-14 rounded-lg hover:bg-purple-50 text-purple-600 dark:hover:bg-purple-900/20 dark:text-purple-400"
+                          >
+                            <ShieldCheck className="h-5 w-5 mb-1" />
+                            <span className="text-xs">Admin</span>
+                          </button>
+                        </TooltipTrigger>
+                        <TooltipContent side="right">
+                          <p>Access admin dashboard</p>
+                        </TooltipContent>
+                      </Tooltip>
+                    )}
+                    
                     {/* Help & Support */}
                     <Tooltip>
                       <TooltipTrigger asChild>
