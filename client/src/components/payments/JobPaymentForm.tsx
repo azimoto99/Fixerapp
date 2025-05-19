@@ -109,7 +109,7 @@ const CheckoutForm = ({
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
       <PaymentElement />
-      
+
       {errorMessage && (
         <Alert variant="destructive">
           <AlertTriangleIcon className="h-4 w-4" />
@@ -117,7 +117,7 @@ const CheckoutForm = ({
           <AlertDescription>{errorMessage}</AlertDescription>
         </Alert>
       )}
-      
+
       <div className="flex flex-col-reverse sm:flex-row gap-2 sm:gap-4 justify-end">
         <Button 
           type="button" 
@@ -158,7 +158,7 @@ const SavedPaymentMethods = ({
   onAddNew: () => void; 
 }) => {
   const [selectedMethod, setSelectedMethod] = useState<string | null>(null);
-  
+
   // Fetch payment methods
   const { 
     data: paymentMethods, 
@@ -317,17 +317,25 @@ export default function JobPaymentForm({
     });
   };
 
-  // Handle successful payment
-  const handlePaymentSuccess = () => {
-    toast({
-      title: 'Payment Complete',
-      description: 'Your job has been successfully paid for.',
-    });
-    
-    // Invalidate job queries to refresh data
-    queryClient.invalidateQueries({ queryKey: ['jobs'] });
-    queryClient.invalidateQueries({ queryKey: ['job', job.id] });
-    
+  // Handle payment success
+  const handlePaymentSuccess = async () => {
+    try {
+      // Invalidate queries to refresh data
+      await queryClient.invalidateQueries({ queryKey: ['jobs'] });
+      await queryClient.invalidateQueries({ queryKey: ['job', job.id] });
+
+      toast({
+        title: 'Payment Complete',
+        description: 'Your job has been successfully paid for.',
+      });
+    } catch (error: any) {
+      toast({
+        variant: 'destructive',
+        title: 'Payment Confirmation Error',
+        description: error.message || 'Failed to confirm payment completion.',
+      });
+    }
+
     // Call success callback
     onSuccess();
   };
@@ -362,7 +370,7 @@ export default function JobPaymentForm({
           {/* Payment Method Selection */}
           <div className="space-y-4">
             <h3 className="text-sm font-medium">Payment Method</h3>
-            
+
             {paymentMethod === 'saved' && !clientSecret ? (
               <SavedPaymentMethods
                 onSelectSaved={handleSavedCardContinue}

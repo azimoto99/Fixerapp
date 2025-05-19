@@ -47,10 +47,10 @@ export async function processPayment(req: Request, res: Response) {
   // Handle different payment scenarios:
   // 1. Fixed-price job payment during creation: requires jobId, paymentMethodId, amount
   // 2. Hourly job payment to worker: requires jobId, applicationId, workerId, paymentMethodId
-  
+
   const isFixedPricePayment = !!jobId && !!paymentMethodId && !!amount && !applicationId && !workerId;
   const isWorkerPayment = !!jobId && !!applicationId && !!workerId && !!paymentMethodId;
-  
+
   if (!isFixedPricePayment && !isWorkerPayment) {
     return res.status(400).json({ message: 'Missing required fields for payment processing' });
   }
@@ -66,7 +66,7 @@ export async function processPayment(req: Request, res: Response) {
     if (job.posterId !== req.user.id) {
       return res.status(403).json({ message: 'You are not authorized to process this payment' });
     }
-    
+
     // For worker payments, get and validate the application
     let application;
     if (isWorkerPayment) {
@@ -79,25 +79,25 @@ export async function processPayment(req: Request, res: Response) {
     let paymentIntent;
     let totalAmount = 0;
     let serviceFee = 0;
-    
+
     // Handle fixed-price job payment during creation
     if (isFixedPricePayment) {
       totalAmount = amount;
       serviceFee = totalAmount * 0.1; // 10% service fee
-      
+
       // Convert to cents for Stripe
       const amountInCents = Math.round(totalAmount * 100);
-      
+
       try {
         // Get the user to check for their customer ID
         const user = await storage.getUser(req.user.id);
         if (!user) {
           return res.status(404).json({ message: 'User not found' });
         }
-        
+
         // Check if user has a Stripe customer ID
         let customerId = user.stripeCustomerId;
-        
+
         if (!customerId) {
           // Create a new Stripe customer for this user
           const customer = await stripe.customers.create({
@@ -107,14 +107,14 @@ export async function processPayment(req: Request, res: Response) {
               userId: user.id.toString()
             }
           });
-          
+
           customerId = customer.id;
-          
+
           // Update the user with their new Stripe customer ID
           await storage.updateUser(user.id, { stripeCustomerId: customerId });
           console.log(`Created new Stripe customer for user ${user.id}: ${customerId}`);
         }
-        
+
         // Create a payment intent for the fixed-price job with the customer ID
         paymentIntent = await stripe.paymentIntents.create({
           amount: amountInCents,
@@ -136,7 +136,7 @@ export async function processPayment(req: Request, res: Response) {
             paymentType: 'fixed-price',
           },
         });
-        
+
         // Record the payment in our database
         await storage.createPayment({
           userId: req.user.id,
@@ -213,7 +213,7 @@ export async function processPayment(req: Request, res: Response) {
 
         // Ensure the poster has a Stripe customer ID
         let customerId = poster.stripeCustomerId;
-        
+
         if (!customerId) {
           // Create a new Stripe customer for this user
           const customer = await stripe.customers.create({
@@ -223,9 +223,9 @@ export async function processPayment(req: Request, res: Response) {
               userId: poster.id.toString()
             }
           });
-          
+
           customerId = customer.id;
-          
+
           // Update the user with their new Stripe customer ID
           await storage.updateUser(poster.id, { stripeCustomerId: customerId });
           console.log(`Created new Stripe customer for user ${poster.id}: ${customerId}`);
@@ -319,8 +319,10 @@ export async function processPayment(req: Request, res: Response) {
 
   } catch (error) {
     console.error('Payment processing error:', error);
-    return res.status(500).json({
-      message: error instanceof Error ? error.message : 'Failed to process payment',
+    const errorMessage = error instanceof Error ? error.message : 'Payment processing failed';
+    return res.status(500).json({ 
+      error: errorMessage,
+      details: process.env.NODE_ENV === 'development' ? error : undefined 
     });
   }
 }

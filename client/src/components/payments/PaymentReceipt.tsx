@@ -30,8 +30,11 @@ export default function PaymentReceipt({ payment }: PaymentReceiptProps) {
     });
   };
 
-  const copyReceiptToClipboard = () => {
-    const receiptText = `
+  const { toast } = useToast();
+  
+  const copyReceiptToClipboard = async () => {
+    try {
+      const receiptText = `
 Payment Receipt
 --------------
 Transaction ID: ${payment.transactionId}
@@ -42,9 +45,20 @@ Description: ${payment.description}
 ${payment.jobTitle ? `Job: ${payment.jobTitle}` : ''}
     `.trim();
 
-    navigator.clipboard.writeText(receiptText);
+    await navigator.clipboard.writeText(receiptText);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
+    toast({
+      title: "Success",
+      description: "Receipt copied to clipboard",
+    });
+  } catch (error) {
+    toast({
+      title: "Error",
+      description: "Failed to copy receipt to clipboard",
+      variant: "destructive"
+    });
+  }
   };
 
   const downloadReceipt = () => {
