@@ -8,7 +8,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { format } from 'date-fns';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardFooter, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import {
   Dialog,
   DialogContent,
@@ -38,6 +38,11 @@ import {
   Send,
   Edit,
   PlayCircle,
+  Users,
+  CheckCheck,
+  X,
+  ThumbsUp,
+  UserCheck,
   StopCircle,
   Award,
   Star,
@@ -120,6 +125,19 @@ const JobDetailsCard: React.FC<JobDetailsCardProps> = ({ jobId, isOpen, onClose 
       return response.json();
     },
     enabled: isOpen && !!jobId && !!user && user.accountType === 'worker',
+  });
+  
+  // Fetch all applications for the job if user is the job poster
+  const { data: applications = [] } = useQuery({
+    queryKey: ['/api/jobs', jobId, 'applications'],
+    queryFn: async () => {
+      const response = await apiRequest('GET', `/api/jobs/${jobId}/applications`);
+      if (!response.ok) {
+        return [];
+      }
+      return response.json();
+    },
+    enabled: isOpen && !!jobId && !!user && (user.accountType === 'poster' || user.id === job?.posterId),
   });
 
   // Fetch tasks
