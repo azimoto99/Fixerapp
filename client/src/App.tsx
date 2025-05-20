@@ -136,15 +136,7 @@ function AuthenticatedContent() {
       {/* Contextual tips will track user actions and show tooltips at the right moments */}
       {user && <ContextualTips />}
       {/* ExpoConnectGuide button removed from UI - use ./expo-connect.sh in console instead */}
-      {user && (
-        <>
-          {/* Messaging Drawer */}
-          <MessagingDrawer
-            open={isMessagingOpen}
-            onOpenChange={setIsMessagingOpen}
-          />
-        </>
-      )}
+      {/* Messaging drawer is now handled in Home.tsx */}
       <Toaster />
     </>
   );

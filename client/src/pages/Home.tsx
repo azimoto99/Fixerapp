@@ -398,6 +398,12 @@ export default function Home() {
         />
       )}
       
+      {/* Messaging Drawer */}
+      <MessagingDrawer
+        open={showMessaging}
+        onOpenChange={setShowMessaging}
+      />
+      
       {/* Posted Jobs Drawer */}
       {showPostedJobs && (
         <div className="fixed top-0 right-0 h-full w-80 bg-card shadow-lg z-[var(--z-drawer)] transform transition-transform duration-300 animate-in slide-in-from-right">
