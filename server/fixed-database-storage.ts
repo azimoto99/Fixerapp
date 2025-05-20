@@ -736,6 +736,13 @@ export class FixedDatabaseStorage implements IStorage {
   // Search users by username or email
   async searchUsers(query: string, currentUserId: number) {
     try {
+      // Validate inputs to prevent SQL errors
+      if (isNaN(currentUserId)) {
+        console.error("Invalid currentUserId (NaN) in searchUsers");
+        return [];
+      }
+      
+      // Use underlying storage if available
       if (typeof this.storage.searchUsers === 'function') {
         return await this.storage.searchUsers(query, currentUserId);
       }
@@ -749,6 +756,8 @@ export class FixedDatabaseStorage implements IStorage {
         return [];
       }
       
+      console.log(`Executing search query for: "${query}" with currentUserId: ${currentUserId}`);
+      
       // Search by username, email, or full name
       const searchResults = await db.select()
         .from(users)
@@ -760,12 +769,13 @@ export class FixedDatabaseStorage implements IStorage {
             or(
               sql`LOWER(${users.username}) LIKE ${`%${query.toLowerCase()}%`}`,
               sql`LOWER(${users.email}) LIKE ${`%${query.toLowerCase()}%`}`,
-              sql`LOWER(${users.fullName}) LIKE ${`%${query.toLowerCase()}%`}`
+              sql`LOWER(COALESCE(${users.fullName}, '')) LIKE ${`%${query.toLowerCase()}%`}`
             )
           )
         )
         .limit(10); // Limit to 10 results for performance
-        
+      
+      console.log(`Found ${searchResults.length} results for query "${query}"`);
       return searchResults;
     } catch (error) {
       console.error(`Error in searchUsers(${query}, ${currentUserId}):`, error);

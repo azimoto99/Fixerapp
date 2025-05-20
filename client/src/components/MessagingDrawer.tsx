@@ -64,11 +64,20 @@ export function MessagingDrawer({ open, onOpenChange }: MessagingDrawerProps) {
   const { data: searchResults = [], isError: isSearchError } = useQuery({
     queryKey: ['/api/users/search', searchQuery],
     queryFn: async () => {
-      const res = await apiRequest('GET', `/api/users/search?q=${encodeURIComponent(searchQuery)}`);
-      if (!res.ok) {
-        throw new Error('Failed to search users');
+      try {
+        console.log(`Searching for users with query: ${searchQuery}`);
+        const res = await apiRequest('GET', `/api/users/search?q=${encodeURIComponent(searchQuery)}`);
+        if (!res.ok) {
+          console.error('Search API error:', await res.text());
+          throw new Error('Failed to search users');
+        }
+        const data = await res.json();
+        console.log('Search results:', data);
+        return data;
+      } catch (error) {
+        console.error('Error in search query:', error);
+        throw error;
       }
-      return res.json();
     },
     enabled: open && searchQuery.length > 1 && tab === "search",
   });

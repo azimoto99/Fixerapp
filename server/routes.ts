@@ -421,9 +421,79 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  apiRouter.get("/users/search", async (req: Request, res: Response) => {
+    try {
+      if (!req.isAuthenticated()) {
+        return res.status(401).json({ message: "Unauthorized - Please login again" });
+      }
+      
+      const query = req.query.q as string;
+      if (!query || query.length < 2) {
+        return res.status(400).json({ message: "Search query must be at least 2 characters" });
+      }
+      
+      const currentUserId = req.user?.id;
+      if (!currentUserId) {
+        return res.status(401).json({ message: "User ID not found" });
+      }
+      
+      // Make sure currentUserId is a number
+      const userId = typeof currentUserId === 'string' 
+        ? parseInt(currentUserId, 10) 
+        : currentUserId;
+        
+      if (isNaN(userId)) {
+        console.error("Invalid user ID in search request:", currentUserId);
+        return res.status(400).json({ message: "Invalid user ID format" });
+      }
+      
+      console.log(`API - Searching users with query: "${query}" for user ID: ${userId}`);
+      
+      // Get users by search query (username, email, or fullName)
+      const { and, or, sql, ne } = await import('drizzle-orm');
+      const { db } = await import('./db');
+      const { users } = await import('@shared/schema');
+      
+      const searchResults = await db.select()
+        .from(users)
+        .where(
+          and(
+            // Don't include the current user in results
+            ne(users.id, userId),
+            // Search by username, email or fullName
+            or(
+              sql`LOWER(${users.username}) LIKE ${`%${query.toLowerCase()}%`}`,
+              sql`LOWER(${users.email}) LIKE ${`%${query.toLowerCase()}%`}`,
+              sql`LOWER(COALESCE(${users.fullName}, '')) LIKE ${`%${query.toLowerCase()}%`}`
+            )
+          )
+        )
+        .limit(10);
+      
+      console.log(`API - Found ${searchResults.length} results for query "${query}"`);
+      
+      // Map results to remove sensitive information
+      const sanitizedResults = searchResults.map(user => {
+        // Exclude password from response
+        const { password, ...userData } = user;
+        return userData;
+      });
+      
+      res.json(sanitizedResults);
+    } catch (error) {
+      console.error("Error in user search API:", error);
+      res.status(500).json({ message: "An error occurred while searching users" });
+    }
+  });
+
   apiRouter.get("/users/:id", async (req: Request, res: Response) => {
     try {
       const id = parseInt(req.params.id);
+      
+      if (isNaN(id)) {
+        return res.status(400).json({ message: "Invalid user ID format" });
+      }
+      
       const user = await storage.getUser(id);
       
       if (!user) {
@@ -434,7 +504,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const { password, ...userData } = user;
       res.json(userData);
     } catch (error) {
-      res.status(400).json({ message: (error as Error).message });
+      console.error("Error fetching user by ID:", error);
+      res.status(500).json({ message: "An error occurred while fetching user" });
     }
   });
 

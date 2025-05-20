@@ -216,7 +216,22 @@ export function registerMessagingRoutes(app: Express) {
         return res.status(401).json({ message: "User ID not found" });
       }
       
-      const users = await storage.searchUsers(query, currentUserId);
+      // Perform search with any numeric checks to avoid NaN errors
+      let parsedUserId = currentUserId;
+      if (typeof parsedUserId === 'string') {
+        parsedUserId = parseInt(parsedUserId, 10);
+        if (isNaN(parsedUserId)) {
+          return res.status(400).json({ message: "Invalid user ID format" });
+        }
+      }
+      
+      console.log(`Searching users with query: "${query}" for user ID: ${parsedUserId}`);
+      const users = await storage.searchUsers(query, parsedUserId);
+      
+      if (!users || users.length === 0) {
+        return res.status(404).json({ message: "User not found" });
+      }
+      
       res.json(users);
     } catch (error) {
       console.error("Error searching users:", error);
