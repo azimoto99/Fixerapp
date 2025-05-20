@@ -598,7 +598,7 @@ const JobDetailsCard: React.FC<JobDetailsCardProps> = ({ jobId, isOpen, onClose 
           {/* Main Content */}
           <CardContent>
             {isExpanded && (
-              <>
+              <div className="space-y-5">
                 {/* Tab Navigation */}
                 <div className="flex border-b mb-4">
                   <button
@@ -627,17 +627,17 @@ const JobDetailsCard: React.FC<JobDetailsCardProps> = ({ jobId, isOpen, onClose 
                   <div className="space-y-4">
                     {/* Key details in modern card-based layout */}
                     <div className="grid grid-cols-2 gap-3">
-                  <div className="bg-muted/50 rounded-lg p-3 border shadow-sm">
-                    <div className="flex items-center mb-1">
-                      <DollarSign className="h-4 w-4 mr-2 text-primary" />
-                      <span className="text-sm font-medium">Payment</span>
-                    </div>
-                    <div className="text-lg font-bold">
-                      ${job.paymentAmount.toFixed(2)} 
-                      <span className="text-xs text-muted-foreground ml-1">
-                        {job.paymentType === 'hourly' ? '/hr' : 'fixed'}
-                      </span>
-                    </div>
+                      <div className="bg-muted/50 rounded-lg p-3 border shadow-sm">
+                        <div className="flex items-center mb-1">
+                          <DollarSign className="h-4 w-4 mr-2 text-primary" />
+                          <span className="text-sm font-medium">Payment</span>
+                        </div>
+                        <div className="text-lg font-bold">
+                          ${job.paymentAmount.toFixed(2)} 
+                          <span className="text-xs text-muted-foreground ml-1">
+                            {job.paymentType === 'hourly' ? '/hr' : 'fixed'}
+                          </span>
+                        </div>
                   </div>
                   
                   <div className="bg-muted/50 rounded-lg p-3 border shadow-sm">
