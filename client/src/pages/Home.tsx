@@ -379,10 +379,15 @@ export default function Home() {
               type="button" 
               variant="default"
               onClick={() => {
-                window.location.href = `/job/${selectedJob?.id}`;
+                // Use our new JobDetailsCard component for a modern vector UI
+                window.dispatchEvent(new CustomEvent('open-job-details', { 
+                  detail: { jobId: selectedJob?.id }
+                }));
+                // Close the current dialog
+                setShowJobDetails(false);
               }}
             >
-              View Full Details
+              View Job Card
             </Button>
           </DialogFooter>
         </DialogContent>
