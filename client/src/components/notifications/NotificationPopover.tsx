@@ -31,7 +31,7 @@ export function NotificationPopover({ className }: NotificationPopoverProps) {
         >
           <BellIcon className="h-5 w-5" />
           {unreadCount > 0 && (
-            <span className="absolute -top-1 -right-1 h-4 min-w-4 rounded-full bg-primary text-[10px] text-primary-foreground flex items-center justify-center px-1">
+            <span className="absolute top-0 right-0 h-4 min-w-4 rounded-full bg-primary text-[10px] text-primary-foreground flex items-center justify-center px-1 transform -translate-y-1/3 translate-x-1/3">
               {unreadCount > 99 ? '99+' : unreadCount}
             </span>
           )}
