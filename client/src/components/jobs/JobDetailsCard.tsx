@@ -456,6 +456,28 @@ const JobDetailsCard: React.FC<JobDetailsCardProps> = ({ jobId, isOpen, onClose 
                         </div>
                         <div className="text-md font-medium">
                           {job.location?.address || job.location || 'Remote'}
+                          {job.latitude && job.longitude && (
+                            <Button 
+                              size="sm" 
+                              variant="ghost" 
+                              className="mt-2 h-8 px-2 text-xs flex items-center bg-primary/10 hover:bg-primary/20 text-primary"
+                              onClick={() => {
+                                // Center map on this job's location
+                                window.dispatchEvent(new CustomEvent('center-map-on-job', { 
+                                  detail: { 
+                                    jobId: job.id,
+                                    latitude: job.latitude, 
+                                    longitude: job.longitude 
+                                  }
+                                }));
+                                // Close the job details card
+                                if (onClose) onClose();
+                              }}
+                            >
+                              <MapPin className="h-3 w-3 mr-1" />
+                              Show on Map
+                            </Button>
+                          )}
                         </div>
                       </div>
                     </div>

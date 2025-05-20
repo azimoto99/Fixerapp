@@ -47,6 +47,48 @@ const MapSection: React.FC<MapSectionProps> = ({ jobs, selectedJob, onSelectJob,
     // We'll implement heatmap functionality later
     console.log(`Map view changed to: ${mapView}`);
   }, [mapView]);
+
+  // Add event listener for centering map on a specific job
+  const [focusMapCoordinates, setFocusMapCoordinates] = useState<{
+    latitude: number;
+    longitude: number;
+    jobId: number;
+  } | null>(null);
+  
+  useEffect(() => {
+    // Listen for requests to center the map on a specific job
+    const handleCenterMapOnJob = (event: CustomEvent<{
+      jobId: number;
+      latitude: number;
+      longitude: number;
+    }>) => {
+      console.log('Centering map on job:', event.detail);
+      setFocusMapCoordinates({
+        jobId: event.detail.jobId,
+        latitude: event.detail.latitude,
+        longitude: event.detail.longitude
+      });
+      
+      // Briefly highlight the job by selecting it then unselecting it after 2 seconds
+      if (event.detail.jobId && jobs) {
+        const job = jobs.find(j => j.id === event.detail.jobId);
+        if (job && onSelectJob) {
+          // Select the job briefly
+          onSelectJob(job);
+          // Unselect after 2 seconds
+          setTimeout(() => {
+            onSelectJob(undefined);
+          }, 2000);
+        }
+      }
+    };
+    
+    window.addEventListener('center-map-on-job', handleCenterMapOnJob as EventListener);
+    
+    return () => {
+      window.removeEventListener('center-map-on-job', handleCenterMapOnJob as EventListener);
+    };
+  }, [jobs, onSelectJob]);
   const { user } = useAuth();
   const { toast } = useToast();
   
