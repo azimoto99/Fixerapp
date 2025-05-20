@@ -460,9 +460,10 @@ export default function Home() {
                         size="sm" 
                         className="flex-1 text-xs"
                         onClick={() => {
-                          // Show job details in a dialog/card instead of navigating
-                          setSelectedJob(job);
-                          setShowJobDetails(true);
+                          // Use the new JobDetailsCard directly instead of showing dialog
+                          window.dispatchEvent(new CustomEvent('open-job-details', { 
+                            detail: { jobId: job.id }
+                          }));
                         }}
                       >
                         Details
