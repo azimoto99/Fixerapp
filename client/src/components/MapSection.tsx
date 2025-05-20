@@ -384,9 +384,9 @@ const MapSection: React.FC<MapSectionProps> = ({ jobs, selectedJob, onSelectJob,
         
         {position && (
           <MapboxMap
-            latitude={position.latitude}
-            longitude={position.longitude}
-            zoom={15}
+            latitude={focusMapCoordinates ? focusMapCoordinates.latitude : position.latitude}
+            longitude={focusMapCoordinates ? focusMapCoordinates.longitude : position.longitude}
+            zoom={focusMapCoordinates ? 18 : 15}
             markers={jobMarkers}
             onMapClick={handleMapClick}
             style={{ width: '100%', height: '100%' }}
