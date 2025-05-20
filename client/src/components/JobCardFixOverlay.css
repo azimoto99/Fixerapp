@@ -1,0 +1,24 @@
+/* JobCardFixOverlay.css */
+/* This ensures job cards appear above all other elements */
+
+.job-details-card-overlay {
+  z-index: 9999 !important;
+  position: relative;
+}
+
+.job-details-card-container {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  z-index: 9999 !important;
+  display: flex;
+  justify-content: center;
+  padding: 1rem;
+}
+
+@media (min-width: 640px) {
+  .job-details-card-container {
+    padding: 1.5rem;
+  }
+}
