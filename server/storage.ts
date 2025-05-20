@@ -152,6 +152,7 @@ export interface IStorage {
   getUserContacts(userId: number): Promise<(User & { lastMessage?: string | null })[]>;
   addUserContact(userId: number, contactId: number): Promise<{ userId: number, contactId: number }>;
   removeUserContact(userId: number, contactId: number): Promise<boolean>;
+  searchUsers(query: string, currentUserId: number): Promise<User[]>;
   
   // Message operations
   getMessagesBetweenUsers(userId1: number, userId2: number): Promise<Message[]>;
