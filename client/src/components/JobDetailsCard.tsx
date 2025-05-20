@@ -495,24 +495,28 @@ const JobDetailsCard: React.FC<JobDetailsCardProps> = ({ jobId, isOpen, onClose 
             {isExpanded ? <ChevronDown /> : <ChevronUp />}
           </div>
           
-          <CardHeader>
-            <div className="flex justify-between items-start">
-              <div>
-                <Badge variant="outline" className={getStatusClass(job.status)}>
-                  {job.status === 'pending_payment' ? 'Pending Payment' : 
-                   job.status === 'in_progress' ? 'In Progress' : 
-                   job.status.charAt(0).toUpperCase() + job.status.slice(1)}
+          <CardHeader className="pb-2">
+            <div className="flex flex-wrap gap-2 mb-2">
+              <Badge variant="outline" className={getStatusClass(job.status)}>
+                {job.status === 'pending_payment' ? 'Pending Payment' : 
+                 job.status === 'in_progress' ? 'In Progress' : 
+                 job.status.charAt(0).toUpperCase() + job.status.slice(1)}
+              </Badge>
+              
+              {hasApplied && (
+                <Badge variant="outline" className={getApplicationClass(application.status)}>
+                  {application.status.charAt(0).toUpperCase() + application.status.slice(1)} Application
                 </Badge>
-                
-                {hasApplied && (
-                  <Badge variant="outline" className={`ml-2 ${getApplicationClass(application.status)}`}>
-                    Application: {application.status.charAt(0).toUpperCase() + application.status.slice(1)}
-                  </Badge>
-                )}
-              </div>
+              )}
+              
+              {job.equipmentProvided && (
+                <Badge variant="outline" className="bg-green-50 text-green-700 dark:bg-green-900/30 dark:text-green-400 border-green-200 dark:border-green-800">
+                  <CheckCircle2 className="h-3 w-3 mr-1" /> Equipment Provided
+                </Badge>
+              )}
             </div>
             
-            <CardTitle className="text-xl mt-2">{job.title}</CardTitle>
+            <CardTitle className="text-2xl font-bold">{job.title}</CardTitle>
           </CardHeader>
           
           <CardContent>
