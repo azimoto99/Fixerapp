@@ -107,7 +107,7 @@ const Header: React.FC<HeaderProps> = ({
           
           {/* Posted Jobs Button - always visible when user is logged in */}
           {user && onTogglePostedJobs && (
-            <div>
+            <div className="relative">
               <Button 
                 onClick={onTogglePostedJobs}
                 className="bg-blue-600 text-white shadow hover:bg-blue-700 rounded-full flex items-center justify-center transition-all hover:scale-105 active:scale-95 p-2 md:p-2"
@@ -115,12 +115,14 @@ const Header: React.FC<HeaderProps> = ({
               >
                 <Briefcase className="h-5 w-5" />
                 <span className="ml-1 hidden md:inline">My Jobs</span>
-                {postedJobsCount > 0 && (
-                  <span className="absolute -top-1 -right-1 bg-red-500 text-white rounded-full w-5 h-5 flex items-center justify-center text-xs">
+              </Button>
+              {postedJobsCount > 0 && (
+                <div className="absolute -top-1 -right-1 z-10 pointer-events-none">
+                  <span className="bg-red-500 text-white rounded-full w-5 h-5 flex items-center justify-center text-xs">
                     {postedJobsCount}
                   </span>
-                )}
-              </Button>
+                </div>
+              )}
             </div>
           )}
           
