@@ -9,6 +9,7 @@ import JobListSection from '@/components/JobListSection';
 import MapSection from '@/components/MapSection';
 import NewJobButton from '@/components/NewJobButton';
 import PostJobDrawer from '@/components/PostJobDrawer';
+import { MessagingDrawer } from '@/components/MessagingDrawer';
 import {
   Dialog,
   DialogContent,
@@ -303,6 +304,7 @@ export default function Home() {
   const { user } = useAuth();
   const [selectedRole, setSelectedRole] = useState<'worker' | 'poster'>('worker');
   const [showPostedJobs, setShowPostedJobs] = useState(false);
+  const [showMessaging, setShowMessaging] = useState(false);
   const [showJobDetails, setShowJobDetails] = useState(false);
   const [selectedJob, setSelectedJob] = useState<Job | null>(null);
   const { toast } = useToast();
@@ -317,6 +319,10 @@ export default function Home() {
   const togglePostedJobs = () => {
     setShowPostedJobs(!showPostedJobs);
   };
+  
+  const toggleMessaging = () => {
+    setShowMessaging(!showMessaging);
+  };
 
   return (
     <div className="flex flex-col min-h-screen">
@@ -324,6 +330,7 @@ export default function Home() {
         selectedRole={selectedRole}
         onRoleChange={setSelectedRole}
         onTogglePostedJobs={togglePostedJobs}
+        onToggleMessaging={toggleMessaging}
         postedJobsCount={postedJobs?.length || 0}
       />
 

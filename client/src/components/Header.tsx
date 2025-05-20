@@ -21,7 +21,7 @@ import {
   SheetClose
 } from '@/components/ui/sheet';
 import { Button } from '@/components/ui/button';
-import { Menu, X, Briefcase } from 'lucide-react';
+import { Menu, X, Briefcase, MessageSquare } from 'lucide-react';
 import { ThemeToggle } from '@/components/theme';
 import { NotificationPopover } from '@/components/notifications';
 import UserDrawerV2 from '@/components/UserDrawerV2';
@@ -30,6 +30,7 @@ interface HeaderProps {
   selectedRole?: 'worker' | 'poster';
   onRoleChange?: (role: 'worker' | 'poster') => void;
   onTogglePostedJobs?: () => void;
+  onToggleMessaging?: () => void;
   postedJobsCount?: number;
 }
 
@@ -37,6 +38,7 @@ const Header: React.FC<HeaderProps> = ({
   selectedRole, 
   onRoleChange,
   onTogglePostedJobs,
+  onToggleMessaging,
   postedJobsCount = 0
 }) => {
   const { user, logoutMutation } = useAuth();
@@ -86,6 +88,20 @@ const Header: React.FC<HeaderProps> = ({
         {/* Right side elements */}
         <div className="flex items-center space-x-4">
           {user && <NotificationPopover className="hidden md:flex" />}
+          
+          {/* Messaging Button - placed to the left of Posted Jobs button */}
+          {user && onToggleMessaging && (
+            <div>
+              <Button 
+                onClick={onToggleMessaging}
+                className="bg-emerald-600 text-white shadow hover:bg-emerald-700 rounded-full flex items-center justify-center transition-all hover:scale-105 active:scale-95 p-2 md:p-2"
+                aria-label="Messages"
+              >
+                <MessageSquare className="h-5 w-5" />
+                <span className="ml-1 hidden md:inline">Messages</span>
+              </Button>
+            </div>
+          )}
           
           {/* Posted Jobs Button - always visible when user is logged in */}
           {user && onTogglePostedJobs && (
