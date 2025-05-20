@@ -190,37 +190,14 @@ export default function PostJobDrawer({ isOpen, onOpenChange }: PostJobDrawerPro
         throw new Error('Payment method is required to post a job');
       }
       
-      // STEP 1: Create a payment intent to verify the payment can be processed
-      console.log(`Pre-verifying payment with method ID ${data.paymentMethodId}`);
-      
-      const verifyPaymentResponse = await apiRequest('POST', '/api/stripe/create-payment-intent', {
-        amount: Number(data.paymentAmount),
-        description: `Payment for job: ${data.title}`,
-        metadata: {
-          jobTitle: data.title,
-          paymentType: data.paymentType
-        },
-        return_url: window.location.origin + '/jobs' // Add return URL for better payment flow
-      });
-      
-      if (!verifyPaymentResponse.ok) {
-        const errorData = await verifyPaymentResponse.json();
-        throw new Error(errorData.message || "Payment verification failed");
-      }
-      
-      // Use clone to avoid the error "body already consumed"
-      const verifyPaymentResponseClone = verifyPaymentResponse.clone();
-      const { clientSecret, paymentIntentId } = await verifyPaymentResponseClone.json();
-      console.log("Payment intent created successfully:", paymentIntentId);
-      
-      // STEP 2: Create the job with the payment intent ID
-      const enrichedJobData = {
+      // STEP 1: Create the job first with pending payment status
+      console.log('Creating job with pending payment status');
+      const initialJobData = {
         ...jobData,
-        paymentIntentId: paymentIntentId
+        status: 'pending_payment' // Start with pending payment status
       };
       
-      console.log('Creating job with payment intent ID:', paymentIntentId);
-      const jobResponse = await apiRequest('POST', '/api/jobs', enrichedJobData);
+      const jobResponse = await apiRequest('POST', '/api/jobs', initialJobData);
       
       if (!jobResponse.ok) {
         const errorData = await jobResponse.json();
@@ -228,7 +205,46 @@ export default function PostJobDrawer({ isOpen, onOpenChange }: PostJobDrawerPro
       }
       
       const createdJob = await jobResponse.json();
-      console.log('Job created successfully:', createdJob);
+      console.log('Job created with pending payment status:', createdJob);
+      
+      // STEP 2: Now that we have a job ID, create the payment intent
+      console.log(`Creating payment intent for job ID ${createdJob.id} with method ${data.paymentMethodId}`);
+      
+      const createPaymentResponse = await apiRequest('POST', '/api/stripe/create-payment-intent', {
+        amount: Number(data.paymentAmount),
+        description: `Payment for job: ${data.title}`,
+        jobId: createdJob.id, // Include the job ID for the payment intent
+        paymentMethodId: data.paymentMethodId,
+        metadata: {
+          jobId: createdJob.id,
+          jobTitle: data.title,
+          paymentType: data.paymentType
+        },
+        return_url: window.location.origin + `/job/${createdJob.id}` // Return URL includes job ID
+      });
+      
+      if (!createPaymentResponse.ok) {
+        const errorData = await createPaymentResponse.json();
+        // Try to roll back the job creation since payment failed
+        await apiRequest('DELETE', `/api/jobs/${createdJob.id}`);
+        throw new Error(errorData.message || "Payment creation failed");
+      }
+      
+      const { clientSecret, paymentIntentId } = await createPaymentResponse.json();
+      console.log("Payment intent created successfully:", paymentIntentId);
+      
+      // STEP 3: Update the job with the payment intent ID
+      const updateResponse = await apiRequest('PATCH', `/api/jobs/${createdJob.id}`, {
+        paymentIntentId: paymentIntentId,
+        status: 'open' // Update status to open once payment is confirmed
+      });
+      
+      if (!updateResponse.ok) {
+        console.error('Failed to update job with payment intent ID');
+        // We continue anyway since the job and payment are created
+      } else {
+        console.log('Job updated with payment intent ID:', paymentIntentId);
+      }
       
       // STEP 3: Add tasks if provided
       if (tasks.length > 0) {
