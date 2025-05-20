@@ -115,8 +115,22 @@ export default function MapboxMap({
       existingMarkers[0].remove();
     }
     
+    // Debug: log all marker coordinates
+    console.log('Adding markers to map:', markers.map(m => ({
+      lng: m.longitude,
+      lat: m.latitude,
+      title: m.title
+    })));
+    
     // Add new markers
     markers.forEach(marker => {
+      // Skip markers with invalid coordinates
+      if (!marker.latitude || !marker.longitude || 
+          isNaN(marker.latitude) || isNaN(marker.longitude)) {
+        console.warn('Skipping marker with invalid coordinates:', marker);
+        return;
+      }
+      
       // Create a styled popup if there's a title or description
       let popup: mapboxgl.Popup | undefined;
       if (marker.title || marker.description) {
@@ -154,13 +168,21 @@ export default function MapboxMap({
         }
       }
       
+      // Use different colors for different marker types
+      let markerColor = '#10b981'; // Default primary color
+      if (marker.isHighlighted) {
+        markerColor = '#f59e0b'; // Amber for highlighted markers
+      } else if (marker.title === 'Current Location') {
+        markerColor = '#3b82f6'; // Blue for current location
+      }
+      
       // Create a custom marker element with a dollar sign icon
       const markerEl = document.createElement('div');
       markerEl.className = 'map-marker';
       markerEl.style.width = '36px';
       markerEl.style.height = '36px';
       markerEl.style.borderRadius = '50%';
-      markerEl.style.backgroundColor = '#10b981'; // Using primary color
+      markerEl.style.backgroundColor = markerColor;
       markerEl.style.border = '3px solid white';
       markerEl.style.boxShadow = '0 2px 8px rgba(0,0,0,0.4)';
       markerEl.style.cursor = 'pointer';
@@ -170,7 +192,18 @@ export default function MapboxMap({
       markerEl.style.color = 'white';
       markerEl.style.fontSize = '18px';
       markerEl.style.fontWeight = 'bold';
-      markerEl.innerHTML = '$';
+      
+      // Use '$' for job markers, a different icon for user location
+      if (marker.title === 'Current Location') {
+        markerEl.innerHTML = '📍';
+      } else if (marker.title === 'Job Location') {
+        markerEl.innerHTML = '🎯';
+      } else {
+        markerEl.innerHTML = '$';
+      }
+      
+      // Log the coordinate conversion for debugging
+      console.log(`Setting marker at [${marker.longitude}, ${marker.latitude}] for: ${marker.title}`);
       
       // Add the marker to the map - IMPORTANT: Mapbox uses [longitude, latitude] order!
       const mapboxMarker = new mapboxgl.Marker(markerEl)
