@@ -45,7 +45,7 @@ const formSchema = insertJobSchema.extend({
     .transform(val => val.trim()), // Remove trailing whitespace
   paymentAmount: z.coerce
     .number()
-    .min(5, 'Minimum payment amount is $5')
+    .min(10, 'Minimum payment amount is $10')
     .positive('Payment amount must be positive')
     .transform(val => Math.round(val * 100) / 100), // Round to 2 decimal places
   location: z.string()
@@ -250,11 +250,25 @@ export default function PostJobDrawer({ isOpen, onOpenChange }: PostJobDrawerPro
         }
       }
       
+      // Calculate service fee and total amount
+      const SERVICE_FEE = 2.50; // Fixed $2.50 service fee
+      const jobAmount = Number(data.paymentAmount);
+      const totalAmount = jobAmount + SERVICE_FEE;
+      
+      console.log(`Job amount: $${jobAmount}, Service fee: $${SERVICE_FEE}, Total: $${totalAmount}`);
+      
+      // Update the job with service fee information
+      await apiRequest('PATCH', `/api/jobs/${createdJob.id}`, {
+        serviceFee: SERVICE_FEE,
+        totalAmount: totalAmount
+      });
+      
       const createPaymentResponse = await apiRequest('POST', '/api/stripe/create-payment-intent', {
         jobId: createdJob.id, // Job ID is required
-        payAmount: Number(data.paymentAmount), // The API expects payAmount, not amount
+        payAmount: totalAmount, // Charge the total amount including service fee
         useExistingCard: true, // Use the existing card for payment
-        paymentMethodId: data.paymentMethodId // Include the selected payment method ID
+        paymentMethodId: data.paymentMethodId, // Include the selected payment method ID
+        serviceFee: SERVICE_FEE // Pass the service fee information
       });
       
       if (!createPaymentResponse.ok) {

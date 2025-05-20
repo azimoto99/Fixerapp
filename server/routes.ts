@@ -2528,13 +2528,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const amountInCents = Math.round(paymentAmount * 100);
       
       // Create payment intent options
+      // Determine if a service fee has been provided
+      const serviceFee = req.body.serviceFee ? Math.round(req.body.serviceFee * 100) : 250; // Default $2.50
+      
+      // Create metadata with job and fee information
       const paymentIntentOptions: any = {
         amount: amountInCents,
         currency: "usd",
         metadata: {
           jobId: job.id.toString(),
-          userId: req.user.id.toString()
-        }
+          userId: req.user.id.toString(),
+          serviceFee: serviceFee.toString(),
+          jobAmount: (amountInCents - serviceFee).toString()
+        },
+        application_fee_amount: serviceFee, // This amount goes to the platform
       };
       
       // If a payment method ID is provided, attach it to the payment intent
