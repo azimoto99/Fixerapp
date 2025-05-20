@@ -489,10 +489,10 @@ const JobDetailsCard: React.FC<JobDetailsCardProps> = ({ jobId, isOpen, onClose 
       >
         <Card className="w-full max-w-md shadow-xl">
           <div 
-            className="absolute top-2 right-2 p-2 cursor-pointer" 
+            className="absolute top-2 right-2 p-2 cursor-pointer bg-background/80 backdrop-blur-sm rounded-full hover:bg-accent transition-colors" 
             onClick={() => setIsExpanded(!isExpanded)}
           >
-            {isExpanded ? <ChevronDown /> : <ChevronUp />}
+            {isExpanded ? <ChevronDown className="h-4 w-4" /> : <ChevronUp className="h-4 w-4" />}
           </div>
           
           <CardHeader className="pb-2">
@@ -521,14 +521,26 @@ const JobDetailsCard: React.FC<JobDetailsCardProps> = ({ jobId, isOpen, onClose 
           
           <CardContent>
             {isExpanded && (
-              <>
-                <div className="space-y-4">
-                  <div className="flex items-start space-x-2">
-                    <MapPin className="h-5 w-5 text-gray-500 mt-0.5" />
-                    <div>
-                      <p className="text-sm font-medium">Location</p>
-                      <p className="text-sm text-gray-600">{job.location}</p>
+              <div className="space-y-5">
+                  <div className="bg-muted/50 rounded-lg p-3 border shadow-sm">
+                    <div className="flex justify-between items-center">
+                      <div className="flex items-center">
+                        <MapPin className="h-4 w-4 mr-2 text-primary" />
+                        <span className="text-sm font-medium">Location</span>
+                      </div>
+                      
+                      {(job.latitude && job.longitude) && (
+                        <Button 
+                          variant="ghost" 
+                          size="sm" 
+                          className="h-7 text-xs"
+                          onClick={() => window.open(`https://maps.google.com/?q=${job.latitude},${job.longitude}`, '_blank')}
+                        >
+                          <MapPin className="h-3 w-3 mr-1" /> View Map
+                        </Button>
+                      )}
                     </div>
+                    <div className="font-semibold mt-1">{job.location || "No specific location"}</div>
                   </div>
                   
                   <div className="flex items-start space-x-2">
