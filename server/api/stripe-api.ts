@@ -64,7 +64,7 @@ stripeRouter.get('/check-auth', (req, res) => {
 // Create a payment intent
 stripeRouter.post('/create-payment-intent', async (req, res) => {
   try {
-    const { jobId, payAmount, useExistingCard = false } = req.body;
+    const { jobId, payAmount, useExistingCard = false, paymentMethodId } = req.body;
     
     if (!jobId || !payAmount) {
       return res.status(400).json({ message: 'Missing required parameters: jobId, payAmount' });
@@ -106,8 +106,8 @@ stripeRouter.post('/create-payment-intent', async (req, res) => {
       customerId = user.stripeCustomerId;
     }
 
-    // Create the payment intent
-    const paymentIntent = await stripe.paymentIntents.create({
+    // Create the payment intent with appropriate options based on saved card vs new card
+    const paymentIntentOptions: any = {
       amount: Math.round(payAmount * 100), // Convert dollars to cents
       currency: 'usd',
       customer: customerId,
@@ -115,16 +115,22 @@ stripeRouter.post('/create-payment-intent', async (req, res) => {
         jobId: jobId.toString(),
         userId: req.user?.id.toString(),
         paymentType: 'job_payment',
-      },
-      // Set up for automatic payment detection
-      automatic_payment_methods: useExistingCard ? undefined : {
-        enabled: true,
-      },
-      // Use saved payment method if requested
-      ...(useExistingCard && {
-        setup_future_usage: 'off_session',
-      }),
-    });
+      }
+    };
+    
+    // If using an existing card with a specific payment method ID
+    if (useExistingCard && paymentMethodId) {
+      paymentIntentOptions.payment_method = paymentMethodId;
+      paymentIntentOptions.confirm = true;
+      paymentIntentOptions.off_session = true;
+    } else {
+      // For new cards, enable automatic payment methods
+      paymentIntentOptions.automatic_payment_methods = {
+        enabled: true
+      };
+    }
+    
+    const paymentIntent = await stripe.paymentIntents.create(paymentIntentOptions);
 
     // Create a payment record in the database
     await storage.createPayment({
