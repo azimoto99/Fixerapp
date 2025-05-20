@@ -704,4 +704,91 @@ export class FixedDatabaseStorage implements IStorage {
       return 0;
     }
   }
+
+  // Contact/Message Operations
+  async getUserContacts(userId: number) {
+    try {
+      return await this.storage.getUserContacts(userId);
+    } catch (error) {
+      console.error(`Error in getUserContacts(${userId}):`, error);
+      return [];
+    }
+  }
+  
+  async addUserContact(userId: number, contactId: number) {
+    try {
+      return await this.storage.addUserContact(userId, contactId);
+    } catch (error) {
+      console.error(`Error in addUserContact(${userId}, ${contactId}):`, error);
+      throw error;
+    }
+  }
+  
+  async removeUserContact(userId: number, contactId: number) {
+    try {
+      return await this.storage.removeUserContact(userId, contactId);
+    } catch (error) {
+      console.error(`Error in removeUserContact(${userId}, ${contactId}):`, error);
+      return false;
+    }
+  }
+  
+  // Search users by username or email
+  async searchUsers(query: string, currentUserId: number) {
+    try {
+      if (typeof this.storage.searchUsers === 'function') {
+        return await this.storage.searchUsers(query, currentUserId);
+      }
+      
+      // Fallback implementation if not in the underlying storage
+      const { and, or, sql, ne } = await import('drizzle-orm');
+      const { db } = await import('./db');
+      const { users } = await import('@shared/schema');
+      
+      if (!query || query.length < 2) {
+        return [];
+      }
+      
+      // Search by username, email, or full name
+      const searchResults = await db.select()
+        .from(users)
+        .where(
+          and(
+            // Don't include the current user in results
+            ne(users.id, currentUserId),
+            // Search by username, email or fullName
+            or(
+              sql`LOWER(${users.username}) LIKE ${`%${query.toLowerCase()}%`}`,
+              sql`LOWER(${users.email}) LIKE ${`%${query.toLowerCase()}%`}`,
+              sql`LOWER(${users.fullName}) LIKE ${`%${query.toLowerCase()}%`}`
+            )
+          )
+        )
+        .limit(10); // Limit to 10 results for performance
+        
+      return searchResults;
+    } catch (error) {
+      console.error(`Error in searchUsers(${query}, ${currentUserId}):`, error);
+      return [];
+    }
+  }
+  
+  // Message operations
+  async getMessagesBetweenUsers(userId1: number, userId2: number) {
+    try {
+      return await this.storage.getMessagesBetweenUsers(userId1, userId2);
+    } catch (error) {
+      console.error(`Error in getMessagesBetweenUsers(${userId1}, ${userId2}):`, error);
+      return [];
+    }
+  }
+  
+  async markMessagesAsRead(recipientId: number, senderId: number) {
+    try {
+      return await this.storage.markMessagesAsRead(recipientId, senderId);
+    } catch (error) {
+      console.error(`Error in markMessagesAsRead(${recipientId}, ${senderId}):`, error);
+      return false;
+    }
+  }
 }
