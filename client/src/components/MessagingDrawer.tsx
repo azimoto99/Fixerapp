@@ -61,6 +61,10 @@ export function MessagingDrawer({ open, onOpenChange }: MessagingDrawerProps) {
     enabled: open,
   });
 
+  // Debounced search reference
+  const searchTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+
+  // Enhanced search with debounce
   const { 
     data: searchResults = [], 
     isError: isSearchError,
@@ -86,7 +90,8 @@ export function MessagingDrawer({ open, onOpenChange }: MessagingDrawerProps) {
       }
     },
     enabled: open && searchQuery.length > 1 && tab === "search",
-    refetchOnWindowFocus: false
+    refetchOnWindowFocus: false,
+    staleTime: 30000 // Cache results for 30 seconds
   });
 
   const { data: messages = [] } = useQuery({
