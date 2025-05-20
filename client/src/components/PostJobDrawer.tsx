@@ -44,6 +44,7 @@ const formSchema = insertJobSchema.extend({
     .positive('Payment amount must be positive'),
   dateNeeded: z.string(),
   paymentMethodId: z.string().optional(),
+  autoAcceptApplicants: z.boolean().default(false),
 });
 
 interface PostJobDrawerProps {
@@ -584,6 +585,29 @@ export default function PostJobDrawer({ isOpen, onOpenChange }: PostJobDrawerPro
                   )}
                 />
                 
+                <FormField
+                  control={form.control}
+                  name="autoAcceptApplicants"
+                  render={({ field }) => (
+                    <FormItem className="flex flex-row items-start space-x-3 space-y-0 rounded-md border p-4 mb-4">
+                      <FormControl>
+                        <Checkbox
+                          checked={field.value}
+                          onCheckedChange={field.onChange}
+                        />
+                      </FormControl>
+                      <div className="space-y-1 leading-none">
+                        <FormLabel className="cursor-pointer">
+                          Auto-accept applicants
+                        </FormLabel>
+                        <FormDescription>
+                          Automatically accept qualified workers without manual review
+                        </FormDescription>
+                      </div>
+                    </FormItem>
+                  )}
+                />
+
                 <div className="bg-muted/30 p-3 rounded-md border border-border mb-4">
                   <div className="flex items-center mb-2">
                     <ListChecks className="mr-2 h-5 w-5 text-primary" />
