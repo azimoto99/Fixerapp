@@ -210,6 +210,19 @@ export default function PostJobDrawer({ isOpen, onOpenChange }: PostJobDrawerPro
       // STEP 2: Now that we have a job ID, create the payment intent
       console.log(`Creating payment intent for job ID ${createdJob.id} with method ${data.paymentMethodId}`);
       
+      // Make sure we have valid coordinates for the job
+      if (!initialJobData.latitude || !initialJobData.longitude) {
+        console.log('Warning: Job created without coordinates. Using selected map location.');
+        // Try to get coordinates from location field if possible
+        if (userLocation) {
+          // Update the job with user's current location if no specific location provided
+          await apiRequest('PATCH', `/api/jobs/${createdJob.id}`, {
+            latitude: userLocation.latitude,
+            longitude: userLocation.longitude
+          });
+        }
+      }
+      
       const createPaymentResponse = await apiRequest('POST', '/api/stripe/create-payment-intent', {
         jobId: createdJob.id, // Job ID is required
         payAmount: Number(data.paymentAmount), // The API expects payAmount, not amount
