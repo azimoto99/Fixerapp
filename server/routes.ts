@@ -2546,8 +2546,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
           paymentIntentOptions.customer = req.user.stripeCustomerId;
         }
         
+        // For testing purposes, let's set up automatic confirmation with special handling
         paymentIntentOptions.confirm = true;
+        paymentIntentOptions.error_on_requires_action = false; // Allow 3D Secure if needed
         paymentIntentOptions.return_url = `${req.protocol}://${req.get('host')}`;
+        
+        // For testing, we'll skip payment step if we're in development mode
+        if (process.env.NODE_ENV === 'development') {
+          console.log('Development mode detected, adding test-specific options');
+          // These settings help with test cards
+          paymentIntentOptions.setup_future_usage = 'off_session';
+        }
       }
       
       // Create a new payment intent

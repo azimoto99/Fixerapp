@@ -315,25 +315,53 @@ export default function PostJobDrawer({ isOpen, onOpenChange }: PostJobDrawerPro
         return_url: window.location.origin + '/jobs' // Include return URL
       });
       
-      if (!paymentResponse.ok) {
-        let errorMessage = 'Payment processing failed';
-        try {
-          const errorData = await paymentResponse.json();
-          errorMessage = errorData.message || errorMessage;
-          console.error('Payment error details:', errorData);
-        } catch (e) {
-          console.error('Could not parse payment error response:', e);
+      // Handle the payment response properly
+      let paymentData;
+      let hasPaymentError = false;
+      let errorMessage = 'Payment processing failed';
+      
+      try {
+        paymentData = await paymentResponse.json();
+        console.log('Payment response data:', paymentData);
+        
+        if (!paymentResponse.ok) {
+          hasPaymentError = true;
+          errorMessage = paymentData.message || errorMessage;
+          console.error('Payment error details:', paymentData);
         }
+      } catch (e) {
+        hasPaymentError = true;
+        console.error('Could not parse payment response:', e);
+      }
+      
+      // Handle payment errors
+      if (hasPaymentError) {
+        console.error('Payment failed with error:', errorMessage);
         
         // Mark the job as payment failed
         await apiRequest('PATCH', `/api/jobs/${createdJob.id}`, { 
           status: 'payment_failed'
         });
         
-        throw new Error(errorMessage);
+        // Store the job details for showing in the error modal
+        setCreatedJobId(createdJob.id);
+        setCreatedJobTitle(createdJob.title);
+        
+        // Close the drawer and show modified success modal with error info
+        onOpenChange(false);
+        setShowSuccessModal(true);
+        
+        // Show error toast
+        toast({
+          title: "Payment Failed",
+          description: errorMessage || "Your card was declined. Please try another payment method.",
+          variant: "destructive"
+        });
+        
+        return; // Exit the function without throwing error
       }
       
-      const paymentData = await paymentResponse.json();
+      // Payment was successful
       console.log('Payment successful with data:', paymentData);
       
       // STEP 5: Update job status and finalize
