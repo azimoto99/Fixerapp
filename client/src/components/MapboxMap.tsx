@@ -172,7 +172,7 @@ export default function MapboxMap({
       markerEl.style.fontWeight = 'bold';
       markerEl.innerHTML = '$';
       
-      // Add the marker to the map
+      // Add the marker to the map - IMPORTANT: Mapbox uses [longitude, latitude] order!
       const mapboxMarker = new mapboxgl.Marker(markerEl)
         .setLngLat([marker.longitude, marker.latitude]);
         
