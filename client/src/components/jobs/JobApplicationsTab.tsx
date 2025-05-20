@@ -1,20 +1,12 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { apiRequest } from '@/lib/queryClient';
 import { useToast } from '@/hooks/use-toast';
-import {
-  Check,
-  X,
-  Loader2,
-  User,
-  Clock,
-  DollarSign,
-  MessageCircle
-} from 'lucide-react';
-import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { Card, CardContent } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { Loader2, CheckCheck, X, User, MessageCircle, Clock, DollarSign } from 'lucide-react';
+import { format } from 'date-fns';
 
 interface JobApplicationsTabProps {
   applications: any[];
@@ -24,9 +16,16 @@ interface JobApplicationsTabProps {
 const JobApplicationsTab: React.FC<JobApplicationsTabProps> = ({ applications, jobId }) => {
   const { toast } = useToast();
   const queryClient = useQueryClient();
-  const [processingApplicationId, setProcessingApplicationId] = React.useState<number | null>(null);
+  const [processingApplicationId, setProcessingApplicationId] = useState<number | null>(null);
 
   // Handle application actions (accept/reject)
+  const handleApplicationAction = (applicationId: number, status: 'accepted' | 'rejected') => {
+    setProcessingApplicationId(applicationId);
+    
+    updateApplicationMutation.mutate({ applicationId, status });
+  };
+
+  // Update application status
   const updateApplicationMutation = useMutation({
     mutationFn: async ({ applicationId, status }: { applicationId: number, status: 'accepted' | 'rejected' }) => {
       const response = await apiRequest('PATCH', `/api/applications/${applicationId}`, {
@@ -40,13 +39,10 @@ const JobApplicationsTab: React.FC<JobApplicationsTabProps> = ({ applications, j
       
       return response.json();
     },
-    onSuccess: (_, variables) => {
-      const status = variables.status;
+    onSuccess: () => {
       toast({
-        title: status === 'accepted' ? 'Application Accepted' : 'Application Rejected',
-        description: status === 'accepted' 
-          ? 'Worker has been notified and assigned to the job' 
-          : 'Worker has been notified of the rejection',
+        title: "Application Updated",
+        description: "Application status has been updated successfully",
       });
       
       // Invalidate relevant queries
@@ -65,11 +61,7 @@ const JobApplicationsTab: React.FC<JobApplicationsTabProps> = ({ applications, j
     }
   });
 
-  const handleApplicationAction = (applicationId: number, status: 'accepted' | 'rejected') => {
-    setProcessingApplicationId(applicationId);
-    updateApplicationMutation.mutate({ applicationId, status });
-  };
-
+  // Get application badge class
   const getApplicationClass = (status: string) => {
     switch (status) {
       case 'pending': return 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400 border-yellow-200 dark:border-yellow-800';
@@ -79,98 +71,100 @@ const JobApplicationsTab: React.FC<JobApplicationsTabProps> = ({ applications, j
     }
   };
 
-  if (applications.length === 0) {
+  if (!applications || applications.length === 0) {
     return (
-      <div className="text-center py-8 text-muted-foreground">
-        <User className="h-12 w-12 mx-auto mb-2 opacity-20" />
-        <p>No applications yet</p>
+      <div className="text-center py-8 px-4">
+        <div className="mx-auto w-12 h-12 rounded-full bg-muted/50 flex items-center justify-center mb-3">
+          <User className="h-6 w-6 text-muted-foreground" />
+        </div>
+        <h3 className="text-lg font-medium">No Applications Yet</h3>
+        <p className="text-muted-foreground mt-1 max-w-sm mx-auto">
+          No one has applied to this job yet. Applications will appear here when workers apply.
+        </p>
       </div>
     );
   }
 
   return (
-    <div className="space-y-4">
-      {applications.map((app) => (
-        <Card key={app.id} className="overflow-hidden">
-          <CardContent className="p-0">
-            <div className="p-4 border-b">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center space-x-3">
-                  <Avatar className="h-10 w-10">
-                    <AvatarImage src={app.worker?.profileImage || ''} alt={`Worker #${app.workerId}`} />
-                    <AvatarFallback>{app.worker?.username?.[0] || app.workerId}</AvatarFallback>
-                  </Avatar>
-                  <div>
-                    <div className="font-medium">
-                      {app.worker?.username || `Worker #${app.workerId}`}
-                    </div>
-                    <Badge variant="outline" className={getApplicationClass(app.status)}>
-                      {app.status.charAt(0).toUpperCase() + app.status.slice(1)}
-                    </Badge>
+    <div className="space-y-3">
+      {applications.map((application) => (
+        <div 
+          key={application.id} 
+          className="application-card transition-all"
+        >
+          <div className="flex items-start justify-between">
+            <div className="flex items-start gap-3">
+              <Avatar className="h-10 w-10 border">
+                <AvatarImage src={application.worker?.profileImage} alt={application.worker?.username} />
+                <AvatarFallback>{application.worker?.username?.charAt(0)?.toUpperCase() || 'W'}</AvatarFallback>
+              </Avatar>
+              
+              <div>
+                <div className="flex items-center gap-2">
+                  <h4 className="font-medium">{application.worker?.username || 'Worker'}</h4>
+                  <Badge className={getApplicationClass(application.status)}>
+                    {application.status.charAt(0).toUpperCase() + application.status.slice(1)}
+                  </Badge>
+                </div>
+                
+                <div className="flex flex-wrap gap-x-3 gap-y-1 mt-1">
+                  <div className="flex items-center text-xs text-muted-foreground">
+                    <Clock className="h-3.5 w-3.5 mr-1" />
+                    <span>{application.expectedDuration}</span>
+                  </div>
+                  <div className="flex items-center text-xs text-muted-foreground">
+                    <DollarSign className="h-3.5 w-3.5 mr-1" />
+                    <span>${application.hourlyRate}/hr</span>
+                  </div>
+                  <div className="flex items-center text-xs text-muted-foreground">
+                    <MessageCircle className="h-3.5 w-3.5 mr-1" />
+                    <span>Applied {format(new Date(application.createdAt), 'MMM d, yyyy')}</span>
                   </div>
                 </div>
-                {app.status === 'pending' && (
-                  <div className="flex items-center space-x-2">
-                    <Button 
-                      size="sm" 
-                      variant="outline" 
-                      className="border-green-500 text-green-600 hover:bg-green-50 hover:text-green-700"
-                      onClick={() => handleApplicationAction(app.id, 'accepted')}
-                      disabled={!!processingApplicationId}
-                    >
-                      {processingApplicationId === app.id ? (
-                        <Loader2 className="h-4 w-4 mr-1 animate-spin" />
-                      ) : (
-                        <Check className="h-4 w-4 mr-1" />
-                      )}
-                      Accept
-                    </Button>
-                    <Button 
-                      size="sm" 
-                      variant="outline" 
-                      className="border-red-500 text-red-600 hover:bg-red-50 hover:text-red-700"
-                      onClick={() => handleApplicationAction(app.id, 'rejected')}
-                      disabled={!!processingApplicationId}
-                    >
-                      {processingApplicationId === app.id ? (
-                        <Loader2 className="h-4 w-4 mr-1 animate-spin" />
-                      ) : (
-                        <X className="h-4 w-4 mr-1" />
-                      )}
-                      Reject
-                    </Button>
-                  </div>
+                
+                {application.message && (
+                  <p className="text-sm mt-2 text-muted-foreground">
+                    {application.message}
+                  </p>
                 )}
               </div>
             </div>
             
-            <div className="grid grid-cols-3 gap-4 p-4 text-sm">
-              <div>
-                <div className="flex items-center text-muted-foreground mb-1">
-                  <Clock className="h-3 w-3 mr-1" />
-                  <span>Duration</span>
-                </div>
-                <div className="font-medium">{app.expectedDuration || 'Not specified'}</div>
+            {application.status === 'pending' && (
+              <div className="flex items-center gap-2">
+                <Button 
+                  size="sm" 
+                  variant="outline" 
+                  className="border-green-200 hover:border-green-300 hover:bg-green-50 transition-colors"
+                  onClick={() => handleApplicationAction(application.id, 'accepted')}
+                  disabled={processingApplicationId === application.id}
+                >
+                  {processingApplicationId === application.id ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <CheckCheck className="h-4 w-4 text-green-500 mr-1" />
+                  )}
+                  <span>Accept</span>
+                </Button>
+                
+                <Button 
+                  size="sm" 
+                  variant="outline"
+                  className="border-red-200 hover:border-red-300 hover:bg-red-50 transition-colors"
+                  onClick={() => handleApplicationAction(application.id, 'rejected')}
+                  disabled={processingApplicationId === application.id}
+                >
+                  {processingApplicationId === application.id ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <X className="h-4 w-4 text-red-500 mr-1" />
+                  )}
+                  <span>Reject</span>
+                </Button>
               </div>
-              
-              <div>
-                <div className="flex items-center text-muted-foreground mb-1">
-                  <DollarSign className="h-3 w-3 mr-1" />
-                  <span>Rate</span>
-                </div>
-                <div className="font-medium">${app.hourlyRate?.toFixed(2) || 'Not specified'}</div>
-              </div>
-              
-              <div>
-                <div className="flex items-center text-muted-foreground mb-1">
-                  <MessageCircle className="h-3 w-3 mr-1" />
-                  <span>Message</span>
-                </div>
-                <div className="font-medium">{app.message || 'No message'}</div>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
+            )}
+          </div>
+        </div>
       ))}
     </div>
   );

@@ -13,7 +13,7 @@ import { useAuth } from '@/hooks/use-auth';
 import { useToast } from '@/hooks/use-toast';
 import { apiRequest, queryClient } from '@/lib/queryClient';
 import { StripeConnectRequired } from '@/components/stripe';
-import JobDetailsCard from './JobDetailsCard';
+import JobDetailsCard from './jobs/JobDetailsCard';
 
 interface MapSectionProps {
   jobs: Job[];
