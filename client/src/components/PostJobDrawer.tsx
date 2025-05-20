@@ -111,18 +111,25 @@ export default function PostJobDrawer({ isOpen, onOpenChange }: PostJobDrawerPro
     console.log('Payment amount:', data.paymentAmount);
     
     try {
+      // Make sure location is set to at least an empty string if undefined
+      const jobDataToSubmit = {
+        ...data,
+        location: data.location || "",
+        posterId: user.id,
+      };
+
       // For admins (user ID 20 - azi), allow direct job creation without payment
       if (user.id === 20) {
         console.log('Admin user detected, creating job without payment requirement');
         
         // Skip payment and process job directly
         const adminJobData = {
-          ...data,
-          posterId: user.id,
+          ...jobDataToSubmit,
           status: 'open' // Set to open immediately for admin
         };
         
         // Create job directly
+        console.log('Submitting admin job data:', adminJobData);
         const jobResponse = await apiRequest('POST', '/api/jobs', adminJobData);
         
         if (!jobResponse.ok) {
@@ -131,8 +138,9 @@ export default function PostJobDrawer({ isOpen, onOpenChange }: PostJobDrawerPro
         }
         
         const createdJob = await jobResponse.json();
+        console.log('Job created successfully:', createdJob);
         
-        // STEP 3: Add tasks if provided
+        // Add tasks if provided
         if (tasks.length > 0) {
           try {
             const taskData = tasks.map((task) => ({
@@ -141,10 +149,10 @@ export default function PostJobDrawer({ isOpen, onOpenChange }: PostJobDrawerPro
               position: task.position,
               isOptional: task.isOptional,
               dueTime: task.dueTime,
-              location: task.location,
-              latitude: task.latitude,
-              longitude: task.longitude,
-              bonusAmount: task.bonusAmount
+              location: task.location || "",
+              latitude: task.latitude || 0,
+              longitude: task.longitude || 0,
+              bonusAmount: task.bonusAmount || 0
             }));
             
             await apiRequest('POST', `/api/jobs/${createdJob.id}/tasks/batch`, { tasks: taskData });
@@ -182,7 +190,7 @@ export default function PostJobDrawer({ isOpen, onOpenChange }: PostJobDrawerPro
       console.log('Regular user detected, initiating payment flow');
       
       // Store the pending job data
-      setPendingJobData(data);
+      setPendingJobData(jobDataToSubmit);
       
       // Open the payment method selection dialog
       openPaymentMethodsDialog({
@@ -198,7 +206,7 @@ export default function PostJobDrawer({ isOpen, onOpenChange }: PostJobDrawerPro
           
           // Continue with submission
           const updatedData = {
-            ...data,
+            ...jobDataToSubmit,
             paymentMethodId
           };
           processPaymentAndCreateJob(updatedData);
@@ -603,11 +611,13 @@ export default function PostJobDrawer({ isOpen, onOpenChange }: PostJobDrawerPro
                             <MapPin className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                             <AddressAutocompleteInput
                               value={field.value}
-                              onChange={(value, coords) => {
+                              onChange={(value, lat, lng) => {
                                 field.onChange(value);
-                                if (coords) {
-                                  form.setValue('latitude', coords.lat);
-                                  form.setValue('longitude', coords.lng);
+                                // Make sure we're dealing with valid numbers
+                                if (typeof lat === 'number' && typeof lng === 'number') {
+                                  form.setValue('latitude', lat);
+                                  form.setValue('longitude', lng);
+                                  console.log(`Address set with coords: ${lat}, ${lng}`);
                                 }
                               }}
                               placeholder="Enter job address"
