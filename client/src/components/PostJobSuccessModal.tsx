@@ -21,8 +21,16 @@ const PostJobSuccessModal: React.FC<PostJobSuccessModalProps> = ({
   const [, navigate] = useLocation();
 
   const handleViewJob = () => {
-    navigate(`/job/${jobId}`);
+    // First close the modal
     onClose();
+    
+    // Use setTimeout to ensure the modal is fully closed before navigation
+    setTimeout(() => {
+      // Open job details via JobDetailsCard component
+      window.dispatchEvent(new CustomEvent('open-job-details', { 
+        detail: { jobId: jobId }
+      }));
+    }, 100);
   };
 
   const handleFindMore = () => {

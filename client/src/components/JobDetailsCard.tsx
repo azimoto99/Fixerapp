@@ -49,6 +49,32 @@ interface JobDetailsCardProps {
 }
 
 const JobDetailsCard: React.FC<JobDetailsCardProps> = ({ jobId, isOpen, onClose }) => {
+  
+  // Listen for the custom event to open job details from other components
+  useEffect(() => {
+    const handleOpenJobDetails = (event: CustomEvent<{ jobId: number }>) => {
+      if (event.detail && event.detail.jobId) {
+        // Only trigger if the job ID matches this component's job ID or if this is a reusable component
+        if (event.detail.jobId === jobId || jobId === 0) {
+          onClose(); // First close it (to reset state if needed)
+          setTimeout(() => {
+            // Then reopen with the new job ID
+            window.dispatchEvent(new CustomEvent('set-job-id', { 
+              detail: { jobId: event.detail.jobId }
+            }));
+          }, 50);
+        }
+      }
+    };
+    
+    // Add event listener
+    window.addEventListener('open-job-details', handleOpenJobDetails as EventListener);
+    
+    // Clean up
+    return () => {
+      window.removeEventListener('open-job-details', handleOpenJobDetails as EventListener);
+    };
+  }, [jobId, onClose]);
   const { user } = useAuth();
   const [_, navigate] = useLocation();
   const { toast } = useToast();
