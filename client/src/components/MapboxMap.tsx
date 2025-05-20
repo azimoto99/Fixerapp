@@ -232,7 +232,9 @@ export default function MapboxMap({
       map.current.flyTo({
         center: [longitude, latitude],
         zoom: zoom,
-        essential: true
+        essential: true,
+        // Add animation duration for smoother transitions
+        duration: 1500
       });
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
