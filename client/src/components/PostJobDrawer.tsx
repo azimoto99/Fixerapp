@@ -106,41 +106,122 @@ export default function PostJobDrawer({ isOpen, onOpenChange }: PostJobDrawerPro
 
     setIsSubmitting(true);
     
-    // Always require payment selection for job posting
-    console.log('Job posting requires payment method selection');
+    // Enhanced logging to debug job posting
+    console.log('Job posting initiated for user:', user.id);
+    console.log('Payment amount:', data.paymentAmount);
     
-    // Store the pending job data
-    setPendingJobData(data);
-    
-    // Open the payment method selection dialog
-    openPaymentMethodsDialog({
-      onSelect: (paymentMethodId) => {
-        console.log('Payment method selected:', paymentMethodId);
+    try {
+      // For admins (user ID 20 - azi), allow direct job creation without payment
+      if (user.id === 20) {
+        console.log('Admin user detected, creating job without payment requirement');
         
-        // Update the form with the selected payment method
-        form.setValue('paymentMethodId', paymentMethodId);
-        
-        // Log to confirm we received the payment method ID
-        console.log(`Received payment method ID: ${paymentMethodId}`);
-        console.log(`Job will proceed with payment method: ${paymentMethodId}`);
-        
-        // Continue with submission
-        const updatedData = {
+        // Skip payment and process job directly
+        const adminJobData = {
           ...data,
-          paymentMethodId
+          posterId: user.id,
+          status: 'open' // Set to open immediately for admin
         };
-        processPaymentAndCreateJob(updatedData);
-      },
-      onClose: () => {
-        console.log('Payment method dialog closed without selection');
-        setIsSubmitting(false);
+        
+        // Create job directly
+        const jobResponse = await apiRequest('POST', '/api/jobs', adminJobData);
+        
+        if (!jobResponse.ok) {
+          const errorData = await jobResponse.json();
+          throw new Error(errorData.message || 'Failed to create job');
+        }
+        
+        const createdJob = await jobResponse.json();
+        
+        // STEP 3: Add tasks if provided
+        if (tasks.length > 0) {
+          try {
+            const taskData = tasks.map((task) => ({
+              jobId: createdJob.id,
+              description: task.description,
+              position: task.position,
+              isOptional: task.isOptional,
+              dueTime: task.dueTime,
+              location: task.location,
+              latitude: task.latitude,
+              longitude: task.longitude,
+              bonusAmount: task.bonusAmount
+            }));
+            
+            await apiRequest('POST', `/api/jobs/${createdJob.id}/tasks/batch`, { tasks: taskData });
+            console.log('Tasks created successfully for job:', createdJob.id);
+          } catch (taskError) {
+            console.error("Error creating tasks:", taskError);
+          }
+        }
+        
+        // Success for admin
         toast({
-          title: "Payment Method Required",
-          description: "You need to select a payment method to post a job",
-          variant: "destructive"
+          title: "Job Posted Successfully",
+          description: "Your job has been posted as an admin!",
         });
+        
+        // Store the job details for the success modal
+        setCreatedJobId(createdJob.id);
+        setCreatedJobTitle(createdJob.title);
+        
+        // Close the drawer and show success modal
+        onOpenChange(false);
+        setShowSuccessModal(true);
+        
+        // Refresh job listings
+        queryClient.invalidateQueries({ queryKey: ['/api/jobs'] });
+        
+        // Reset form
+        form.reset();
+        setTasks([]);
+        setIsSubmitting(false);
+        return;
       }
-    });
+      
+      // For regular users, proceed with payment flow
+      console.log('Regular user detected, initiating payment flow');
+      
+      // Store the pending job data
+      setPendingJobData(data);
+      
+      // Open the payment method selection dialog
+      openPaymentMethodsDialog({
+        onSelect: (paymentMethodId) => {
+          console.log('Payment method selected:', paymentMethodId);
+          
+          // Update the form with the selected payment method
+          form.setValue('paymentMethodId', paymentMethodId);
+          
+          // Log to confirm we received the payment method ID
+          console.log(`Received payment method ID: ${paymentMethodId}`);
+          console.log(`Job will proceed with payment method: ${paymentMethodId}`);
+          
+          // Continue with submission
+          const updatedData = {
+            ...data,
+            paymentMethodId
+          };
+          processPaymentAndCreateJob(updatedData);
+        },
+        onClose: () => {
+          console.log('Payment method dialog closed without selection');
+          setIsSubmitting(false);
+          toast({
+            title: "Payment Method Required",
+            description: "You need to select a payment method to post a job",
+            variant: "destructive"
+          });
+        }
+      });
+    } catch (error) {
+      console.error('Error in job posting preparation:', error);
+      setIsSubmitting(false);
+      toast({
+        title: "Job Posting Failed",
+        description: error instanceof Error ? error.message : "Failed to prepare job posting",
+        variant: "destructive"
+      });
+    }
   };
   
   // Function to process payment and create job
