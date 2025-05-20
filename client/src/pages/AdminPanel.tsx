@@ -73,7 +73,6 @@ import {
   LockKeyhole,
   AlertTriangle
 } from 'lucide-react';
-import { useToast } from '@/hooks/use-toast';
 import { Skeleton } from '@/components/ui/skeleton';
 import {
   DropdownMenu,
@@ -101,6 +100,71 @@ const AdminPanel = () => {
   const [, navigate] = useLocation();
   const [activeTab, setActiveTab] = useState('dashboard');
   const [searchQuery, setSearchQuery] = useState('');
+  const queryClient = useQueryClient();
+  
+  // Admin job creation state
+  const [showAdminJobModal, setShowAdminJobModal] = useState(false);
+  const [jobTitle, setJobTitle] = useState('');
+  const [jobDescription, setJobDescription] = useState('');
+  const [jobCategory, setJobCategory] = useState('Cleaning');
+  const [jobLocation, setJobLocation] = useState('');
+  const [jobBudget, setJobBudget] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  
+  // Create a job without payment (admin only)
+  const createAdminJob = async () => {
+    if (!jobTitle || !jobDescription || !jobCategory || !jobLocation || !jobBudget) {
+      toast({
+        title: "Missing fields",
+        description: "Please fill out all required fields",
+        variant: "destructive"
+      });
+      return;
+    }
+    
+    setIsSubmitting(true);
+    
+    try {
+      const res = await apiRequest('POST', '/api/admin/jobs/create', {
+        title: jobTitle,
+        description: jobDescription,
+        category: jobCategory,
+        location: jobLocation,
+        budget: parseFloat(jobBudget),
+        bypassPayment: true
+      });
+      
+      if (!res.ok) {
+        const error = await res.json();
+        throw new Error(error.message || 'Failed to create job');
+      }
+      
+      toast({
+        title: "Job Created",
+        description: "The job has been created successfully without payment requirement.",
+      });
+      
+      // Reset form and close modal
+      setJobTitle('');
+      setJobDescription('');
+      setJobCategory('Cleaning');
+      setJobLocation('');
+      setJobBudget('');
+      setShowAdminJobModal(false);
+      
+      // Refresh jobs data
+      queryClient.invalidateQueries({ queryKey: ['/api/admin/jobs'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/jobs'] });
+    } catch (error: any) {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to create job",
+        variant: "destructive"
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
   
   // Check if user is authorized to access the admin panel (only azi with ID 20)
   useEffect(() => {
