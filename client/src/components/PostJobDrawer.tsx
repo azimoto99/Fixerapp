@@ -34,15 +34,27 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { usePaymentDialog } from '@/components/payments/PaymentDialogManager';
 import PostJobSuccessModal from '@/components/PostJobSuccessModal';
 
-// Form schema with validation
+// Form schema with enhanced validation and formatting
 const formSchema = insertJobSchema.extend({
-  title: z.string().min(3, 'Title must be at least 3 characters'),
-  description: z.string().min(5, 'Description must be at least 5 characters'),
+  title: z.string()
+    .min(3, 'Title must be at least 3 characters')
+    .max(100, 'Title must be less than 100 characters')
+    .transform(val => val.trim()), // Remove trailing whitespace
+  description: z.string()
+    .min(5, 'Description must be at least 5 characters')
+    .transform(val => val.trim()), // Remove trailing whitespace
   paymentAmount: z.coerce
     .number()
     .min(5, 'Minimum payment amount is $5')
-    .positive('Payment amount must be positive'),
-  dateNeeded: z.string(),
+    .positive('Payment amount must be positive')
+    .transform(val => Math.round(val * 100) / 100), // Round to 2 decimal places
+  location: z.string()
+    .transform(val => val.trim() || ""), // Ensure location is at least an empty string
+  latitude: z.number()
+    .transform(val => Number(val.toFixed(6))), // Format to 6 decimal places
+  longitude: z.number()
+    .transform(val => Number(val.toFixed(6))), // Format to 6 decimal places
+  dateNeeded: z.string(), // Keep as ISO string format
   paymentMethodId: z.string().optional(),
   autoAcceptApplicants: z.boolean().default(false),
 });
@@ -545,7 +557,26 @@ export default function PostJobDrawer({ isOpen, onOpenChange }: PostJobDrawerPro
                               min="5"
                               step="0.01"
                               className="pl-9"
-                              {...field}
+                              placeholder="0.00"
+                              onChange={(e) => {
+                                // Format to 2 decimal places and parse to number
+                                const value = e.target.value;
+                                const numValue = parseFloat(value);
+                                if (!isNaN(numValue)) {
+                                  // Only update if it's a valid number
+                                  field.onChange(numValue);
+                                } else {
+                                  field.onChange(0);
+                                }
+                              }}
+                              value={field.value === 0 ? '' : field.value}
+                              onBlur={(e) => {
+                                // On blur, format to 2 decimal places for display
+                                const value = parseFloat(e.target.value);
+                                if (!isNaN(value)) {
+                                  field.onChange(parseFloat(value.toFixed(2)));
+                                }
+                              }}
                             />
                           </div>
                         </FormControl>
@@ -574,12 +605,18 @@ export default function PostJobDrawer({ isOpen, onOpenChange }: PostJobDrawerPro
                             <AddressAutocompleteInput
                               value={field.value}
                               onChange={(value, lat, lng) => {
-                                field.onChange(value);
+                                // Format address string
+                                field.onChange(value?.trim() || "");
+                                
                                 // Make sure we're dealing with valid numbers
                                 if (typeof lat === 'number' && typeof lng === 'number') {
-                                  form.setValue('latitude', lat);
-                                  form.setValue('longitude', lng);
-                                  console.log(`Address set with coords: ${lat}, ${lng}`);
+                                  // Format to exactly 6 decimal places
+                                  const formattedLat = Number(lat.toFixed(6));
+                                  const formattedLng = Number(lng.toFixed(6));
+                                  
+                                  form.setValue('latitude', formattedLat);
+                                  form.setValue('longitude', formattedLng);
+                                  console.log(`Address set with coords: ${formattedLat}, ${formattedLng}`);
                                 }
                               }}
                               placeholder="Enter job address"
