@@ -55,6 +55,9 @@ const MapSection: React.FC<MapSectionProps> = ({ jobs, selectedJob, onSelectJob,
     jobId: number;
   } | null>(null);
   
+  // Create a highlighted job marker for the "Show on Map" functionality
+  const [highlightedJobId, setHighlightedJobId] = useState<number | null>(null);
+  
   useEffect(() => {
     // Listen for requests to center the map on a specific job
     const handleCenterMapOnJob = (event: CustomEvent<{
@@ -69,18 +72,13 @@ const MapSection: React.FC<MapSectionProps> = ({ jobs, selectedJob, onSelectJob,
         longitude: event.detail.longitude
       });
       
-      // Briefly highlight the job by selecting it then unselecting it after 2 seconds
-      if (event.detail.jobId && jobs) {
-        const job = jobs.find(j => j.id === event.detail.jobId);
-        if (job && onSelectJob) {
-          // Select the job briefly
-          onSelectJob(job);
-          // Unselect after 2 seconds
-          setTimeout(() => {
-            onSelectJob(undefined);
-          }, 2000);
-        }
-      }
+      // Mark this job as highlighted so we can add a special marker for it
+      setHighlightedJobId(event.detail.jobId);
+      
+      // After 5 seconds, reset the highlight
+      setTimeout(() => {
+        setHighlightedJobId(null);
+      }, 5000);
     };
     
     window.addEventListener('center-map-on-job', handleCenterMapOnJob as EventListener);
@@ -88,7 +86,7 @@ const MapSection: React.FC<MapSectionProps> = ({ jobs, selectedJob, onSelectJob,
     return () => {
       window.removeEventListener('center-map-on-job', handleCenterMapOnJob as EventListener);
     };
-  }, [jobs, onSelectJob]);
+  }, []);
   const { user } = useAuth();
   const { toast } = useToast();
   
@@ -271,49 +269,63 @@ const MapSection: React.FC<MapSectionProps> = ({ jobs, selectedJob, onSelectJob,
   
   // Create markers for Mapbox map
   const jobMarkers = useMemo(() => {
-    // If we have jobs with coordinates, use those
+    // Create a typed array to avoid TypeScript errors
+    const markers: {
+      latitude: number;
+      longitude: number;
+      title: string;
+      description: string;
+      onClick: () => void;
+    }[] = [];
+    
+    // If we have jobs with coordinates, add them as markers
     if (jobs && jobs.length > 0) {
       console.log('Processing jobs for markers:', jobs.length, 'jobs');
       
-      const realJobMarkers = jobs
-        .filter(job => {
-          // Log jobs without coordinates for debugging
-          if (!job.latitude || !job.longitude) {
-            console.log('Job missing coordinates:', job.id, job.title);
-            return false;
-          }
-          return true;
-        })
-        .map(job => {
-          console.log('Creating marker for job:', job.id, job.title, job.latitude, job.longitude);
-          return {
-            latitude: job.latitude,
-            longitude: job.longitude,
-            title: job.title,
-            description: `$${job.paymentAmount?.toFixed(2)} - ${job.paymentType}`,
-            onClick: () => handleMarkerClick(job)
-          };
-        });
+      // Filter jobs with valid coordinates and create markers
+      const jobsWithCoordinates = jobs.filter(job => job.latitude && job.longitude);
       
-      console.log('Created markers:', realJobMarkers.length);
-      if (realJobMarkers.length > 0) return realJobMarkers;
+      jobsWithCoordinates.forEach(job => {
+        console.log('Creating marker for job:', job.id, job.title, job.latitude, job.longitude);
+        
+        markers.push({
+          latitude: job.latitude,
+          longitude: job.longitude,
+          title: job.title,
+          description: `$${job.paymentAmount?.toFixed(2)} - ${job.paymentType}`,
+          onClick: () => handleMarkerClick(job)
+        });
+      });
+      
+      console.log('Created job markers:', markers.length);
     }
     
-    // If no real jobs with coordinates, create one test marker at the user location
+    // Always create a test marker to ensure something shows up
     if (position) {
-      console.log('Creating fallback marker at user location');
-      return [{
+      console.log('Creating test marker at position');
+      markers.push({
         latitude: position.latitude,
         longitude: position.longitude,
-        title: 'Your Location',
-        description: 'No jobs found nearby',
+        title: 'Current Location',
+        description: 'You are here',
         onClick: () => {}
-      }];
+      });
     }
     
-    // If no real jobs with coordinates, return an empty array
-    return [];
-  }, [jobs, handleMarkerClick, position]);
+    // If we have focus coordinates from "Show on Map", add a special highlighted marker
+    if (focusMapCoordinates) {
+      console.log('Adding special marker for focused job at:', focusMapCoordinates);
+      markers.push({
+        latitude: focusMapCoordinates.latitude,
+        longitude: focusMapCoordinates.longitude,
+        title: 'Job Location',
+        description: 'Selected Job Position',
+        onClick: () => {}
+      });
+    }
+    
+    return markers;
+  }, [jobs, handleMarkerClick, position, focusMapCoordinates, highlightedJobId]);
   
   // If no user location yet, show loading
   if (!position) {
