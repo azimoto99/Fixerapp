@@ -33,7 +33,7 @@ import { ThemeProvider } from "@/components/theme";
 import { OnboardingProvider } from "@/components/onboarding/OnboardingProvider";
 import ContextualTips from "@/components/onboarding/ContextualTips";
 import { SimpleToastProvider } from "@/hooks/use-simple-toast";
-import MessagingDrawer from "@/components/MessagingDrawer";
+import { MessagingDrawer } from "@/components/MessagingDrawer";
 import ExpoConnectGuide from "@/components/ExpoConnectGuide";
 import { useState, useEffect } from "react";
 
