@@ -299,15 +299,21 @@ const MapSection: React.FC<MapSectionProps> = ({ jobs, selectedJob, onSelectJob,
         
         console.log('Creating marker for job:', job.id, job.title, job.latitude, job.longitude);
         
+        // Force number conversion and ensure coordinates are valid numbers
+        const lat = typeof job.latitude === 'string' ? parseFloat(job.latitude) : job.latitude;
+        const lng = typeof job.longitude === 'string' ? parseFloat(job.longitude) : job.longitude;
+        
+        if (job.id === 26) {
+          console.log('🔴 Adding CRITICAL job marker in Encinal, TX:', lat, lng);
+        }
+        
         markers.push({
-          latitude: job.latitude,
-          longitude: job.longitude,
+          latitude: lat,
+          longitude: lng,
           title: job.title,
           description: `$${job.paymentAmount?.toFixed(2)} - ${job.paymentType}`,
           onClick: () => handleMarkerClick(job),
-          isHighlighted: isHighlighted,
-          // Visually differentiate jobs that match the current search criteria
-          // This would require styling changes in the MapboxMap component
+          isHighlighted: true, // Highlight all job markers for better visibility
         });
       });
       
