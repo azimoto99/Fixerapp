@@ -189,72 +189,52 @@ export default function MapboxMap({
       const markerEl = document.createElement('div');
       markerEl.className = 'map-marker';
       
-      // Make job markers MUCH larger and more obvious
+      // Simple, clean marker styling for all types
       const isJobMarker = !(marker.title === 'Current Location' || marker.title === 'Job Location');
       
       if (isJobMarker) {
-        // Jobs get extra-large, prominent styling
-        markerEl.style.width = '60px';
-        markerEl.style.height = '60px'; 
+        // Standard job marker - simple circular button
+        markerEl.style.width = '30px';
+        markerEl.style.height = '30px'; 
         markerEl.style.borderRadius = '50%';
-        markerEl.style.backgroundColor = '#f59e0b'; // Amber color for all job markers
-        markerEl.style.border = '4px solid white';
-        markerEl.style.boxShadow = '0 4px 15px rgba(0,0,0,0.7)';
-        markerEl.style.animation = 'pulse 1.5s infinite';
+        markerEl.style.backgroundColor = '#f59e0b'; // Amber for jobs
+        markerEl.style.border = '2px solid white';
+        markerEl.style.boxShadow = '0 2px 4px rgba(0,0,0,0.3)';
         markerEl.style.cursor = 'pointer';
-        
-        // Container for dollar sign
-        const innerCircle = document.createElement('div');
-        innerCircle.style.width = '45px';
-        innerCircle.style.height = '45px';
-        innerCircle.style.borderRadius = '50%';
-        innerCircle.style.backgroundColor = '#d97706'; // Darker amber for inner circle
-        innerCircle.style.display = 'flex';
-        innerCircle.style.alignItems = 'center';
-        innerCircle.style.justifyContent = 'center';
-        innerCircle.style.color = 'white';
-        innerCircle.style.fontSize = '28px';
-        innerCircle.style.fontWeight = 'bold';
-        innerCircle.style.boxShadow = 'inset 0 2px 5px rgba(0,0,0,0.3)';
-        innerCircle.innerHTML = '$';
-        
-        markerEl.appendChild(innerCircle);
+        markerEl.style.display = 'flex';
+        markerEl.style.alignItems = 'center';
+        markerEl.style.justifyContent = 'center';
+        markerEl.style.color = 'white';
+        markerEl.style.fontSize = '16px';
+        markerEl.style.fontWeight = 'bold';
+        markerEl.innerHTML = '$';
       } else if (marker.title === 'Current Location') {
         // User location marker styling
-        markerEl.style.width = '40px';
-        markerEl.style.height = '40px';
+        markerEl.style.width = '25px';
+        markerEl.style.height = '25px';
         markerEl.style.borderRadius = '50%';
         markerEl.style.backgroundColor = '#3b82f6'; // Blue
-        markerEl.style.border = '3px solid white';
-        markerEl.style.boxShadow = '0 3px 10px rgba(0,0,0,0.5)';
+        markerEl.style.border = '2px solid white';
+        markerEl.style.boxShadow = '0 2px 4px rgba(0,0,0,0.3)';
         markerEl.style.display = 'flex';
         markerEl.style.alignItems = 'center';
         markerEl.style.justifyContent = 'center';
-        markerEl.style.fontSize = '24px';
+        markerEl.style.fontSize = '14px';
         markerEl.innerHTML = '📍';
       } else {
-        // Job focus marker styling
-        markerEl.style.width = '50px';
-        markerEl.style.height = '50px';
+        // Special job focus marker styling
+        markerEl.style.width = '28px';
+        markerEl.style.height = '28px';
         markerEl.style.borderRadius = '50%';
         markerEl.style.backgroundColor = '#ef4444'; // Red
-        markerEl.style.border = '3px solid white';
-        markerEl.style.boxShadow = '0 3px 10px rgba(0,0,0,0.5)';
+        markerEl.style.border = '2px solid white';
+        markerEl.style.boxShadow = '0 2px 4px rgba(0,0,0,0.3)';
         markerEl.style.display = 'flex';
         markerEl.style.alignItems = 'center';
         markerEl.style.justifyContent = 'center';
-        markerEl.style.fontSize = '24px';
-        markerEl.style.animation = 'pulse 1.5s infinite';
+        markerEl.style.fontSize = '16px';
         markerEl.innerHTML = '🎯';
       }
-      
-      // Common styling for all markers
-      markerEl.style.cursor = 'pointer';
-      markerEl.style.display = 'flex';
-      markerEl.style.alignItems = 'center';
-      markerEl.style.justifyContent = 'center';
-      markerEl.style.zIndex = '999'; // Ensure markers appear above other map elements
-      markerEl.style.position = 'relative'; // Position properly
       
       // Add a pulse animation style to the document if it doesn't exist
       if (!document.getElementById('marker-animations')) {
@@ -289,12 +269,15 @@ export default function MapboxMap({
           }
           
           // Create the mapboxgl marker with enhanced options
-          const mapboxMarker = new mapboxgl.Marker({
+          // Set proper z-index on the container element to make it appear above UI elements
+      markerEl.style.zIndex = '10000';
+      markerEl.style.pointerEvents = 'auto';
+      
+      const mapboxMarker = new mapboxgl.Marker({
             element: markerEl,
             // Use the correct coordinates - Mapbox wants [lng, lat]
             anchor: 'center', // Position the marker with its center at the coordinates
             offset: [0, 0], // No offset
-            // Force scale to ensure proper sizing
             scale: 1.0
           }).setLngLat([lng, lat]);
           
