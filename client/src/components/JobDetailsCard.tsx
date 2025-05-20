@@ -466,14 +466,14 @@ const JobDetailsCard: React.FC<JobDetailsCardProps> = ({ jobId, isOpen, onClose 
           <CardHeader>
             <div className="flex justify-between items-start">
               <div>
-                <Badge className={getStatusColor(job.status)} variant="outline">
+                <Badge variant="outline" className={getStatusClass(job.status)}>
                   {job.status === 'pending_payment' ? 'Pending Payment' : 
                    job.status === 'in_progress' ? 'In Progress' : 
                    job.status.charAt(0).toUpperCase() + job.status.slice(1)}
                 </Badge>
                 
                 {hasApplied && (
-                  <Badge className={getApplicationStatusColor(application.status)} variant="outline" className="ml-2">
+                  <Badge variant="outline" className={`ml-2 ${getApplicationClass(application.status)}`}>
                     Application: {application.status.charAt(0).toUpperCase() + application.status.slice(1)}
                   </Badge>
                 )}
