@@ -123,10 +123,18 @@ export default function PostJobDrawer({ isOpen, onOpenChange }: PostJobDrawerPro
     console.log('Payment amount:', data.paymentAmount);
     
     try {
-      // Make sure location is set to at least an empty string if undefined
+      // Final data formatting and validation before submission
       const jobDataToSubmit = {
         ...data,
-        location: data.location || "",
+        // Format all text fields
+        title: data.title.trim().replace(/\b\w/g, c => c.toUpperCase()),
+        description: data.description.trim(),
+        location: data.location.trim() || "",
+        // Ensure we have properly formatted numbers
+        latitude: Number(Number(data.latitude).toFixed(6)),
+        longitude: Number(Number(data.longitude).toFixed(6)),
+        paymentAmount: Number(Number(data.paymentAmount).toFixed(2)),
+        // Ensure posterId is set
         posterId: user.id,
       };
       
@@ -411,9 +419,27 @@ export default function PostJobDrawer({ isOpen, onOpenChange }: PostJobDrawerPro
                     <FormItem>
                       <FormLabel>Job Title</FormLabel>
                       <FormControl>
-                        <Input placeholder="e.g. Lawn Mowing" {...field} />
+                        <Input 
+                          placeholder="e.g. Lawn Mowing" 
+                          onChange={(e) => {
+                            // Auto-capitalize first letter of each word
+                            const value = e.target.value.replace(/\b\w/g, (char) => char.toUpperCase());
+                            field.onChange(value);
+                          }}
+                          onBlur={(e) => {
+                            // Final trim and formatting on blur
+                            const value = e.target.value.trim();
+                            // Ensure first letter is capitalized and limit to 100 chars
+                            const formattedValue = value.charAt(0).toUpperCase() + value.slice(1, 100);
+                            field.onChange(formattedValue);
+                          }}
+                          value={field.value}
+                        />
                       </FormControl>
                       <FormMessage />
+                      <FormDescription>
+                        {field.value?.length || 0}/100 characters
+                      </FormDescription>
                     </FormItem>
                   )}
                 />
@@ -428,10 +454,25 @@ export default function PostJobDrawer({ isOpen, onOpenChange }: PostJobDrawerPro
                         <Textarea 
                           placeholder="Describe the job in detail..." 
                           className="min-h-[100px]"
-                          {...field} 
+                          onChange={(e) => {
+                            // Sanitize and trim description
+                            const value = e.target.value
+                              .replace(/\s+/g, ' ') // Replace multiple spaces with single space
+                              .replace(/^\s+|\s+$/g, ''); // Trim start and end
+                            field.onChange(value);
+                          }}
+                          onBlur={(e) => {
+                            // Final trim on blur
+                            const cleanValue = e.target.value.trim();
+                            field.onChange(cleanValue);
+                          }}
+                          value={field.value}
                         />
                       </FormControl>
                       <FormMessage />
+                      <FormDescription>
+                        {field.value?.length || 0}/5000 characters
+                      </FormDescription>
                     </FormItem>
                   )}
                 />
@@ -642,11 +683,34 @@ export default function PostJobDrawer({ isOpen, onOpenChange }: PostJobDrawerPro
                               type="date"
                               className="pl-9"
                               min={new Date().toISOString().split('T')[0]}
-                              {...field}
+                              onChange={(e) => {
+                                // Make sure we have a valid date
+                                const inputDate = e.target.value;
+                                if (inputDate) {
+                                  try {
+                                    // Ensure date is properly formatted as ISO string (YYYY-MM-DD)
+                                    const date = new Date(inputDate);
+                                    const formattedDate = date.toISOString().split('T')[0];
+                                    field.onChange(formattedDate);
+                                  } catch (error) {
+                                    // If date is invalid, keep the current value
+                                    console.error("Invalid date format:", error);
+                                  }
+                                } else {
+                                  // Default to tomorrow if empty
+                                  const tomorrow = new Date();
+                                  tomorrow.setDate(tomorrow.getDate() + 1);
+                                  field.onChange(tomorrow.toISOString().split('T')[0]);
+                                }
+                              }}
+                              value={field.value}
                             />
                           </div>
                         </FormControl>
                         <FormMessage />
+                        <FormDescription>
+                          When do you need this job completed?
+                        </FormDescription>
                       </FormItem>
                     )}
                   />
