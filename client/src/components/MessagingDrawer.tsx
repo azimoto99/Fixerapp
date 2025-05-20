@@ -363,13 +363,15 @@ export function MessagingDrawer({ open, onOpenChange }: MessagingDrawerProps) {
                     </div>
                   ) : (
                     contacts.map((contact: Contact) => (
-                      <Card 
+                      <div 
                         key={contact.id} 
-                        className="p-3 cursor-pointer hover:bg-muted transition-colors"
+                        className={`p-3 cursor-pointer hover:bg-accent/50 border rounded-md transition-colors ${
+                          selectedContactId === contact.id ? 'bg-accent border-accent' : 'bg-card'
+                        }`}
                         onClick={() => handleContactSelect(contact.id)}
                       >
                         <div className="flex items-center gap-3">
-                          <Avatar>
+                          <Avatar className="h-10 w-10 border">
                             <AvatarImage src={contact.avatarUrl || ""} alt={contact.username} />
                             <AvatarFallback>{getInitials(contact.fullName)}</AvatarFallback>
                           </Avatar>
@@ -379,7 +381,8 @@ export function MessagingDrawer({ open, onOpenChange }: MessagingDrawerProps) {
                           </div>
                           <Button 
                             variant="ghost" 
-                            size="icon" 
+                            size="icon"
+                            className="h-8 w-8 rounded-full opacity-70 hover:opacity-100"
                             onClick={(e) => {
                               e.stopPropagation();
                               handleRemoveContact(contact.id);
@@ -388,7 +391,7 @@ export function MessagingDrawer({ open, onOpenChange }: MessagingDrawerProps) {
                             <X className="h-4 w-4" />
                           </Button>
                         </div>
-                      </Card>
+                      </div>
                     ))
                   )}
                 </div>
@@ -397,40 +400,51 @@ export function MessagingDrawer({ open, onOpenChange }: MessagingDrawerProps) {
           </TabsContent>
 
           <TabsContent value="search" className="flex flex-col h-full m-0 p-4">
-            <div className="flex gap-2 mb-4">
-              <Input
-                placeholder="Search by username or email..."
-                value={searchQuery}
-                onChange={(e) => {
-                  const value = e.target.value;
-                  setSearchQuery(value);
-                  
-                  // Clear any existing timeout
-                  if (searchTimeoutRef.current) {
-                    clearTimeout(searchTimeoutRef.current);
-                  }
-                  
-                  // Only trigger search if query is long enough
-                  if (value.length > 1) {
-                    // Set a timeout to avoid too many requests
-                    searchTimeoutRef.current = setTimeout(() => {
-                      refetchSearch();
-                    }, 300);
-                  }
-                }}
-                className="flex-grow"
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter') {
-                    e.preventDefault();
-                    // Force refetch when Enter is pressed
-                    if (searchQuery.length > 1) {
-                      if (searchTimeoutRef.current) {
-                        clearTimeout(searchTimeoutRef.current);
-                      }
-                      refetchSearch();
+            <div className="flex justify-between items-center mb-3">
+              <h3 className="text-sm font-medium text-foreground">Find users</h3>
+              <Badge variant="outline" className="text-xs">
+                {searchQuery.length > 1 && !isSearchLoading ? 
+                  `${searchResults.length} ${searchResults.length === 1 ? 'result' : 'results'}` : 
+                  'Search users'}
+              </Badge>
+            </div>
+            
+            <div className="relative flex gap-2 mb-4">
+              <div className="relative flex-grow">
+                <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+                <Input
+                  placeholder="Search by username or email..."
+                  value={searchQuery}
+                  onChange={(e) => {
+                    const value = e.target.value;
+                    setSearchQuery(value);
+                    
+                    // Clear any existing timeout
+                    if (searchTimeoutRef.current) {
+                      clearTimeout(searchTimeoutRef.current);
                     }
-                  }
-                }}
+                    
+                    // Only trigger search if query is long enough
+                    if (value.length > 1) {
+                      // Set a timeout to avoid too many requests
+                      searchTimeoutRef.current = setTimeout(() => {
+                        refetchSearch();
+                      }, 300);
+                    }
+                  }}
+                  className="pl-9"
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') {
+                      e.preventDefault();
+                      // Force refetch when Enter is pressed
+                      if (searchQuery.length > 1) {
+                        if (searchTimeoutRef.current) {
+                          clearTimeout(searchTimeoutRef.current);
+                        }
+                        refetchSearch();
+                      }
+                    }
+                  }}
               />
               <Button 
                 variant="outline" 
