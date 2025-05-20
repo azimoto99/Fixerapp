@@ -230,13 +230,23 @@ export function MessagingDrawer({ open, onOpenChange }: MessagingDrawerProps) {
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetContent side="left" className="flex flex-col w-[400px] sm:max-w-md p-0">
-        <SheetHeader className="p-4 border-b">
-          <SheetTitle>Messages</SheetTitle>
-          <SheetDescription>Contact and chat with other users</SheetDescription>
-        </SheetHeader>
+        <div className="px-4 py-3 border-b flex justify-between items-center sticky top-0 bg-background z-10">
+          <div className="flex flex-col space-y-1">
+            <h2 className="text-lg font-semibold tracking-tight">Messages</h2>
+            <p className="text-sm text-muted-foreground">Connect with other users</p>
+          </div>
+          <Button 
+            variant="ghost" 
+            size="icon"
+            onClick={() => onOpenChange(false)}
+            className="h-8 w-8 p-0 rounded-full"
+          >
+            <X className="h-4 w-4" />
+          </Button>
+        </div>
 
         <Tabs value={tab} onValueChange={setTab} className="flex flex-col flex-grow h-full">
-          <TabsList className="grid grid-cols-2 mx-4 mt-2">
+          <TabsList className="grid grid-cols-2 mx-4 mt-3 mb-2">
             <TabsTrigger value="contacts">Contacts</TabsTrigger>
             <TabsTrigger value="search">Find Users</TabsTrigger>
           </TabsList>
@@ -336,13 +346,18 @@ export function MessagingDrawer({ open, onOpenChange }: MessagingDrawerProps) {
               </div>
             ) : (
               <div className="p-4 flex flex-col gap-2">
-                <p className="text-sm text-muted-foreground mb-2">Your contacts</p>
-                <div className="space-y-2">
+                <div className="flex justify-between items-center mb-3">
+                  <h3 className="text-sm font-medium text-foreground">Your contacts</h3>
+                  <Badge variant="outline" className="text-xs">
+                    {contacts.length} {contacts.length === 1 ? 'contact' : 'contacts'}
+                  </Badge>
+                </div>
+                <div className="space-y-2 rounded-md">
                   {contacts.length === 0 ? (
-                    <div className="text-center p-4">
+                    <div className="text-center p-6 border rounded-md bg-muted/30">
                       <MessageSquare className="h-10 w-10 mx-auto text-muted-foreground mb-2" />
-                      <p className="text-muted-foreground">No contacts yet</p>
-                      <p className="text-sm text-muted-foreground">
+                      <p className="text-muted-foreground font-medium">No contacts yet</p>
+                      <p className="text-sm text-muted-foreground mt-1">
                         Use the Find Users tab to add contacts
                       </p>
                     </div>
