@@ -30,6 +30,7 @@
   --z-drawer-backdrop: 9000;
   --z-drawer: 9100;
   --z-dialogs: 9500;
+  --z-job-card: 9800;
   --z-toasts: 9900;
   --z-critical: 10000;
 }
