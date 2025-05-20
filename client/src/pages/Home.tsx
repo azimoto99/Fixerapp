@@ -57,9 +57,12 @@ const WorkerDashboard = () => {
   // Keep all custom hook calls after useState hooks
   const { user } = useAuth();
   const { userLocation } = useGeolocation();
+  // When in worker view, we want to show all available jobs EXCEPT our own
+  // This ensures workers see jobs from other users on the map
   const { jobs, isLoading } = useJobs({
     nearbyOnly: true,
-    radiusMiles: 2
+    radiusMiles: 5,
+    poster: false // Never filter by poster in worker view to ensure jobs appear on map
   }, searchParams);
   const { toast } = useToast();
   const queryClient = useQueryClient();
