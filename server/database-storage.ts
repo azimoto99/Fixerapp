@@ -379,6 +379,11 @@ export class DatabaseStorage implements IStorage {
   }): Promise<Job[]> {
     let conditions = [];
     
+    // By default, only show open jobs if status is not explicitly specified
+    if (!filters?.status) {
+      conditions.push(eq(jobs.status, 'open'));
+    }
+    
     if (filters) {
       if (filters.category) {
         conditions.push(eq(jobs.category, filters.category));
@@ -513,9 +518,14 @@ export class DatabaseStorage implements IStorage {
     // First get all jobs, then filter by distance
     // This is not efficient for large datasets, but for a small app it's simpler
     // than implementing a complex geospatial query
-    const allJobs = await db.select().from(jobs);
+    const allJobs = await db.select().from(jobs).where(eq(jobs.status, 'open'));
     
     return allJobs.filter(job => {
+      // Skip jobs without coordinates
+      if (!job.latitude || !job.longitude) {
+        return false;
+      }
+      
       const distance = this.calculateDistance(
         latitude, 
         longitude, 
