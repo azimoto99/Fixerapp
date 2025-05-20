@@ -8,6 +8,7 @@ interface UseJobsOptions {
   radiusMiles?: number;
   poster?: boolean;
   includeAll?: boolean;
+  forMapDisplay?: boolean; // New option to fetch all jobs with coordinates for map display
 }
 
 export function useJobs(
@@ -25,7 +26,8 @@ export function useJobs(
     nearbyOnly = false, 
     radiusMiles = 2,
     poster = false,
-    includeAll = false 
+    includeAll = false,
+    forMapDisplay = false
   } = options || {};
   
   // Default search mode is location if not specified
@@ -39,6 +41,12 @@ export function useJobs(
   // Build normal jobs query
   const buildStandardJobsQuery = () => {
     const queryParams: string[] = [];
+    
+    // If map display mode, fetch all jobs with coordinates
+    if (forMapDisplay) {
+      queryParams.push('hasCoordinates=true');
+      return `/api/jobs${buildQueryString(queryParams)}`;
+    }
     
     if (searchParams?.query) {
       if (searchMode === 'location') {
