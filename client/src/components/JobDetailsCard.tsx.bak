@@ -21,7 +21,6 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Separator } from '@/components/ui/separator';
 import { Progress } from '@/components/ui/progress';
 import { Textarea } from '@/components/ui/textarea';
-import { Input } from '@/components/ui/input';
 import {
   MapPin,
   Calendar,
@@ -39,9 +38,7 @@ import {
   PlayCircle,
   StopCircle,
   Award,
-  Star,
-  MessageCircle,
-  Settings
+  Star
 } from 'lucide-react';
 import { useLocation } from 'wouter';
 
@@ -78,7 +75,6 @@ const JobDetailsCard: React.FC<JobDetailsCardProps> = ({ jobId, isOpen, onClose 
       window.removeEventListener('open-job-details', handleOpenJobDetails as EventListener);
     };
   }, [jobId, onClose]);
-  
   const { user } = useAuth();
   const [_, navigate] = useLocation();
   const { toast } = useToast();
@@ -386,23 +382,23 @@ const JobDetailsCard: React.FC<JobDetailsCardProps> = ({ jobId, isOpen, onClose 
   // Get status badge class for custom styling
   const getStatusClass = (status: string) => {
     switch (status) {
-      case 'open': return 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400 border-green-200 dark:border-green-800';
-      case 'assigned': return 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400 border-blue-200 dark:border-blue-800';
-      case 'in_progress': return 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400 border-yellow-200 dark:border-yellow-800';
-      case 'completed': return 'bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-400 border-purple-200 dark:border-purple-800';
-      case 'canceled': return 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400 border-red-200 dark:border-red-800';
-      case 'pending_payment': return 'bg-orange-100 text-orange-800 dark:bg-orange-900/30 dark:text-orange-400 border-orange-200 dark:border-orange-800';
-      default: return 'bg-gray-100 text-gray-800 dark:bg-gray-800/50 dark:text-gray-300 border-gray-200 dark:border-gray-700';
+      case 'open': return 'bg-green-100 text-green-800';
+      case 'assigned': return 'bg-blue-100 text-blue-800';
+      case 'in_progress': return 'bg-yellow-100 text-yellow-800';
+      case 'completed': return 'bg-purple-100 text-purple-800';
+      case 'canceled': return 'bg-red-100 text-red-800';
+      case 'pending_payment': return 'bg-orange-100 text-orange-800';
+      default: return 'bg-gray-100 text-gray-800';
     }
   };
 
   // Get application badge class
   const getApplicationClass = (status: string) => {
     switch (status) {
-      case 'pending': return 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400 border-yellow-200 dark:border-yellow-800';
-      case 'accepted': return 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400 border-green-200 dark:border-green-800';
-      case 'rejected': return 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400 border-red-200 dark:border-red-800';
-      default: return 'bg-gray-100 text-gray-800 dark:bg-gray-800/50 dark:text-gray-300 border-gray-200 dark:border-gray-700';
+      case 'pending': return 'bg-yellow-100 text-yellow-800';
+      case 'accepted': return 'bg-green-100 text-green-800';
+      case 'rejected': return 'bg-red-100 text-red-800';
+      default: return 'bg-gray-100 text-gray-800';
     }
   };
 
@@ -491,8 +487,7 @@ const JobDetailsCard: React.FC<JobDetailsCardProps> = ({ jobId, isOpen, onClose 
         exit="exit"
         variants={variants}
       >
-        <Card className="w-full max-w-md shadow-xl border-t-4 border-primary">
-          {/* Card Toggle */}
+        <Card className="w-full max-w-md shadow-xl">
           <div 
             className="absolute top-2 right-2 p-2 cursor-pointer bg-background/80 backdrop-blur-sm rounded-full hover:bg-accent transition-colors" 
             onClick={() => setIsExpanded(!isExpanded)}
@@ -500,7 +495,6 @@ const JobDetailsCard: React.FC<JobDetailsCardProps> = ({ jobId, isOpen, onClose 
             {isExpanded ? <ChevronDown className="h-4 w-4" /> : <ChevronUp className="h-4 w-4" />}
           </div>
           
-          {/* Card Header */}
           <CardHeader className="pb-2">
             <div className="flex flex-wrap gap-2 mb-2">
               <Badge variant="outline" className={getStatusClass(job.status)}>
@@ -525,414 +519,331 @@ const JobDetailsCard: React.FC<JobDetailsCardProps> = ({ jobId, isOpen, onClose 
             <CardTitle className="text-2xl font-bold">{job.title}</CardTitle>
           </CardHeader>
           
-          {/* Main Content */}
           <CardContent>
             {isExpanded && (
               <div className="space-y-5">
-                {/* Key details in modern card-based layout */}
-                <div className="grid grid-cols-2 gap-3">
                   <div className="bg-muted/50 rounded-lg p-3 border shadow-sm">
-                    <div className="flex items-center mb-1">
-                      <DollarSign className="h-4 w-4 mr-2 text-primary" />
-                      <span className="text-sm font-medium">Payment</span>
+                    <div className="flex justify-between items-center">
+                      <div className="flex items-center">
+                        <MapPin className="h-4 w-4 mr-2 text-primary" />
+                        <span className="text-sm font-medium">Location</span>
+                      </div>
+                      
+                      {(job.latitude && job.longitude) && (
+                        <Button 
+                          variant="ghost" 
+                          size="sm" 
+                          className="h-7 text-xs"
+                          onClick={() => window.open(`https://maps.google.com/?q=${job.latitude},${job.longitude}`, '_blank')}
+                        >
+                          <MapPin className="h-3 w-3 mr-1" /> View Map
+                        </Button>
+                      )}
                     </div>
-                    <div className="text-lg font-bold">
-                      ${job.paymentAmount.toFixed(2)} 
-                      <span className="text-xs text-muted-foreground ml-1">
-                        {job.paymentType === 'hourly' ? '/hr' : 'fixed'}
-                      </span>
+                    <div className="font-semibold mt-1">{job.location || "No specific location"}</div>
+                  </div>
+                  
+                  <div className="flex items-start space-x-2">
+                    <Calendar className="h-5 w-5 text-gray-500 mt-0.5" />
+                    <div>
+                      <p className="text-sm font-medium">Date Needed</p>
+                      <p className="text-sm text-gray-600">
+                        {job.dateNeeded ? format(new Date(job.dateNeeded), 'MMM d, yyyy') : 'Flexible'}
+                      </p>
                     </div>
                   </div>
                   
-                  <div className="bg-muted/50 rounded-lg p-3 border shadow-sm">
-                    <div className="flex items-center mb-1">
-                      <Calendar className="h-4 w-4 mr-2 text-primary" />
-                      <span className="text-sm font-medium">Needed By</span>
-                    </div>
-                    <div className="text-lg font-bold">
-                      {job.dateNeeded ? format(new Date(job.dateNeeded), 'MMM d, yyyy') : 'Flexible'}
-                    </div>
-                  </div>
-                </div>
-                
-                {/* Location with interactive map link */}
-                <div className="bg-muted/50 rounded-lg p-3 border shadow-sm">
-                  <div className="flex justify-between items-center">
-                    <div className="flex items-center">
-                      <MapPin className="h-4 w-4 mr-2 text-primary" />
-                      <span className="text-sm font-medium">Location</span>
-                    </div>
-                    
-                    {(job.latitude && job.longitude) && (
-                      <Button 
-                        variant="ghost" 
-                        size="sm" 
-                        className="h-7 text-xs"
-                        onClick={() => window.open(`https://maps.google.com/?q=${job.latitude},${job.longitude}`, '_blank')}
-                      >
-                        <MapPin className="h-3 w-3 mr-1" /> View Map
-                      </Button>
-                    )}
-                  </div>
-                  <div className="font-semibold mt-1">{job.location || "No specific location"}</div>
-                </div>
-                
-                {/* Description section */}
-                <div className="bg-muted/50 rounded-lg p-3 border shadow-sm">
-                  <div className="flex items-center mb-2">
-                    <span className="text-sm font-medium">Description</span>
-                  </div>
-                  <p className="text-sm text-muted-foreground whitespace-pre-line">{job.description}</p>
-                </div>
-                
-                {/* Required Skills section */}
-                {job.requiredSkills && job.requiredSkills.length > 0 && (
-                  <div className="bg-muted/50 rounded-lg p-3 border shadow-sm">
-                    <div className="flex items-center mb-2">
-                      <Award className="h-4 w-4 mr-2 text-primary" />
-                      <span className="text-sm font-medium">Required Skills</span>
-                    </div>
-                    <div className="flex flex-wrap gap-2">
-                      {job.requiredSkills.map((skill, index) => (
-                        <Badge key={index} variant="secondary" className="px-2 py-1">
-                          {skill}
-                        </Badge>
-                      ))}
+                  <div className="flex items-start space-x-2">
+                    <DollarSign className="h-5 w-5 text-gray-500 mt-0.5" />
+                    <div>
+                      <p className="text-sm font-medium">Payment</p>
+                      <p className="text-sm text-gray-600">
+                        ${job.paymentAmount.toFixed(2)} ({job.paymentType === 'hourly' ? 'Hourly Rate' : 'Fixed Price'})
+                      </p>
                     </div>
                   </div>
-                )}
-                
-                {/* Tasks Progress */}
-                {tasks && tasks.length > 0 && (
-                  <div className="space-y-3">
-                    <div className="bg-muted/50 rounded-lg p-3 border shadow-sm">
-                      <div className="flex justify-between items-center mb-2">
-                        <div className="flex items-center">
-                          <CheckSquare className="h-4 w-4 mr-2 text-primary" />
-                          <span className="text-sm font-medium">Task Progress</span>
-                        </div>
-                        <span className="text-xs font-medium px-2 py-1 rounded-full bg-primary/10 text-primary">
-                          {progress}% Complete
+                  
+                  {job.requiredSkills && job.requiredSkills.length > 0 && (
+                    <div>
+                      <p className="text-sm font-medium mb-1">Required Skills</p>
+                      <div className="flex flex-wrap gap-1">
+                        {job.requiredSkills.map((skill, index) => (
+                          <Badge key={index} variant="secondary" className="text-xs">
+                            {skill}
+                          </Badge>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                  
+                  <div>
+                    <p className="text-sm font-medium mb-1">Description</p>
+                    <p className="text-sm text-gray-600 whitespace-pre-line">{job.description}</p>
+                  </div>
+                  
+                  {tasks && tasks.length > 0 && (
+                    <div>
+                      <div className="flex justify-between items-center mb-1">
+                        <p className="text-sm font-medium">Tasks</p>
+                        <span className="text-xs text-gray-500">
+                          {tasks.filter(task => task.isCompleted).length} of {tasks.length} completed
                         </span>
                       </div>
-                      <Progress value={progress} className="h-2.5 rounded-full" />
-                      <div className="text-xs text-right mt-1 text-muted-foreground">
-                        {tasks.filter(t => t.isCompleted).length} of {tasks.length} tasks completed
-                      </div>
-                    </div>
-                    
-                    {/* Interactive Task List */}
-                    {isInProgress && isAssignedWorker && (
-                      <div className="bg-muted/50 rounded-lg p-3 border shadow-sm">
-                        <div className="flex items-center justify-between mb-3">
-                          <span className="text-sm font-medium">Tasks</span>
-                          <Button 
-                            variant="ghost" 
-                            size="sm" 
-                            className="h-7 text-xs"
-                            onClick={() => {
-                              tasks.filter(t => !t.isCompleted).forEach(task => {
-                                handleTaskComplete(task.id);
-                              });
-                            }}
-                            disabled={tasks.every(t => t.isCompleted)}
+                      
+                      <Progress value={progress} className="h-2 mb-3" />
+                      
+                      <div className="space-y-2 max-h-40 overflow-y-auto">
+                        {tasks.map((task) => (
+                          <div 
+                            key={task.id} 
+                            className={`p-2 rounded-md flex items-start space-x-2 ${
+                              task.isCompleted ? 'bg-green-50' : 'bg-gray-50'
+                            }`}
                           >
-                            Complete All
-                          </Button>
-                        </div>
-                        
-                        <div className="max-h-60 overflow-y-auto space-y-2 pr-1">
-                          {tasks.map(task => (
-                            <div 
-                              key={task.id} 
-                              className={`flex items-center gap-2 p-2.5 rounded-md transition-colors ${
-                                task.isCompleted 
-                                  ? "bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800" 
-                                  : "border border-border hover:bg-accent"
-                              }`}
-                            >
-                              <Checkbox
-                                checked={task.isCompleted}
-                                onCheckedChange={() => !task.isCompleted && handleTaskComplete(task.id)}
-                                disabled={task.isCompleted}
-                                className="data-[state=checked]:bg-green-600 data-[state=checked]:text-white"
-                              />
-                              
-                              <div className="flex-1">
-                                <p className={`text-sm ${task.isCompleted ? "text-muted-foreground line-through" : "font-medium"}`}>
-                                  {task.description}
-                                </p>
-                                
-                                {task.location && (
-                                  <div className="flex items-center text-xs text-muted-foreground mt-1">
-                                    <MapPin className="h-3 w-3 mr-1" />
-                                    {task.location}
-                                    
-                                    {(task.latitude && task.longitude) && (
-                                      <Button 
-                                        variant="link" 
-                                        size="sm" 
-                                        className="h-4 p-0 ml-1 text-xs underline"
-                                        onClick={(e) => {
-                                          e.stopPropagation();
-                                          window.open(`https://maps.google.com/?q=${task.latitude},${task.longitude}`, '_blank');
-                                        }}
-                                      >
-                                        map
-                                      </Button>
-                                    )}
-                                  </div>
+                            {isAssignedWorker && isInProgress ? (
+                              <div 
+                                className="cursor-pointer mt-0.5" 
+                                onClick={() => handleTaskComplete(task.id)}
+                              >
+                                {task.isCompleted ? (
+                                  <CheckSquare className="h-5 w-5 text-green-600" />
+                                ) : (
+                                  <Square className="h-5 w-5 text-gray-400" />
                                 )}
                               </div>
-                              
-                              {task.bonusAmount > 0 && (
-                                <Badge variant="outline" className="bg-primary/10 text-primary">
-                                  +${task.bonusAmount}
-                                </Badge>
+                            ) : (
+                              <div className="mt-0.5">
+                                {task.isCompleted ? (
+                                  <CheckSquare className="h-5 w-5 text-green-600" />
+                                ) : (
+                                  <Square className="h-5 w-5 text-gray-400" />
+                                )}
+                              </div>
+                            )}
+                            
+                            <div className="flex-1">
+                              <p className={`text-sm ${task.isCompleted ? 'line-through text-gray-500' : 'font-medium'}`}>
+                                {task.description}
+                              </p>
+                              {task.location && (
+                                <div className="flex items-center text-xs text-gray-500 mt-1">
+                                  <MapPin className="h-3 w-3 mr-1" />
+                                  {task.location}
+                                </div>
                               )}
                             </div>
-                          ))}
-                        </div>
+                          </div>
+                        ))}
                       </div>
-                    )}
-                  </div>
-                )}
-                
-                {/* Posted by information */}
-                <div className="flex items-center justify-between text-xs text-muted-foreground mt-2">
-                  <div className="flex items-center">
-                    <User className="h-3 w-3 mr-1" />
-                    <span>Posted by #{job.posterId}</span>
-                  </div>
-                  <div>
-                    <Clock className="h-3 w-3 inline mr-1" />
-                    {format(new Date(job.datePosted), 'MMM d, yyyy')}
-                  </div>
+                    </div>
+                  )}
                 </div>
-              </div>
+              </>
             )}
           </CardContent>
           
-          {/* Action Buttons */}
-          <CardFooter className="bg-muted/30 pt-3 pb-4 px-4">
-            <div className="w-full space-y-2">
-              {/* Quick stats when collapsed */}
-              {!isExpanded && (
-                <div className="flex justify-between text-sm mb-2">
-                  <div className="flex items-center">
-                    <DollarSign className="h-4 w-4 mr-1 text-primary" />
-                    ${job.paymentAmount.toFixed(2)} {job.paymentType === 'hourly' ? '/hr' : 'fixed'}
-                  </div>
-                  <div className="flex items-center">
-                    <MapPin className="h-4 w-4 mr-1 text-primary" />
-                    {job.location ? job.location.split(',')[0] : "No location"}
-                  </div>
-                </div>
-              )}
-              
-              <div className="grid grid-cols-2 gap-2">
-                {/* Worker Actions */}
-                {user?.accountType === 'worker' && !isAssignedWorker && isJobOpen && !hasApplied && (
+          <CardFooter className="flex flex-col space-y-2">
+            {/* Job poster actions */}
+            {isJobPoster && (
+              <div className="w-full">
+                {isPendingPayment && (
                   <Button 
-                    onClick={() => setShowApplyDialog(true)} 
-                    className="w-full bg-primary hover:bg-primary/90"
+                    className="w-full" 
+                    onClick={() => navigate(`/checkout?jobId=${job.id}`)}
                   >
-                    <Send className="h-4 w-4 mr-2" /> Apply Now
+                    Complete Payment to Publish
                   </Button>
                 )}
                 
-                {user?.accountType === 'worker' && isAssignedWorker && isInProgress && (
-                  <Button 
-                    variant="default" 
-                    onClick={() => setShowCompleteDialog(true)}
-                    className="w-full bg-green-600 hover:bg-green-700"
-                  >
-                    <CheckCircle2 className="h-4 w-4 mr-2" /> Complete Job
+                {isOpen && (
+                  <Button className="w-full" variant="outline" onClick={() => navigate(`/job/${job.id}/applications`)}>
+                    View Applications
                   </Button>
                 )}
                 
-                {user?.accountType === 'worker' && isAssignedWorker && !isInProgress && isAssigned && (
-                  <Button 
-                    variant="default" 
-                    onClick={handleStartJob}
-                    className="w-full bg-blue-600 hover:bg-blue-700"
-                  >
-                    <PlayCircle className="h-4 w-4 mr-2" /> Start Working
-                  </Button>
-                )}
-                
-                {/* Job Poster Actions */}
-                {isJobPoster && (
-                  <>
-                    {isPendingPayment && (
-                      <Button 
-                        className="w-full bg-primary hover:bg-primary/90" 
-                        onClick={() => navigate(`/checkout?jobId=${job.id}`)}
-                      >
-                        <DollarSign className="h-4 w-4 mr-2" /> Complete Payment
-                      </Button>
-                    )}
-                    
-                    {(isJobOpen || isAssigned || isInProgress) && (
-                      <Button 
-                        variant="outline" 
-                        onClick={() => navigate(`/job/${job.id}/applications`)}
-                        className="w-full"
-                      >
-                        <User className="h-4 w-4 mr-2" /> View Applications
-                      </Button>
-                    )}
-                    
-                    <Button 
-                      variant="outline" 
-                      className="w-full border-primary/30 text-primary hover:bg-primary/10"
-                    >
-                      <MessageCircle className="h-4 w-4 mr-2" /> Message
+                {isAssigned && (
+                  <div className="space-y-2 w-full">
+                    <Button className="w-full" variant="outline" onClick={() => navigate(`/job/${job.id}/manage`)}>
+                      Manage Job
                     </Button>
-                    
-                    <Button 
-                      variant="outline" 
-                      onClick={() => navigate(`/job/${job.id}/manage`)}
-                      className="w-full"
-                    >
-                      <Settings className="h-4 w-4 mr-2" /> Manage
-                    </Button>
-                  </>
+                  </div>
                 )}
                 
-                {/* Close button - always show for all users */}
-                <Button 
-                  variant="outline" 
-                  onClick={onClose}
-                  className={isJobPoster ? "w-full" : "w-full"}
-                >
-                  Close
-                </Button>
+                {isInProgress && (
+                  <div className="space-y-2 w-full">
+                    <p className="text-sm text-center mb-2">
+                      <User className="inline-block h-4 w-4 mr-1" />
+                      Worker in progress
+                    </p>
+                    <Button className="w-full" variant="outline" onClick={() => navigate(`/job/${job.id}/manage`)}>
+                      Manage Job
+                    </Button>
+                  </div>
+                )}
+                
+                {isCompleted && (
+                  <div className="space-y-2 w-full">
+                    <p className="text-sm text-center text-green-600 mb-2">
+                      <CheckCircle2 className="inline-block h-4 w-4 mr-1" />
+                      Job completed
+                    </p>
+                    <Button variant="outline" className="w-full" onClick={() => navigate(`/job/${job.id}/details`)}>
+                      View Details
+                    </Button>
+                  </div>
+                )}
               </div>
-            </div>
+            )}
+            
+            {/* Worker actions */}
+            {!isJobPoster && (
+              <div className="w-full">
+                {isAssignedWorker && (
+                  <div className="space-y-2 w-full">
+                    {isAssigned && !isInProgress && (
+                      <Button onClick={handleStartJob} className="w-full">
+                        <PlayCircle className="h-4 w-4 mr-2" />
+                        Start Job
+                      </Button>
+                    )}
+                    
+                    {isInProgress && (
+                      <Button 
+                        onClick={() => setShowCompleteDialog(true)} 
+                        className="w-full"
+                        disabled={tasks.length > 0 && progress < 100}
+                      >
+                        <CheckCircle2 className="h-4 w-4 mr-2" />
+                        Mark Job Complete
+                      </Button>
+                    )}
+                  </div>
+                )}
+                
+                {!isAssignedWorker && isJobOpen && !hasApplied && (
+                  <Button onClick={() => setShowApplyDialog(true)} className="w-full">Apply for Job</Button>
+                )}
+                
+                {!isAssignedWorker && hasApplied && application.status === 'pending' && (
+                  <p className="text-sm text-center text-yellow-600">
+                    <Clock className="inline-block h-4 w-4 mr-1" />
+                    Application pending
+                  </p>
+                )}
+                
+                {!isAssignedWorker && hasApplied && application.status === 'accepted' && (
+                  <div className="space-y-2">
+                    <p className="text-sm text-center text-green-600">
+                      <CheckCircle2 className="inline-block h-4 w-4 mr-1" />
+                      Application accepted!
+                    </p>
+                    <Button onClick={handleStartJob} className="w-full">
+                      <PlayCircle className="h-4 w-4 mr-2" />
+                      Clock In / Start Work
+                    </Button>
+                  </div>
+                )}
+                
+                {!isAssignedWorker && hasApplied && application.status === 'rejected' && (
+                  <p className="text-sm text-center text-red-600">
+                    <AlertCircle className="inline-block h-4 w-4 mr-1" />
+                    Application was not accepted
+                  </p>
+                )}
+              </div>
+            )}
+            
+            <Button variant="ghost" onClick={onClose} className="w-full">
+              Close
+            </Button>
           </CardFooter>
         </Card>
       </motion.div>
       
-      {/* Apply Job Dialog */}
+      {/* Apply for job dialog */}
       <Dialog open={showApplyDialog} onOpenChange={setShowApplyDialog}>
-        <DialogContent className="sm:max-w-md">
+        <DialogContent className="max-w-md">
           <DialogHeader>
-            <DialogTitle>Apply for "{job.title}"</DialogTitle>
+            <DialogTitle>Apply for Job</DialogTitle>
             <DialogDescription>
-              Submit your proposal to work on this job
+              Submit your application with details about why you're a good fit for this job.
             </DialogDescription>
           </DialogHeader>
           
-          <div className="space-y-4 pt-2">
-            <div>
-              <p className="text-sm font-medium mb-2 flex items-center">
-                <DollarSign className="h-4 w-4 mr-1 text-primary" /> Your Hourly Rate
-              </p>
-              <div className="relative">
-                <DollarSign className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                <Input
-                  type="number"
-                  placeholder="25.00"
-                  value={proposedRate}
-                  onChange={(e) => setProposedRate(e.target.value)}
-                  className="pl-8"
-                />
-              </div>
+          <div className="grid gap-4 py-2">
+            <div className="grid gap-2">
+              <label htmlFor="hourly-rate" className="text-sm font-medium">Your Hourly Rate ($)</label>
+              <input
+                id="hourly-rate"
+                type="number"
+                className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                placeholder="25"
+                value={proposedRate}
+                onChange={(e) => setProposedRate(e.target.value)}
+              />
             </div>
             
-            <div>
-              <p className="text-sm font-medium mb-2 flex items-center">
-                <Clock className="h-4 w-4 mr-1 text-primary" /> Expected Duration
-              </p>
-              <Input
-                type="text"
-                placeholder="e.g. 2-3 hours, 1 day, etc."
+            <div className="grid gap-2">
+              <label htmlFor="expected-duration" className="text-sm font-medium">Expected Duration (e.g., "2 hours", "1 day")</label>
+              <input
+                id="expected-duration"
+                className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                placeholder="3 hours"
                 value={expectedDuration}
                 onChange={(e) => setExpectedDuration(e.target.value)}
               />
             </div>
             
-            <div>
-              <p className="text-sm font-medium mb-2 flex items-center">
-                <Send className="h-4 w-4 mr-1 text-primary" /> Cover Letter
-              </p>
+            <div className="grid gap-2">
+              <label htmlFor="cover-letter" className="text-sm font-medium">Cover Letter</label>
               <Textarea
-                placeholder="Tell the job poster why you're the best fit for this job..."
+                id="cover-letter"
+                placeholder="Explain why you're interested in this job and what makes you qualified..."
+                className="min-h-[120px]"
                 value={applicationMessage}
                 onChange={(e) => setApplicationMessage(e.target.value)}
-                className="min-h-[120px] resize-none"
               />
             </div>
           </div>
           
-          <DialogFooter className="mt-2">
+          <DialogFooter className="mt-4">
             <Button variant="outline" onClick={() => setShowApplyDialog(false)}>Cancel</Button>
             <Button 
               onClick={handleApply} 
-              disabled={!proposedRate || !applicationMessage.trim() || applyMutation.isPending}
-              className="bg-primary hover:bg-primary/90"
+              disabled={!applicationMessage.trim() || !proposedRate || !expectedDuration || applyMutation.isPending}
             >
-              {applyMutation.isPending ? 'Submitting...' : 'Submit Application'}
+              {applyMutation.isPending ? 'Applying...' : 'Submit Application'}
             </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
       
-      {/* Complete Job Dialog */}
+      {/* Complete job dialog */}
       <Dialog open={showCompleteDialog} onOpenChange={setShowCompleteDialog}>
-        <DialogContent className="sm:max-w-md">
+        <DialogContent>
           <DialogHeader>
             <DialogTitle>Complete Job</DialogTitle>
             <DialogDescription>
-              Are you sure you've finished all required tasks for this job?
+              Are you sure you want to mark this job as complete? 
+              This will notify the job poster that you've finished all tasks.
             </DialogDescription>
           </DialogHeader>
           
-          <div className="space-y-4 pt-2">
-            {tasks && tasks.length > 0 && (
-              <div className="bg-muted/50 p-4 rounded-lg border">
-                <div className="flex justify-between items-center mb-2">
-                  <p className="text-sm font-medium flex items-center">
-                    <CheckSquare className="h-4 w-4 mr-2 text-primary" /> Task Status
-                  </p>
-                  <Badge variant={progress === 100 ? "success" : "secondary"} className="text-xs">
-                    {progress}% Complete
-                  </Badge>
-                </div>
-                <Progress value={progress} className="h-2.5 rounded-full" />
-                <p className="text-xs text-right mt-1 text-muted-foreground">
-                  {tasks.filter(t => t.isCompleted).length} of {tasks.length} tasks completed
-                </p>
-                
-                {progress < 100 && (
-                  <div className="mt-2 p-2 rounded-md bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 text-sm">
-                    <AlertCircle className="h-4 w-4 text-amber-600 dark:text-amber-400 inline mr-1" />
-                    <span className="text-amber-700 dark:text-amber-400">
-                      There are incomplete tasks. Are you sure you want to complete the job?
-                    </span>
-                  </div>
-                )}
-              </div>
-            )}
-          </div>
-          
-          <DialogFooter className="mt-2">
+          <DialogFooter>
             <Button variant="outline" onClick={() => setShowCompleteDialog(false)}>Cancel</Button>
             <Button 
               onClick={handleCompleteJob} 
               disabled={completeJobMutation.isPending}
-              className="bg-green-600 hover:bg-green-700"
             >
-              {completeJobMutation.isPending ? 'Completing...' : 'Mark as Complete'}
+              {completeJobMutation.isPending ? 'Submitting...' : 'Mark Complete'}
             </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
       
-      {/* Review Dialog */}
+      {/* Review dialog */}
       <Dialog open={showReviewDialog} onOpenChange={setShowReviewDialog}>
-        <DialogContent className="sm:max-w-md">
+        <DialogContent>
           <DialogHeader>
             <DialogTitle>Leave a Review</DialogTitle>
             <DialogDescription>
@@ -940,46 +851,38 @@ const JobDetailsCard: React.FC<JobDetailsCardProps> = ({ jobId, isOpen, onClose 
             </DialogDescription>
           </DialogHeader>
           
-          <div className="space-y-4 pt-2">
+          <div className="space-y-4">
             <div>
-              <p className="text-sm font-medium mb-2 flex items-center">
-                <Star className="h-4 w-4 mr-1 text-primary" /> Rating
-              </p>
-              <div className="flex space-x-2 bg-muted/50 p-3 rounded-lg justify-center">
+              <p className="text-sm font-medium mb-2">Rating</p>
+              <div className="flex space-x-1">
                 {[1, 2, 3, 4, 5].map((star) => (
                   <Star
                     key={star}
-                    className={`h-8 w-8 cursor-pointer transition-all hover:scale-110 ${
-                      star <= rating ? 'text-yellow-400 fill-yellow-400' : 'text-muted-foreground/30'
+                    className={`h-8 w-8 cursor-pointer ${
+                      star <= rating ? 'text-yellow-400 fill-yellow-400' : 'text-gray-300'
                     }`}
                     onClick={() => setRating(star)}
                   />
                 ))}
               </div>
-              <p className="text-center text-sm mt-1 text-muted-foreground">
-                {rating} out of 5 stars
-              </p>
             </div>
             
             <div>
-              <p className="text-sm font-medium mb-2 flex items-center">
-                <Send className="h-4 w-4 mr-1 text-primary" /> Your Feedback
-              </p>
+              <p className="text-sm font-medium mb-2">Comments</p>
               <Textarea
                 placeholder="Share your experience working on this job..."
                 value={reviewComment}
                 onChange={(e) => setReviewComment(e.target.value)}
-                className="min-h-[120px] resize-none"
+                className="min-h-[100px]"
               />
             </div>
           </div>
           
-          <DialogFooter className="mt-2">
+          <DialogFooter>
             <Button variant="outline" onClick={() => setShowReviewDialog(false)}>Skip</Button>
             <Button 
               onClick={handleSubmitReview} 
               disabled={!reviewComment.trim() || submitReviewMutation.isPending}
-              className="bg-primary hover:bg-primary/90"
             >
               {submitReviewMutation.isPending ? 'Submitting...' : 'Submit Review'}
             </Button>
