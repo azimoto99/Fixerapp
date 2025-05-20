@@ -30,15 +30,15 @@ const NewJobButton: React.FC = () => {
         onOpenChange={setIsDrawerOpen}
       />
       
-      <div className={`fixed right-6 bottom-24 md:bottom-12 z-[900] ${isDrawerOpen ? 'opacity-0 pointer-events-none' : 'opacity-100'} transition-opacity duration-300`}>
+      <div className={`fixed right-6 bottom-24 md:bottom-12 z-40 ${isDrawerOpen ? 'opacity-0 pointer-events-none' : 'opacity-100'} transition-opacity duration-300`}>
         <Button 
           size="lg"
           onClick={handleClick}
-          className="bg-primary hover:bg-primary/90 text-primary-foreground font-bold py-4 px-6 rounded-full shadow-lg transition-transform hover:scale-105 transform-gpu flex items-center gap-2"
+          className="bg-primary hover:bg-primary/90 text-primary-foreground font-medium py-4 px-6 rounded-full shadow-lg transition-transform hover:scale-105 transform-gpu flex items-center gap-2"
           style={{ width: "auto", height: "auto" }}
           aria-label="Post a new job"
         >
-          <Plus className="h-6 w-6" />
+          <Plus className="h-5 w-5" />
           <span className="text-base">Post Job</span>
         </Button>
       </div>
