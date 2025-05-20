@@ -14,6 +14,7 @@ import { useToast } from '@/hooks/use-toast';
 import { apiRequest, queryClient } from '@/lib/queryClient';
 import { StripeConnectRequired } from '@/components/stripe';
 import JobDetailsCard from './jobs/JobDetailsCard';
+import { useAllJobsForMap } from '@/hooks/useAllJobsForMap';
 
 interface MapSectionProps {
   jobs: Job[];
@@ -28,6 +29,9 @@ const MapSection: React.FC<MapSectionProps> = ({ jobs, selectedJob, onSelectJob,
   const [showJobDetail, setShowJobDetail] = useState<boolean>(false);
   const [mapReady, setMapReady] = useState(false);
   const [isApplying, setIsApplying] = useState(false);
+  
+  // Fetch ALL jobs with coordinates for map display, regardless of search filters
+  const { jobs: allJobsWithCoordinates } = useAllJobsForMap();
   // Control drawer state with debouncing to prevent rapid toggling
   const [isUserDrawerOpen, setIsUserDrawerOpen] = useState(false);
   // State for the new job details card
@@ -276,16 +280,23 @@ const MapSection: React.FC<MapSectionProps> = ({ jobs, selectedJob, onSelectJob,
       title: string;
       description: string;
       onClick: () => void;
+      isHighlighted?: boolean;
     }[] = [];
     
-    // If we have jobs with coordinates, add them as markers
-    if (jobs && jobs.length > 0) {
-      console.log('Processing jobs for markers:', jobs.length, 'jobs');
+    // First add ALL jobs with coordinates to ensure every job has a pin on the map
+    if (allJobsWithCoordinates && allJobsWithCoordinates.length > 0) {
+      console.log('Processing ALL jobs for markers:', allJobsWithCoordinates.length, 'jobs');
       
       // Filter jobs with valid coordinates and create markers
-      const jobsWithCoordinates = jobs.filter(job => job.latitude && job.longitude);
+      const jobsWithCoordinates = allJobsWithCoordinates.filter(job => job.latitude && job.longitude);
       
       jobsWithCoordinates.forEach(job => {
+        // Check if this is a highlighted job
+        const isHighlighted = job.id === highlightedJobId;
+        
+        // Check if this job is already in the filtered jobs list
+        const isInFilteredList = jobs.some(j => j.id === job.id);
+        
         console.log('Creating marker for job:', job.id, job.title, job.latitude, job.longitude);
         
         markers.push({
@@ -293,16 +304,19 @@ const MapSection: React.FC<MapSectionProps> = ({ jobs, selectedJob, onSelectJob,
           longitude: job.longitude,
           title: job.title,
           description: `$${job.paymentAmount?.toFixed(2)} - ${job.paymentType}`,
-          onClick: () => handleMarkerClick(job)
+          onClick: () => handleMarkerClick(job),
+          isHighlighted: isHighlighted,
+          // Visually differentiate jobs that match the current search criteria
+          // This would require styling changes in the MapboxMap component
         });
       });
       
       console.log('Created job markers:', markers.length);
     }
     
-    // Always create a test marker to ensure something shows up
+    // Add user location marker
     if (position) {
-      console.log('Creating test marker at position');
+      console.log('Creating user location marker');
       markers.push({
         latitude: position.latitude,
         longitude: position.longitude,
@@ -320,12 +334,13 @@ const MapSection: React.FC<MapSectionProps> = ({ jobs, selectedJob, onSelectJob,
         longitude: focusMapCoordinates.longitude,
         title: 'Job Location',
         description: 'Selected Job Position',
-        onClick: () => {}
+        onClick: () => {},
+        isHighlighted: true
       });
     }
     
     return markers;
-  }, [jobs, handleMarkerClick, position, focusMapCoordinates, highlightedJobId]);
+  }, [jobs, allJobsWithCoordinates, handleMarkerClick, position, focusMapCoordinates, highlightedJobId]);
   
   // If no user location yet, show loading
   if (!position) {
