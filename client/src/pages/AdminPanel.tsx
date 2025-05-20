@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { apiRequest } from '@/lib/queryClient';
 import { useAuth } from '@/hooks/use-auth';
 import { useLocation } from 'wouter';
+import { useToast } from '@/hooks/use-toast';
 import { 
   Tabs, 
   TabsContent, 
@@ -19,9 +20,25 @@ import {
 } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Separator } from '@/components/ui/separator';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import {
   Table,
   TableBody,
@@ -749,7 +766,12 @@ const AdminPanel = () => {
         {/* Jobs Tab */}
         <TabsContent value="jobs" className="space-y-4">
           <div className="flex items-center justify-between mb-4">
-            <h2 className="text-xl font-semibold">Job Management</h2>
+            <div className="flex items-center gap-3">
+              <h2 className="text-xl font-semibold">Job Management</h2>
+              <Button size="sm" variant="default" onClick={() => setShowAdminJobModal(true)}>
+                <Briefcase className="h-4 w-4 mr-2" /> Create Admin Job
+              </Button>
+            </div>
             <form onSubmit={handleSearch} className="flex items-center gap-2">
               <Input
                 placeholder="Search jobs..."
