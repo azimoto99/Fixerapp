@@ -55,6 +55,8 @@ const JobDetailsCard: React.FC<JobDetailsCardProps> = ({ jobId, isOpen, onClose 
   const queryClient = useQueryClient();
   const [isExpanded, setIsExpanded] = useState(true);
   const [applicationMessage, setApplicationMessage] = useState('');
+  const [proposedRate, setProposedRate] = useState('');
+  const [expectedDuration, setExpectedDuration] = useState('');
   const [showApplyDialog, setShowApplyDialog] = useState(false);
   const [showCompleteDialog, setShowCompleteDialog] = useState(false);
   const [showReviewDialog, setShowReviewDialog] = useState(false);
@@ -107,7 +109,9 @@ const JobDetailsCard: React.FC<JobDetailsCardProps> = ({ jobId, isOpen, onClose 
     mutationFn: async () => {
       const response = await apiRequest('POST', `/api/jobs/${jobId}/apply`, {
         workerId: user?.id,
-        message: applicationMessage
+        message: applicationMessage,
+        hourlyRate: parseFloat(proposedRate),
+        expectedDuration: expectedDuration
       });
       
       if (!response.ok) {
@@ -124,6 +128,8 @@ const JobDetailsCard: React.FC<JobDetailsCardProps> = ({ jobId, isOpen, onClose 
       });
       setShowApplyDialog(false);
       setApplicationMessage('');
+      setProposedRate('');
+      setExpectedDuration('');
       queryClient.invalidateQueries({ queryKey: ['/api/applications', jobId, user?.id] });
     },
     onError: (error: Error) => {
@@ -708,26 +714,55 @@ const JobDetailsCard: React.FC<JobDetailsCardProps> = ({ jobId, isOpen, onClose 
       
       {/* Apply for job dialog */}
       <Dialog open={showApplyDialog} onOpenChange={setShowApplyDialog}>
-        <DialogContent>
+        <DialogContent className="max-w-md">
           <DialogHeader>
             <DialogTitle>Apply for Job</DialogTitle>
             <DialogDescription>
-              Write a message to the job poster explaining why you're a good fit for this job.
+              Submit your application with details about why you're a good fit for this job.
             </DialogDescription>
           </DialogHeader>
           
-          <Textarea
-            placeholder="Explain why you're interested in this job and what makes you qualified..."
-            className="min-h-[150px]"
-            value={applicationMessage}
-            onChange={(e) => setApplicationMessage(e.target.value)}
-          />
+          <div className="grid gap-4 py-2">
+            <div className="grid gap-2">
+              <label htmlFor="hourly-rate" className="text-sm font-medium">Your Hourly Rate ($)</label>
+              <input
+                id="hourly-rate"
+                type="number"
+                className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                placeholder="25"
+                value={proposedRate}
+                onChange={(e) => setProposedRate(e.target.value)}
+              />
+            </div>
+            
+            <div className="grid gap-2">
+              <label htmlFor="expected-duration" className="text-sm font-medium">Expected Duration (e.g., "2 hours", "1 day")</label>
+              <input
+                id="expected-duration"
+                className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                placeholder="3 hours"
+                value={expectedDuration}
+                onChange={(e) => setExpectedDuration(e.target.value)}
+              />
+            </div>
+            
+            <div className="grid gap-2">
+              <label htmlFor="cover-letter" className="text-sm font-medium">Cover Letter</label>
+              <Textarea
+                id="cover-letter"
+                placeholder="Explain why you're interested in this job and what makes you qualified..."
+                className="min-h-[120px]"
+                value={applicationMessage}
+                onChange={(e) => setApplicationMessage(e.target.value)}
+              />
+            </div>
+          </div>
           
-          <DialogFooter>
+          <DialogFooter className="mt-4">
             <Button variant="outline" onClick={() => setShowApplyDialog(false)}>Cancel</Button>
             <Button 
               onClick={handleApply} 
-              disabled={!applicationMessage.trim() || applyMutation.isPending}
+              disabled={!applicationMessage.trim() || !proposedRate || !expectedDuration || applyMutation.isPending}
             >
               {applyMutation.isPending ? 'Applying...' : 'Submit Application'}
             </Button>
