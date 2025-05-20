@@ -595,8 +595,34 @@ const JobDetailsCard: React.FC<JobDetailsCardProps> = ({ jobId, isOpen, onClose 
           <CardContent>
             {isExpanded && (
               <div className="space-y-5">
-                {/* Key details in modern card-based layout */}
-                <div className="grid grid-cols-2 gap-3">
+                {/* Tab Navigation */}
+                <div className="flex border-b mb-2">
+                  <button
+                    className={`px-3 py-2 ${activeTab === 'details' ? 'border-b-2 border-primary text-primary' : 'text-muted-foreground'} transition-colors`}
+                    onClick={() => setActiveTab('details')}
+                  >
+                    Details
+                  </button>
+                  <button
+                    className={`px-3 py-2 ${activeTab === 'tasks' ? 'border-b-2 border-primary text-primary' : 'text-muted-foreground'} transition-colors`}
+                    onClick={() => setActiveTab('tasks')}
+                  >
+                    Tasks {tasks.length > 0 && `(${tasks.filter(t => t.isCompleted).length}/${tasks.length})`}
+                  </button>
+                  {isJobPoster && (
+                    <button
+                      className={`px-3 py-2 ${activeTab === 'applications' ? 'border-b-2 border-primary text-primary' : 'text-muted-foreground'} transition-colors`}
+                      onClick={() => setActiveTab('applications')}
+                    >
+                      Applications {applications.length > 0 && `(${applications.length})`}
+                    </button>
+                  )}
+                </div>
+                
+                {activeTab === 'details' && (
+                  <div>
+                    {/* Key details in modern card-based layout */}
+                    <div className="grid grid-cols-2 gap-3">
                   <div className="bg-muted/50 rounded-lg p-3 border shadow-sm">
                     <div className="flex items-center mb-1">
                       <DollarSign className="h-4 w-4 mr-2 text-primary" />
