@@ -356,8 +356,13 @@ export default function JobPaymentForm({
             <div className="bg-muted/50 p-4 rounded-md space-y-2">
               <div className="flex justify-between">
                 <span className="text-muted-foreground">Job Amount:</span>
-                <span>${job.payAmount.toFixed(2)}</span>
+                <span>${(job.payAmount - 2.50).toFixed(2)}</span>
               </div>
+              <div className="flex justify-between">
+                <span className="text-muted-foreground">Service Fee:</span>
+                <span>$2.50</span>
+              </div>
+              <Separator className="my-1" />
               <div className="flex justify-between font-medium">
                 <span>Total:</span>
                 <span>${job.payAmount.toFixed(2)}</span>
