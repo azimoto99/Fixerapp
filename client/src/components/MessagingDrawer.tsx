@@ -42,6 +42,10 @@ export type MessagingDrawerProps = {
   onOpenChange: (open: boolean) => void;
 };
 
+/**
+ * MessagingDrawer component for managing user contacts and messages
+ * Visually consistent with other drawer components in the application
+ */
 export function MessagingDrawer({ open, onOpenChange }: MessagingDrawerProps) {
   const { toast } = useToast();
   const queryClient = useQueryClient();
@@ -57,8 +61,15 @@ export function MessagingDrawer({ open, onOpenChange }: MessagingDrawerProps) {
     enabled: open,
   });
 
-  const { data: searchResults = [] } = useQuery({
+  const { data: searchResults = [], isError: isSearchError } = useQuery({
     queryKey: ['/api/users/search', searchQuery],
+    queryFn: async () => {
+      const res = await apiRequest('GET', `/api/users/search?q=${encodeURIComponent(searchQuery)}`);
+      if (!res.ok) {
+        throw new Error('Failed to search users');
+      }
+      return res.json();
+    },
     enabled: open && searchQuery.length > 1 && tab === "search",
   });
 
@@ -352,12 +363,29 @@ export function MessagingDrawer({ open, onOpenChange }: MessagingDrawerProps) {
           <TabsContent value="search" className="flex flex-col h-full m-0 p-4">
             <div className="flex gap-2 mb-4">
               <Input
-                placeholder="Search users..."
+                placeholder="Search by username or email..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 className="flex-grow"
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') {
+                    e.preventDefault();
+                    // Force refetch when Enter is pressed
+                    if (searchQuery.length > 1) {
+                      queryClient.invalidateQueries({ queryKey: ['/api/users/search', searchQuery] });
+                    }
+                  }
+                }}
               />
-              <Button variant="outline" size="icon">
+              <Button 
+                variant="outline" 
+                size="icon"
+                onClick={() => {
+                  if (searchQuery.length > 1) {
+                    queryClient.invalidateQueries({ queryKey: ['/api/users/search', searchQuery] });
+                  }
+                }}
+              >
                 <Search className="h-4 w-4" />
               </Button>
             </div>
@@ -366,35 +394,54 @@ export function MessagingDrawer({ open, onOpenChange }: MessagingDrawerProps) {
               {searchQuery.length <= 1 ? (
                 <div className="text-center p-8">
                   <Search className="h-10 w-10 mx-auto text-muted-foreground mb-2" />
-                  <p className="text-muted-foreground">Enter a username or name to search</p>
+                  <p className="text-muted-foreground">Enter a username or email to search</p>
+                  <p className="text-xs text-muted-foreground mt-1">Press Enter or click the search icon to search</p>
+                </div>
+              ) : isSearchError ? (
+                <div className="text-center p-8">
+                  <p className="text-destructive">Error searching users</p>
+                  <p className="text-sm text-muted-foreground mt-1">Please try again later</p>
                 </div>
               ) : searchResults.length === 0 ? (
                 <div className="text-center p-8">
                   <p className="text-muted-foreground">No users found</p>
+                  <p className="text-sm text-muted-foreground mt-1">Try a different username or email</p>
                 </div>
               ) : (
-                searchResults.map((user: any) => (
-                  <Card key={user.id} className="p-3">
-                    <div className="flex items-center gap-3">
-                      <Avatar>
-                        <AvatarImage src={user.avatarUrl || user.profileImage || ""} alt={user.username} />
-                        <AvatarFallback>{getInitials(user.fullName)}</AvatarFallback>
-                      </Avatar>
-                      <div className="flex-grow">
-                        <h4 className="font-medium">{user.fullName || user.username}</h4>
-                        <p className="text-sm text-muted-foreground">@{user.username}</p>
+                <div className="rounded-md border">
+                  {searchResults.map((user: any, index: number) => (
+                    <div key={user.id} className="p-3 hover:bg-accent/50 transition-colors">
+                      {index > 0 && <Separator className="mb-3" />}
+                      <div className="flex items-center gap-3">
+                        <Avatar>
+                          <AvatarImage src={user.avatarUrl || user.profileImage || ""} alt={user.username} />
+                          <AvatarFallback>{getInitials(user.fullName)}</AvatarFallback>
+                        </Avatar>
+                        <div className="flex-grow">
+                          <h4 className="font-medium">{user.fullName || user.username}</h4>
+                          <div className="flex flex-col xs:flex-row xs:items-center gap-1 xs:gap-2">
+                            <p className="text-sm text-muted-foreground">@{user.username}</p>
+                            {user.email && (
+                              <>
+                                <span className="hidden xs:inline text-muted-foreground">•</span>
+                                <p className="text-sm text-muted-foreground truncate max-w-[150px]">{user.email}</p>
+                              </>
+                            )}
+                          </div>
+                        </div>
+                        <Button 
+                          size="sm"
+                          variant="outline"
+                          onClick={() => handleAddContact(user.id)}
+                          className="ml-auto"
+                        >
+                          <UserPlus className="h-4 w-4 mr-2" />
+                          Add
+                        </Button>
                       </div>
-                      <Button 
-                        size="sm"
-                        variant="outline"
-                        onClick={() => handleAddContact(user.id)}
-                      >
-                        <UserPlus className="h-4 w-4 mr-2" />
-                        Add
-                      </Button>
                     </div>
-                  </Card>
-                ))
+                  ))}
+                </div>
               )}
             </div>
           </TabsContent>
