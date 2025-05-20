@@ -41,6 +41,7 @@ export default function MapboxMap({
   const mapContainer = useRef<HTMLDivElement>(null);
   const map = useRef<mapboxgl.Map | null>(null);
   const [mapLoaded, setMapLoaded] = useState(false);
+  const markersRef = useRef<mapboxgl.Marker[]>([]);
   
   // Initialize the map
   useEffect(() => {
@@ -48,45 +49,26 @@ export default function MapboxMap({
     
     map.current = new mapboxgl.Map({
       container: mapContainer.current,
-      style: 'mapbox://styles/mapbox/traffic-night-v2', // Using traffic-night style to show live traffic
+      style: 'mapbox://styles/mapbox/dark-v11', // Simple dark style
       center: [longitude, latitude],
       zoom: zoom,
       interactive: interactive
     });
     
+    // Add navigation controls in the top-right corner
+    map.current.addControl(
+      new mapboxgl.NavigationControl({
+        showCompass: true,
+        showZoom: true,
+        visualizePitch: true
+      }),
+      'top-right'
+    );
+    
     // Add event handler for map load
     map.current.on('load', () => {
       // Set map loaded state
       setMapLoaded(true);
-      
-      try {
-        // We need to get all layer ids first to find the road layers
-        const layers = map.current.getStyle().layers || [];
-        
-        // Apply green styling to any layer that contains 'road' in its id
-        layers.forEach(layer => {
-          const layerId = layer.id;
-          
-          if (layerId.toLowerCase().includes('road') && layer.type === 'line') {
-            console.log('Styling road layer:', layerId);
-            
-            // Different shades of green based on road type
-            let color = '#a5d6a7'; // Default light green
-            
-            if (layerId.includes('highway') || layerId.includes('major')) {
-              color = '#4caf50'; // Darker green for highways/major roads
-            } else if (layerId.includes('primary') || layerId.includes('trunk')) {
-              color = '#66bb6a'; // Medium green for primary roads
-            } else if (layerId.includes('secondary') || layerId.includes('tertiary')) {
-              color = '#81c784'; // Slightly darker for secondary/tertiary roads
-            }
-            
-            map.current.setPaintProperty(layerId, 'line-color', color);
-          }
-        });
-      } catch (error) {
-        console.warn('Could not set custom road colors:', error);
-      }
     });
     
     if (onMapClick) {
@@ -103,50 +85,55 @@ export default function MapboxMap({
       }
     };
   // We need to include longitude, latitude, and zoom so the map re-initializes when these change
-  }, [longitude, latitude, zoom]);
+  }, [longitude, latitude, zoom, interactive]);
   
-  // Add markers when they change or map is loaded
+  // Handle markers in a separate effect
   useEffect(() => {
-    // Only proceed if map is loaded and map.current exists
+    // Only proceed if map is loaded
     if (!mapLoaded || !map.current) return;
     
-    // Clear existing markers (if any implementation uses this)
-    const existingMarkers = document.getElementsByClassName('mapboxgl-marker');
-    while (existingMarkers[0]) {
-      existingMarkers[0].remove();
-    }
-    
-    // Debug: log all marker coordinates
-    console.log('Adding markers to map:', markers.map(m => ({
-      lng: m.longitude,
-      lat: m.latitude,
-      title: m.title
-    })));
+    // Remove existing markers
+    markersRef.current.forEach(marker => marker.remove());
+    markersRef.current = [];
     
     // Add new markers
     markers.forEach(marker => {
-      // Enhanced validation for markers - ensure we have valid numeric coordinates
+      // Basic validation
       if (!marker.latitude || !marker.longitude || 
-          isNaN(marker.latitude) || isNaN(marker.longitude) ||
-          marker.latitude === 0 || marker.longitude === 0) {
-        console.warn('Skipping marker with invalid coordinates:', marker);
+          isNaN(marker.latitude) || isNaN(marker.longitude)) {
         return;
       }
       
-      // Verify coordinates are in valid geographic ranges
-      if (marker.latitude < -90 || marker.latitude > 90 || 
-          marker.longitude < -180 || marker.longitude > 180) {
-        console.warn('Skipping marker with out-of-range coordinates:', marker);
-        return;
+      // Create a simple DOM element for the marker
+      const el = document.createElement('div');
+      
+      // Style the marker based on type
+      if (marker.title === 'Current Location') {
+        el.innerHTML = `📍`;
+      } else {
+        el.innerHTML = `$`;
       }
       
-      // Create a styled popup if there's a title or description
+      // Apply styles directly to the element
+      el.style.width = '30px';
+      el.style.height = '30px';
+      el.style.borderRadius = '50%';
+      el.style.backgroundColor = marker.title === 'Current Location' ? '#3b82f6' : '#f59e0b';
+      el.style.border = '2px solid white';
+      el.style.boxShadow = '0 2px 4px rgba(0,0,0,0.5)';
+      el.style.display = 'flex';
+      el.style.alignItems = 'center';
+      el.style.justifyContent = 'center';
+      el.style.color = 'white';
+      el.style.fontWeight = 'bold';
+      el.style.fontSize = '16px';
+      el.style.cursor = 'pointer';
+      
+      // Create a popup if there's a title or description
       let popup: mapboxgl.Popup | undefined;
       if (marker.title || marker.description) {
-        // Create a popup element
-        const popupElement = document.createElement('div');
-        popupElement.className = 'custom-mapbox-popup-content';
-        popupElement.innerHTML = `
+        popup = new mapboxgl.Popup({ offset: 25 })
+          .setHTML(`
           <div style="padding: 8px; cursor: pointer;">
             <h3 style="margin: 0 0 5px; font-size: 15px; font-weight: 600; color: #111;">${marker.title || ''}</h3>
             <p style="margin: 0; font-size: 13px; color: #10b981; font-weight: 500;">${marker.description || ''}</p>
