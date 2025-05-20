@@ -250,23 +250,13 @@ export default function MapboxMap({
         document.head.appendChild(styleEl);
       }
       
-      // Log the coordinate conversion for debugging
-      console.log(`Setting marker at [${marker.longitude}, ${marker.latitude}] for: ${marker.title}`);
-      
       // Add the marker to the map - IMPORTANT: Mapbox uses [longitude, latitude] order!
       try {
         // Check marker coordinates again before adding to the map
         if (map.current) {
-          // For job 26 in Encinal, TX, use hardcoded coordinates to ensure it appears
-          let lng = marker.longitude;
-          let lat = marker.latitude;
-          
-          // Force Encinal, TX job to show at exact coordinates
-          if (marker.title === "Test Job" || marker.title.includes("Encinal")) {
-            lng = -99.35202;
-            lat = 28.044311;
-            console.log('🚨 FORCING job marker to Encinal, TX exact coordinates:', lat, lng);
-          }
+          // Use the job's original coordinates directly from the data
+          const lng = marker.longitude;
+          const lat = marker.latitude;
           
           // Create the mapboxgl marker with enhanced options
           // Set proper z-index on the container element to make it appear above UI elements
