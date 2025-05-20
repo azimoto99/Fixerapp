@@ -20,6 +20,7 @@ interface MapboxMapProps {
     title?: string;
     description?: string;
     onClick?: () => void;
+    isHighlighted?: boolean; // Add flag to highlight special markers
   }>;
   onMapClick?: (lngLat: { lng: number; lat: number }) => void;
   interactive?: boolean;
