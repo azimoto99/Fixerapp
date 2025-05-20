@@ -26,12 +26,12 @@ export function NotificationPopover({ className }: NotificationPopoverProps) {
         <Button 
           variant="ghost" 
           size="icon" 
-          className={cn("relative", className)}
+          className={cn("relative isolate", className)}
           aria-label={`${unreadCount} unread notifications`}
         >
           <BellIcon className="h-5 w-5" />
           {unreadCount > 0 && (
-            <span className="absolute top-0 right-0 h-4 min-w-4 rounded-full bg-primary text-[10px] text-primary-foreground flex items-center justify-center px-1 transform -translate-y-1/3 translate-x-1/3">
+            <span className="absolute top-0 right-0 h-4 min-w-4 rounded-full bg-primary text-[10px] text-primary-foreground flex items-center justify-center px-1 z-10 pointer-events-none">
               {unreadCount > 99 ? '99+' : unreadCount}
             </span>
           )}
