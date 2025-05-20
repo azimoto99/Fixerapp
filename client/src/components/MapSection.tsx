@@ -470,29 +470,25 @@ const MapSection: React.FC<MapSectionProps> = ({ jobs, selectedJob, onSelectJob,
               </div>
             </div>
             
-            <JobDetailCard job={selectedJob} onClose={handleCloseDetail} />
+            {/* Removed old JobDetailCard - using new JobDetailsCard component exclusively */}
             
             {/* Apply button fixed at bottom */}
             <div className="sticky bottom-0 left-0 right-0 bg-card p-4 border-t border-border z-[900] pb-[calc(0.5rem+env(safe-area-inset-bottom))]">
               <button 
-                onClick={handleApply}
-                disabled={isApplying}
+                onClick={() => {
+                  // Use the new JobDetailsCard by triggering it via event
+                  window.dispatchEvent(new CustomEvent('open-job-details', { 
+                    detail: { jobId: selectedJob.id }
+                  }));
+                  handleCloseDetail(); // Close this panel
+                }}
                 className="w-full py-3 px-4 rounded-full bg-primary hover:bg-primary/90 text-primary-foreground font-medium flex items-center justify-center disabled:opacity-70 disabled:cursor-not-allowed transition-all duration-300 hover:shadow-lg"
               >
-                {isApplying ? (
-                  <>
-                    <Loader2 className="w-5 h-5 mr-2 animate-spin" />
-                    <span>Applying...</span>
-                  </>
-                ) : (
-                  <>
-                    <span>Apply for this Job</span>
-                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-5 h-5 ml-2">
-                      <path d="M5 12h14"></path>
-                      <path d="m12 5 7 7-7 7"></path>
-                    </svg>
-                  </>
-                )}
+                <span>View Job Details</span>
+                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-5 h-5 ml-2">
+                  <path d="M5 12h14"></path>
+                  <path d="m12 5 7 7-7 7"></path>
+                </svg>
               </button>
             </div>
           </div>
