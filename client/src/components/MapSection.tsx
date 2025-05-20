@@ -13,6 +13,7 @@ import { useAuth } from '@/hooks/use-auth';
 import { useToast } from '@/hooks/use-toast';
 import { apiRequest, queryClient } from '@/lib/queryClient';
 import { StripeConnectRequired } from '@/components/stripe';
+import JobDetailsCard from './JobDetailsCard';
 
 interface MapSectionProps {
   jobs: Job[];
@@ -20,8 +21,6 @@ interface MapSectionProps {
   onSelectJob?: (job: Job) => void;
   searchCoordinates?: { latitude: number; longitude: number };
 }
-
-// Custom controls removed - no longer needed
 
 // DoorDash-style interactive map component for showing nearby gigs with Mapbox
 const MapSection: React.FC<MapSectionProps> = ({ jobs, selectedJob, onSelectJob, searchCoordinates }) => {
@@ -31,6 +30,9 @@ const MapSection: React.FC<MapSectionProps> = ({ jobs, selectedJob, onSelectJob,
   const [isApplying, setIsApplying] = useState(false);
   // Control drawer state with debouncing to prevent rapid toggling
   const [isUserDrawerOpen, setIsUserDrawerOpen] = useState(false);
+  // State for the new job details card
+  const [selectedJobId, setSelectedJobId] = useState<number | null>(null);
+  const [showJobDetailsCard, setShowJobDetailsCard] = useState(false);
   
   const handleUserDrawerChange = useCallback((isOpen: boolean) => {
     console.log('MapSection: User drawer state changed to:', isOpen);
