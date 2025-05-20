@@ -23,6 +23,7 @@ import { Separator } from '@/components/ui/separator';
 import { Progress } from '@/components/ui/progress';
 import { Textarea } from '@/components/ui/textarea';
 import { Input } from '@/components/ui/input';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import {
   MapPin,
   Calendar,
@@ -47,7 +48,10 @@ import {
   Award,
   Star,
   MessageCircle,
-  Settings
+  Settings,
+  Loader2,
+  Check,
+  Plus
 } from 'lucide-react';
 import { useLocation } from 'wouter';
 
@@ -594,9 +598,9 @@ const JobDetailsCard: React.FC<JobDetailsCardProps> = ({ jobId, isOpen, onClose 
           {/* Main Content */}
           <CardContent>
             {isExpanded && (
-              <div className="space-y-5">
+              <>
                 {/* Tab Navigation */}
-                <div className="flex border-b mb-2">
+                <div className="flex border-b mb-4">
                   <button
                     className={`px-3 py-2 ${activeTab === 'details' ? 'border-b-2 border-primary text-primary' : 'text-muted-foreground'} transition-colors`}
                     onClick={() => setActiveTab('details')}
@@ -620,7 +624,7 @@ const JobDetailsCard: React.FC<JobDetailsCardProps> = ({ jobId, isOpen, onClose 
                 </div>
                 
                 {activeTab === 'details' && (
-                  <div>
+                  <div className="space-y-4">
                     {/* Key details in modern card-based layout */}
                     <div className="grid grid-cols-2 gap-3">
                   <div className="bg-muted/50 rounded-lg p-3 border shadow-sm">
