@@ -49,7 +49,7 @@ export default function MapboxMap({
     
     map.current = new mapboxgl.Map({
       container: mapContainer.current,
-      style: 'mapbox://styles/mapbox/dark-v11', // Simple dark style
+      style: 'mapbox://styles/mapbox/traffic-night-v2', // Using traffic-night style to show live traffic
       center: [longitude, latitude],
       zoom: zoom,
       interactive: interactive
@@ -132,16 +132,15 @@ export default function MapboxMap({
       // Create a popup if there's a title or description
       let popup: mapboxgl.Popup | undefined;
       if (marker.title || marker.description) {
-        popup = new mapboxgl.Popup({ offset: 25 })
-          .setHTML(`
+        popup = new mapboxgl.Popup({ 
+          offset: 25,
+          closeButton: false
+        }).setHTML(`
           <div style="padding: 8px; cursor: pointer;">
             <h3 style="margin: 0 0 5px; font-size: 15px; font-weight: 600; color: #111;">${marker.title || ''}</h3>
             <p style="margin: 0; font-size: 13px; color: #10b981; font-weight: 500;">${marker.description || ''}</p>
           </div>
-        `;
-        
-        // Create popup with the custom element
-        popup = new mapboxgl.Popup({ 
+        `);
           offset: 25,
           closeButton: false,
           className: 'custom-mapbox-popup'
