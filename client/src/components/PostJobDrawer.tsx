@@ -216,10 +216,17 @@ export default function PostJobDrawer({ isOpen, onOpenChange }: PostJobDrawerPro
         // Try to get coordinates from location field if possible
         if (userLocation) {
           // Update the job with user's current location if no specific location provided
-          await apiRequest('PATCH', `/api/jobs/${createdJob.id}`, {
+          const updateCoordinatesResponse = await apiRequest('PATCH', `/api/jobs/${createdJob.id}`, {
             latitude: userLocation.latitude,
             longitude: userLocation.longitude
           });
+          
+          if (updateCoordinatesResponse.ok) {
+            console.log('Updated job with user location coordinates');
+            // Update the createdJob object with the new coordinates
+            createdJob.latitude = userLocation.latitude;
+            createdJob.longitude = userLocation.longitude;
+          }
         }
       }
       

@@ -2502,7 +2502,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Stripe payment processing endpoints
   apiRouter.post("/stripe/create-payment-intent", isAuthenticated, async (req: Request, res: Response) => {
     try {
-      const { jobId, amount } = req.body;
+      // Handle different parameter naming conventions from different parts of the app
+      const { jobId, payAmount, amount, paymentMethodId } = req.body;
+      
+      console.log("Create payment intent request:", req.body);
       
       if (!jobId) {
         return res.status(400).json({ message: "Job ID is required" });
@@ -2518,24 +2521,41 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // In a production app, we would have stricter checks
       
       // Use the provided amount, or fall back to the job's payment amount
-      const paymentAmount = amount || job.paymentAmount;
+      // Handle both parameter names 'amount' and 'payAmount' for flexibility
+      const paymentAmount = payAmount || amount || job.paymentAmount;
       
       // Calculate the amount in cents
       const amountInCents = Math.round(paymentAmount * 100);
       
-      // Create a new payment intent
-      const paymentIntent = await stripe.paymentIntents.create({
+      // Create payment intent options
+      const paymentIntentOptions: any = {
         amount: amountInCents,
         currency: "usd",
         metadata: {
           jobId: job.id.toString(),
           userId: req.user.id.toString()
         }
-      });
+      };
+      
+      // If a payment method ID is provided, attach it to the payment intent
+      if (paymentMethodId) {
+        paymentIntentOptions.payment_method = paymentMethodId;
+        paymentIntentOptions.confirm = true;
+        paymentIntentOptions.return_url = `${req.protocol}://${req.get('host')}`;
+      }
+      
+      // Create a new payment intent
+      const paymentIntent = await stripe.paymentIntents.create(paymentIntentOptions);
+      
+      // Update the job status based on payment success
+      if (paymentIntent.status === 'succeeded' || paymentIntent.status === 'processing') {
+        await storage.updateJob(job.id, { status: 'open' });
+      }
       
       res.json({ 
         clientSecret: paymentIntent.client_secret,
-        paymentIntentId: paymentIntent.id
+        paymentIntentId: paymentIntent.id,
+        status: paymentIntent.status
       });
     } catch (error) {
       console.error("Error creating payment intent:", error);
