@@ -87,7 +87,9 @@ const Header: React.FC<HeaderProps> = ({
         
         {/* Right side elements */}
         <div className="flex items-center space-x-4">
-          {user && <NotificationPopover className="hidden md:flex" />}
+          <div className="relative hidden md:block">
+            {user && <NotificationPopover />}
+          </div>
           
           {/* Messaging Button - placed to the left of Posted Jobs button */}
           {user && onToggleMessaging && (
