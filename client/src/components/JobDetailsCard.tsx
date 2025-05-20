@@ -334,8 +334,21 @@ const JobDetailsCard: React.FC<JobDetailsCardProps> = ({ jobId, isOpen, onClose 
     return Math.round((completedCount / tasks.length) * 100);
   };
 
-  // Get status badge color
-  const getStatusColor = (status: string) => {
+  // Get status badge variant
+  const getStatusVariant = (status: string) => {
+    switch (status) {
+      case 'open': return 'secondary';
+      case 'assigned': return 'secondary';
+      case 'in_progress': return 'default';
+      case 'completed': return 'secondary';
+      case 'canceled': return 'destructive';
+      case 'pending_payment': return 'outline';
+      default: return 'outline';
+    }
+  };
+
+  // Get status badge class for custom styling
+  const getStatusClass = (status: string) => {
     switch (status) {
       case 'open': return 'bg-green-100 text-green-800';
       case 'assigned': return 'bg-blue-100 text-blue-800';
@@ -347,8 +360,8 @@ const JobDetailsCard: React.FC<JobDetailsCardProps> = ({ jobId, isOpen, onClose 
     }
   };
 
-  // Get application status badge color
-  const getApplicationStatusColor = (status: string) => {
+  // Get application badge class
+  const getApplicationClass = (status: string) => {
     switch (status) {
       case 'pending': return 'bg-yellow-100 text-yellow-800';
       case 'accepted': return 'bg-green-100 text-green-800';
@@ -427,7 +440,7 @@ const JobDetailsCard: React.FC<JobDetailsCardProps> = ({ jobId, isOpen, onClose 
   const isAssignedWorker = user?.id === job.workerId;
   const hasApplied = !!application;
   const isPendingPayment = job.status === 'pending_payment';
-  const isOpen = job.status === 'open';
+  const isJobOpen = job.status === 'open';
   const isAssigned = job.status === 'assigned';
   const isInProgress = job.status === 'in_progress';
   const isCompleted = job.status === 'completed';
@@ -659,7 +672,7 @@ const JobDetailsCard: React.FC<JobDetailsCardProps> = ({ jobId, isOpen, onClose 
                   </div>
                 )}
                 
-                {!isAssignedWorker && isOpen && !hasApplied && (
+                {!isAssignedWorker && isJobOpen && !hasApplied && (
                   <Button onClick={() => setShowApplyDialog(true)} className="w-full">Apply for Job</Button>
                 )}
                 

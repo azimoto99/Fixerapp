@@ -71,10 +71,13 @@ const MapSection: React.FC<MapSectionProps> = ({ jobs, selectedJob, onSelectJob,
   const handleMarkerClick = (job: Job) => {
     if (onSelectJob) {
       onSelectJob(job);
-      setShowJobDetail(true);
       
-      // If we're showing a sample job from a marker click, create a temp job object
-      if (!job.id) {
+      // Set the selected job ID and show the new job details card
+      if (job.id) {
+        setSelectedJobId(job.id);
+        setShowJobDetailsCard(true);
+      } else {
+        // If we're showing a sample job from a marker click, create a temp job object
         const tempJob: Job = {
           id: 0,
           title: job.title || 'Sample Job',
@@ -96,6 +99,8 @@ const MapSection: React.FC<MapSectionProps> = ({ jobs, selectedJob, onSelectJob,
           autoAccept: false
         };
         onSelectJob(tempJob);
+        setSelectedJobId(0);
+        setShowJobDetailsCard(true);
       }
     }
   };
@@ -108,11 +113,16 @@ const MapSection: React.FC<MapSectionProps> = ({ jobs, selectedJob, onSelectJob,
       setShowJobDetail(false);
     }
     
+    // Close new job details card if open
+    if (showJobDetailsCard) {
+      setShowJobDetailsCard(false);
+    }
+    
     // Close user drawer if open
     if (isUserDrawerOpen) {
       setIsUserDrawerOpen(false);
     }
-  }, [showJobDetail, isUserDrawerOpen]);
+  }, [showJobDetail, showJobDetailsCard, isUserDrawerOpen]);
   
   // Use debounced updater for performance sensitive operations
   const debouncedSetShowJobDetail = React.useMemo(() => {
@@ -488,6 +498,15 @@ const MapSection: React.FC<MapSectionProps> = ({ jobs, selectedJob, onSelectJob,
           </div>
         )}
       </div>
+      
+      {/* New Job Details Card */}
+      {selectedJobId !== null && (
+        <JobDetailsCard 
+          jobId={selectedJobId} 
+          isOpen={showJobDetailsCard} 
+          onClose={() => setShowJobDetailsCard(false)}
+        />
+      )}
     </div>
   );
 };
