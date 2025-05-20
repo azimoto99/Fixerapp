@@ -102,8 +102,8 @@ export default function MapboxMap({
         map.current = null;
       }
     };
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  // We need to include longitude, latitude, and zoom so the map re-initializes when these change
+  }, [longitude, latitude, zoom]);
   
   // Add markers when they change or map is loaded
   useEffect(() => {
@@ -125,10 +125,18 @@ export default function MapboxMap({
     
     // Add new markers
     markers.forEach(marker => {
-      // Skip markers with invalid coordinates
+      // Enhanced validation for markers - ensure we have valid numeric coordinates
       if (!marker.latitude || !marker.longitude || 
-          isNaN(marker.latitude) || isNaN(marker.longitude)) {
+          isNaN(marker.latitude) || isNaN(marker.longitude) ||
+          marker.latitude === 0 || marker.longitude === 0) {
         console.warn('Skipping marker with invalid coordinates:', marker);
+        return;
+      }
+      
+      // Verify coordinates are in valid geographic ranges
+      if (marker.latitude < -90 || marker.latitude > 90 || 
+          marker.longitude < -180 || marker.longitude > 180) {
+        console.warn('Skipping marker with out-of-range coordinates:', marker);
         return;
       }
       
@@ -232,21 +240,39 @@ export default function MapboxMap({
       console.log(`Setting marker at [${marker.longitude}, ${marker.latitude}] for: ${marker.title}`);
       
       // Add the marker to the map - IMPORTANT: Mapbox uses [longitude, latitude] order!
-      const mapboxMarker = new mapboxgl.Marker(markerEl)
-        .setLngLat([marker.longitude, marker.latitude]);
-        
-      if (popup) {
-        mapboxMarker.setPopup(popup);
-      }
-      
-      if (marker.onClick) {
-        // Add the click event to the element
-        markerEl.addEventListener('click', marker.onClick);
-      }
-      
-      // Safe to add marker if map.current exists
-      if (map.current) {
-        mapboxMarker.addTo(map.current);
+      try {
+        // Check marker coordinates again before adding to the map
+        if (map.current) {
+          // Create the mapboxgl marker with enhanced options
+          const mapboxMarker = new mapboxgl.Marker({
+            element: markerEl,
+            // Use the correct coordinates - Mapbox wants [lng, lat]
+            anchor: 'bottom', // Position the marker with its bottom at the coordinates
+            offset: [0, 0], // No offset
+            // Force scale to ensure proper sizing
+            scale: 1.0
+          }).setLngLat([marker.longitude, marker.latitude]);
+          
+          if (popup) {
+            mapboxMarker.setPopup(popup);
+          }
+          
+          if (marker.onClick) {
+            // Add the click event to the element
+            markerEl.addEventListener('click', (e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              marker.onClick();
+            });
+          }
+          
+          // Add to map with priority
+          mapboxMarker.addTo(map.current);
+          
+          console.log(`Marker successfully added at [${marker.longitude}, ${marker.latitude}] for: ${marker.title}`);
+        }
+      } catch (error) {
+        console.error(`Failed to add marker at [${marker.longitude}, ${marker.latitude}]`, error);
       }
     });
   // eslint-disable-next-line react-hooks/exhaustive-deps
