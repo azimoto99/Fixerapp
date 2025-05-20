@@ -21,6 +21,7 @@ import StripeTester from "@/pages/StripeTester";
 import PaymentSuccess from "@/pages/payment-success";
 import PaymentsPage from "@/pages/payments-page";
 import NotificationsPage from "@/pages/notifications-page";
+import UserProfile from "@/pages/UserProfile";
 import AdminPanel from "@/pages/AdminPanel";
 import { AuthProvider } from "@/hooks/use-auth";
 import { NotificationProvider } from "@/hooks/use-notifications";
@@ -32,8 +33,9 @@ import { ThemeProvider } from "@/components/theme";
 import { OnboardingProvider } from "@/components/onboarding/OnboardingProvider";
 import ContextualTips from "@/components/onboarding/ContextualTips";
 import { SimpleToastProvider } from "@/hooks/use-simple-toast";
+import MessagingDrawer from "@/components/MessagingDrawer";
 import ExpoConnectGuide from "@/components/ExpoConnectGuide";
-import { useEffect } from "react";
+import { useState, useEffect } from "react";
 
 // Redirect component for old routes
 function RedirectToAuth() {
@@ -86,6 +88,7 @@ function RouterWithAuth() {
       <ProtectedRoute path="/stripe-tester" component={StripeTester} />
       <ProtectedRoute path="/notifications" component={NotificationsPage} />
       <ProtectedRoute path="/admin" component={AdminPanel} />
+      <ProtectedRoute path="/profile/:id" component={UserProfile} />
       {/* Payment dashboard is not accessible as there are no job posters */}
       <Route path="/auth" component={AuthPage} />
       <Route path="/login" component={RedirectToAuth} />
@@ -101,6 +104,24 @@ function RouterWithAuth() {
 // This component uses auth context, so it must be inside the AuthProvider
 function AuthenticatedContent() {
   const { user } = useAuth();
+  const [isMessagingOpen, setIsMessagingOpen] = useState(false);
+  const [selectedUserId, setSelectedUserId] = useState<number | null>(null);
+  
+  // Listen for messaging events
+  useEffect(() => {
+    const handleOpenMessaging = (event: CustomEvent) => {
+      setIsMessagingOpen(true);
+      if (event.detail?.userId) {
+        setSelectedUserId(event.detail.userId);
+      }
+    };
+    
+    window.addEventListener('open-messaging' as any, handleOpenMessaging);
+    
+    return () => {
+      window.removeEventListener('open-messaging' as any, handleOpenMessaging);
+    };
+  }, []);
   
   return (
     <>
@@ -115,6 +136,26 @@ function AuthenticatedContent() {
       {/* Contextual tips will track user actions and show tooltips at the right moments */}
       {user && <ContextualTips />}
       {/* ExpoConnectGuide button removed from UI - use ./expo-connect.sh in console instead */}
+      {user && (
+        <>
+          {/* Messaging Button (fixed position) */}
+          <div className="fixed bottom-4 right-4 z-50">
+            <button
+              onClick={() => setIsMessagingOpen(true)}
+              className="flex items-center justify-center w-12 h-12 rounded-full bg-primary text-primary-foreground shadow-lg hover:bg-primary/90 transition-colors"
+              aria-label="Open Messages"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="lucide lucide-message-circle"><path d="M7.9 20A9 9 0 1 0 4 16.1L2 22Z"/></svg>
+            </button>
+          </div>
+          
+          {/* Messaging Drawer */}
+          <MessagingDrawer
+            isOpen={isMessagingOpen}
+            onOpenChange={setIsMessagingOpen}
+          />
+        </>
+      )}
       <Toaster />
     </>
   );

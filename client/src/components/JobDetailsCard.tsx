@@ -690,10 +690,16 @@ const JobDetailsCard: React.FC<JobDetailsCardProps> = ({ jobId, isOpen, onClose 
                 )}
                 
                 {!isAssignedWorker && hasApplied && application.status === 'accepted' && (
-                  <p className="text-sm text-center text-green-600">
-                    <CheckCircle2 className="inline-block h-4 w-4 mr-1" />
-                    Application accepted! The job poster will contact you soon.
-                  </p>
+                  <div className="space-y-2">
+                    <p className="text-sm text-center text-green-600">
+                      <CheckCircle2 className="inline-block h-4 w-4 mr-1" />
+                      Application accepted!
+                    </p>
+                    <Button onClick={handleStartJob} className="w-full">
+                      <PlayCircle className="h-4 w-4 mr-2" />
+                      Clock In / Start Work
+                    </Button>
+                  </div>
                 )}
                 
                 {!isAssignedWorker && hasApplied && application.status === 'rejected' && (
