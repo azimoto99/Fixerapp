@@ -2540,6 +2540,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // If a payment method ID is provided, attach it to the payment intent
       if (paymentMethodId) {
         paymentIntentOptions.payment_method = paymentMethodId;
+        
+        // If user has a customer ID in Stripe, include it (required when using saved payment methods)
+        if (req.user.stripeCustomerId) {
+          paymentIntentOptions.customer = req.user.stripeCustomerId;
+        }
+        
         paymentIntentOptions.confirm = true;
         paymentIntentOptions.return_url = `${req.protocol}://${req.get('host')}`;
       }
