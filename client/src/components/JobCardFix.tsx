@@ -1,6 +1,6 @@
 // This component wraps JobDetailsCard to ensure proper z-index and visibility
 import React, { useState, useEffect } from 'react';
-import JobDetailsCard from './JobDetailsCard';
+import JobDetailsCard from './jobs/JobDetailsCard';
 import { createPortal } from 'react-dom';
 
 const JobCardFix = () => {

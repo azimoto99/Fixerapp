@@ -1,18 +1,96 @@
-/* Fix for job details card to display above all other elements */
-.job-details-card-root {
-  position: relative;
-  z-index: 9999 !important;
-}
-
-.job-details-container {
+/* Custom styles for job card */
+.job-card-overlay {
   position: fixed;
-  bottom: 0;
+  top: 0;
   left: 0;
   right: 0;
-  z-index: 9999 !important;
+  bottom: 0;
+  z-index: 9999;
+  background-color: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  padding: 1rem;
 }
 
-/* Override any lower z-index */
-.card-overlay {
-  z-index: 9999 !important;
+/* Animation classes */
+.slide-in {
+  animation: slideUp 0.3s ease forwards;
+}
+
+.slide-out {
+  animation: slideDown 0.3s ease forwards;
+}
+
+@keyframes slideUp {
+  from {
+    transform: translateY(100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+@keyframes slideDown {
+  from {
+    transform: translateY(0);
+    opacity: 1;
+  }
+  to {
+    transform: translateY(100%);
+    opacity: 0;
+  }
+}
+
+/* Task list styles */
+.task-list-item {
+  position: relative;
+  padding-left: 2rem;
+  margin-bottom: 0.5rem;
+}
+
+.task-checkbox {
+  position: absolute;
+  left: 0;
+  top: 0.25rem;
+}
+
+.task-completed {
+  text-decoration: line-through;
+  color: var(--muted);
+}
+
+/* Application styles */
+.application-card {
+  border: 1px solid var(--border);
+  border-radius: 0.5rem;
+  padding: 1rem;
+  margin-bottom: 0.75rem;
+  background-color: var(--background);
+  transition: all 0.2s ease;
+}
+
+.application-card:hover {
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+}
+
+/* Rating stars */
+.rating-stars {
+  display: flex;
+  gap: 0.25rem;
+}
+
+.star {
+  cursor: pointer;
+  transition: color 0.2s ease;
+}
+
+.star.filled {
+  color: var(--warning);
+}
+
+.star.empty {
+  color: var(--muted);
 }
