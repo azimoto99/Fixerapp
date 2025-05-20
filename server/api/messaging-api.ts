@@ -200,42 +200,6 @@ export function registerMessagingRoutes(app: Express) {
    * @query q - Search query (username, email, or full name)
    * @returns Array of matching users
    */
-  app.get("/api/users/search", async (req: Request, res: Response) => {
-    if (!req.isAuthenticated()) {
-      return res.status(401).json({ message: "Unauthorized - Please login again" });
-    }
-
-    try {
-      const query = req.query.q as string;
-      if (!query || query.length < 2) {
-        return res.status(400).json({ message: "Search query must be at least 2 characters" });
-      }
-      
-      const currentUserId = req.user?.id;
-      if (!currentUserId) {
-        return res.status(401).json({ message: "User ID not found" });
-      }
-      
-      // Perform search with any numeric checks to avoid NaN errors
-      let parsedUserId = currentUserId;
-      if (typeof parsedUserId === 'string') {
-        parsedUserId = parseInt(parsedUserId, 10);
-        if (isNaN(parsedUserId)) {
-          return res.status(400).json({ message: "Invalid user ID format" });
-        }
-      }
-      
-      console.log(`Searching users with query: "${query}" for user ID: ${parsedUserId}`);
-      const users = await storage.searchUsers(query, parsedUserId);
-      
-      if (!users || users.length === 0) {
-        return res.status(404).json({ message: "User not found" });
-      }
-      
-      res.json(users);
-    } catch (error) {
-      console.error("Error searching users:", error);
-      res.status(500).json({ message: "Failed to search users" });
-    }
-  });
+  // Search endpoint moved to main routes.ts file
+  // This helps avoid conflicts with duplicate endpoints
 }

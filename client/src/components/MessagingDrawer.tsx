@@ -61,14 +61,20 @@ export function MessagingDrawer({ open, onOpenChange }: MessagingDrawerProps) {
     enabled: open,
   });
 
-  const { data: searchResults = [], isError: isSearchError } = useQuery({
+  const { 
+    data: searchResults = [], 
+    isError: isSearchError,
+    isLoading: isSearchLoading,
+    refetch: refetchSearch
+  } = useQuery({
     queryKey: ['/api/users/search', searchQuery],
     queryFn: async () => {
       try {
         console.log(`Searching for users with query: ${searchQuery}`);
         const res = await apiRequest('GET', `/api/users/search?q=${encodeURIComponent(searchQuery)}`);
         if (!res.ok) {
-          console.error('Search API error:', await res.text());
+          const errorText = await res.text();
+          console.error('Search API error:', errorText);
           throw new Error('Failed to search users');
         }
         const data = await res.json();
@@ -80,6 +86,7 @@ export function MessagingDrawer({ open, onOpenChange }: MessagingDrawerProps) {
       }
     },
     enabled: open && searchQuery.length > 1 && tab === "search",
+    refetchOnWindowFocus: false
   });
 
   const { data: messages = [] } = useQuery({
@@ -381,7 +388,7 @@ export function MessagingDrawer({ open, onOpenChange }: MessagingDrawerProps) {
                     e.preventDefault();
                     // Force refetch when Enter is pressed
                     if (searchQuery.length > 1) {
-                      queryClient.invalidateQueries({ queryKey: ['/api/users/search', searchQuery] });
+                      refetchSearch();
                     }
                   }
                 }}
@@ -391,25 +398,43 @@ export function MessagingDrawer({ open, onOpenChange }: MessagingDrawerProps) {
                 size="icon"
                 onClick={() => {
                   if (searchQuery.length > 1) {
-                    queryClient.invalidateQueries({ queryKey: ['/api/users/search', searchQuery] });
+                    refetchSearch();
                   }
                 }}
+                disabled={isSearchLoading}
               >
-                <Search className="h-4 w-4" />
+                {isSearchLoading ? (
+                  <div className="h-4 w-4 border-2 border-current border-t-transparent rounded-full animate-spin" />
+                ) : (
+                  <Search className="h-4 w-4" />
+                )}
               </Button>
             </div>
             
-            <div className="space-y-2">
+            <ScrollArea className="flex-grow">
               {searchQuery.length <= 1 ? (
                 <div className="text-center p-8">
                   <Search className="h-10 w-10 mx-auto text-muted-foreground mb-2" />
                   <p className="text-muted-foreground">Enter a username or email to search</p>
                   <p className="text-xs text-muted-foreground mt-1">Press Enter or click the search icon to search</p>
                 </div>
+              ) : isSearchLoading ? (
+                <div className="text-center p-8">
+                  <div className="h-10 w-10 border-4 border-primary border-t-transparent rounded-full animate-spin mx-auto mb-2" />
+                  <p className="text-muted-foreground">Searching users...</p>
+                </div>
               ) : isSearchError ? (
                 <div className="text-center p-8">
                   <p className="text-destructive">Error searching users</p>
                   <p className="text-sm text-muted-foreground mt-1">Please try again later</p>
+                  <Button 
+                    variant="outline" 
+                    size="sm"
+                    onClick={() => refetchSearch()}
+                    className="mt-4"
+                  >
+                    Try again
+                  </Button>
                 </div>
               ) : searchResults.length === 0 ? (
                 <div className="text-center p-8">
@@ -417,7 +442,7 @@ export function MessagingDrawer({ open, onOpenChange }: MessagingDrawerProps) {
                   <p className="text-sm text-muted-foreground mt-1">Try a different username or email</p>
                 </div>
               ) : (
-                <div className="rounded-md border">
+                <div className="rounded-md border overflow-hidden">
                   {searchResults.map((user: any, index: number) => (
                     <div key={user.id} className="p-3 hover:bg-accent/50 transition-colors">
                       {index > 0 && <Separator className="mb-3" />}
@@ -452,7 +477,7 @@ export function MessagingDrawer({ open, onOpenChange }: MessagingDrawerProps) {
                   ))}
                 </div>
               )}
-            </div>
+            </ScrollArea>
           </TabsContent>
         </Tabs>
       </SheetContent>
