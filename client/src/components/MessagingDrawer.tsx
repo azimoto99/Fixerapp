@@ -17,7 +17,6 @@ import { Separator } from "@/components/ui/separator";
 import { apiRequest } from "@/lib/queryClient";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { useToast } from "@/hooks/use-toast";
-import { useUser } from "@/hooks/use-user";
 import { Search, X, Send, MessageSquare, UserPlus } from "lucide-react";
 
 type Contact = {
@@ -45,8 +44,8 @@ export type MessagingDrawerProps = {
 
 export function MessagingDrawer({ open, onOpenChange }: MessagingDrawerProps) {
   const { toast } = useToast();
-  const { user } = useUser();
   const queryClient = useQueryClient();
+  const [currentUser, setCurrentUser] = useState<any>(null);
   const [selectedContactId, setSelectedContactId] = useState<number | null>(null);
   const [newMessage, setNewMessage] = useState("");
   const [searchQuery, setSearchQuery] = useState("");
@@ -126,6 +125,20 @@ export function MessagingDrawer({ open, onOpenChange }: MessagingDrawerProps) {
       });
     }
   });
+
+  // Get current user
+  useEffect(() => {
+    if (open) {
+      fetch('/api/user')
+        .then(res => res.json())
+        .then(data => {
+          setCurrentUser(data);
+        })
+        .catch(err => {
+          console.error('Failed to fetch user:', err);
+        });
+    }
+  }, [open]);
 
   // Scroll to bottom of messages when new ones arrive
   useEffect(() => {
