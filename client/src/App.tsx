@@ -138,20 +138,9 @@ function AuthenticatedContent() {
       {/* ExpoConnectGuide button removed from UI - use ./expo-connect.sh in console instead */}
       {user && (
         <>
-          {/* Messaging Button (fixed position) */}
-          <div className="fixed bottom-4 right-4 z-50">
-            <button
-              onClick={() => setIsMessagingOpen(true)}
-              className="flex items-center justify-center w-12 h-12 rounded-full bg-primary text-primary-foreground shadow-lg hover:bg-primary/90 transition-colors"
-              aria-label="Open Messages"
-            >
-              <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="lucide lucide-message-circle"><path d="M7.9 20A9 9 0 1 0 4 16.1L2 22Z"/></svg>
-            </button>
-          </div>
-          
           {/* Messaging Drawer */}
           <MessagingDrawer
-            isOpen={isMessagingOpen}
+            open={isMessagingOpen}
             onOpenChange={setIsMessagingOpen}
           />
         </>
