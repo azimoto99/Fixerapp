@@ -152,17 +152,16 @@ const JobDetailCard: React.FC<JobDetailCardProps> = ({ job, onClose }) => {
       
       <CardFooter className="gap-2 flex">
         <Button 
-          variant="outline" 
-          className="w-1/2"
-          asChild
+          className="w-full" 
+          onClick={() => {
+            // Trigger the new job details card instead
+            window.dispatchEvent(new CustomEvent('open-job-details', { 
+              detail: { jobId: id }
+            }));
+            if (onClose) onClose();
+          }}
         >
-          <Link href={`/job/${id}`}>View Details</Link>
-        </Button>
-        <Button 
-          className="w-1/2" 
-          onClick={handleApply}
-        >
-          Apply Now
+          View Job Card
         </Button>
       </CardFooter>
     </Card>

@@ -275,8 +275,10 @@ const PosterDashboard = () => {
                     size="sm" 
                     className="mr-2"
                     onClick={() => {
-                      // Navigate to job detail page
-                      window.location.href = `/job/${job.id}`;
+                      // Use the new JobDetailsCard instead
+                      window.dispatchEvent(new CustomEvent('open-job-details', { 
+                        detail: { jobId: job.id }
+                      }));
                     }}
                   >
                     Manage
