@@ -211,16 +211,10 @@ export default function PostJobDrawer({ isOpen, onOpenChange }: PostJobDrawerPro
       console.log(`Creating payment intent for job ID ${createdJob.id} with method ${data.paymentMethodId}`);
       
       const createPaymentResponse = await apiRequest('POST', '/api/stripe/create-payment-intent', {
-        amount: Number(data.paymentAmount),
-        description: `Payment for job: ${data.title}`,
-        jobId: createdJob.id, // Include the job ID for the payment intent
-        paymentMethodId: data.paymentMethodId,
-        metadata: {
-          jobId: createdJob.id,
-          jobTitle: data.title,
-          paymentType: data.paymentType
-        },
-        return_url: window.location.origin + `/job/${createdJob.id}` // Return URL includes job ID
+        jobId: createdJob.id, // Job ID is required
+        payAmount: Number(data.paymentAmount), // The API expects payAmount, not amount
+        useExistingCard: true, // Use the existing card for payment
+        paymentMethodId: data.paymentMethodId // Include the selected payment method ID
       });
       
       if (!createPaymentResponse.ok) {
