@@ -204,6 +204,29 @@ export const notifications = pgTable("notifications", {
   metadata: jsonb("metadata"), // Additional data specific to notification type
 });
 
+// Contacts/Friends table
+export const contacts = pgTable("contacts", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id").notNull(), // References users.id (user who added the contact)
+  contactId: integer("contact_id").notNull(), // References users.id (user who was added as contact)
+  createdAt: timestamp("created_at").defaultNow(),
+  status: text("status").notNull().default("active"), // "active", "blocked", "pending"
+  notes: text("notes"), // Optional notes about the contact
+});
+
+// Messages table for user-to-user chat
+export const messages = pgTable("messages", {
+  id: serial("id").primaryKey(),
+  senderId: integer("sender_id").notNull(), // References users.id (sender)
+  recipientId: integer("recipient_id").notNull(), // References users.id (recipient)
+  content: text("content").notNull(), // Message content
+  isRead: boolean("is_read").notNull().default(false), // Whether the message has been read
+  sentAt: timestamp("sent_at").defaultNow(), // When the message was sent
+  readAt: timestamp("read_at"), // When the message was read
+  attachmentUrl: text("attachment_url"), // Optional URL for attachments
+  attachmentType: text("attachment_type"), // Type of attachment: "image", "document", etc.
+});
+
 // Insert schemas
 export const insertUserSchema = createInsertSchema(users).omit({
   id: true,
@@ -279,6 +302,18 @@ export const insertNotificationSchema = createInsertSchema(notifications).omit({
   createdAt: true,
 });
 
+export const insertContactSchema = createInsertSchema(contacts).omit({
+  id: true,
+  createdAt: true,
+});
+
+export const insertMessageSchema = createInsertSchema(messages).omit({
+  id: true,
+  sentAt: true,
+  readAt: true,
+  isRead: true,
+});
+
 // Types
 export type User = typeof users.$inferSelect & {
   requiresProfileCompletion?: boolean | null; // Virtual field, not in DB
@@ -347,6 +382,12 @@ export type InsertUserBadge = z.infer<typeof insertUserBadgeSchema>;
 
 export type Notification = typeof notifications.$inferSelect;
 export type InsertNotification = z.infer<typeof insertNotificationSchema>;
+
+export type Contact = typeof contacts.$inferSelect;
+export type InsertContact = z.infer<typeof insertContactSchema>;
+
+export type Message = typeof messages.$inferSelect;
+export type InsertMessage = z.infer<typeof insertMessageSchema>;
 
 // Categories enum for job types
 export const JOB_CATEGORIES = [

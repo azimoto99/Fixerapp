@@ -9,6 +9,8 @@ import {
   badges,
   userBadges,
   notifications,
+  contacts,
+  messages,
   type User, 
   type InsertUser, 
   type Job,
@@ -28,7 +30,11 @@ import {
   type UserBadge,
   type InsertUserBadge,
   type Notification,
-  type InsertNotification
+  type InsertNotification,
+  type Contact,
+  type InsertContact,
+  type Message,
+  type InsertMessage
 } from "@shared/schema";
 
 import session from "express-session";
