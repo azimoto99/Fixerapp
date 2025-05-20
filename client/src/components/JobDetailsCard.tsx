@@ -100,6 +100,8 @@ const JobDetailsCard: React.FC<JobDetailsCardProps> = ({ jobId, isOpen, onClose 
   const [reviewComment, setReviewComment] = useState('');
   const [isWorking, setIsWorking] = useState(false);
   const [selectedTaskIds, setSelectedTaskIds] = useState<number[]>([]);
+  const [activeTab, setActiveTab] = useState('details');
+  const [processingApplicationId, setProcessingApplicationId] = useState<number | null>(null);
 
   // Fetch job details
   const { data: job, isLoading, error } = useQuery({
@@ -364,6 +366,51 @@ const JobDetailsCard: React.FC<JobDetailsCardProps> = ({ jobId, isOpen, onClose 
   // Handle submitting a review
   const handleSubmitReview = () => {
     submitReviewMutation.mutate();
+  };
+  
+  // Handle application actions (accept/reject)
+  const handleApplicationAction = (applicationId: number, status: 'accepted' | 'rejected') => {
+    setProcessingApplicationId(applicationId);
+    
+    // Update application status
+    const updateApplicationMutation = useMutation({
+      mutationFn: async () => {
+        const response = await apiRequest('PATCH', `/api/applications/${applicationId}`, {
+          status
+        });
+        
+        if (!response.ok) {
+          const errorData = await response.json();
+          throw new Error(errorData.message || `Failed to ${status === 'accepted' ? 'accept' : 'reject'} application`);
+        }
+        
+        return response.json();
+      },
+      onSuccess: () => {
+        toast({
+          title: status === 'accepted' ? 'Application Accepted' : 'Application Rejected',
+          description: status === 'accepted' 
+            ? 'Worker has been notified and assigned to the job' 
+            : 'Worker has been notified of the rejection',
+        });
+        
+        // Invalidate relevant queries
+        queryClient.invalidateQueries({ queryKey: ['/api/jobs', jobId, 'applications'] });
+        queryClient.invalidateQueries({ queryKey: ['/api/jobs', jobId] });
+        
+        setProcessingApplicationId(null);
+      },
+      onError: (error: Error) => {
+        toast({
+          variant: 'destructive',
+          title: 'Action Failed',
+          description: error.message,
+        });
+        setProcessingApplicationId(null);
+      }
+    });
+    
+    updateApplicationMutation.mutate();
   };
 
   // Determine card animation variants
