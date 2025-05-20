@@ -1,208 +1,222 @@
 /**
  * Messaging API Routes - Handles contacts, friend requests, and messaging between users
  */
-import type { Express, Request, Response } from "express";
-import { storage } from "../storage";
+import { Request, Response, Express } from "express";
 import { z } from "zod";
-
-// Request validation schemas
-const addContactSchema = z.object({
-  username: z.string().min(1, "Username is required")
-});
-
-const sendMessageSchema = z.object({
-  recipientId: z.number().int().positive(),
-  content: z.string().min(1, "Message content is required")
-});
+import { storage } from "../storage";
+import { insertMessageSchema } from "@shared/schema";
 
 export function registerMessagingRoutes(app: Express) {
-  
-  // Get user's contacts (friends)
+  /**
+   * Get all contacts for the logged-in user
+   * @route GET /api/contacts
+   * @middleware isAuthenticated - User must be logged in
+   * @returns Array of contacts with user details
+   */
   app.get("/api/contacts", async (req: Request, res: Response) => {
     if (!req.isAuthenticated()) {
-      return res.status(401).json({ message: "Unauthorized" });
+      return res.status(401).json({ message: "Unauthorized - Please login again" });
     }
-    
+
     try {
-      const userId = req.user.id;
+      // Assuming req.user.id exists after successful authentication
+      const userId = req.user?.id;
+      if (!userId) {
+        return res.status(401).json({ message: "User ID not found" });
+      }
+
       const contacts = await storage.getUserContacts(userId);
-      
       res.json(contacts);
     } catch (error) {
       console.error("Error fetching contacts:", error);
-      res.status(500).json({ message: "Failed to fetch contacts" });
+      res.status(500).json({ message: "Failed to retrieve contacts" });
     }
   });
-  
-  // Add a contact (friend)
+
+  /**
+   * Add a new contact for the current user
+   * @route POST /api/contacts/add
+   * @middleware isAuthenticated - User must be logged in
+   * @body { contactId: number } - ID of user to add as contact
+   * @returns Success message and contact details
+   */
   app.post("/api/contacts/add", async (req: Request, res: Response) => {
     if (!req.isAuthenticated()) {
-      return res.status(401).json({ message: "Unauthorized" });
+      return res.status(401).json({ message: "Unauthorized - Please login again" });
     }
-    
+
     try {
-      const validation = addContactSchema.safeParse(req.body);
-      if (!validation.success) {
-        return res.status(400).json({ message: validation.error.errors[0].message });
+      const { contactId } = req.body;
+      if (!contactId) {
+        return res.status(400).json({ message: "Contact ID is required" });
       }
       
-      const { username } = validation.data;
-      const userId = req.user.id;
-      
-      // Check if the user exists
-      const contactUser = await storage.getUserByUsername(username);
-      if (!contactUser) {
-        return res.status(404).json({ message: "User not found" });
+      const userId = req.user?.id;
+      if (!userId) {
+        return res.status(401).json({ message: "User ID not found" });
       }
       
-      // Can't add yourself as a contact
-      if (contactUser.id === userId) {
-        return res.status(400).json({ message: "You cannot add yourself as a contact" });
-      }
+      // Check if contact already exists
+      const existingContacts = await storage.getUserContacts(userId);
+      const contactExists = existingContacts.some(contact => contact.id === contactId);
       
-      // Check if already a contact
-      const contacts = await storage.getUserContacts(userId);
-      const isAlreadyContact = contacts.some(contact => contact.id === contactUser.id);
-      
-      if (isAlreadyContact) {
-        return res.status(400).json({ message: "This user is already in your contacts" });
+      if (contactExists) {
+        return res.status(400).json({ message: "Contact already exists" });
       }
       
       // Add contact
-      await storage.addUserContact(userId, contactUser.id);
+      await storage.addUserContact(userId, contactId);
       
-      // Send notification to the other user
-      await storage.createNotification({
-        userId: contactUser.id,
-        type: "contact_request",
-        content: `${req.user.username} added you as a contact`,
-        isRead: false,
-        data: {
-          userId: userId,
-          username: req.user.username
-        }
+      // Get updated contact list
+      const updatedContacts = await storage.getUserContacts(userId);
+      res.status(201).json({ 
+        message: "Contact added successfully",
+        contacts: updatedContacts
       });
-      
-      res.json({ message: "Contact added successfully", contact: contactUser });
     } catch (error) {
       console.error("Error adding contact:", error);
       res.status(500).json({ message: "Failed to add contact" });
     }
   });
-  
-  // Remove a contact (friend)
+
+  /**
+   * Remove a contact for the current user
+   * @route DELETE /api/contacts/:contactId
+   * @middleware isAuthenticated - User must be logged in
+   * @param contactId - ID of contact to remove
+   * @returns Success message
+   */
   app.delete("/api/contacts/:contactId", async (req: Request, res: Response) => {
     if (!req.isAuthenticated()) {
-      return res.status(401).json({ message: "Unauthorized" });
+      return res.status(401).json({ message: "Unauthorized - Please login again" });
     }
-    
+
     try {
-      const userId = req.user.id;
       const contactId = parseInt(req.params.contactId);
-      
       if (isNaN(contactId)) {
         return res.status(400).json({ message: "Invalid contact ID" });
       }
       
-      await storage.removeUserContact(userId, contactId);
+      const userId = req.user?.id;
+      if (!userId) {
+        return res.status(401).json({ message: "User ID not found" });
+      }
       
-      res.json({ message: "Contact removed successfully" });
+      const result = await storage.removeUserContact(userId, contactId);
+      if (result) {
+        res.json({ message: "Contact removed successfully" });
+      } else {
+        res.status(404).json({ message: "Contact not found" });
+      }
     } catch (error) {
       console.error("Error removing contact:", error);
       res.status(500).json({ message: "Failed to remove contact" });
     }
   });
-  
-  // Get messages between current user and another user
+
+  /**
+   * Get messages between current user and another user
+   * @route GET /api/messages/:userId
+   * @middleware isAuthenticated - User must be logged in
+   * @param userId - ID of the other user in the conversation
+   * @returns Array of messages
+   */
   app.get("/api/messages/:userId", async (req: Request, res: Response) => {
     if (!req.isAuthenticated()) {
-      return res.status(401).json({ message: "Unauthorized" });
+      return res.status(401).json({ message: "Unauthorized - Please login again" });
     }
-    
+
     try {
-      const currentUserId = req.user.id;
       const otherUserId = parseInt(req.params.userId);
-      
       if (isNaN(otherUserId)) {
         return res.status(400).json({ message: "Invalid user ID" });
       }
       
+      const currentUserId = req.user?.id;
+      if (!currentUserId) {
+        return res.status(401).json({ message: "User ID not found" });
+      }
+      
       const messages = await storage.getMessagesBetweenUsers(currentUserId, otherUserId);
       
-      // Mark all received messages as read
+      // Mark messages as read
       await storage.markMessagesAsRead(currentUserId, otherUserId);
       
       res.json(messages);
     } catch (error) {
       console.error("Error fetching messages:", error);
-      res.status(500).json({ message: "Failed to fetch messages" });
+      res.status(500).json({ message: "Failed to retrieve messages" });
     }
   });
-  
-  // Send a message to another user
+
+  /**
+   * Send a message to another user
+   * @route POST /api/messages/send
+   * @middleware isAuthenticated - User must be logged in
+   * @body { recipientId: number, content: string }
+   * @returns The created message
+   */
   app.post("/api/messages/send", async (req: Request, res: Response) => {
     if (!req.isAuthenticated()) {
-      return res.status(401).json({ message: "Unauthorized" });
+      return res.status(401).json({ message: "Unauthorized - Please login again" });
     }
-    
+
     try {
-      const validation = sendMessageSchema.safeParse(req.body);
-      if (!validation.success) {
-        return res.status(400).json({ message: validation.error.errors[0].message });
+      const messageSchema = insertMessageSchema.extend({
+        recipientId: z.number().positive("Recipient ID is required"),
+        content: z.string().min(1, "Message content is required")
+      });
+      
+      const validatedData = messageSchema.parse(req.body);
+      
+      const senderId = req.user?.id;
+      if (!senderId) {
+        return res.status(401).json({ message: "User ID not found" });
       }
       
-      const { recipientId, content } = validation.data;
-      const senderId = req.user.id;
-      
-      // Check if recipient exists
-      const recipient = await storage.getUser(recipientId);
-      if (!recipient) {
-        return res.status(404).json({ message: "Recipient not found" });
-      }
-      
-      // Create and send the message
       const message = await storage.createMessage({
         senderId,
-        recipientId,
-        content,
-        isRead: false
+        recipientId: validatedData.recipientId,
+        content: validatedData.content,
+        attachmentUrl: validatedData.attachmentUrl,
+        attachmentType: validatedData.attachmentType
       });
       
-      // Create notification for the recipient
-      await storage.createNotification({
-        userId: recipientId,
-        type: "message",
-        content: `New message from ${req.user.username}`,
-        isRead: false,
-        data: {
-          messageId: message.id,
-          senderId,
-          content: content.substring(0, 30) + (content.length > 30 ? '...' : '')
-        }
-      });
-      
-      res.json({ message: "Message sent successfully", data: message });
+      res.status(201).json(message);
     } catch (error) {
       console.error("Error sending message:", error);
-      res.status(500).json({ message: "Failed to send message" });
+      if (error instanceof z.ZodError) {
+        res.status(400).json({ message: error.errors[0].message });
+      } else {
+        res.status(500).json({ message: "Failed to send message" });
+      }
     }
   });
-  
-  // Search for users
+
+  /**
+   * Search for users to add as contacts
+   * @route GET /api/users/search
+   * @middleware isAuthenticated - User must be logged in
+   * @query q - Search query (username, email, or full name)
+   * @returns Array of matching users
+   */
   app.get("/api/users/search", async (req: Request, res: Response) => {
     if (!req.isAuthenticated()) {
-      return res.status(401).json({ message: "Unauthorized" });
+      return res.status(401).json({ message: "Unauthorized - Please login again" });
     }
-    
+
     try {
-      const query = req.query.query as string;
-      
+      const query = req.query.q as string;
       if (!query || query.length < 2) {
         return res.status(400).json({ message: "Search query must be at least 2 characters" });
       }
       
-      const users = await storage.searchUsers(query, req.user.id);
+      const currentUserId = req.user?.id;
+      if (!currentUserId) {
+        return res.status(401).json({ message: "User ID not found" });
+      }
       
+      const users = await storage.searchUsers(query, currentUserId);
       res.json(users);
     } catch (error) {
       console.error("Error searching users:", error);

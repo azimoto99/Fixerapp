@@ -147,6 +147,21 @@ export interface IStorage {
   
   // Specialized notification methods
   notifyNearbyWorkers(jobId: number, radiusMiles: number): Promise<number>; // Returns count of notifications sent
+  
+  // Contact/Friendship operations
+  getUserContacts(userId: number): Promise<(User & { lastMessage?: string | null })[]>;
+  addUserContact(userId: number, contactId: number): Promise<{ userId: number, contactId: number }>;
+  removeUserContact(userId: number, contactId: number): Promise<boolean>;
+  
+  // Message operations
+  getMessagesBetweenUsers(userId1: number, userId2: number): Promise<Message[]>;
+  markMessagesAsRead(recipientId: number, senderId: number): Promise<boolean>;
+  createMessage(message: InsertMessage): Promise<Message>;
+  
+  // User profile operations
+  searchUsers(query: string, excludeUserId?: number): Promise<User[]>;
+  getJobsForWorker(workerId: number, filter?: { status?: string }): Promise<Job[]>;
+  getJobsForPoster(posterId: number): Promise<Job[]>;
 }
 
 export class MemStorage implements IStorage {
