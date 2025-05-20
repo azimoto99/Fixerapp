@@ -386,13 +386,32 @@ export function MessagingDrawer({ open, onOpenChange }: MessagingDrawerProps) {
               <Input
                 placeholder="Search by username or email..."
                 value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
+                onChange={(e) => {
+                  const value = e.target.value;
+                  setSearchQuery(value);
+                  
+                  // Clear any existing timeout
+                  if (searchTimeoutRef.current) {
+                    clearTimeout(searchTimeoutRef.current);
+                  }
+                  
+                  // Only trigger search if query is long enough
+                  if (value.length > 1) {
+                    // Set a timeout to avoid too many requests
+                    searchTimeoutRef.current = setTimeout(() => {
+                      refetchSearch();
+                    }, 300);
+                  }
+                }}
                 className="flex-grow"
                 onKeyDown={(e) => {
                   if (e.key === 'Enter') {
                     e.preventDefault();
                     // Force refetch when Enter is pressed
                     if (searchQuery.length > 1) {
+                      if (searchTimeoutRef.current) {
+                        clearTimeout(searchTimeoutRef.current);
+                      }
                       refetchSearch();
                     }
                   }
@@ -403,6 +422,10 @@ export function MessagingDrawer({ open, onOpenChange }: MessagingDrawerProps) {
                 size="icon"
                 onClick={() => {
                   if (searchQuery.length > 1) {
+                    // Clear any existing timeout
+                    if (searchTimeoutRef.current) {
+                      clearTimeout(searchTimeoutRef.current);
+                    }
                     refetchSearch();
                   }
                 }}
