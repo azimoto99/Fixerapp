@@ -8,7 +8,6 @@ import {
   SheetDescription
 } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
-import { Card } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Input } from "@/components/ui/input";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -297,18 +296,18 @@ export function MessagingDrawer({ open, onOpenChange }: MessagingDrawerProps) {
                     {messages.map((message: Message) => (
                       <div 
                         key={message.id}
-                        className={`flex ${message.senderId === user?.id ? 'justify-end' : 'justify-start'}`}
+                        className={`flex ${message.senderId === currentUser?.id ? 'justify-end' : 'justify-start'}`}
                       >
                         <div 
                           className={`max-w-[80%] rounded-lg px-4 py-2 ${
-                            message.senderId === user?.id 
+                            message.senderId === currentUser?.id 
                               ? 'bg-primary text-primary-foreground' 
                               : 'bg-muted'
                           }`}
                         >
                           <p>{message.content}</p>
                           <p className={`text-xs mt-1 ${
-                            message.senderId === user?.id 
+                            message.senderId === currentUser?.id 
                               ? 'text-primary-foreground/70' 
                               : 'text-muted-foreground'
                           }`}>
@@ -445,7 +444,18 @@ export function MessagingDrawer({ open, onOpenChange }: MessagingDrawerProps) {
                       }
                     }
                   }}
-              />
+                />
+                {searchQuery && (
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="absolute right-1 top-1 h-8 w-8 p-0 rounded-full opacity-70 hover:opacity-100"
+                    onClick={() => setSearchQuery("")}
+                  >
+                    <X className="h-4 w-4" />
+                  </Button>
+                )}
+              </div>
               <Button 
                 variant="outline" 
                 size="icon"
@@ -499,16 +509,15 @@ export function MessagingDrawer({ open, onOpenChange }: MessagingDrawerProps) {
                   <p className="text-sm text-muted-foreground mt-1">Try a different username or email</p>
                 </div>
               ) : (
-                <div className="rounded-md border overflow-hidden">
-                  {searchResults.map((user: any, index: number) => (
-                    <div key={user.id} className="p-3 hover:bg-accent/50 transition-colors">
-                      {index > 0 && <Separator className="mb-3" />}
+                <div className="space-y-2">
+                  {searchResults.map((user: any) => (
+                    <div key={user.id} className="p-3 hover:bg-accent/50 border rounded-md transition-colors">
                       <div className="flex items-center gap-3">
-                        <Avatar>
+                        <Avatar className="h-10 w-10 border">
                           <AvatarImage src={user.avatarUrl || user.profileImage || ""} alt={user.username} />
                           <AvatarFallback>{getInitials(user.fullName)}</AvatarFallback>
                         </Avatar>
-                        <div className="flex-grow">
+                        <div className="flex-grow min-w-0">
                           <h4 className="font-medium">{user.fullName || user.username}</h4>
                           <div className="flex flex-col xs:flex-row xs:items-center gap-1 xs:gap-2">
                             <p className="text-sm text-muted-foreground">@{user.username}</p>
