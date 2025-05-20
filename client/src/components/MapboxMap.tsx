@@ -177,30 +177,55 @@ export default function MapboxMap({
         markerColor = '#3b82f6'; // Blue for current location
       }
       
-      // Create a custom marker element with a dollar sign icon
+      // Create a custom marker element with improved visibility
       const markerEl = document.createElement('div');
       markerEl.className = 'map-marker';
-      markerEl.style.width = '36px';
-      markerEl.style.height = '36px';
+      markerEl.style.width = '40px';
+      markerEl.style.height = '40px';
       markerEl.style.borderRadius = '50%';
       markerEl.style.backgroundColor = markerColor;
       markerEl.style.border = '3px solid white';
-      markerEl.style.boxShadow = '0 2px 8px rgba(0,0,0,0.4)';
+      markerEl.style.boxShadow = '0 3px 10px rgba(0,0,0,0.5)';
       markerEl.style.cursor = 'pointer';
       markerEl.style.display = 'flex';
       markerEl.style.alignItems = 'center';
       markerEl.style.justifyContent = 'center';
       markerEl.style.color = 'white';
-      markerEl.style.fontSize = '18px';
+      markerEl.style.fontSize = '20px';
       markerEl.style.fontWeight = 'bold';
+      markerEl.style.zIndex = '999'; // Ensure markers appear above other map elements
+      markerEl.style.position = 'relative'; // Position properly
       
-      // Use '$' for job markers, a different icon for user location
+      // Use clear symbols for different marker types
       if (marker.title === 'Current Location') {
         markerEl.innerHTML = '📍';
+        markerEl.style.fontSize = '24px';
       } else if (marker.title === 'Job Location') {
         markerEl.innerHTML = '🎯';
+        markerEl.style.fontSize = '24px';
+        // Make highlighted job markers stand out more
+        markerEl.style.animation = 'pulse 1.5s infinite';
       } else {
+        // Job marker with dollar sign
         markerEl.innerHTML = '$';
+        // Add subtle animation for job markers
+        if (marker.isHighlighted) {
+          markerEl.style.animation = 'pulse 1.5s infinite';
+        }
+      }
+      
+      // Add a pulse animation style to the document if it doesn't exist
+      if (!document.getElementById('marker-animations')) {
+        const styleEl = document.createElement('style');
+        styleEl.id = 'marker-animations';
+        styleEl.innerHTML = `
+          @keyframes pulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.1); }
+            100% { transform: scale(1); }
+          }
+        `;
+        document.head.appendChild(styleEl);
       }
       
       // Log the coordinate conversion for debugging
