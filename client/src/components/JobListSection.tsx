@@ -21,7 +21,19 @@ const JobListSection: React.FC<JobListSectionProps> = ({
   selectedJobId,
   searchParams
 }) => {
-  const { jobs, isLoading } = useJobs({}, searchParams);
+  // Get the current user to check if we're showing jobs for a worker or poster
+  const { user } = useAuth();
+  const isViewingAsWorker = !user || user.accountType === 'worker';
+  
+  // When viewing as a worker, show available jobs
+  // When viewing as a poster, only show the user's posted jobs
+  const { jobs, isLoading } = useJobs(
+    { 
+      poster: !isViewingAsWorker,  // Filter by poster ID if viewing as poster
+      includeAll: !isViewingAsWorker   // Include pending and completed jobs for poster view
+    }, 
+    searchParams
+  );
   
   // Use useMemo to avoid unnecessary filtering on each render
   const filteredJobs = useMemo(() => {
