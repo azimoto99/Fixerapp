@@ -8,7 +8,7 @@ import { apiRequest } from '@/lib/queryClient';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/hooks/use-auth';
 import { useGeolocation } from '@/lib/geolocation';
-import { AddressAutocompleteInput } from '@/components/AddressAutocompleteInput';
+import LocationInput from '@/components/LocationInput';
 import {
   Drawer,
   DrawerClose,
@@ -681,30 +681,31 @@ export default function PostJobDrawer({ isOpen, onOpenChange }: PostJobDrawerPro
                       <FormItem>
                         <FormLabel>Job Location</FormLabel>
                         <FormControl>
-                          <div className="relative">
-                            <MapPin className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                            <AddressAutocompleteInput
-                              value={field.value}
-                              onChange={(value, lat, lng) => {
-                                // Format address string
-                                field.onChange(value?.trim() || "");
-                                
-                                // Make sure we're dealing with valid numbers
-                                if (typeof lat === 'number' && typeof lng === 'number') {
-                                  // Format to exactly 6 decimal places
-                                  const formattedLat = Number(lat.toFixed(6));
-                                  const formattedLng = Number(lng.toFixed(6));
-                                  
-                                  form.setValue('latitude', formattedLat);
-                                  form.setValue('longitude', formattedLng);
-                                  console.log(`Address set with coords: ${formattedLat}, ${formattedLng}`);
-                                }
-                              }}
-                              placeholder="Enter job address"
-                              className="pl-9"
-                            />
-                          </div>
+                          <LocationInput
+                            value={field.value}
+                            onChange={(value) => {
+                              field.onChange(value);
+                            }}
+                            onCoordinatesChange={(latitude, longitude, formattedAddress) => {
+                              // Update the location field with the formatted address
+                              field.onChange(formattedAddress);
+                              
+                              // Format to exactly 6 decimal places
+                              const formattedLat = Number(latitude.toFixed(6));
+                              const formattedLng = Number(longitude.toFixed(6));
+                              
+                              // Update the form with the geocoded coordinates
+                              form.setValue('latitude', formattedLat);
+                              form.setValue('longitude', formattedLng);
+                              console.log(`Location geocoded: ${formattedAddress} => [${formattedLat}, ${formattedLng}]`);
+                            }}
+                            placeholder="Enter job address, city, or coordinates"
+                            className="w-full"
+                          />
                         </FormControl>
+                        <FormDescription>
+                          Enter a street address, city name, or coordinates (latitude,longitude)
+                        </FormDescription>
                         <FormMessage />
                       </FormItem>
                     )}
