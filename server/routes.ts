@@ -1375,9 +1375,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       // Ensure all required fields are present
       if (!jobData.title || !jobData.description || !jobData.category || 
-          !jobData.paymentType || !jobData.location) {
+          !jobData.paymentType) {
         return res.status(400).json({
-          message: "Missing required fields. Please provide title, description, category, paymentType, and location."
+          message: "Missing required fields. Please provide title, description, category, and paymentType."
         });
       }
       
