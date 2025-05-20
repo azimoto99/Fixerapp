@@ -13,6 +13,7 @@ const JobCardFix = () => {
       if (e.detail && e.detail.jobId) {
         setJobId(e.detail.jobId);
         setIsOpen(true);
+        console.log('Opening job details for job ID:', e.detail.jobId);
       }
     };
     
@@ -21,15 +22,27 @@ const JobCardFix = () => {
       if (e.detail && e.detail.jobId) {
         setJobId(e.detail.jobId);
         setIsOpen(true);
+        console.log('Set job ID:', e.detail.jobId);
+      }
+    };
+    
+    // Also listen for the 'view-job-card' event that is used in existing components
+    const handleViewJobCard = (e: CustomEvent<{ jobId: number }>) => {
+      if (e.detail && e.detail.jobId) {
+        setJobId(e.detail.jobId);
+        setIsOpen(true);
+        console.log('View job card for job ID:', e.detail.jobId);
       }
     };
     
     window.addEventListener('open-job-details', handleOpenJobDetails as EventListener);
     window.addEventListener('set-job-id', handleSetJobId as EventListener);
+    window.addEventListener('view-job-card', handleViewJobCard as EventListener);
     
     return () => {
       window.removeEventListener('open-job-details', handleOpenJobDetails as EventListener);
       window.removeEventListener('set-job-id', handleSetJobId as EventListener);
+      window.removeEventListener('view-job-card', handleViewJobCard as EventListener);
     };
   }, []);
   
