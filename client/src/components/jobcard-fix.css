@@ -1,0 +1,18 @@
+/* Fix for job details card to display above all other elements */
+.job-details-card-root {
+  position: relative;
+  z-index: 9999 !important;
+}
+
+.job-details-container {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  z-index: 9999 !important;
+}
+
+/* Override any lower z-index */
+.card-overlay {
+  z-index: 9999 !important;
+}

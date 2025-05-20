@@ -35,6 +35,7 @@ import ContextualTips from "@/components/onboarding/ContextualTips";
 import { SimpleToastProvider } from "@/hooks/use-simple-toast";
 import { MessagingDrawer } from "@/components/MessagingDrawer";
 import ExpoConnectGuide from "@/components/ExpoConnectGuide";
+import JobCardFix from "@/components/JobCardFix";
 import { useState, useEffect } from "react";
 
 // Redirect component for old routes
@@ -137,6 +138,8 @@ function AuthenticatedContent() {
       {user && <ContextualTips />}
       {/* ExpoConnectGuide button removed from UI - use ./expo-connect.sh in console instead */}
       {/* Messaging drawer is now handled in Home.tsx */}
+      {/* JobCardFix ensures job details card appears on top of other UI elements */}
+      {user && <JobCardFix />}
       <Toaster />
     </>
   );
