@@ -30,6 +30,7 @@ interface PaymentParams {
   jobId: number;
   payAmount: number;
   useExistingCard?: boolean;
+  paymentMethodId?: string;
 }
 
 // Checkout form component using saved cards or new card
@@ -154,7 +155,7 @@ const SavedPaymentMethods = ({
   onSelectSaved, 
   onAddNew 
 }: { 
-  onSelectSaved: () => void; 
+  onSelectSaved: (paymentMethodId: string) => void; 
   onAddNew: () => void; 
 }) => {
   const [selectedMethod, setSelectedMethod] = useState<string | null>(null);
@@ -184,7 +185,7 @@ const SavedPaymentMethods = ({
 
   const handleContinue = () => {
     if (selectedMethod) {
-      onSelectSaved();
+      onSelectSaved(selectedMethod);
     }
   };
 
@@ -299,11 +300,12 @@ export default function JobPaymentForm({
   });
 
   // Create payment intent when user selects to pay with saved card
-  const handleSavedCardContinue = () => {
+  const handleSavedCardContinue = (selectedMethodId: string) => {
     createPaymentIntent.mutate({
       jobId: job.id,
       payAmount: job.payAmount,
-      useExistingCard: true
+      useExistingCard: true,
+      paymentMethodId: selectedMethodId
     });
   };
 

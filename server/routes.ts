@@ -2540,8 +2540,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
           userId: req.user.id.toString(),
           serviceFee: serviceFee.toString(),
           jobAmount: (amountInCents - serviceFee).toString()
-        },
-        application_fee_amount: serviceFee, // This amount goes to the platform
+        }
+        // Note: Cannot use application_fee_amount without Connect account
       };
       
       // If a payment method ID is provided, attach it to the payment intent

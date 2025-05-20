@@ -497,10 +497,8 @@ export default function PostJobDrawer({ isOpen, onOpenChange }: PostJobDrawerPro
                           placeholder="Describe the job in detail..." 
                           className="min-h-[100px]"
                           onChange={(e) => {
-                            // Sanitize and trim description
-                            const value = e.target.value
-                              .replace(/\s+/g, ' ') // Replace multiple spaces with single space
-                              .replace(/^\s+|\s+$/g, ''); // Trim start and end
+                            // Allow regular typing with spaces
+                            const value = e.target.value;
                             field.onChange(value);
                           }}
                           onBlur={(e) => {
