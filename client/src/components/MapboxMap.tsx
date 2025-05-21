@@ -141,18 +141,10 @@ export default function MapboxMap({
             <p style="margin: 0; font-size: 13px; color: #10b981; font-weight: 500;">${marker.description || ''}</p>
           </div>
         `);
-          offset: 25,
-          closeButton: false,
-          className: 'custom-mapbox-popup'
-        });
         
-        popup.setDOMContent(popupElement);
-        
-        // Add click event to the popup content
+        // Add click event directly to the marker element
         if (marker.onClick) {
-          popupElement.addEventListener('click', (e) => {
-            e.preventDefault();
-            e.stopPropagation();
+          el.addEventListener('click', () => {
             if (marker.onClick) {
               marker.onClick();
             }
