@@ -25,7 +25,7 @@ import { Badge } from "@/components/ui/badge";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import ProfileContent from './drawer-contents/ProfileContent';
-import EarningsContentV2 from './drawer-contents/EarningsContentV2';
+import EarningsContentV3 from './drawer-contents/EarningsContentV3';
 import ReviewsContent from './drawer-contents/ReviewsContent';
 import SettingsContent from './drawer-contents/SettingsContent';
 import PaymentsContentV2 from './drawer-contents/PaymentsContentV2';
