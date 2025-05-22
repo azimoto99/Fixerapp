@@ -2811,9 +2811,27 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Check if the user already has a Connect account
       if (storedUser.stripeConnectAccountId) {
         console.log(`User ${req.user.id} already has Connect account: ${storedUser.stripeConnectAccountId}`);
-        return res.status(400).json({ 
-          message: "User already has a Stripe Connect account" 
-        });
+        
+        // Instead of erroring, create an account link for the existing account
+        try {
+          const accountLink = await stripe.accountLinks.create({
+            account: storedUser.stripeConnectAccountId,
+            refresh_url: `${process.env.APP_URL || 'https://fixer.replit.app'}/earnings?refresh=true`,
+            return_url: `${process.env.APP_URL || 'https://fixer.replit.app'}/earnings?setup=complete`,
+            type: 'account_onboarding',
+          });
+          
+          return res.json({
+            accountId: storedUser.stripeConnectAccountId,
+            accountLinkUrl: accountLink.url,
+            message: "Continue setting up your existing Stripe Connect account"
+          });
+        } catch (linkError) {
+          console.error("Error creating account link for existing account:", linkError);
+          return res.status(500).json({ 
+            message: "Error setting up your payment account. Please try again." 
+          });
+        }
       }
       
       if (!storedUser.email) {
