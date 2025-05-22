@@ -10,6 +10,9 @@ const app = express();
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
 
+// Serve uploaded avatars statically
+app.use('/avatars', express.static('public/avatars'));
+
 app.use((req, res, next) => {
   const start = Date.now();
   const path = req.path;
