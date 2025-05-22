@@ -511,6 +511,68 @@ const EarningsContentV2: React.FC<EarningsContentProps> = ({ userId }) => {
         </Card>
       )}
       
+      {/* Stripe Connect Status Indicator */}
+      <Card className={`mb-4 border-2 ${
+        connectAccount?.account?.charges_enabled 
+          ? 'border-green-200 dark:border-green-800 bg-green-50/30 dark:bg-green-950/20' 
+          : connectAccount?.exists 
+            ? 'border-yellow-200 dark:border-yellow-800 bg-yellow-50/30 dark:bg-yellow-950/20'
+            : 'border-red-200 dark:border-red-800 bg-red-50/30 dark:bg-red-950/20'
+      }`}>
+        <CardContent className="p-4">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              {connectAccount?.account?.charges_enabled ? (
+                <div className="rounded-full bg-green-100 dark:bg-green-950/60 p-2">
+                  <CheckCircle2 className="h-5 w-5 text-green-600 dark:text-green-400" />
+                </div>
+              ) : connectAccount?.exists ? (
+                <div className="rounded-full bg-yellow-100 dark:bg-yellow-950/60 p-2">
+                  <AlertCircle className="h-5 w-5 text-yellow-600 dark:text-yellow-400" />
+                </div>
+              ) : (
+                <div className="rounded-full bg-red-100 dark:bg-red-950/60 p-2">
+                  <CreditCard className="h-5 w-5 text-red-600 dark:text-red-400" />
+                </div>
+              )}
+              
+              <div>
+                <h3 className="font-semibold text-sm">
+                  {connectAccount?.account?.charges_enabled 
+                    ? 'Payment Setup Complete ✓' 
+                    : connectAccount?.exists 
+                      ? 'Payment Setup In Progress'
+                      : 'Payment Setup Required'
+                  }
+                </h3>
+                <p className="text-xs text-muted-foreground">
+                  {connectAccount?.account?.charges_enabled 
+                    ? 'You can receive payments directly to your bank account' 
+                    : connectAccount?.exists 
+                      ? 'Complete your Stripe setup to receive payments'
+                      : 'Set up Stripe Connect to start earning money'
+                  }
+                </p>
+              </div>
+            </div>
+            
+            {connectAccount?.account?.charges_enabled ? (
+              <Badge variant="outline" className="text-green-600 border-green-600">
+                Active
+              </Badge>
+            ) : connectAccount?.exists ? (
+              <Badge variant="outline" className="text-yellow-600 border-yellow-600">
+                Setup Needed
+              </Badge>
+            ) : (
+              <Badge variant="outline" className="text-red-600 border-red-600">
+                Not Set Up
+              </Badge>
+            )}
+          </div>
+        </CardContent>
+      </Card>
+
       {/* Modern Earnings Dashboard - Always shown when there's data */}
       <div className="space-y-6">
         {/* Earnings Summary Cards */}
