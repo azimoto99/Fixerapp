@@ -443,9 +443,16 @@ const MapSection: React.FC<MapSectionProps> = ({ jobs, selectedJob, onSelectJob,
         
 
 
-        {/* Map controls overlay - minimized to just the view toggle */}
+        {/* Map controls overlay - Job count display */}
         <div className="absolute top-0 right-0 z-50 p-2">
-          <MapViewToggle view={mapView} onChange={setMapView} totalOpenJobs={allJobsWithCoordinates.length} />
+          <div className="bg-background/90 border border-border/30 rounded-full shadow-md px-4 py-2">
+            <div className="flex items-center space-x-2">
+              <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
+              <span className="text-sm font-medium">
+                {allJobsWithCoordinates.filter(job => job.status === 'open').length} Open Jobs
+              </span>
+            </div>
+          </div>
         </div>
         
         {/* Bottom card for job details - DoorDash-style slide-up panel */}
