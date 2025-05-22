@@ -207,22 +207,54 @@ export default function ProfileContentV2({ user, onSignOut }: ProfileContentV2Pr
           <CardTitle className="text-base">Account Management</CardTitle>
         </CardHeader>
         <CardContent className="space-y-3">
-          <Button variant="outline" className="w-full justify-start" size="sm">
+          <Button 
+            variant="outline" 
+            className="w-full justify-start" 
+            size="sm"
+            onClick={() => {
+              // Switch to settings tab to edit profile
+              window.dispatchEvent(new CustomEvent('switch-user-drawer-tab', { detail: 'settings' }));
+            }}
+          >
             <Edit className="h-4 w-4 mr-2" />
             Edit Profile
           </Button>
           
-          <Button variant="outline" className="w-full justify-start" size="sm">
+          <Button 
+            variant="outline" 
+            className="w-full justify-start" 
+            size="sm"
+            onClick={() => {
+              // Switch to settings tab for preferences
+              window.dispatchEvent(new CustomEvent('switch-user-drawer-tab', { detail: 'settings' }));
+            }}
+          >
             <Settings className="h-4 w-4 mr-2" />
             Settings & Preferences
           </Button>
           
-          <Button variant="outline" className="w-full justify-start" size="sm">
+          <Button 
+            variant="outline" 
+            className="w-full justify-start" 
+            size="sm"
+            onClick={() => {
+              // Open notification settings (could be in settings tab)
+              window.dispatchEvent(new CustomEvent('switch-user-drawer-tab', { detail: 'settings' }));
+            }}
+          >
             <Bell className="h-4 w-4 mr-2" />
             Notification Settings
           </Button>
           
-          <Button variant="outline" className="w-full justify-start" size="sm">
+          <Button 
+            variant="outline" 
+            className="w-full justify-start" 
+            size="sm"
+            onClick={() => {
+              // Open help/support URL or modal
+              window.open('mailto:support@fixer.app?subject=Help Request', '_blank');
+            }}
+          >
             <HelpCircle className="h-4 w-4 mr-2" />
             Help & Support
           </Button>

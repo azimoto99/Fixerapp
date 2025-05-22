@@ -71,10 +71,17 @@ const UserDrawerV2: React.FC<UserDrawerProps> = ({
       setIsOpen(false);
     };
     
+    const handleTabSwitchEvent = (event: any) => {
+      console.log('UserDrawerV2: Received switch-user-drawer-tab event', event.detail);
+      setActiveTab(event.detail);
+    };
+    
     window.addEventListener('close-user-drawer', handleCloseEvent);
+    window.addEventListener('switch-user-drawer-tab', handleTabSwitchEvent);
     
     return () => {
       window.removeEventListener('close-user-drawer', handleCloseEvent);
+      window.removeEventListener('switch-user-drawer-tab', handleTabSwitchEvent);
     };
   }, []);
   

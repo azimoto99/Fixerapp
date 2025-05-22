@@ -39,18 +39,293 @@
   --primary-rgb: 23, 176, 126; /* RGB version of our primary color for filters */
 }
 
+/* ============================================
+   COMPREHENSIVE RESPONSIVE DESIGN SYSTEM
+   ============================================ */
+
+/* Base responsive utilities */
+.responsive-container {
+  width: 100%;
+  margin: 0 auto;
+  padding: 0 1rem;
+}
+
+.touch-friendly {
+  min-height: 44px;
+  min-width: 44px;
+}
+
+/* Responsive grid layouts */
+.responsive-grid {
+  display: grid;
+  gap: 1rem;
+  grid-template-columns: 1fr;
+}
+
 /* Mobile optimizations */
-@media (max-width: 640px) {
-  /* Improve touch targets */
+@media (max-width: 767px) {
+  /* Enhanced touch targets for mobile */
   button, 
   [role="button"],
   .leaflet-control-zoom-in, 
-  .leaflet-control-zoom-out {
-    min-height: 44px;
-    min-width: 44px;
+  .leaflet-control-zoom-out,
+  .touch-friendly {
+    min-height: 48px;
+    min-width: 48px;
+    padding: 0.75rem 1rem;
   }
   
-  /* Improve spacing for mobile */
+  /* Mobile typography */
+  .responsive-text-sm { font-size: 0.875rem; line-height: 1.25rem; }
+  .responsive-text-base { font-size: 1rem; line-height: 1.5rem; }
+  .responsive-text-lg { font-size: 1.125rem; line-height: 1.75rem; }
+  .responsive-text-xl { font-size: 1.25rem; line-height: 1.75rem; }
+  .responsive-text-2xl { font-size: 1.5rem; line-height: 2rem; }
+  
+  /* Mobile spacing */
+  .responsive-spacing-sm { padding: 0.5rem; }
+  .responsive-spacing-md { padding: 1rem; }
+  .responsive-spacing-lg { padding: 1.5rem; }
+  
+  /* Mobile navigation */
+  .mobile-nav { display: block; }
+  .desktop-nav { display: none; }
+  
+  /* Mobile modal/drawer */
+  .responsive-modal {
+    width: 100%;
+    height: 100%;
+    max-width: none;
+    max-height: none;
+    border-radius: 0;
+  }
+  
+  .responsive-drawer { width: 100%; }
+  
+  /* Mobile map */
+  .responsive-map { height: 60vh; width: 100%; }
+  
+  /* Mobile job cards */
+  .job-cards-container {
+    display: grid;
+    gap: 1rem;
+    grid-template-columns: 1fr;
+    padding: 1rem;
+  }
+  
+  /* Mobile forms */
+  .responsive-form {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+  }
+  
+  /* Mobile search positioning */
+  .responsive-search {
+    position: fixed;
+    bottom: 1rem;
+    left: 1rem;
+    right: 1rem;
+    z-index: 40;
+  }
+  
+  /* Mobile utility classes */
+  .hide-on-mobile { display: none; }
+  .show-on-mobile { display: block; }
+}
+
+/* Tablet optimizations (768px - 1023px) */
+@media (min-width: 768px) and (max-width: 1023px) {
+  .responsive-container {
+    padding: 0 2rem;
+    max-width: 768px;
+  }
+  
+  .responsive-grid.grid-tablet-2 {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 1.5rem;
+  }
+  
+  /* Tablet typography */
+  .responsive-text-lg { font-size: 1.25rem; line-height: 1.75rem; }
+  .responsive-text-xl { font-size: 1.5rem; line-height: 2rem; }
+  .responsive-text-2xl { font-size: 1.875rem; line-height: 2.25rem; }
+  
+  /* Tablet spacing */
+  .responsive-spacing-sm { padding: 0.75rem; }
+  .responsive-spacing-md { padding: 1.5rem; }
+  .responsive-spacing-lg { padding: 2rem; }
+  
+  /* Tablet navigation */
+  .mobile-nav { display: none; }
+  .desktop-nav { display: block; }
+  
+  /* Tablet modal/drawer */
+  .responsive-modal {
+    width: 80%;
+    height: auto;
+    max-width: 600px;
+    max-height: 85vh;
+    border-radius: 0.75rem;
+  }
+  
+  .responsive-drawer { width: 480px; }
+  
+  /* Tablet map */
+  .responsive-map { height: 70vh; }
+  
+  /* Tablet job cards */
+  .job-cards-container {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 1.5rem;
+    padding: 2rem;
+  }
+  
+  /* Tablet forms */
+  .responsive-form.form-two-column {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 1.5rem;
+  }
+  
+  .responsive-form.form-two-column .form-full-width {
+    grid-column: 1 / -1;
+  }
+  
+  /* Tablet search positioning */
+  .responsive-search {
+    position: relative;
+    bottom: auto;
+    left: auto;
+    right: auto;
+    margin: 1.5rem auto;
+    max-width: 500px;
+  }
+  
+  /* Tablet utility classes */
+  .hide-on-tablet { display: none; }
+  .show-on-tablet { display: block; }
+  .responsive-stack.tablet-horizontal {
+    flex-direction: row;
+    gap: 2rem;
+  }
+}
+
+/* Desktop optimizations (1024px+) */
+@media (min-width: 1024px) {
+  .responsive-container {
+    padding: 0 2.5rem;
+    max-width: 1024px;
+  }
+  
+  .responsive-grid.grid-desktop-3 {
+    grid-template-columns: repeat(3, 1fr);
+    gap: 2rem;
+  }
+  
+  .responsive-grid.grid-desktop-4 {
+    grid-template-columns: repeat(4, 1fr);
+    gap: 2rem;
+  }
+  
+  /* Desktop typography */
+  .responsive-text-xl { font-size: 1.75rem; line-height: 2.25rem; }
+  .responsive-text-2xl { font-size: 2.25rem; line-height: 2.5rem; }
+  
+  /* Desktop spacing */
+  .responsive-spacing-md { padding: 2rem; }
+  .responsive-spacing-lg { padding: 3rem; }
+  
+  /* Desktop modal/drawer */
+  .responsive-modal {
+    width: 70%;
+    max-width: 700px;
+    max-height: 80vh;
+  }
+  
+  .responsive-drawer { width: 520px; }
+  
+  /* Desktop map */
+  .responsive-map { height: 75vh; }
+  
+  /* Desktop job cards */
+  .job-cards-container {
+    grid-template-columns: repeat(3, 1fr);
+    gap: 2rem;
+  }
+  
+  /* Desktop forms */
+  .responsive-form { gap: 2rem; }
+  
+  /* Desktop search positioning */
+  .responsive-search {
+    max-width: 600px;
+    margin: 2rem auto;
+  }
+  
+  /* Desktop utility classes */
+  .hide-on-desktop { display: none; }
+  .show-on-desktop { display: block; }
+}
+
+/* Large desktop optimizations (1280px+) */
+@media (min-width: 1280px) {
+  .responsive-container {
+    padding: 0 3rem;
+    max-width: 1280px;
+  }
+  
+  /* Large desktop job cards */
+  .job-cards-container {
+    grid-template-columns: repeat(4, 1fr);
+  }
+}
+
+/* Additional responsive utilities */
+.responsive-image {
+  width: 100%;
+  height: auto;
+  object-fit: cover;
+}
+
+.responsive-avatar-sm { width: 2rem; height: 2rem; }
+.responsive-avatar-md { width: 2.5rem; height: 2.5rem; }
+.responsive-avatar-lg { width: 3rem; height: 3rem; }
+
+@media (min-width: 768px) {
+  .responsive-avatar-sm { width: 2.5rem; height: 2.5rem; }
+  .responsive-avatar-md { width: 3rem; height: 3rem; }
+  .responsive-avatar-lg { width: 4rem; height: 4rem; }
+}
+
+/* Stack layout utilities */
+.responsive-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+/* Ensure no horizontal scroll */
+body, html {
+  overflow-x: hidden;
+}
+
+/* Responsive scrollable areas */
+.responsive-scroll {
+  overflow-y: auto;
+  max-height: 60vh;
+}
+
+@media (min-width: 768px) {
+  .responsive-scroll { max-height: 70vh; }
+}
+
+@media (min-width: 1024px) {
+  .responsive-scroll { max-height: 75vh; }
+}
+
+/* Improve spacing for mobile */
+@media (max-width: 767px) {
   .p-4 {
     padding: 0.75rem;
   }
