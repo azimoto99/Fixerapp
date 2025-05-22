@@ -26,7 +26,7 @@ import { useGeolocation } from '@/lib/geolocation';
 import { useAuth } from '@/hooks/use-auth';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Loader2 } from 'lucide-react';
+import { Loader2, X, Briefcase, MapPin, Calendar, DollarSign } from 'lucide-react';
 import { 
   AlertDialog,
   AlertDialogAction,
@@ -413,22 +413,26 @@ export default function Home() {
       
       {/* Posted Jobs Drawer */}
       {showPostedJobs && (
-        <div className="fixed top-0 right-0 h-full w-80 bg-card shadow-lg z-[var(--z-drawer)] transform transition-transform duration-300 animate-in slide-in-from-right">
-          {/* X button on the left side */}
+        <div className="fixed top-0 right-0 h-full w-80 bg-background/95 backdrop-blur-xl shadow-2xl z-[var(--z-drawer)] transform transition-transform duration-300 animate-in slide-in-from-right border-l border-border/50">
+          {/* Close button with modern design */}
           <button 
             onClick={togglePostedJobs}
-            className="absolute -left-12 top-4 bg-blue-600 text-white shadow-lg rounded-full w-10 h-10 flex items-center justify-center transform transition-all hover:scale-105 active:scale-95 p-0"
+            className="absolute -left-12 top-4 bg-primary hover:bg-primary/90 text-primary-foreground shadow-lg rounded-full w-10 h-10 flex items-center justify-center transform transition-all hover:scale-105 active:scale-95 p-0"
             aria-label="Close posted jobs panel"
           >
-            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <line x1="18" y1="6" x2="6" y2="18"></line>
-              <line x1="6" y1="6" x2="18" y2="18"></line>
-            </svg>
+            <X className="h-5 w-5" />
           </button>
           
-          <div className="bg-blue-600 text-white px-4 py-3 border-b border-blue-700">
-            <div className="flex items-center justify-between">
-              <h3 className="text-lg font-medium">My Posted Jobs</h3>
+          {/* Modern header with gradient and icons */}
+          <div className="bg-gradient-to-r from-primary to-primary/80 text-primary-foreground px-6 py-4 border-b border-primary/20">
+            <div className="flex items-center gap-3">
+              <div className="p-2 bg-primary-foreground/20 rounded-lg backdrop-blur-sm">
+                <Briefcase className="h-5 w-5" />
+              </div>
+              <div>
+                <h3 className="text-lg font-semibold">My Posted Jobs</h3>
+                <p className="text-primary-foreground/80 text-sm">Manage your job listings</p>
+              </div>
             </div>
           </div>
           
@@ -438,41 +442,65 @@ export default function Home() {
                 <div className="h-6 w-6 text-primary animate-spin">⟳</div>
               </div>
             ) : postedJobs.length > 0 ? (
-              <div className="divide-y divide-border">
+              <div className="p-4 space-y-4">
                 {postedJobs.map(job => (
-                  <div key={job.id} className="p-4 hover:bg-muted/50 transition-colors">
-                    <div className="flex justify-between mb-1">
-                      <h4 className="font-medium truncate flex-1">{job.title}</h4>
-                      <span className={`px-2 py-0.5 text-xs rounded-full ${job.status === 'open' ? 'bg-green-100 text-green-800' : job.status === 'assigned' ? 'bg-blue-100 text-blue-800' : 'bg-amber-100 text-amber-800'}`}>
+                  <div key={job.id} className="bg-card/80 backdrop-blur-sm rounded-xl border border-border/40 p-4 hover:shadow-lg hover:bg-card/95 transition-all duration-200">
+                    {/* Header with title and status */}
+                    <div className="flex items-start justify-between mb-3">
+                      <h4 className="font-semibold text-lg leading-tight flex-1 pr-3">{job.title}</h4>
+                      <span className={`px-3 py-1 text-xs font-medium rounded-full flex-shrink-0 ${
+                        job.status === 'open' ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400' : 
+                        job.status === 'assigned' ? 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400' : 
+                        job.status === 'completed' ? 'bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400' :
+                        'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400'
+                      }`}>
                         {job.status.charAt(0).toUpperCase() + job.status.slice(1)}
                       </span>
                     </div>
-                    <p className="text-sm text-muted-foreground mb-2">{job.location}</p>
-                    <p className="text-sm line-clamp-2 mb-3">{job.description}</p>
-                    <div className="flex items-center gap-2 text-xs text-muted-foreground mb-3">
-                      <span>Posted: {new Date(job.datePosted).toLocaleDateString()}</span>
-                      <span>•</span>
-                      <span>${job.paymentAmount.toFixed(2)}</span>
+                    
+                    {/* Location */}
+                    <div className="flex items-center gap-2 text-sm text-muted-foreground mb-2">
+                      <MapPin className="h-4 w-4" />
+                      <span>{job.location}</span>
                     </div>
-                    <div className="flex space-x-2">
+                    
+                    {/* Description */}
+                    <p className="text-sm text-muted-foreground line-clamp-2 mb-3">{job.description}</p>
+                    
+                    {/* Metadata */}
+                    <div className="flex items-center justify-between text-xs text-muted-foreground mb-4">
+                      <div className="flex items-center gap-4">
+                        <div className="flex items-center gap-1">
+                          <Calendar className="h-3 w-3" />
+                          <span>Posted: {job.datePosted ? new Date(job.datePosted).toLocaleDateString() : 'Unknown'}</span>
+                        </div>
+                        <div className="flex items-center gap-1">
+                          <DollarSign className="h-3 w-3" />
+                          <span className="font-medium">${job.paymentAmount?.toFixed(2) || '0.00'}</span>
+                        </div>
+                      </div>
+                    </div>
+                    
+                    {/* Action buttons */}
+                    <div className="flex gap-2">
                       <Button 
                         variant="outline" 
                         size="sm" 
-                        className="flex-1 text-xs"
+                        className="flex-1 hover:bg-primary/10 hover:border-primary/50"
                         onClick={() => {
-                          // Use the new JobDetailsCard directly instead of showing dialog
                           window.dispatchEvent(new CustomEvent('open-job-details', { 
                             detail: { jobId: job.id }
                           }));
                         }}
                       >
-                        Details
+                        View Details
                       </Button>
                       <Button 
-                        variant="destructive" 
-                        className="flex-1 text-xs"
+                        variant="outline" 
+                        size="sm"
+                        className="flex-1 hover:bg-destructive/10 hover:border-destructive/50 hover:text-destructive"
                         onClick={async () => {
-                          if (confirm(`Are you sure you want to cancel this job: ${job.title}?`)) {
+                          if (confirm(`Are you sure you want to cancel "${job.title}"?`)) {
                             try {
                               const response = await fetch(`/api/jobs/${job.id}`, {
                                 method: 'PATCH',
@@ -487,7 +515,6 @@ export default function Home() {
                                   title: "Job Cancelled",
                                   description: "The job has been cancelled successfully",
                                 });
-                                // Refresh the job list
                                 queryClient.invalidateQueries({ queryKey: ['/api/jobs'] });
                               } else {
                                 toast({
@@ -507,18 +534,21 @@ export default function Home() {
                           }
                         }}
                       >
-                        Cancel Job
+                        Cancel
                       </Button>
                     </div>
                   </div>
                 ))}
               </div>
             ) : (
-              <div className="p-8 text-center">
-                <h3 className="text-lg font-medium mb-2">No Jobs Posted Yet</h3>
-                <p className="text-muted-foreground mb-6">Create your first job listing to start finding workers</p>
+              <div className="flex flex-col items-center justify-center h-64 px-8 text-center">
+                <div className="w-16 h-16 bg-primary/10 rounded-full flex items-center justify-center mb-4">
+                  <Briefcase className="h-8 w-8 text-primary" />
+                </div>
+                <h3 className="text-xl font-semibold mb-2">No Jobs Posted Yet</h3>
+                <p className="text-muted-foreground mb-6 max-w-sm">Ready to find skilled workers? Create your first job listing and connect with talented professionals in your area.</p>
                 <Button 
-                  className="bg-primary hover:bg-primary/90"
+                  className="bg-primary hover:bg-primary/90 shadow-md"
                   onClick={() => {
                     togglePostedJobs(); // Close the drawer first
                     setTimeout(() => {
@@ -530,7 +560,7 @@ export default function Home() {
                     }, 300);
                   }}
                 >
-                  Post a Job
+                  Post Your First Job
                 </Button>
               </div>
             )}
