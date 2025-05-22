@@ -145,7 +145,7 @@ const UserDrawerV2: React.FC<UserDrawerProps> = ({
   const renderTabContent = () => {
     switch (activeTab) {
       case "profile":
-        return <ProfileContent user={user} />;
+        return <ProfileContentV2 user={user} onSignOut={handleLogout} />;
       case "wallet":
         return <WalletContent user={user} />;
       case "reviews":
@@ -153,7 +153,7 @@ const UserDrawerV2: React.FC<UserDrawerProps> = ({
       case "settings":
         return <SettingsContent user={user} />;
       default:
-        return <ProfileContent user={user} />;
+        return <ProfileContentV2 user={user} onSignOut={handleLogout} />;
     }
   };
 
