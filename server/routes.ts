@@ -1550,6 +1550,151 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.status(400).json({ message: (error as Error).message });
     }
   });
+  
+  // Update job status and handle job workflow transitions
+  apiRouter.put("/jobs/:id/status", isAuthenticated, async (req: Request, res: Response) => {
+    try {
+      const id = parseInt(req.params.id);
+      const job = await storage.getJob(id);
+      
+      if (!job) {
+        return res.status(404).json({ message: "Job not found" });
+      }
+      
+      // Check authorization - only job poster or assigned worker can update status
+      if (req.user.id !== job.posterId && req.user.id !== job.workerId) {
+        return res.status(403).json({ message: "Forbidden: You are not authorized to update this job" });
+      }
+      
+      const schema = z.object({
+        status: z.enum(["open", "assigned", "in_progress", "completed", "canceled"]),
+        workerLocation: z.object({
+          latitude: z.number(),
+          longitude: z.number()
+        }).optional()
+      });
+      
+      const { status, workerLocation } = schema.parse(req.body);
+      
+      // Apply business rules for status transitions
+      const currentStatus = job.status;
+      
+      // Prevent status changes for certain conditions
+      if (currentStatus === "in_progress" && status === "canceled" && req.user.id === job.posterId) {
+        return res.status(400).json({ 
+          message: "Cannot cancel a job that is in progress. Please contact support if there's a problem." 
+        });
+      }
+      
+      // If worker is trying to start the job, verify location if required
+      if (status === "in_progress" && req.user.id === job.workerId && job.verifyLocationToStart) {
+        if (!workerLocation) {
+          return res.status(400).json({ message: "Worker location required to start job" });
+        }
+        
+        // Calculate distance between worker and job location
+        const jobLat = job.latitude;
+        const jobLng = job.longitude;
+        const workerLat = workerLocation.latitude;
+        const workerLng = workerLocation.longitude;
+        
+        // Calculate distance using haversine formula (approximately)
+        const distanceInFeet = calculateDistanceInFeet(jobLat, jobLng, workerLat, workerLng);
+        
+        // Worker must be within 500 feet of job location to start
+        if (distanceInFeet > 500) {
+          return res.status(400).json({ 
+            message: "You must be within 500 feet of the job location to start work", 
+            distance: Math.round(distanceInFeet),
+            maxDistance: 500
+          });
+        }
+      }
+      
+      // Prepare update data with status change
+      let updateData: any = { status };
+      
+      // Add timestamps based on status transitions
+      if (status === "in_progress" && currentStatus !== "in_progress") {
+        updateData.startTime = new Date();
+        updateData.clockInTime = new Date();
+      } else if (status === "completed" && currentStatus !== "completed") {
+        updateData.completionTime = new Date();
+      }
+      
+      // Update the job
+      const updatedJob = await storage.updateJob(id, updateData);
+      
+      // Create a notification for the other party
+      const notificationRecipientId = req.user.id === job.posterId ? job.workerId : job.posterId;
+      
+      if (notificationRecipientId) {
+        let message;
+        
+        if (status === "in_progress") {
+          message = `Work has started on job "${job.title}"`;
+        } else if (status === "completed") {
+          message = `Job "${job.title}" has been marked as completed`;
+        } else if (status === "canceled") {
+          message = `Job "${job.title}" has been canceled`;
+        }
+        
+        if (message) {
+          await storage.createNotification({
+            userId: notificationRecipientId,
+            title: `Job Status Update`,
+            message,
+            type: "job_status",
+            sourceId: id,
+            sourceType: "job"
+          });
+        }
+      }
+      
+      res.json(updatedJob);
+    } catch (error) {
+      console.error("Error updating job status:", error);
+      res.status(400).json({ message: (error as Error).message });
+    }
+  });
+  
+  // Update worker location for an in-progress job
+  apiRouter.post("/jobs/:id/worker-location", isAuthenticated, async (req: Request, res: Response) => {
+    try {
+      const id = parseInt(req.params.id);
+      const job = await storage.getJob(id);
+      
+      if (!job) {
+        return res.status(404).json({ message: "Job not found" });
+      }
+      
+      // Only the assigned worker can update their location
+      if (req.user.id !== job.workerId) {
+        return res.status(403).json({ message: "Forbidden: You are not the assigned worker for this job" });
+      }
+      
+      // Only allow updates for in-progress jobs
+      if (job.status !== "in_progress") {
+        return res.status(400).json({ message: "Worker location can only be updated for in-progress jobs" });
+      }
+      
+      const schema = z.object({
+        latitude: z.number(),
+        longitude: z.number()
+      });
+      
+      const { latitude, longitude } = schema.parse(req.body);
+      
+      // Update the worker's location in their user profile
+      await storage.updateUser(req.user.id, { latitude, longitude });
+      
+      // Return success
+      res.json({ success: true, message: "Worker location updated" });
+    } catch (error) {
+      console.error("Error updating worker location:", error);
+      res.status(400).json({ message: (error as Error).message });
+    }
+  });
 
   apiRouter.patch("/jobs/:id", isAuthenticated, async (req: Request, res: Response) => {
     try {
