@@ -56,6 +56,15 @@ nav,
   pointer-events: auto; /* Re-enable pointer events for the card itself */
 }
 
+/* Applications panel should appear above job details cards */
+.application-panel,
+.applications-list,
+.applications-container,
+[data-section="applications"] {
+  z-index: 120 !important;
+}
+
+/* Worker location tracking elements */
 .worker-location-tracking,
 .mini-map {
   z-index: 150 !important;
