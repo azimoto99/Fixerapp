@@ -137,7 +137,7 @@ const MapSection: React.FC<MapSectionProps> = ({ jobs, selectedJob, onSelectJob,
           latitude: job.latitude,
           longitude: job.longitude,
           location: 'Sample Location',
-          datePosted: new Date().toISOString(),
+          datePosted: new Date(),
           dateNeeded: null as any,
           dateCompleted: null as any,
           autoAccept: false
