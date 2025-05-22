@@ -884,42 +884,66 @@ const JobDetailsCard: React.FC<JobDetailsCardProps> = ({ jobId, isOpen, onClose 
                 <p className="text-muted-foreground mb-6">Submit your application for "{job.title}"</p>
                 
                 <div className="grid gap-4 py-2">
+                  <div className="bg-muted/50 p-3 rounded-md mb-2">
+                    <p className="text-sm font-medium text-muted-foreground mb-1">Job Rate</p>
+                    <p className="font-medium">${job.hourlyRate?.toFixed(2)}/hour <span className="text-xs text-muted-foreground">(set by job poster)</span></p>
+                  </div>
+                  
                   <div className="grid gap-2">
-                    <label htmlFor="hourly-rate" className="text-sm font-medium">
-                      Your Hourly Rate (USD)
+                    <label htmlFor="equipment" className="text-sm font-medium">
+                      Do you have the necessary equipment for this job?
+                    </label>
+                    <select 
+                      id="equipment" 
+                      className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                      value={expectedDuration}
+                      onChange={(e) => setExpectedDuration(e.target.value)}
+                    >
+                      <option value="">Please select...</option>
+                      <option value="Yes, I have all equipment">Yes, I have all required equipment</option>
+                      <option value="Yes, but may need some items">Yes, but I may need some additional items</option>
+                      <option value="No, will need equipment">No, I'll need the job poster to provide equipment</option>
+                    </select>
+                  </div>
+                  
+                  <div className="grid gap-2">
+                    <label htmlFor="availability" className="text-sm font-medium">
+                      Your Availability
                     </label>
                     <Input
-                      id="hourly-rate"
-                      type="number"
-                      placeholder="25.00"
+                      id="availability"
+                      placeholder="e.g. Available weekdays after 3pm"
                       value={proposedRate}
                       onChange={(e) => setProposedRate(e.target.value)}
                     />
                   </div>
                   
                   <div className="grid gap-2">
-                    <label htmlFor="duration" className="text-sm font-medium">
-                      Expected Duration
-                    </label>
-                    <Input
-                      id="duration"
-                      placeholder="e.g. 2-3 hours"
-                      value={expectedDuration}
-                      onChange={(e) => setExpectedDuration(e.target.value)}
-                    />
-                  </div>
-                  
-                  <div className="grid gap-2">
                     <label htmlFor="message" className="text-sm font-medium">
-                      Message to Job Poster
+                      Experience & Qualifications
                     </label>
                     <Textarea
                       id="message"
-                      placeholder="Introduce yourself and explain why you're a good fit for this job..."
+                      placeholder="Describe your relevant experience and qualifications for this job..."
                       value={applicationMessage}
                       onChange={(e) => setApplicationMessage(e.target.value)}
-                      rows={4}
+                      rows={3}
                     />
+                  </div>
+                  
+                  <div className="mt-2 bg-muted/30 p-3 rounded-md border border-border">
+                    <label className="flex items-start gap-2 cursor-pointer">
+                      <input 
+                        type="checkbox" 
+                        className="mt-1" 
+                        required
+                      />
+                      <span className="text-sm text-muted-foreground">
+                        I agree that I am honestly representing my qualifications and will not attempt to 
+                        defraud the job poster. I understand that misrepresentation may result in 
+                        account termination and potential legal action.
+                      </span>
+                    </label>
                   </div>
                 </div>
                 
