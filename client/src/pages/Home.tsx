@@ -156,21 +156,16 @@ const WorkerDashboard = () => {
             searchCoordinates={searchParams.coordinates}
           />
           
-          {/* Post Job Button and Search Bar positioned beneath UserDrawerV2 */}
-          <div className="fixed top-20 left-0 right-0 z-[45] w-full pointer-events-none">
-            <div className="flex flex-col gap-2 p-4 pointer-events-auto">
-              {/* Post Job Button */}
-              <div className="flex justify-end">
-                <NewJobButton />
-              </div>
-              
-              {/* Search Bar */}
-              <div className="w-full">
-                <div className="bg-card border border-border shadow-lg rounded-lg">
-                  <div className="p-2">
-                    <JobSearch onSearch={handleSearch} />
-                  </div>
-                </div>
+          {/* Post Job Button positioned beneath UserDrawerV2 with lower z-index */}
+          <div className="fixed top-20 right-4 z-[30]">
+            <NewJobButton />
+          </div>
+          
+          {/* Search Bar at bottom with lower z-index than UserDrawerV2 */}
+          <div className="fixed bottom-0 left-0 right-0 z-[30] w-full">
+            <div className="bg-card border-t border-border shadow-lg">
+              <div className="p-2">
+                <JobSearch onSearch={handleSearch} />
               </div>
             </div>
           </div>
