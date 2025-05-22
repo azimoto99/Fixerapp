@@ -261,7 +261,7 @@ const JobDetailsCard: React.FC<JobDetailsCardProps> = ({ jobId, isOpen, onClose 
     }
   });
 
-// We already have updateJobStatusMutation defined earlier
+// No duplicate mutations
 
   // Handle applying for job
   const handleApply = () => {
@@ -369,12 +369,12 @@ const JobDetailsCard: React.FC<JobDetailsCardProps> = ({ jobId, isOpen, onClose 
     setIsCheckingLocation(false);
   };
   
-  // Handle job completion
+  // Handle job completion - show confirmation dialog
   const handleCompleteJob = () => {
     setShowCompleteDialog(true);
   };
   
-  // Confirm job completion and update status
+  // Confirm job completion and update status after user confirmation
   const confirmCompleteJob = () => {
     updateJobStatusMutation.mutate({
       status: 'completed'
@@ -416,7 +416,7 @@ const JobDetailsCard: React.FC<JobDetailsCardProps> = ({ jobId, isOpen, onClose 
   const calculateProgress = () => {
     if (!tasks || tasks.length === 0) return 100;
     
-    const completedCount = tasks.filter(task => task.isCompleted).length;
+    const completedCount = tasks.filter((task: { isCompleted: boolean }) => task.isCompleted).length;
     return Math.round((completedCount / tasks.length) * 100);
   };
 
