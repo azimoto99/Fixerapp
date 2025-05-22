@@ -72,7 +72,7 @@ export const jobs = pgTable("jobs", {
   category: text("category").notNull(), // e.g. "Home Maintenance", "Delivery", etc.
   posterId: integer("poster_id").notNull(), // References users.id
   workerId: integer("worker_id"), // References users.id (if assigned)
-  status: text("status").notNull().default("open"), // "open", "assigned", "completed", "canceled"
+  status: text("status").notNull().default("open"), // "open", "assigned", "in_progress", "completed", "canceled"
   paymentType: text("payment_type").notNull(), // "hourly" or "fixed"
   paymentAmount: doublePrecision("payment_amount").notNull(),
   serviceFee: doublePrecision("service_fee").notNull().default(2.5), // Service fee of $2.50
@@ -85,6 +85,11 @@ export const jobs = pgTable("jobs", {
   requiredSkills: text("required_skills").array(), // Skills needed for the job
   equipmentProvided: boolean("equipment_provided").notNull().default(false),
   autoAccept: boolean("auto_accept").notNull().default(false), // Auto accept applications
+  startTime: timestamp("start_time"), // When work actually began
+  clockInTime: timestamp("clock_in_time"), // When worker clocked in
+  completionTime: timestamp("completion_time"), // When job was completed
+  workerTrackingEnabled: boolean("worker_tracking_enabled").default(true), // Whether to track worker location 
+  verifyLocationToStart: boolean("verify_location_to_start").default(true), // Require worker to be at job location to start
 });
 
 // Applications for jobs
