@@ -2916,6 +2916,120 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.status(400).json({ message: (error as Error).message });
     }
   });
+
+  // In-app Stripe Connect setup endpoint
+  apiRouter.post("/stripe/connect/setup-account", isAuthenticated, async (req: Request, res: Response) => {
+    try {
+      if (!req.isAuthenticated() || !req.user) {
+        return res.status(401).json({ message: "Authentication required" });
+      }
+
+      const { personalInfo, address, businessType, bankAccount } = req.body;
+      
+      // Fetch user from storage
+      const storedUser = await storage.getUser(req.user.id);
+      if (!storedUser) {
+        return res.status(404).json({ message: "User not found" });
+      }
+
+      let accountId = storedUser.stripeConnectAccountId;
+      
+      // Create Connect account if it doesn't exist
+      if (!accountId) {
+        const account = await stripe.accounts.create({
+          type: 'express',
+          email: personalInfo.email,
+          metadata: {
+            userId: storedUser.id.toString(),
+            platform: "Fixer"
+          },
+          capabilities: {
+            transfers: { requested: true },
+            card_payments: { requested: true }
+          },
+          business_type: 'individual',
+          business_profile: {
+            mcc: '7299', // Personal Services
+            product_description: 'Gig economy services provided through Fixer platform'
+          }
+        });
+        
+        accountId = account.id;
+        
+        // Update user with Connect account ID
+        await storage.updateUser(storedUser.id, {
+          stripeConnectAccountId: accountId,
+          stripeConnectAccountStatus: 'pending'
+        });
+      }
+
+      // Update the Connect account with provided information
+      const updateData: any = {
+        individual: {
+          first_name: personalInfo.firstName,
+          last_name: personalInfo.lastName,
+          email: personalInfo.email,
+          phone: personalInfo.phone,
+          address: {
+            line1: address.line1,
+            city: address.city,
+            state: address.state,
+            postal_code: address.postalCode,
+            country: address.country
+          }
+        }
+      };
+
+      // Add date of birth if provided
+      if (personalInfo.dateOfBirth?.day && personalInfo.dateOfBirth?.month && personalInfo.dateOfBirth?.year) {
+        updateData.individual.dob = {
+          day: parseInt(personalInfo.dateOfBirth.day),
+          month: parseInt(personalInfo.dateOfBirth.month),
+          year: parseInt(personalInfo.dateOfBirth.year)
+        };
+      }
+
+      // Update the account
+      await stripe.accounts.update(accountId, updateData);
+
+      // Create external account (bank account)
+      if (bankAccount.routingNumber && bankAccount.accountNumber) {
+        try {
+          await stripe.accounts.createExternalAccount(accountId, {
+            external_account: {
+              object: 'bank_account',
+              country: address.country,
+              currency: 'usd',
+              routing_number: bankAccount.routingNumber,
+              account_number: bankAccount.accountNumber,
+              account_holder_name: bankAccount.accountHolderName,
+              account_holder_type: 'individual'
+            }
+          });
+        } catch (bankError) {
+          console.error('Error adding bank account:', bankError);
+          // Continue even if bank account fails - user can add it later
+        }
+      }
+
+      // Update user status to active
+      await storage.updateUser(storedUser.id, {
+        stripeConnectAccountStatus: 'active'
+      });
+
+      res.json({
+        success: true,
+        accountId: accountId,
+        message: 'Payment account setup completed successfully'
+      });
+
+    } catch (error) {
+      console.error('Error setting up Stripe Connect account:', error);
+      res.status(500).json({ 
+        message: 'Failed to setup payment account. Please try again.' 
+      });
+    }
+  });
   
   apiRouter.get("/stripe/connect/account-status", isStripeAuthenticated, async (req: Request, res: Response) => {
     try {

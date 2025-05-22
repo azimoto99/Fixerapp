@@ -4,6 +4,7 @@ import { useQuery, useMutation } from '@tanstack/react-query';
 import { apiRequest, queryClient } from '@/lib/queryClient';
 import { useToast } from '@/hooks/use-toast';
 import { Earning, Job, Application, Review } from '@shared/schema';
+import StripeConnectSetup from '@/components/stripe/StripeConnectSetup';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -61,6 +62,7 @@ const EarningsContentV2: React.FC<EarningsContentProps> = ({ userId }) => {
   const [timeframe, setTimeframe] = useState('month');
   const { toast } = useToast();
   const [isCreatingAccount, setIsCreatingAccount] = useState(false);
+  const [showSetupFlow, setShowSetupFlow] = useState(false);
   
   // Check Stripe Connect Account Status
   const { 
@@ -190,6 +192,25 @@ const EarningsContentV2: React.FC<EarningsContentProps> = ({ userId }) => {
     );
   }
 
+  // Show the setup flow if requested
+  if (showSetupFlow) {
+    return (
+      <div className="space-y-6">
+        <div className="flex items-center justify-between pb-2 border-b">
+          <h2 className="text-sm font-medium text-muted-foreground">Payment Account Setup</h2>
+        </div>
+        
+        <StripeConnectSetup 
+          onComplete={() => {
+            setShowSetupFlow(false);
+            refetchAccount();
+          }}
+          onCancel={() => setShowSetupFlow(false)}
+        />
+      </div>
+    );
+  }
+
   if (!earnings || earnings.length === 0) {
     return (
       <div className="space-y-6">
@@ -213,17 +234,10 @@ const EarningsContentV2: React.FC<EarningsContentProps> = ({ userId }) => {
                     size="sm"
                     variant="default"
                     className="text-xs"
-                    onClick={() => createAccountMutation.mutate()}
+                    onClick={() => setShowSetupFlow(true)}
                     disabled={isCreatingAccount}
                   >
-                    {isCreatingAccount ? (
-                      <>
-                        <Loader2 className="mr-2 h-3 w-3 animate-spin" />
-                        Setting up...
-                      </>
-                    ) : (
-                      <>Set Up Payment Account</>
-                    )}
+                    Set Up Payment Account
                   </Button>
                   <Button 
                     size="sm"
