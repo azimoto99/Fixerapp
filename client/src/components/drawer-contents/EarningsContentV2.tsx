@@ -217,30 +217,30 @@ const EarningsContentV2: React.FC<EarningsContentProps> = ({ userId }) => {
                     size="sm"
                     variant="default"
                     className="text-xs"
-                    onClick={() => {
+                    onClick={async () => {
                       console.log('Redirecting to Stripe setup...');
-                      const createAccountLink = async () => {
-                        try {
-                          const res = await apiRequest('GET', '/api/stripe/connect/account-status');
-                          const data = await res.json();
-                          if (data.onboardingUrl) {
-                            window.open(data.onboardingUrl, '_blank');
-                          } else {
-                            toast({
-                              title: 'Setup Required',
-                              description: 'Please complete Stripe Connect setup to receive payments.',
-                              variant: 'default',
-                            });
-                          }
-                        } catch (error) {
+                      try {
+                        const res = await apiRequest('GET', '/api/stripe/connect/account-status');
+                        const data = await res.json();
+                        console.log('Stripe response:', data);
+                        if (data.onboardingUrl) {
+                          console.log('Opening URL:', data.onboardingUrl);
+                          window.open(data.onboardingUrl, '_blank');
+                        } else {
                           toast({
-                            title: 'Error',
-                            description: 'Unable to start payment setup. Please try again.',
-                            variant: 'destructive',
+                            title: 'Setup Required',
+                            description: 'Please complete Stripe Connect setup to receive payments.',
+                            variant: 'default',
                           });
                         }
-                      };
-                      createAccountLink();
+                      } catch (error) {
+                        console.error('Stripe setup error:', error);
+                        toast({
+                          title: 'Error',
+                          description: 'Unable to start payment setup. Please try again.',
+                          variant: 'destructive',
+                        });
+                      }
                     }}
                     disabled={isCreatingAccount}
                   >
