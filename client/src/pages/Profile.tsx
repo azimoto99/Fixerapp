@@ -360,30 +360,6 @@ export default function Profile() {
                     </Alert>
                   </CardContent>
                 </Card>
-                      </div>
-                      
-                      <div className="mt-6">
-                        <h3 className="text-sm font-medium text-gray-500 mb-3">Recent {user.accountType === 'worker' ? 'Earnings' : 'Income'}</h3>
-                        <div className="text-center py-8 bg-gray-50 rounded-md">
-                          <p className="text-gray-500">No {user.accountType === 'worker' ? 'earnings' : 'income'} history yet.</p>
-                          <p className="text-sm text-gray-400 mt-1">
-                            {user.accountType === 'worker' 
-                              ? 'Complete jobs to start earning money.' 
-                              : 'Post jobs and connect to start receiving income.'}
-                          </p>
-                        </div>
-                      </div>
-                      
-                      <div className="mt-4 text-center">
-                        <Link href="/earnings">
-                          <Button variant="outline" size="sm">
-                            View Full {user.accountType === 'worker' ? 'Earnings' : 'Income'} Dashboard
-                          </Button>
-                        </Link>
-                      </div>
-                    </CardContent>
-                  </Card>
-                </div>
               </TabsContent>
               
               {/* Badges Tab */}
