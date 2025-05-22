@@ -413,18 +413,18 @@ const MapSection: React.FC<MapSectionProps> = ({ jobs, selectedJob, onSelectJob,
           }
         `}</style>
         
-        {/* Status overlay that appears above the map but below any drawers */}
-        <div className="absolute top-0 left-0 right-0 z-20 flex justify-between items-center p-2 bg-background/80 backdrop-blur-sm shadow-sm">
-          <div className="flex items-center space-x-3">
-            <div className="text-xs px-2 py-1 bg-primary/10 rounded-full text-primary border border-primary/20">
+        {/* Status overlay that appears above the map but below any drawers - positioned below UserDrawerV2 */}
+        <div className="absolute top-14 left-0 right-0 z-30 flex justify-between items-center px-3 py-1.5 bg-background/85 backdrop-blur-sm border-y border-border/30 shadow-sm">
+          <div className="flex items-center space-x-2">
+            <div className="text-xs px-2 py-0.5 bg-primary/10 rounded-full text-primary border border-primary/20 font-medium">
               {allJobsWithCoordinates.length} open jobs
             </div>
-            <div className="text-xs px-2 py-1 bg-green-600/10 rounded-full text-green-600 border border-green-600/20 flex items-center">
-              <div className="w-2 h-2 rounded-full bg-green-500 mr-1 animate-pulse"></div>
+            <div className="text-xs px-2 py-0.5 bg-green-600/10 rounded-full text-green-600 border border-green-600/20 flex items-center font-medium">
+              <div className="w-1.5 h-1.5 rounded-full bg-green-500 mr-1 animate-pulse"></div>
               Location active
             </div>
           </div>
-          <div className="text-xs text-muted-foreground">
+          <div className="text-xs text-muted-foreground/80 font-light">
             Powered by Mapbox
           </div>
         </div>
