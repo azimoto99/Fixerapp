@@ -92,6 +92,7 @@ export const jobs = pgTable("jobs", {
   shiftEndTime: text("shift_end_time"), // For hourly jobs: when the shift is scheduled to end (HH:MM format)
   workerTrackingEnabled: boolean("worker_tracking_enabled").default(true), // Whether to track worker location 
   verifyLocationToStart: boolean("verify_location_to_start").default(true), // Require worker to be at job location to start
+  markerColor: text("marker_color"), // Color code for the job marker on the map
 });
 
 // Applications for jobs
