@@ -869,7 +869,7 @@ const JobDetailsCard: React.FC<JobDetailsCardProps> = ({ jobId, isOpen, onClose 
           
           {/* Apply Dialog */}
           <Dialog open={showApplyDialog} onOpenChange={setShowApplyDialog}>
-            <DialogContent className="sm:max-w-md !z-[100] relative">
+            <DialogContent className="sm:max-w-md !z-[220] relative" style={{ zIndex: 220 }}>
               <DialogHeader>
                 <DialogTitle>Apply for Job</DialogTitle>
                 <DialogDescription>

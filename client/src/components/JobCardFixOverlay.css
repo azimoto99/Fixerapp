@@ -73,12 +73,19 @@ nav,
 /* Dialogs, Alerts and Popups (190-220) */
 .dialog-backdrop,
 [data-state="open"][role="dialog"],
-.fixed-overlay {
+.fixed-overlay,
+[data-radix-popper-content-wrapper],
+.radix-dialog-overlay,
+[data-state="open"] {
   z-index: 190 !important;
 }
 
 .dialog-content,
-[role="dialog"] {
+[role="dialog"],
+[data-radix-dialog-content],
+[data-state="open"] > div,
+.DialogContent,
+.DialogOverlay {
   z-index: 200 !important;
 }
 
