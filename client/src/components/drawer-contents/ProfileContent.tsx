@@ -78,6 +78,33 @@ const ProfileContent: React.FC<ProfileContentProps> = ({ user }) => {
 
   return (
     <div className="space-y-4">
+      {/* Profile Header with Avatar */}
+      <div className="flex items-center space-x-4 p-4 bg-gradient-to-r from-blue-50 to-purple-50 dark:from-blue-900/20 dark:to-purple-900/20 rounded-lg border">
+        <Avatar className="h-16 w-16 ring-2 ring-white shadow-lg">
+          <AvatarImage 
+            src={user.avatarUrl || undefined} 
+            alt={user.fullName || user.username || 'Profile'}
+            className="object-cover"
+          />
+          <AvatarFallback className="bg-gradient-to-br from-blue-500 to-purple-600 text-white text-lg font-semibold">
+            {(user.fullName || user.username || 'U').charAt(0).toUpperCase()}
+          </AvatarFallback>
+        </Avatar>
+        
+        <div className="flex-1 min-w-0">
+          <h1 className="text-xl font-semibold text-gray-900 dark:text-white truncate">
+            {user.fullName || user.username}
+          </h1>
+          <p className="text-sm text-gray-600 dark:text-gray-300">
+            @{user.username}
+          </p>
+          <div className="flex items-center mt-1 text-xs text-gray-500 dark:text-gray-400">
+            <Clock className="h-3 w-3 mr-1" />
+            Last active: {lastActive}
+          </div>
+        </div>
+      </div>
+
       <div className="flex items-center justify-between pb-1 border-b">
         <h2 className="text-sm font-medium text-muted-foreground">Profile Information</h2>
         <Button 

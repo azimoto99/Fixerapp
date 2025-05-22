@@ -1,0 +1,58 @@
+I need to combine the paymentsContent and earningsContent tabs in my UserDrawerV2 component into a single "Wallet" tab.
+
+CURRENT ISSUE:
+- I have separate tabs for "Payments" and "Earnings" in UserDrawerV2
+- This creates redundant/confusing UI
+- Users need to see all financial info in one place
+
+REQUIREMENTS FOR COMBINED "WALLET" TAB:
+
+**Section 1: Current Balance**
+- Display total wallet balance prominently at top
+- Show available funds vs pending funds separately
+- Add "Withdraw Funds" button
+
+**Section 2: Recent Transactions** 
+- Combine both payment history and earnings history
+- Show chronological list of all transactions
+- Include: job earnings, bonuses, withdrawals, fees
+- Display: amount, date, transaction type, job title (if applicable)
+
+**Section 3: Earnings Summary**
+- Total earned (lifetime)
+- This week's earnings
+- Average per job
+- Streak bonuses earned
+
+**Layout Structure:**
+┌─ WALLET TAB ─────────────────┐
+│ 💰 Balance: $127.50         │
+│ 📤 [Withdraw Funds]         │
+├─────────────────────────────┤
+│ Recent Transactions         │
+│ • +$25.00 - House Cleaning  │
+│ • +$2.50 - Streak Bonus     │
+│ • -$50.00 - Withdrawal      │
+├─────────────────────────────┤
+│ Earnings Summary            │
+│ Total Earned: $847.50       │
+│ This Week: $127.50          │
+│ Avg per Job: $18.75         │
+└─────────────────────────────┘
+
+SPECIFIC CHANGES NEEDED:
+1. Remove separate "Payments" and "Earnings" tabs
+2. Create single "Wallet" tab that merges both content areas
+3. Reorganize the data display as shown above
+4. Keep all existing functionality but in unified interface
+5. Maintain the same styling/theme as current drawer
+
+PRESERVE EXISTING FEATURES:
+- Withdrawal functionality
+- Transaction filtering/sorting
+- Date formatting
+- Error handling
+- Loading states
+
+Merge these two tabs into one cohesive wallet interface that shows all financial information in a logical, user-friendly layout.
+This prompt is specific about what needs to be combined and how, while preserving existing functionality. Replit AI should be able to refactor your UserDrawerV2 component efficiently.
