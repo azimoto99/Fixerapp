@@ -2,6 +2,28 @@ import express, { type Express, Request, Response } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { z } from "zod";
+
+// Helper function to calculate distance between two points in feet
+function calculateDistanceInFeet(lat1: number, lon1: number, lat2: number, lon2: number): number {
+  const earthRadiusInFeet = 20902231; // Earth radius in feet
+  
+  // Convert latitude and longitude from degrees to radians
+  const latRad1 = (lat1 * Math.PI) / 180;
+  const lonRad1 = (lon1 * Math.PI) / 180;
+  const latRad2 = (lat2 * Math.PI) / 180;
+  const lonRad2 = (lon2 * Math.PI) / 180;
+  
+  // Haversine formula
+  const dLat = latRad2 - latRad1;
+  const dLon = lonRad2 - lonRad1;
+  const a = Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+            Math.cos(latRad1) * Math.cos(latRad2) *
+            Math.sin(dLon / 2) * Math.sin(dLon / 2);
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+  const distance = earthRadiusInFeet * c;
+  
+  return distance;
+}
 import Stripe from "stripe";
 import { filterJobContent, validatePaymentAmount } from "./content-filter";
 import { stripeRouter } from "./api/stripe-api";

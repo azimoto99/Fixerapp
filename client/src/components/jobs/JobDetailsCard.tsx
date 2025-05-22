@@ -35,12 +35,33 @@ import {
   X,
   ThumbsUp,
   Loader2,
-  Check
+  Check,
+  Briefcase,
+  Timer,
+  AlertCircle,
+  MapIcon,
+  Navigation,
+  Compass
 } from 'lucide-react';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
+import { useGeolocation } from '@/hooks/use-geolocation';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 // Import application management tab
 import JobApplicationsTab from './JobApplicationsTab';
 import '../jobcard-fix.css';
+import { useEffect as useWindowEffect } from 'react';
+import { cn } from '@/lib/utils';
 
 interface JobDetailsCardProps {
   jobId: number;
@@ -52,6 +73,7 @@ const JobDetailsCard: React.FC<JobDetailsCardProps> = ({ jobId, isOpen, onClose 
   const { user } = useAuth();
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  const { userLocation } = useGeolocation();
   const [isExpanded, setIsExpanded] = useState(true);
   const [applicationMessage, setApplicationMessage] = useState('');
   const [proposedRate, setProposedRate] = useState('');
@@ -59,6 +81,10 @@ const JobDetailsCard: React.FC<JobDetailsCardProps> = ({ jobId, isOpen, onClose 
   const [showApplyDialog, setShowApplyDialog] = useState(false);
   const [showCompleteDialog, setShowCompleteDialog] = useState(false);
   const [activeTab, setActiveTab] = useState('details');
+  const [showLocationVerificationError, setShowLocationVerificationError] = useState(false);
+  const [distanceToJob, setDistanceToJob] = useState<number | null>(null);
+  const [isCheckingLocation, setIsCheckingLocation] = useState(false);
+  const [showWorkerMap, setShowWorkerMap] = useState(false);
 
   // Fetch job details
   const { data: job, isLoading } = useQuery({
