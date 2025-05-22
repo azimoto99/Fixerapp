@@ -282,9 +282,118 @@ const JobDetailsCard: React.FC<JobDetailsCardProps> = ({ jobId, isOpen, onClose 
     applyMutation.mutate();
   };
 
-  // Handle starting a job
-  const handleStartJob = () => {
-    startJobMutation.mutate();
+  // Function to calculate distance between two coordinates
+  const calculateDistance = (lat1: number, lon1: number, lat2: number, lon2: number): number => {
+    // Earth's radius in feet
+    const R = 20902231; // 3959 miles * 5280 feet
+
+    const dLat = (lat2 - lat1) * Math.PI / 180;
+    const dLon = (lon2 - lon1) * Math.PI / 180;
+    
+    const a = 
+      Math.sin(dLat/2) * Math.sin(dLat/2) +
+      Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * 
+      Math.sin(dLon/2) * Math.sin(dLon/2);
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+    const distance = R * c;
+    
+    return Math.round(distance);
+  };
+
+  // Get user's current location
+  const refreshLocation = (): Promise<{latitude: number, longitude: number}> => {
+    return new Promise((resolve, reject) => {
+      if (!navigator.geolocation) {
+        reject(new Error('Geolocation is not supported by your browser'));
+        return;
+      }
+      
+      navigator.geolocation.getCurrentPosition(
+        (position) => {
+          const { latitude, longitude } = position.coords;
+          resolve({ latitude, longitude });
+        },
+        (error) => {
+          reject(error);
+        },
+        { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
+      );
+    });
+  };
+
+  // Verify worker location against job location
+  const verifyWorkerLocation = async (): Promise<boolean> => {
+    if (!job || !job.latitude || !job.longitude) {
+      toast({
+        title: "Location Error", 
+        description: "Job location information is missing",
+        variant: "destructive"
+      });
+      return false;
+    }
+
+    try {
+      const location = await refreshLocation();
+      const distance = calculateDistance(
+        location.latitude, 
+        location.longitude, 
+        job.latitude, 
+        job.longitude
+      );
+      
+      setDistanceToJob(distance);
+      
+      // Worker must be within 500 feet of the job location
+      if (distance <= 500) {
+        return true;
+      } else {
+        setShowLocationVerificationError(true);
+        return false;
+      }
+    } catch (error) {
+      toast({
+        title: "Location Error", 
+        description: "Unable to get your current location. Please enable location services.",
+        variant: "destructive"
+      });
+      return false;
+    }
+  };
+
+  // Handle starting a job with location verification
+  const handleStartJob = async () => {
+    setIsCheckingLocation(true);
+    try {
+      const isLocationValid = await verifyWorkerLocation();
+      
+      if (isLocationValid) {
+        const location = await refreshLocation();
+        updateJobStatusMutation.mutate({
+          status: 'in_progress',
+          workerLocation: location
+        });
+      }
+    } catch (error) {
+      toast({
+        title: "Location Error",
+        description: "Unable to verify your location. Please try again.",
+        variant: "destructive"
+      });
+    }
+    setIsCheckingLocation(false);
+  };
+  
+  // Handle job completion
+  const handleCompleteJob = () => {
+    setShowCompleteDialog(true);
+  };
+  
+  // Confirm job completion and update status
+  const confirmCompleteJob = () => {
+    updateJobStatusMutation.mutate({
+      status: 'completed'
+    });
+    setShowCompleteDialog(false);
   };
 
   // Clear state when component unmounts or job changes
@@ -693,13 +802,33 @@ const JobDetailsCard: React.FC<JobDetailsCardProps> = ({ jobId, isOpen, onClose 
                       </Button>
                     )}
                     
-                    {hasApplied && application.status === 'accepted' && job.status === 'assigned' && (
+                    {job.workerId === user.id && job.status === 'assigned' && (
                       <Button
                         className="flex-1" 
                         onClick={handleStartJob}
+                        disabled={isCheckingLocation}
                       >
-                        <PlayCircle className="h-4 w-4 mr-2" />
-                        Start Job
+                        {isCheckingLocation ? (
+                          <>
+                            <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                            Verifying Location...
+                          </>
+                        ) : (
+                          <>
+                            <PlayCircle className="h-4 w-4 mr-2" />
+                            Clock In & Start Job
+                          </>
+                        )}
+                      </Button>
+                    )}
+                    
+                    {job.workerId === user.id && job.status === 'in_progress' && (
+                      <Button
+                        className="flex-1 bg-green-600 hover:bg-green-700 text-white" 
+                        onClick={handleCompleteJob}
+                      >
+                        <CheckCheck className="h-4 w-4 mr-2" />
+                        Job Done
                       </Button>
                     )}
                   </>
@@ -708,14 +837,37 @@ const JobDetailsCard: React.FC<JobDetailsCardProps> = ({ jobId, isOpen, onClose 
                 {user && user.accountType === 'poster' && user.id === job.posterId && (
                   <>
                     {/* Job Poster Actions */}
-                    <Button
-                      variant="outline"
-                      className="flex-1"
-                      onClick={() => console.log('Edit job')}
-                    >
-                      <Edit className="h-4 w-4 mr-2" />
-                      Edit Job
-                    </Button>
+                    {job.status === 'open' && (
+                      <Button
+                        variant="outline"
+                        className="flex-1"
+                        onClick={() => console.log('Edit job')}
+                      >
+                        <Edit className="h-4 w-4 mr-2" />
+                        Edit Job
+                      </Button>
+                    )}
+                    
+                    {job.status === 'in_progress' && (
+                      <Button
+                        variant="default"
+                        className="flex-1"
+                        onClick={() => setShowWorkerMap(!showWorkerMap)}
+                      >
+                        <MapIcon className="h-4 w-4 mr-2" />
+                        {showWorkerMap ? 'Hide Worker Location' : 'Track Worker Location'}
+                      </Button>
+                    )}
+                    
+                    {job.status === 'completed' && (
+                      <Button
+                        variant="default"
+                        className="flex-1 bg-green-600 hover:bg-green-700"
+                      >
+                        <DollarSign className="h-4 w-4 mr-2" />
+                        Process Payment
+                      </Button>
+                    )}
                   </>
                 )}
                 
@@ -799,6 +951,78 @@ const JobDetailsCard: React.FC<JobDetailsCardProps> = ({ jobId, isOpen, onClose 
               </DialogFooter>
             </DialogContent>
           </Dialog>
+          
+          {/* Location Verification Error Dialog */}
+          <AlertDialog open={showLocationVerificationError} onOpenChange={setShowLocationVerificationError}>
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogTitle className="flex items-center">
+                  <AlertCircle className="h-5 w-5 mr-2 text-destructive" />
+                  Location Verification Failed
+                </AlertDialogTitle>
+                <AlertDialogDescription>
+                  You need to be physically at the job location to start work. 
+                  {distanceToJob && (
+                    <div className="mt-2">
+                      <span className="font-medium">You are currently:</span> {distanceToJob} feet away
+                      <br/>
+                      <span className="font-medium">Required distance:</span> Within 500 feet
+                    </div>
+                  )}
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogAction onClick={() => setShowLocationVerificationError(false)}>
+                  OK
+                </AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
+          
+          {/* Job Completion Confirmation Dialog */}
+          <AlertDialog open={showCompleteDialog} onOpenChange={setShowCompleteDialog}>
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogTitle className="flex items-center">
+                  <CheckCircle2 className="h-5 w-5 mr-2 text-green-600" />
+                  Complete Job
+                </AlertDialogTitle>
+                <AlertDialogDescription>
+                  Are you sure you want to mark this job as completed? This will notify the job poster and initiate the payment process.
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel>Cancel</AlertDialogCancel>
+                <AlertDialogAction 
+                  className="bg-green-600 hover:bg-green-700"
+                  onClick={confirmCompleteJob}
+                >
+                  Yes, Complete Job
+                </AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
+          
+          {/* Worker Location Map Component (would need to be implemented with a mapping library) */}
+          {showWorkerMap && job?.status === 'in_progress' && (
+            <div className="absolute inset-x-0 bottom-0 left-0 right-0 bg-background border-t border-border p-4 rounded-t-lg shadow-lg z-50" style={{height: '200px'}}>
+              <div className="flex justify-between items-center mb-2">
+                <h3 className="text-sm font-medium flex items-center">
+                  <Navigation className="h-4 w-4 mr-2 text-primary" />
+                  Worker Location
+                </h3>
+                <Button variant="ghost" size="sm" onClick={() => setShowWorkerMap(false)}>
+                  <X className="h-4 w-4" />
+                </Button>
+              </div>
+              <div className="bg-muted h-[120px] rounded-md flex items-center justify-center">
+                <div className="text-center text-muted-foreground text-sm">
+                  <Compass className="h-6 w-6 mx-auto mb-2" />
+                  <p>Worker location tracking would appear here</p>
+                </div>
+              </div>
+            </div>
+          )}
         </Card>
       </motion.div>
     </AnimatePresence>
