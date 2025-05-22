@@ -88,6 +88,8 @@ export const jobs = pgTable("jobs", {
   startTime: timestamp("start_time"), // When work actually began
   clockInTime: timestamp("clock_in_time"), // When worker clocked in
   completionTime: timestamp("completion_time"), // When job was completed
+  shiftStartTime: text("shift_start_time"), // For hourly jobs: when the shift is scheduled to start (HH:MM format)
+  shiftEndTime: text("shift_end_time"), // For hourly jobs: when the shift is scheduled to end (HH:MM format)
   workerTrackingEnabled: boolean("worker_tracking_enabled").default(true), // Whether to track worker location 
   verifyLocationToStart: boolean("verify_location_to_start").default(true), // Require worker to be at job location to start
 });
