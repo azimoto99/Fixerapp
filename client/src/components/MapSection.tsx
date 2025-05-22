@@ -443,8 +443,8 @@ const MapSection: React.FC<MapSectionProps> = ({ jobs, selectedJob, onSelectJob,
         
 
 
-        {/* Map controls overlay - Job count display */}
-        <div className="absolute top-0 right-0 z-50 p-2">
+        {/* Map controls overlay - Job count display (positioned below UserDrawerV2) */}
+        <div className="absolute top-0 right-0 z-30 p-2">
           <div className="bg-background/90 border border-border/30 rounded-full shadow-md px-4 py-2">
             <div className="flex items-center space-x-2">
               <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
