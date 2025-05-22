@@ -30,7 +30,7 @@ interface SettingsContentProps {
 const SettingsContent: React.FC<SettingsContentProps> = ({ user }) => {
   const [isLoading, setIsLoading] = useState(false);
   const { toast } = useToast();
-  const [activeTab, setActiveTab] = useState('notifications');
+  const [activeTab, setActiveTab] = useState('profile');
   
   // Notification settings
   const [notificationSettings, setNotificationSettings] = useState({
@@ -105,10 +105,14 @@ const SettingsContent: React.FC<SettingsContentProps> = ({ user }) => {
         onValueChange={setActiveTab}
         className="space-y-4"
       >
-        <TabsList className="grid grid-cols-4 w-full">
+        <TabsList className="grid grid-cols-5 w-full">
+          <TabsTrigger value="profile" className="text-xs">
+            <UserIcon className="h-4 w-4 mr-1" />
+            Profile
+          </TabsTrigger>
           <TabsTrigger value="notifications" className="text-xs">
             <Bell className="h-4 w-4 mr-1" />
-            Notifications
+            Alerts
           </TabsTrigger>
           <TabsTrigger value="privacy" className="text-xs">
             <Shield className="h-4 w-4 mr-1" />
@@ -116,13 +120,90 @@ const SettingsContent: React.FC<SettingsContentProps> = ({ user }) => {
           </TabsTrigger>
           <TabsTrigger value="appearance" className="text-xs">
             <Palette className="h-4 w-4 mr-1" />
-            Appearance
+            Theme
           </TabsTrigger>
           <TabsTrigger value="data" className="text-xs">
             <Download className="h-4 w-4 mr-1" />
             Data
           </TabsTrigger>
         </TabsList>
+
+        {/* Profile Picture Tab */}
+        <TabsContent value="profile" className="space-y-4">
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-base">Profile Picture</CardTitle>
+              <CardDescription>Upload and manage your profile avatar</CardDescription>
+            </CardHeader>
+            <CardContent className="flex flex-col items-center space-y-6">
+              <AvatarUpload
+                currentAvatarUrl={user.avatarUrl || undefined}
+                userId={user.id}
+                onAvatarUpdate={(newUrl) => {
+                  // Update local user data
+                  queryClient.invalidateQueries({ queryKey: ['/api/user'] });
+                  toast({
+                    title: "Success! 🎉",
+                    description: "Your profile picture has been updated.",
+                  });
+                }}
+                className="w-full max-w-sm"
+              />
+              
+              <div className="text-center space-y-2">
+                <p className="text-sm text-muted-foreground">
+                  Your profile picture helps others recognize you across the platform
+                </p>
+                <p className="text-xs text-muted-foreground">
+                  Recommended: Square image, at least 200x200 pixels
+                </p>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-base">Profile Information</CardTitle>
+              <CardDescription>Manage your basic profile details</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="username">Username</Label>
+                  <Input
+                    id="username"
+                    value={user.username || ''}
+                    disabled
+                    className="bg-muted"
+                  />
+                  <p className="text-xs text-muted-foreground">Username cannot be changed</p>
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="fullName">Full Name</Label>
+                  <Input
+                    id="fullName"
+                    value={user.fullName || ''}
+                    disabled
+                    className="bg-muted"
+                  />
+                  <p className="text-xs text-muted-foreground">Contact support to update</p>
+                </div>
+              </div>
+              
+              <div className="space-y-2">
+                <Label htmlFor="email">Email Address</Label>
+                <Input
+                  id="email"
+                  type="email"
+                  value={user.email || ''}
+                  disabled
+                  className="bg-muted"
+                />
+                <p className="text-xs text-muted-foreground">Email cannot be changed for security</p>
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
 
         {/* Notifications Tab */}
         <TabsContent value="notifications" className="space-y-4">
