@@ -4,9 +4,8 @@ import {
   Settings, 
   LogOut, 
   Star as StarIcon, 
-  BarChart2,
+  Wallet,
   X,
-  CreditCard,
   LayoutDashboard,
   Home,
   Scroll,
@@ -25,10 +24,9 @@ import { Badge } from "@/components/ui/badge";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import ProfileContent from './drawer-contents/ProfileContent';
-import EarningsContentV3 from './drawer-contents/EarningsContentV3';
+import WalletContent from './drawer-contents/WalletContent';
 import ReviewsContent from './drawer-contents/ReviewsContent';
 import SettingsContent from './drawer-contents/SettingsContent';
-import PaymentsContentV2 from './drawer-contents/PaymentsContentV2';
 
 interface UserDrawerProps {
   children?: React.ReactNode;
@@ -148,10 +146,8 @@ const UserDrawerV2: React.FC<UserDrawerProps> = ({
     switch (activeTab) {
       case "profile":
         return <ProfileContent user={user} />;
-      case "earnings":
-        return <EarningsContentV3 userId={user.id} />;
-      case "payments":
-        return <PaymentsContentV2 userId={user.id} />;
+      case "wallet":
+        return <WalletContent user={user} />;
       case "reviews":
         return <ReviewsContent userId={user.id} />;
       case "settings":
