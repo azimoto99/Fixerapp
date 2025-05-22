@@ -757,6 +757,58 @@ export default function PostJobDrawer({ isOpen, onOpenChange }: PostJobDrawerPro
                   />
                 </div>
                 
+                {form.watch('paymentType') === 'hourly' && (
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
+                    <FormField
+                      control={form.control}
+                      name="shiftStartTime"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Shift Start Time</FormLabel>
+                          <FormControl>
+                            <div className="relative">
+                              <Clock className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                              <Input
+                                type="time"
+                                className="pl-9"
+                                {...field}
+                              />
+                            </div>
+                          </FormControl>
+                          <FormMessage />
+                          <FormDescription>
+                            When the shift is scheduled to start
+                          </FormDescription>
+                        </FormItem>
+                      )}
+                    />
+                    
+                    <FormField
+                      control={form.control}
+                      name="shiftEndTime"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Shift End Time</FormLabel>
+                          <FormControl>
+                            <div className="relative">
+                              <Clock className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                              <Input
+                                type="time"
+                                className="pl-9"
+                                {...field}
+                              />
+                            </div>
+                          </FormControl>
+                          <FormMessage />
+                          <FormDescription>
+                            When the shift is scheduled to end
+                          </FormDescription>
+                        </FormItem>
+                      )}
+                    />
+                  </div>
+                )}
+                
                 <FormField
                   control={form.control}
                   name="equipmentProvided"

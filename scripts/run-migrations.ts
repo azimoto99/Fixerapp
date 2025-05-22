@@ -1,5 +1,7 @@
 import { runMigration as runMigration001 } from '../migrations/001_add_missing_columns.js';
 import { runMigration as runMigration002 } from '../migrations/002_add_payment_earnings_columns.js';
+import { runMigration as runMigration003 } from '../migrations/003_add_job_workflow_columns.js';
+import { runMigration as runMigration004 } from '../migrations/004_add_shift_time_columns.js';
 
 async function runAllMigrations() {
   try {
@@ -8,6 +10,8 @@ async function runAllMigrations() {
     // Run each migration in order
     await runMigration001();
     await runMigration002();
+    await runMigration003();
+    await runMigration004();
     
     console.log('All migrations completed successfully!');
   } catch (error) {

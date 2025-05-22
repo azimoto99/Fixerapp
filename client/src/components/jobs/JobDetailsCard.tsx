@@ -640,6 +640,13 @@ const JobDetailsCard: React.FC<JobDetailsCardProps> = ({ jobId, isOpen, onClose 
                         </div>
                         <div className="text-md font-medium">
                           {job.startDate ? format(new Date(job.startDate), 'MMM d, yyyy') : 'Flexible start'}
+                          
+                          {job.paymentType === 'hourly' && job.shiftStartTime && job.shiftEndTime && (
+                            <div className="mt-1 text-sm">
+                              <span className="text-muted-foreground">Shift: </span>
+                              {job.shiftStartTime} - {job.shiftEndTime}
+                            </div>
+                          )}
                         </div>
                       </div>
                       
