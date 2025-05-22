@@ -194,10 +194,13 @@ const EarningsContentV2: React.FC<EarningsContentProps> = ({ userId }) => {
 
 
 
+  // Debug Stripe account status
+  console.log('Stripe account data:', connectAccount);
+  
   // Check if Stripe Connect is properly set up
   const isStripeConnected = connectAccount && 
-    connectAccount.accountStatus && 
-    (connectAccount.accountStatus === 'complete' || connectAccount.detailsSubmitted);
+    connectAccount.accountId && 
+    (connectAccount.detailsSubmitted === true || connectAccount.payoutsEnabled === true);
 
   if (!isStripeConnected) {
     return (
