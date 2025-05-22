@@ -194,7 +194,12 @@ const EarningsContentV2: React.FC<EarningsContentProps> = ({ userId }) => {
 
 
 
-  if (!earnings || earnings.length === 0) {
+  // Check if Stripe Connect is properly set up
+  const isStripeConnected = connectAccount && 
+    connectAccount.accountStatus && 
+    (connectAccount.accountStatus === 'complete' || connectAccount.detailsSubmitted);
+
+  if (!isStripeConnected) {
     return (
       <div className="space-y-6">
         <div className="flex items-center justify-between pb-2 border-b">
