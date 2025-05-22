@@ -217,7 +217,12 @@ const EarningsContentV2: React.FC<EarningsContentProps> = ({ userId }) => {
                     size="sm"
                     variant="default"
                     className="text-xs"
-                    onClick={() => setShowSetupModal(true)}
+                    onClick={() => {
+                      console.log('Setup Payment Account button clicked!');
+                      console.log('Current showSetupModal state:', showSetupModal);
+                      setShowSetupModal(true);
+                      console.log('Setting showSetupModal to true');
+                    }}
                     disabled={isCreatingAccount}
                   >
                     Set Up Payment Account

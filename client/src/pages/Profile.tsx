@@ -286,56 +286,21 @@ export default function Profile() {
                 <div className="space-y-6">
                   {/* Payment Account Setup Card (for all users) */}
                   <Card>
-                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                      <div>
-                        <CardTitle>Payment Account Setup</CardTitle>
-                        <CardDescription>
-                          Set up your Stripe Connect account to receive payments directly
-                        </CardDescription>
-                      </div>
-                      <Link href="/payment-settings">
-                        <Button variant="outline" size="sm">
-                          Manage Payment Settings
-                        </Button>
-                      </Link>
+                    <CardHeader>
+                      <CardTitle>Payment Information</CardTitle>
+                      <CardDescription>
+                        View payment history and transaction details
+                      </CardDescription>
                     </CardHeader>
-                    <CardContent className="space-y-4">
+                    <CardContent>
                       <Alert className="bg-blue-50 dark:bg-blue-950 border-blue-200 dark:border-blue-800">
                         <div className="flex items-center">
                           <Info className="h-5 w-5 mr-2 text-blue-600 dark:text-blue-400" />
                           <span className="text-blue-800 dark:text-blue-300 font-medium">
-                            Payment setup is now managed in the Payments drawer
+                            Payment setup is managed in the Earnings tab
                           </span>
                         </div>
                       </Alert>
-                      
-                      <div className="flex justify-center">
-                        <Button 
-                          className="bg-blue-600 hover:bg-blue-700"
-                          onClick={() => {
-                            // Close this drawer first by clicking outside
-                            document.body.click();
-                            
-                            // Wait a bit then open the Payments drawer
-                            setTimeout(() => {
-                              const paymentsButton = document.querySelector('[title="Payments"]');
-                              if (paymentsButton) {
-                                (paymentsButton as HTMLElement).click();
-                                
-                                // Then switch to the setup subtab
-                                setTimeout(() => {
-                                  const setupTab = document.querySelector('[value="setup"]');
-                                  if (setupTab) {
-                                    (setupTab as HTMLElement).click();
-                                  }
-                                }, 100);
-                              }
-                            }, 300);
-                          }}
-                        >
-                          Manage Payment Settings
-                        </Button>
-                      </div>
                     </CardContent>
                   </Card>
                   
