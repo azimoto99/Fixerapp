@@ -21,7 +21,8 @@ import {
   LogOut,
   Edit,
   Award,
-  Clock
+  Clock,
+  Shield
 } from 'lucide-react';
 import { format } from 'date-fns';
 
@@ -233,18 +234,21 @@ export default function ProfileContentV2({ user, onSignOut }: ProfileContentV2Pr
             Settings & Preferences
           </Button>
           
-          <Button 
-            variant="outline" 
-            className="w-full justify-start" 
-            size="sm"
-            onClick={() => {
-              // Navigate to admin panel
-              window.location.href = '/admin';
-            }}
-          >
-            <Shield className="h-4 w-4 mr-2" />
-            Admin Panel
-          </Button>
+          {/* Only show admin panel button for admin users */}
+          {(user.role === 'admin' || user.email?.includes('admin')) && (
+            <Button 
+              variant="outline" 
+              className="w-full justify-start" 
+              size="sm"
+              onClick={() => {
+                // Navigate to admin panel
+                window.location.href = '/admin';
+              }}
+            >
+              <Shield className="h-4 w-4 mr-2" />
+              Admin Panel
+            </Button>
+          )}
           
           <Button 
             variant="outline" 
