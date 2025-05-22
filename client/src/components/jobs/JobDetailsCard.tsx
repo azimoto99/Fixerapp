@@ -868,76 +868,82 @@ const JobDetailsCard: React.FC<JobDetailsCardProps> = ({ jobId, isOpen, onClose 
             </div>
           </CardFooter>
           
-          {/* Apply Dialog */}
-          <Dialog open={showApplyDialog} onOpenChange={setShowApplyDialog}>
-            <DialogContent className="sm:max-w-md" style={{ zIndex: 9999, position: 'relative' }}>
-              <DialogHeader>
-                <DialogTitle>Apply for Job</DialogTitle>
-                <DialogDescription>
-                  Submit your application for "{job.title}"
-                </DialogDescription>
-              </DialogHeader>
-              
-              <div className="grid gap-4 py-4">
-                <div className="grid gap-2">
-                  <label htmlFor="hourly-rate" className="text-sm font-medium">
-                    Your Hourly Rate (USD)
-                  </label>
-                  <Input
-                    id="hourly-rate"
-                    type="number"
-                    placeholder="25.00"
-                    value={proposedRate}
-                    onChange={(e) => setProposedRate(e.target.value)}
-                  />
+          {/* Custom Application Modal (renders outside the DOM hierarchy) */}
+          {showApplyDialog && (
+            <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-[9999]" 
+                 onClick={() => setShowApplyDialog(false)}>
+              <div className="bg-background rounded-lg shadow-lg max-w-md w-full p-6" 
+                   onClick={(e) => e.stopPropagation()}>
+                <div className="flex justify-between items-center mb-4">
+                  <h2 className="text-xl font-semibold">Apply for Job</h2>
+                  <Button variant="ghost" size="icon" onClick={() => setShowApplyDialog(false)}>
+                    <X className="h-5 w-5" />
+                  </Button>
                 </div>
                 
-                <div className="grid gap-2">
-                  <label htmlFor="duration" className="text-sm font-medium">
-                    Expected Duration
-                  </label>
-                  <Input
-                    id="duration"
-                    placeholder="e.g. 2-3 hours"
-                    value={expectedDuration}
-                    onChange={(e) => setExpectedDuration(e.target.value)}
-                  />
+                <p className="text-muted-foreground mb-6">Submit your application for "{job.title}"</p>
+                
+                <div className="grid gap-4 py-2">
+                  <div className="grid gap-2">
+                    <label htmlFor="hourly-rate" className="text-sm font-medium">
+                      Your Hourly Rate (USD)
+                    </label>
+                    <Input
+                      id="hourly-rate"
+                      type="number"
+                      placeholder="25.00"
+                      value={proposedRate}
+                      onChange={(e) => setProposedRate(e.target.value)}
+                    />
+                  </div>
+                  
+                  <div className="grid gap-2">
+                    <label htmlFor="duration" className="text-sm font-medium">
+                      Expected Duration
+                    </label>
+                    <Input
+                      id="duration"
+                      placeholder="e.g. 2-3 hours"
+                      value={expectedDuration}
+                      onChange={(e) => setExpectedDuration(e.target.value)}
+                    />
+                  </div>
+                  
+                  <div className="grid gap-2">
+                    <label htmlFor="message" className="text-sm font-medium">
+                      Message to Job Poster
+                    </label>
+                    <Textarea
+                      id="message"
+                      placeholder="Introduce yourself and explain why you're a good fit for this job..."
+                      value={applicationMessage}
+                      onChange={(e) => setApplicationMessage(e.target.value)}
+                      rows={4}
+                    />
+                  </div>
                 </div>
                 
-                <div className="grid gap-2">
-                  <label htmlFor="message" className="text-sm font-medium">
-                    Message to Job Poster
-                  </label>
-                  <Textarea
-                    id="message"
-                    placeholder="Introduce yourself and explain why you're a good fit for this job..."
-                    value={applicationMessage}
-                    onChange={(e) => setApplicationMessage(e.target.value)}
-                    rows={4}
-                  />
+                <div className="flex justify-end gap-2 mt-6">
+                  <Button variant="outline" onClick={() => setShowApplyDialog(false)}>
+                    Cancel
+                  </Button>
+                  <Button onClick={handleApply} disabled={applyMutation.isPending}>
+                    {applyMutation.isPending ? (
+                      <>
+                        <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                        Submitting...
+                      </>
+                    ) : (
+                      <>
+                        <Send className="h-4 w-4 mr-2" />
+                        Submit Application
+                      </>
+                    )}
+                  </Button>
                 </div>
               </div>
-              
-              <DialogFooter>
-                <Button variant="outline" onClick={() => setShowApplyDialog(false)}>
-                  Cancel
-                </Button>
-                <Button onClick={handleApply} disabled={applyMutation.isPending}>
-                  {applyMutation.isPending ? (
-                    <>
-                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                      Submitting...
-                    </>
-                  ) : (
-                    <>
-                      <Send className="h-4 w-4 mr-2" />
-                      Submit Application
-                    </>
-                  )}
-                </Button>
-              </DialogFooter>
-            </DialogContent>
-          </Dialog>
+            </div>
+          )}
           
           {/* Location Verification Error Dialog */}
           <AlertDialog open={showLocationVerificationError} onOpenChange={setShowLocationVerificationError}>

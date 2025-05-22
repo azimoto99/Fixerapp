@@ -1,0 +1,43 @@
+/* Dialog z-index fixes */
+
+/* Increase z-index of the dialog overlay */
+.fixed.inset-0[role="dialog"] {
+  z-index: 9990 !important;
+}
+
+/* Increase z-index of the dialog content */
+div[role="dialog"] > div[role="document"] {
+  z-index: 9999 !important;
+  position: relative;
+}
+
+/* Make backdrop high priority but still behind dialog */
+div[data-state="open"][data-portal] {
+  z-index: 9980 !important;
+}
+
+/* Ensure dialog content is always above backdrop */
+.fixed.inset-0.bg-background\/80.backdrop-blur-sm {
+  z-index: 9950 !important;
+}
+
+/* Prevent click-through */
+div[role="dialog"] {
+  pointer-events: auto !important;
+}
+
+/* Set high z-index on portal-rendered content */
+#portal-root {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 9999;
+  pointer-events: none;
+}
+
+/* Allow portal content to receive clicks */
+#portal-root > * {
+  pointer-events: auto;
+}
