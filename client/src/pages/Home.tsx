@@ -156,14 +156,21 @@ const WorkerDashboard = () => {
             searchCoordinates={searchParams.coordinates}
           />
           
-          {/* Add the NewJobButton component to allow users to post jobs */}
-          <NewJobButton />
-          
-          {/* Square search box at the very bottom of the screen with no space */}
-          <div className="fixed bottom-0 left-0 right-0 z-[50] w-full">
-            <div className="bg-card border-t border-border shadow-lg">
-              <div className="p-2">
-                <JobSearch onSearch={handleSearch} />
+          {/* Post Job Button and Search Bar positioned beneath UserDrawerV2 */}
+          <div className="fixed top-20 left-0 right-0 z-[45] w-full pointer-events-none">
+            <div className="flex flex-col gap-2 p-4 pointer-events-auto">
+              {/* Post Job Button */}
+              <div className="flex justify-end">
+                <NewJobButton />
+              </div>
+              
+              {/* Search Bar */}
+              <div className="w-full">
+                <div className="bg-card border border-border shadow-lg rounded-lg">
+                  <div className="p-2">
+                    <JobSearch onSearch={handleSearch} />
+                  </div>
+                </div>
               </div>
             </div>
           </div>
