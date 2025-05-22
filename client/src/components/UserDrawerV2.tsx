@@ -28,7 +28,7 @@ import ProfileContent from './drawer-contents/ProfileContent';
 import EarningsContentV2 from './drawer-contents/EarningsContentV2';
 import ReviewsContent from './drawer-contents/ReviewsContent';
 import SettingsContent from './drawer-contents/SettingsContent';
-import PaymentsContent from './drawer-contents/PaymentsContent';
+import PaymentsContentV2 from './drawer-contents/PaymentsContentV2';
 
 interface UserDrawerProps {
   children?: React.ReactNode;
@@ -151,7 +151,7 @@ const UserDrawerV2: React.FC<UserDrawerProps> = ({
       case "earnings":
         return <EarningsContentV2 userId={user.id} />;
       case "payments":
-        return <PaymentsContent userId={user.id} />;
+        return <PaymentsContentV2 userId={user.id} />;
       case "reviews":
         return <ReviewsContent userId={user.id} />;
       case "settings":
