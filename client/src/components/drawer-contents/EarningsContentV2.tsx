@@ -781,15 +781,18 @@ const EarningsContentV2: React.FC<EarningsContentProps> = ({ userId }) => {
         </Card>
       </div>
       
-      {/* Stripe Connect Setup Modal */}
-      <StripeConnectModal 
-        isOpen={showSetupModal}
-        onClose={() => setShowSetupModal(false)}
-        onComplete={() => {
-          setShowSetupModal(false);
-          refetchAccount();
-        }}
-      />
+      {/* Simple Test Modal */}
+      <Dialog open={showSetupModal} onOpenChange={setShowSetupModal}>
+        <DialogContent style={{ zIndex: 10001 }}>
+          <DialogHeader>
+            <DialogTitle>Test Modal</DialogTitle>
+          </DialogHeader>
+          <div className="p-4">
+            <p>This is a test modal to see if the modal system works!</p>
+            <Button onClick={() => setShowSetupModal(false)}>Close</Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

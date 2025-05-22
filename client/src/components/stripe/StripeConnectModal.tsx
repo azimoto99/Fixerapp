@@ -640,6 +640,8 @@ const StripeConnectModal: React.FC<StripeConnectModalProps> = ({ isOpen, onClose
     }
   };
   
+  console.log('StripeConnectModal render:', { isOpen, currentStep });
+  
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto" style={{ zIndex: 10001 }}>
