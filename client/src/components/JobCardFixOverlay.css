@@ -1,8 +1,42 @@
 /* JobCardFixOverlay.css */
-/* This ensures job cards appear above all other elements */
+/* This ensures job cards and UI elements appear with proper layering */
 
+/* Base Map Elements (10-30) */
+.mapboxgl-map {
+  z-index: 10;
+}
+
+.mapboxgl-control-container {
+  z-index: 20;
+}
+
+.mapboxgl-marker {
+  z-index: 30 !important;
+}
+
+/* Navigation and Basic UI (40-70) */
+.main-navigation, 
+header, 
+nav,
+.top-navigation {
+  z-index: 40 !important;
+}
+
+.side-drawer {
+  z-index: 50 !important;
+}
+
+.drawer {
+  z-index: 60 !important;
+}
+
+.post-job-drawer {
+  z-index: 70 !important;
+}
+
+/* Job Cards and Primary Content (100-150) */
 .job-details-card-overlay {
-  z-index: 9999 !important;
+  z-index: 100 !important;
   position: relative;
 }
 
@@ -11,10 +45,42 @@
   bottom: 0;
   left: 0;
   right: 0;
-  z-index: 9999 !important;
+  z-index: 100 !important;
   display: flex;
   justify-content: center;
   padding: 1rem;
+  pointer-events: none; /* Let clicks pass through to elements underneath */
+}
+
+.job-details-card-container > * {
+  pointer-events: auto; /* Re-enable pointer events for the card itself */
+}
+
+.worker-location-tracking,
+.mini-map {
+  z-index: 150 !important;
+}
+
+/* Dialogs, Alerts and Popups (190-220) */
+.dialog-backdrop,
+[data-state="open"][role="dialog"],
+.fixed-overlay {
+  z-index: 190 !important;
+}
+
+.dialog-content,
+[role="dialog"] {
+  z-index: 200 !important;
+}
+
+[role="alertdialog"] {
+  z-index: 210 !important;
+}
+
+/* Toast Notifications - Highest Priority (220) */
+.toaster,
+.toast-viewport {
+  z-index: 220 !important;
 }
 
 @media (min-width: 640px) {
