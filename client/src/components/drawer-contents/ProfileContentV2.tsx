@@ -75,7 +75,7 @@ export default function ProfileContentV2({ user, onSignOut }: ProfileContentV2Pr
             <div className="relative">
               <Avatar className="w-20 h-20 border-4 border-background shadow-lg">
                 <AvatarImage 
-                  src={user.profileImageUrl || ''} 
+                  src={user.avatarUrl || user.profileImageUrl || ''} 
                   alt={user.fullName || user.username}
                   className="object-cover"
                 />
