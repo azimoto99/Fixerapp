@@ -1,0 +1,145 @@
+💬 Fix Real-Time Messaging System + 📷 Add Avatar Upload
+I need to fix my broken messaging system and add avatar upload functionality. Here are the specific issues and requirements:
+
+## MESSAGING SYSTEM BUGS TO FIX:
+
+**Real-Time Delivery Issues:**
+- Messages aren't appearing instantly for recipients
+- Chat doesn't update without page refresh
+- WebSocket connections are dropping
+- Multiple duplicate messages appearing
+
+**Database/API Problems:**
+- Messages not saving to database correctly
+- Can't retrieve chat history between job poster and worker
+- Message timestamps showing wrong timezone
+- Messages appearing in wrong order (not chronological)
+
+**UI/Frontend Issues:**
+- Message bubbles not styling correctly (sender vs receiver)
+- Chat doesn't auto-scroll to latest message
+- Typing indicator not working
+- Message input field not clearing after send
+- No visual feedback when message is sending/sent/failed
+
+**Current Broken Message Flow:**
+1. User A sends message to User B about a job
+2. Message should save to database with: sender_id, receiver_id, job_id, content, timestamp
+3. User B should receive message instantly via WebSocket/real-time connection
+4. Both users should see full chat history when opening conversation
+5. Messages should show delivery status (sent/delivered/read)
+
+## AVATAR UPLOAD FEATURE TO ADD:
+
+**Profile Picture Requirements:**
+- Users can upload profile photos from device
+- Images should resize to 200x200px automatically
+- Support JPG, PNG formats only
+- Max file size: 2MB
+- Store images in cloud storage (AWS S3, Cloudinary, or similar)
+- Default avatar if no image uploaded
+
+**Avatar Display Locations:**
+- User profile page (large version)
+- Message bubbles in chat (small circular avatar)
+- Job creator info when viewing job details
+- Worker profile when job is accepted
+
+**Upload Process Needed:**
+1. User clicks "Change Avatar" button in profile
+2. File picker opens (camera or gallery on mobile)
+3. Image gets compressed/resized automatically
+4. Upload to cloud storage with unique filename
+5. Database updates user.avatar_url field
+6. New avatar displays immediately across app
+
+## SPECIFIC CODE FIXES NEEDED:
+
+**Database Schema Updates:**
+```sql
+-- Add avatar field to users table
+ALTER TABLE users ADD COLUMN avatar_url TEXT;
+
+-- Ensure messages table has proper structure
+CREATE TABLE IF NOT EXISTS messages (
+    id SERIAL PRIMARY KEY,
+    job_id INTEGER REFERENCES jobs(id),
+    sender_id INTEGER REFERENCES users(id),
+    receiver_id INTEGER REFERENCES users(id),
+    content TEXT NOT NULL,
+    created_at TIMESTAMP DEFAULT NOW(),
+    read_at TIMESTAMP,
+    message_type VARCHAR(20) DEFAULT 'text'
+);
+Real-Time Connection Fix:
+
+Fix WebSocket/Socket.io connection stability
+Implement proper room-based messaging (join room: job_id)
+Add connection retry logic for dropped connections
+Handle offline message queuing
+
+Message API Endpoints:
+
+POST /api/messages - Send new message
+GET /api/messages/:jobId - Get chat history for a job
+PUT /api/messages/:messageId/read - Mark message as read
+
+Avatar Upload API:
+
+POST /api/users/avatar - Upload profile picture
+Include image compression/resizing logic
+Return new avatar URL after successful upload
+
+Frontend Components to Fix/Add:
+
+ChatWindow - Fix real-time message display
+MessageBubble - Style sender vs receiver differently + show avatars
+MessageInput - Fix send functionality and clear input
+AvatarUpload - New component for profile picture upload
+AvatarDisplay - Reusable component to show user avatars
+
+File Upload Handling:
+
+Use FormData for multipart file upload
+Add client-side image validation (size, type)
+Show upload progress indicator
+Handle upload errors gracefully
+
+Styling Requirements:
+
+Message bubbles: sender (right side, blue), receiver (left side, gray)
+Avatar circles: 40px in chat, 120px in profile
+File upload area: drag & drop or click to select
+Loading states for both messaging and avatar upload
+
+ERROR HANDLING NEEDED:
+Messaging Errors:
+
+Network failures (retry logic)
+Message send failures (show error state)
+WebSocket disconnections (auto-reconnect)
+Invalid message content (validation)
+
+Upload Errors:
+
+File too large (show size limit message)
+Invalid file type (show supported formats)
+Upload failures (retry option)
+Network timeouts (fallback handling)
+
+TESTING REQUIREMENTS:
+Message Testing:
+
+Send message between two users about a job
+Verify real-time delivery works
+Check message history persists
+Test with multiple concurrent users
+
+Avatar Testing:
+
+Upload various image sizes and formats
+Verify automatic resizing works
+Check avatars display in all locations
+Test with no internet connection
+
+Fix my messaging system's real-time functionality and implement the complete avatar upload feature with proper error handling and cloud storage integration.

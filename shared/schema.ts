@@ -222,17 +222,21 @@ export const contacts = pgTable("contacts", {
   notes: text("notes"), // Optional notes about the contact
 });
 
-// Messages table for user-to-user chat
+// Messages table for job-specific real-time chat
 export const messages = pgTable("messages", {
   id: serial("id").primaryKey(),
-  senderId: integer("sender_id").notNull(), // References users.id (sender)
-  recipientId: integer("recipient_id").notNull(), // References users.id (recipient)
+  jobId: integer("job_id").references(() => jobs.id), // Optional job context for messages
+  senderId: integer("sender_id").notNull().references(() => users.id), // References users.id (sender)
+  recipientId: integer("recipient_id").notNull().references(() => users.id), // References users.id (recipient)
   content: text("content").notNull(), // Message content
+  messageType: varchar("message_type", { length: 20 }).default("text"), // "text", "image", "file"
   isRead: boolean("is_read").notNull().default(false), // Whether the message has been read
   sentAt: timestamp("sent_at").defaultNow(), // When the message was sent
   readAt: timestamp("read_at"), // When the message was read
   attachmentUrl: text("attachment_url"), // Optional URL for attachments
   attachmentType: text("attachment_type"), // Type of attachment: "image", "document", etc.
+  isEdited: boolean("is_edited").default(false), // Whether the message was edited
+  editedAt: timestamp("edited_at"), // When the message was last edited
 });
 
 // Insert schemas
