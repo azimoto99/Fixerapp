@@ -26,7 +26,7 @@ import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Badge } from '@/components/ui/badge';
-import { MapPin, DollarSign, Calendar, Check, ListChecks } from 'lucide-react';
+import { MapPin, DollarSign, Calendar, Check, ListChecks, Clock } from 'lucide-react';
 import { useQueryClient } from '@tanstack/react-query';
 import TaskEditor, { Task } from '@/components/TaskEditor';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
