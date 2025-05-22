@@ -2,7 +2,7 @@ import { eq, and, like, notLike, desc, or, asc } from 'drizzle-orm';
 import { db } from './db';
 import { IStorage } from './storage';
 import {
-  users, jobs, applications, reviews, tasks, earnings, payments, badges, userBadges, notifications,
+  users, jobs, applications, reviews, tasks, earnings, payments, badges, userBadges, notifications, messages,
   User, InsertUser,
   Job, InsertJob,
   Application, InsertApplication,
@@ -1006,5 +1006,71 @@ export class DatabaseStorage implements IStorage {
       Math.sin(dLon / 2) * Math.sin(dLon / 2);
     const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
     return R * c;
+  }
+
+  // === MESSAGING METHODS ===
+  
+  async createMessage(message: any): Promise<any> {
+    const [newMessage] = await this.db.insert(messages).values(message).returning();
+    return newMessage;
+  }
+
+  async getMessagesForJob(jobId: number): Promise<any[]> {
+    const jobMessages = await this.db
+      .select()
+      .from(messages)
+      .leftJoin(users, eq(messages.senderId, users.id))
+      .where(eq(messages.jobId, jobId))
+      .orderBy(messages.sentAt);
+    
+    return jobMessages.map(({ messages: msg, users: sender }) => ({
+      ...msg,
+      sender: sender ? {
+        id: sender.id,
+        username: sender.username,
+        avatarUrl: sender.avatarUrl
+      } : null
+    }));
+  }
+
+  async getConversation(userId1: number, userId2: number): Promise<any[]> {
+    const conversation = await this.db
+      .select()
+      .from(messages)
+      .leftJoin(users, eq(messages.senderId, users.id))
+      .where(
+        or(
+          and(eq(messages.senderId, userId1), eq(messages.recipientId, userId2)),
+          and(eq(messages.senderId, userId2), eq(messages.recipientId, userId1))
+        )
+      )
+      .orderBy(messages.sentAt);
+    
+    return conversation.map(({ messages: msg, users: sender }) => ({
+      ...msg,
+      sender: sender ? {
+        id: sender.id,
+        username: sender.username,
+        avatarUrl: sender.avatarUrl
+      } : null
+    }));
+  }
+
+  async markMessageAsRead(messageId: number, userId: number): Promise<any> {
+    const [updatedMessage] = await this.db
+      .update(messages)
+      .set({ 
+        isRead: true, 
+        readAt: new Date() 
+      })
+      .where(
+        and(
+          eq(messages.id, messageId),
+          eq(messages.recipientId, userId)
+        )
+      )
+      .returning();
+    
+    return updatedMessage;
   }
 }

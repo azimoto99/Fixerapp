@@ -1,7 +1,11 @@
 import express, { type Express, Request, Response } from "express";
 import { createServer, type Server } from "http";
+import { WebSocketServer, WebSocket } from 'ws';
 import { storage } from "./storage";
 import { z } from "zod";
+import multer from 'multer';
+import path from 'path';
+import fs from 'fs';
 
 // Helper function to calculate distance between two points in feet
 function calculateDistanceInFeet(lat1: number, lon1: number, lat2: number, lon2: number): number {
@@ -4328,6 +4332,311 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Initialize Stripe payment methods API
   setupStripePaymentMethodsRoutes(app);
 
+  // ===== REAL-TIME MESSAGING SYSTEM =====
+  
+  // WebSocket connection tracking
+  const connectedClients = new Map<number, WebSocket>();
+  const messageRooms = new Map<string, Set<WebSocket>>();
+  
+  // Configure avatar upload storage
+  const avatarStorage = multer.diskStorage({
+    destination: (req, file, cb) => {
+      const uploadDir = path.join(process.cwd(), 'public/avatars');
+      if (!fs.existsSync(uploadDir)) {
+        fs.mkdirSync(uploadDir, { recursive: true });
+      }
+      cb(null, uploadDir);
+    },
+    filename: (req, file, cb) => {
+      const userId = req.user?.id;
+      const extension = path.extname(file.originalname);
+      cb(null, `avatar-${userId}-${Date.now()}${extension}`);
+    }
+  });
+
+  const avatarUpload = multer({
+    storage: avatarStorage,
+    limits: {
+      fileSize: 2 * 1024 * 1024, // 2MB max
+    },
+    fileFilter: (req, file, cb) => {
+      const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png'];
+      if (allowedTypes.includes(file.mimetype)) {
+        cb(null, true);
+      } else {
+        cb(new Error('Invalid file type. Only JPG and PNG allowed.'));
+      }
+    }
+  });
+
+  // === MESSAGING API ENDPOINTS ===
+  
+  // Send a new message
+  app.post('/api/messages', async (req: Request, res: Response) => {
+    if (!req.isAuthenticated()) {
+      return res.status(401).json({ message: 'Unauthorized' });
+    }
+
+    try {
+      const { recipientId, content, jobId } = req.body;
+      
+      if (!content || content.trim().length === 0) {
+        return res.status(400).json({ message: 'Message content is required' });
+      }
+
+      if (!recipientId) {
+        return res.status(400).json({ message: 'Recipient is required' });
+      }
+
+      const message = {
+        senderId: req.user!.id,
+        recipientId: parseInt(recipientId),
+        content: content.trim(),
+        jobId: jobId ? parseInt(jobId) : null,
+        sentAt: new Date(),
+        isRead: false
+      };
+
+      // Save message to database (you'll need to implement this in storage)
+      const savedMessage = await storage.createMessage(message);
+      
+      // Send real-time notification via WebSocket
+      const recipientSocket = connectedClients.get(parseInt(recipientId));
+      if (recipientSocket && recipientSocket.readyState === WebSocket.OPEN) {
+        recipientSocket.send(JSON.stringify({
+          type: 'new_message',
+          message: {
+            ...savedMessage,
+            sender: { id: req.user!.id, username: req.user!.username, avatarUrl: req.user!.avatarUrl }
+          }
+        }));
+      }
+
+      // Also broadcast to job room if applicable
+      if (jobId) {
+        const roomKey = `job-${jobId}`;
+        const roomSockets = messageRooms.get(roomKey);
+        if (roomSockets) {
+          roomSockets.forEach(socket => {
+            if (socket.readyState === WebSocket.OPEN) {
+              socket.send(JSON.stringify({
+                type: 'job_message',
+                message: {
+                  ...savedMessage,
+                  sender: { id: req.user!.id, username: req.user!.username, avatarUrl: req.user!.avatarUrl }
+                }
+              }));
+            }
+          });
+        }
+      }
+
+      res.json({ message: savedMessage, success: true });
+    } catch (error) {
+      console.error('Error sending message:', error);
+      res.status(500).json({ message: 'Failed to send message' });
+    }
+  });
+
+  // Get chat history for a job
+  app.get('/api/messages/:jobId', async (req: Request, res: Response) => {
+    if (!req.isAuthenticated()) {
+      return res.status(401).json({ message: 'Unauthorized' });
+    }
+
+    try {
+      const jobId = parseInt(req.params.jobId);
+      const messages = await storage.getMessagesForJob(jobId);
+      
+      res.json(messages);
+    } catch (error) {
+      console.error('Error fetching messages:', error);
+      res.status(500).json({ message: 'Failed to fetch messages' });
+    }
+  });
+
+  // Get conversation between two users
+  app.get('/api/messages/conversation/:userId', async (req: Request, res: Response) => {
+    if (!req.isAuthenticated()) {
+      return res.status(401).json({ message: 'Unauthorized' });
+    }
+
+    try {
+      const otherUserId = parseInt(req.params.userId);
+      const messages = await storage.getConversation(req.user!.id, otherUserId);
+      
+      res.json(messages);
+    } catch (error) {
+      console.error('Error fetching conversation:', error);
+      res.status(500).json({ message: 'Failed to fetch conversation' });
+    }
+  });
+
+  // Mark message as read
+  app.put('/api/messages/:messageId/read', async (req: Request, res: Response) => {
+    if (!req.isAuthenticated()) {
+      return res.status(401).json({ message: 'Unauthorized' });
+    }
+
+    try {
+      const messageId = parseInt(req.params.messageId);
+      const updatedMessage = await storage.markMessageAsRead(messageId, req.user!.id);
+      
+      if (!updatedMessage) {
+        return res.status(404).json({ message: 'Message not found' });
+      }
+
+      res.json({ success: true });
+    } catch (error) {
+      console.error('Error marking message as read:', error);
+      res.status(500).json({ message: 'Failed to mark message as read' });
+    }
+  });
+
+  // === AVATAR UPLOAD API ===
+  
+  // Upload profile avatar
+  app.post('/api/users/avatar', avatarUpload.single('avatar'), async (req: Request, res: Response) => {
+    if (!req.isAuthenticated()) {
+      return res.status(401).json({ message: 'Unauthorized' });
+    }
+
+    try {
+      if (!req.file) {
+        return res.status(400).json({ message: 'No file uploaded' });
+      }
+
+      const avatarUrl = `/avatars/${req.file.filename}`;
+      
+      // Update user's avatar URL in database
+      const updatedUser = await storage.updateUser(req.user!.id, { avatarUrl });
+      
+      if (!updatedUser) {
+        return res.status(404).json({ message: 'User not found' });
+      }
+
+      res.json({ 
+        avatarUrl,
+        message: 'Avatar uploaded successfully'
+      });
+    } catch (error) {
+      console.error('Error uploading avatar:', error);
+      res.status(500).json({ message: 'Failed to upload avatar' });
+    }
+  });
+
+  // Get user's avatar
+  app.get('/api/users/:userId/avatar', async (req: Request, res: Response) => {
+    try {
+      const userId = parseInt(req.params.userId);
+      const user = await storage.getUser(userId);
+      
+      if (!user || !user.avatarUrl) {
+        return res.status(404).json({ message: 'Avatar not found' });
+      }
+
+      res.json({ avatarUrl: user.avatarUrl });
+    } catch (error) {
+      console.error('Error fetching avatar:', error);
+      res.status(500).json({ message: 'Failed to fetch avatar' });
+    }
+  });
+
   const httpServer = createServer(app);
+  
+  // === WEBSOCKET SERVER SETUP ===
+  const wss = new WebSocketServer({ 
+    server: httpServer, 
+    path: '/ws'
+  });
+
+  wss.on('connection', (ws: WebSocket, req) => {
+    console.log('New WebSocket connection established');
+    
+    ws.on('message', (data: Buffer) => {
+      try {
+        const message = JSON.parse(data.toString());
+        
+        switch (message.type) {
+          case 'authenticate':
+            // Store user connection
+            if (message.userId) {
+              connectedClients.set(message.userId, ws);
+              console.log(`User ${message.userId} connected via WebSocket`);
+            }
+            break;
+            
+          case 'join_job_room':
+            // Join job-specific room for real-time updates
+            if (message.jobId) {
+              const roomKey = `job-${message.jobId}`;
+              if (!messageRooms.has(roomKey)) {
+                messageRooms.set(roomKey, new Set());
+              }
+              messageRooms.get(roomKey)!.add(ws);
+              console.log(`User joined job room: ${roomKey}`);
+            }
+            break;
+            
+          case 'leave_job_room':
+            if (message.jobId) {
+              const roomKey = `job-${message.jobId}`;
+              const room = messageRooms.get(roomKey);
+              if (room) {
+                room.delete(ws);
+                if (room.size === 0) {
+                  messageRooms.delete(roomKey);
+                }
+              }
+            }
+            break;
+            
+          case 'typing':
+            // Handle typing indicators
+            if (message.jobId) {
+              const roomKey = `job-${message.jobId}`;
+              const room = messageRooms.get(roomKey);
+              if (room) {
+                room.forEach(socket => {
+                  if (socket !== ws && socket.readyState === WebSocket.OPEN) {
+                    socket.send(JSON.stringify({
+                      type: 'user_typing',
+                      userId: message.userId,
+                      jobId: message.jobId
+                    }));
+                  }
+                });
+              }
+            }
+            break;
+        }
+      } catch (error) {
+        console.error('Error processing WebSocket message:', error);
+      }
+    });
+
+    ws.on('close', () => {
+      // Clean up connections
+      connectedClients.forEach((socket, userId) => {
+        if (socket === ws) {
+          connectedClients.delete(userId);
+          console.log(`User ${userId} disconnected`);
+        }
+      });
+      
+      // Remove from all rooms
+      messageRooms.forEach((room, roomKey) => {
+        room.delete(ws);
+        if (room.size === 0) {
+          messageRooms.delete(roomKey);
+        }
+      });
+    });
+
+    ws.on('error', (error) => {
+      console.error('WebSocket error:', error);
+    });
+  });
+
   return httpServer;
 }

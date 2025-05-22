@@ -9,6 +9,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { apiRequest, queryClient } from '@/lib/queryClient';
 import { useToast } from '@/hooks/use-toast';
 import { ThemeToggle } from '@/components/theme/ThemeToggle';
+import { AvatarUpload } from '@/components/AvatarUpload';
 import {
   Save,
   Bell,
@@ -18,7 +19,8 @@ import {
   Download,
   Trash2,
   AlertCircle,
-  Palette
+  Palette,
+  User as UserIcon
 } from 'lucide-react';
 
 interface SettingsContentProps {
