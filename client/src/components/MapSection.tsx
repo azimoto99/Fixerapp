@@ -413,21 +413,7 @@ const MapSection: React.FC<MapSectionProps> = ({ jobs, selectedJob, onSelectJob,
           }
         `}</style>
         
-        {/* Status overlay that appears above the map but below any drawers - positioned below UserDrawerV2 */}
-        <div className="absolute top-14 left-0 right-0 z-30 flex justify-between items-center px-3 py-1.5 bg-background/85 backdrop-blur-sm border-y border-border/30 shadow-sm">
-          <div className="flex items-center space-x-2">
-            <div className="text-xs px-2 py-0.5 bg-primary/10 rounded-full text-primary border border-primary/20 font-medium">
-              {allJobsWithCoordinates.length} open jobs
-            </div>
-            <div className="text-xs px-2 py-0.5 bg-green-600/10 rounded-full text-green-600 border border-green-600/20 flex items-center font-medium">
-              <div className="w-1.5 h-1.5 rounded-full bg-green-500 mr-1 animate-pulse"></div>
-              Location active
-            </div>
-          </div>
-          <div className="text-xs text-muted-foreground/80 font-light">
-            Powered by Mapbox
-          </div>
-        </div>
+
         
         {position && (
           <MapboxMap
@@ -457,45 +443,9 @@ const MapSection: React.FC<MapSectionProps> = ({ jobs, selectedJob, onSelectJob,
         
 
 
-        {/* Map controls overlay */}
-        <div className="absolute top-0 right-0 z-50 w-full">
-          {/* Floating control panel */}
-          <div className="bg-background/70 backdrop-blur-md border-b border-border/20 dark:border-border/20 shadow-sm px-4 py-2">
-            <div className="flex justify-between items-center">
-              {/* Left: Open jobs count */}
-              <div className="flex gap-2">
-                <div className="bg-primary/10 text-primary text-xs px-3 py-1 rounded-full flex items-center">
-                  <span>{jobs.filter(job => job.status === 'open').length} open jobs</span>
-                </div>
-              </div>
-              
-              {/* Center: Location status */}
-              <div className="flex flex-col items-center">
-                {isUsingFallback ? (
-                  <div className="bg-primary/10 text-primary text-xs px-3 py-1 rounded-full flex items-center">
-                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" className="w-3 h-3 mr-1 flex-shrink-0">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
-                    </svg>
-                    <span className="truncate max-w-[120px] md:max-w-none">Using approximate location</span>
-                  </div>
-                ) : (
-                  <div className="bg-emerald-500/10 text-emerald-600 text-xs px-3 py-1 rounded-full flex items-center">
-                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" className="w-3 h-3 mr-1">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                    </svg>
-                    <span>Location active</span>
-                  </div>
-                )}
-              </div>
-              
-              {/* Right: Mapbox credit */}
-              <div className="flex items-center">
-                <div className="text-xs text-muted-foreground">
-                  Powered by Mapbox
-                </div>
-              </div>
-            </div>
-          </div>
+        {/* Map controls overlay - minimized to just the view toggle */}
+        <div className="absolute top-0 right-0 z-50 p-2">
+          <MapViewToggle view={mapView} onChange={setMapView} totalOpenJobs={allJobsWithCoordinates.length} />
         </div>
         
         {/* Bottom card for job details - DoorDash-style slide-up panel */}
