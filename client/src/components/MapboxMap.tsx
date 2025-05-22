@@ -21,6 +21,7 @@ interface MapboxMapProps {
     description?: string;
     onClick?: () => void;
     isHighlighted?: boolean; // Add flag to highlight special markers
+    markerColor?: string; // Custom color for job markers
   }>;
   onMapClick?: (lngLat: { lng: number; lat: number }) => void;
   interactive?: boolean;
@@ -144,7 +145,9 @@ export default function MapboxMap({
         } else {
           el.innerHTML = `$`;
         }
-        el.style.backgroundColor = '#f59e0b'; // Amber/gold for jobs
+        
+        // Use the marker's custom color if available, otherwise default to amber/gold
+        el.style.backgroundColor = marker.markerColor || '#f59e0b';
       }
       
       // Apply styles to marker element

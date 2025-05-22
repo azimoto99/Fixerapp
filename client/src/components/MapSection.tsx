@@ -281,6 +281,7 @@ const MapSection: React.FC<MapSectionProps> = ({ jobs, selectedJob, onSelectJob,
       description: string;
       onClick: () => void;
       isHighlighted?: boolean;
+      markerColor?: string; // Added support for custom marker colors
     }[] = [];
     
     // First add ALL jobs with coordinates to ensure every job has a pin on the map
@@ -303,10 +304,6 @@ const MapSection: React.FC<MapSectionProps> = ({ jobs, selectedJob, onSelectJob,
         const lat = typeof job.latitude === 'string' ? parseFloat(job.latitude) : job.latitude;
         const lng = typeof job.longitude === 'string' ? parseFloat(job.longitude) : job.longitude;
         
-        if (job.id === 26) {
-          console.log('🔴 Adding CRITICAL job marker in Encinal, TX:', lat, lng);
-        }
-        
         markers.push({
           latitude: lat,
           longitude: lng,
@@ -314,6 +311,7 @@ const MapSection: React.FC<MapSectionProps> = ({ jobs, selectedJob, onSelectJob,
           description: `$${job.paymentAmount?.toFixed(2)} - ${job.paymentType}`,
           onClick: () => handleMarkerClick(job),
           isHighlighted: true, // Highlight all job markers for better visibility
+          markerColor: job.markerColor || '#f59e0b', // Use the job's marker color or default to amber
         });
       });
       

@@ -424,6 +424,23 @@ export class DatabaseStorage implements IStorage {
     const serviceFee = 2.5;
     const totalAmount = job.paymentType === 'fixed' ? job.paymentAmount + serviceFee : job.paymentAmount;
     
+    // Define a set of vibrant colors for job markers
+    const markerColors = [
+      "#FF5733", // Coral red
+      "#33FF57", // Bright green
+      "#3357FF", // Bright blue
+      "#F033FF", // Bright magenta
+      "#FF3393", // Hot pink
+      "#33FFF0", // Turquoise
+      "#FFC833", // Amber
+      "#8A33FF", // Purple
+      "#FF8A33", // Orange
+      "#33B8FF"  // Sky blue
+    ];
+    
+    // Choose a random color for the job marker
+    const randomColor = markerColors[Math.floor(Math.random() * markerColors.length)];
+    
     // Create a job object with all required fields, including those specified in InsertJob
     const jobData = {
       title: job.title,
@@ -443,7 +460,8 @@ export class DatabaseStorage implements IStorage {
       serviceFee: serviceFee,
       totalAmount: totalAmount,
       workerId: null as number | null,
-      datePosted: new Date()
+      datePosted: new Date(),
+      markerColor: randomColor // Assign a random color to the job marker
     };
     
     const [createdJob] = await db.insert(jobs).values(jobData).returning();
