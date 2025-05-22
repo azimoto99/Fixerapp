@@ -223,9 +223,9 @@ const EarningsContentV2: React.FC<EarningsContentProps> = ({ userId }) => {
                         const res = await apiRequest('GET', '/api/stripe/connect/account-status');
                         const data = await res.json();
                         console.log('Stripe response:', data);
-                        if (data.onboardingUrl) {
-                          console.log('Opening URL:', data.onboardingUrl);
-                          window.open(data.onboardingUrl, '_blank');
+                        if (data.accountLinkUrl) {
+                          console.log('Opening URL:', data.accountLinkUrl);
+                          window.open(data.accountLinkUrl, '_blank');
                         } else {
                           toast({
                             title: 'Setup Required',
