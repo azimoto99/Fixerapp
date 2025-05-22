@@ -783,7 +783,7 @@ const JobDetailsCard: React.FC<JobDetailsCardProps> = ({ jobId, isOpen, onClose 
               
               {/* Action buttons */}
               <div className="flex justify-between gap-2">
-                {user && user.accountType === 'worker' && (
+                {user && user.accountType === 'worker' && !isJobPoster && (
                   <>
                     {/* Worker Actions */}
                     {!hasApplied && job.status === 'open' && (
