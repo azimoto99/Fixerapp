@@ -315,11 +315,8 @@ export default function Home() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   
-  // Get jobs posted by this user (if any)
-  const { data: postedJobs } = useQuery<Job[]>({
-    queryKey: ['/api/jobs', { posterId: user?.id }],
-    enabled: !!user?.id
-  });
+  // Get jobs posted by this user (if any) - use the proper useJobs hook with poster filter
+  const { jobs: postedJobs } = useJobs({ poster: true });
   
   const togglePostedJobs = () => {
     setShowPostedJobs(!showPostedJobs);
