@@ -642,7 +642,7 @@ const StripeConnectModal: React.FC<StripeConnectModalProps> = ({ isOpen, onClose
   
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto z-[200]" style={{ zIndex: 200 }}>
         <DialogHeader>
           <DialogTitle className="flex items-center justify-between">
             <div className="flex items-center space-x-2">

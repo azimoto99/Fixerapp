@@ -281,74 +281,34 @@ export default function Profile() {
                 </Card>
               </TabsContent>
               
-              {/* Payments Tab */}
+              {/* Payments Tab - Only for job posting payments */}
               <TabsContent value="payments">
-                <div className="space-y-6">
-                  {/* Payment Account Setup Card (for all users) */}
-                  <Card>
-                    <CardHeader>
-                      <CardTitle>Payment Information</CardTitle>
-                      <CardDescription>
-                        View payment history and transaction details
-                      </CardDescription>
-                    </CardHeader>
-                    <CardContent>
-                      <Alert className="bg-blue-50 dark:bg-blue-950 border-blue-200 dark:border-blue-800">
-                        <div className="flex items-center">
-                          <Info className="h-5 w-5 mr-2 text-blue-600 dark:text-blue-400" />
-                          <span className="text-blue-800 dark:text-blue-300 font-medium">
-                            Payment setup is managed in the Earnings tab
-                          </span>
-                        </div>
-                      </Alert>
-                    </CardContent>
-                  </Card>
-                  
-                  {/* Payment History Card */}
-                  <Card>
-                    <CardHeader>
-                      <CardTitle>Payment History</CardTitle>
-                      <CardDescription>
-                        {user.accountType === 'worker' 
-                          ? 'View your earnings history' 
-                          : 'View your payment history'}
-                      </CardDescription>
-                    </CardHeader>
-                    <CardContent>
-                      <div className="space-y-2">
-                        <h3 className="text-sm font-medium text-gray-500 mb-4">Recent Transactions</h3>
-                        
-                        {/* Add some sample payments with future pagination */}
-                        <div className="rounded-md border">
-                          <div className="divide-y">
-                            <div className="flex items-center justify-between p-4">
-                              <div>
-                                <p className="font-medium">No transaction history yet</p>
-                                <p className="text-sm text-gray-500">
-                                  {user.accountType === 'worker'
-                                    ? 'When you receive payments, they will appear here'
-                                    : 'When you make payments, they will appear here'}
-                                </p>
-                              </div>
-                              <Link href="/transaction-history">
-                                <Button variant="ghost" size="sm">
-                                  View All
-                                </Button>
-                              </Link>
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Payment History</CardTitle>
+                    <CardDescription>
+                      Payments made for posting jobs and hiring workers
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="space-y-2">
+                      <h3 className="text-sm font-medium text-gray-500 mb-4">Job Posting Payments</h3>
+                      
+                      <div className="rounded-md border">
+                        <div className="divide-y">
+                          <div className="flex items-center justify-between p-4">
+                            <div>
+                              <p className="font-medium">No payments made yet</p>
+                              <p className="text-sm text-gray-500">
+                                When you pay for posted jobs, they will appear here
+                              </p>
                             </div>
                           </div>
                         </div>
-                        
-                        <div className="mt-4 text-center">
-                          <Link href="/transaction-history">
-                            <Button variant="outline" size="sm">
-                              View Complete Transaction History
-                            </Button>
-                          </Link>
-                        </div>
                       </div>
-                    </CardContent>
-                  </Card>
+                    </div>
+                  </CardContent>
+                </Card>
                   
                   {/* Platform Fees Card */}
                   <Card>
@@ -382,42 +342,24 @@ export default function Profile() {
               
               {/* Earnings Tab */}
               <TabsContent value="earnings">
-                <div className="space-y-6">
-                  {/* Stripe Connect Setup Card */}
-                  <Card>
-                    <CardHeader>
-                      <CardTitle>Stripe Connect Setup</CardTitle>
-                      <CardDescription>
-                        Connect your Stripe account to receive payments directly
-                      </CardDescription>
-                    </CardHeader>
-                    <CardContent>
-                      <StripeConnectSetup />
-                    </CardContent>
-                  </Card>
-                  
-                  {/* Earnings Stats Card */}
-                  <Card>
-                    <CardHeader>
-                      <CardTitle>{user.accountType === 'worker' ? 'Earnings Overview' : 'Income Overview'}</CardTitle>
-                      <CardDescription>
-                        Summary of your {user.accountType === 'worker' ? 'earnings' : 'income'} and {user.accountType === 'worker' ? 'completed jobs' : 'job postings'}
-                      </CardDescription>
-                    </CardHeader>
-                    <CardContent>
-                      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                        <div className="bg-gray-50 p-4 rounded-md">
-                          <p className="text-sm text-gray-500">Total {user.accountType === 'worker' ? 'Earnings' : 'Income'}</p>
-                          <p className="text-2xl font-semibold">$0.00</p>
-                        </div>
-                        <div className="bg-gray-50 p-4 rounded-md">
-                          <p className="text-sm text-gray-500">Pending</p>
-                          <p className="text-2xl font-semibold">$0.00</p>
-                        </div>
-                        <div className="bg-gray-50 p-4 rounded-md">
-                          <p className="text-sm text-gray-500">{user.accountType === 'worker' ? 'Jobs Completed' : 'Jobs Posted'}</p>
-                          <p className="text-2xl font-semibold">{user.accountType === 'worker' ? (user.completedJobs || 0) : 0}</p>
-                        </div>
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Earnings Information</CardTitle>
+                    <CardDescription>
+                      Detailed earnings information is managed in the Earnings drawer
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <Alert className="bg-blue-50 dark:bg-blue-950 border-blue-200 dark:border-blue-800">
+                      <div className="flex items-center">
+                        <Info className="h-5 w-5 mr-2 text-blue-600 dark:text-blue-400" />
+                        <span className="text-blue-800 dark:text-blue-300 font-medium">
+                          All earnings tracking and payment setup is handled in the Earnings tab of UserDrawerV2
+                        </span>
+                      </div>
+                    </Alert>
+                  </CardContent>
+                </Card>
                       </div>
                       
                       <div className="mt-6">
