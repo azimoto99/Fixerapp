@@ -218,10 +218,29 @@ const EarningsContentV2: React.FC<EarningsContentProps> = ({ userId }) => {
                     variant="default"
                     className="text-xs"
                     onClick={() => {
-                      console.log('Setup Payment Account button clicked!');
-                      console.log('Current showSetupModal state:', showSetupModal);
-                      setShowSetupModal(true);
-                      console.log('Setting showSetupModal to true');
+                      console.log('Redirecting to Stripe setup...');
+                      const createAccountLink = async () => {
+                        try {
+                          const res = await apiRequest('GET', '/api/stripe/connect/account-status');
+                          const data = await res.json();
+                          if (data.onboardingUrl) {
+                            window.open(data.onboardingUrl, '_blank');
+                          } else {
+                            toast({
+                              title: 'Setup Required',
+                              description: 'Please complete Stripe Connect setup to receive payments.',
+                              variant: 'default',
+                            });
+                          }
+                        } catch (error) {
+                          toast({
+                            title: 'Error',
+                            description: 'Unable to start payment setup. Please try again.',
+                            variant: 'destructive',
+                          });
+                        }
+                      };
+                      createAccountLink();
                     }}
                     disabled={isCreatingAccount}
                   >
@@ -781,18 +800,7 @@ const EarningsContentV2: React.FC<EarningsContentProps> = ({ userId }) => {
         </Card>
       </div>
       
-      {/* Simple Test Modal */}
-      <Dialog open={showSetupModal} onOpenChange={setShowSetupModal}>
-        <DialogContent style={{ zIndex: 10001 }}>
-          <DialogHeader>
-            <DialogTitle>Test Modal</DialogTitle>
-          </DialogHeader>
-          <div className="p-4">
-            <p>This is a test modal to see if the modal system works!</p>
-            <Button onClick={() => setShowSetupModal(false)}>Close</Button>
-          </div>
-        </DialogContent>
-      </Dialog>
+      {/* Modal will be rendered at app level */}
     </div>
   );
 }
