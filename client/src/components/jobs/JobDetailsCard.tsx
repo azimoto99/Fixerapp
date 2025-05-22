@@ -885,8 +885,15 @@ const JobDetailsCard: React.FC<JobDetailsCardProps> = ({ jobId, isOpen, onClose 
                 
                 <div className="grid gap-4 py-2">
                   <div className="bg-muted/50 p-3 rounded-md mb-2">
-                    <p className="text-sm font-medium text-muted-foreground mb-1">Job Rate</p>
-                    <p className="font-medium">${job.hourlyRate?.toFixed(2)}/hour <span className="text-xs text-muted-foreground">(set by job poster)</span></p>
+                    <p className="text-sm font-medium text-muted-foreground mb-1">Job Details</p>
+                    {job.paymentType === 'hourly' ? (
+                      <p className="font-medium">${job.hourlyRate?.toFixed(2)}/hour <span className="text-xs text-muted-foreground">(hourly rate)</span></p>
+                    ) : (
+                      <p className="font-medium">${job.fixedRate?.toFixed(2)} <span className="text-xs text-muted-foreground">(fixed price job)</span></p>
+                    )}
+                    {job.estimatedHours && (
+                      <p className="text-sm mt-1">Estimated time: {job.estimatedHours} hours</p>
+                    )}
                   </div>
                   
                   <div className="grid gap-2">
