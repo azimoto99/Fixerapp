@@ -131,7 +131,19 @@ export default function MapboxMap({
         el.innerHTML = `📍`;
         el.style.backgroundColor = '#3b82f6'; // Blue
       } else {
-        el.innerHTML = `$`;
+        // Extract job payment amount from the description if available
+        const paymentMatch = marker.description?.match(/\$(\d+)/);
+        const paymentAmount = paymentMatch ? paymentMatch[1] : '';
+        
+        if (paymentAmount) {
+          el.innerHTML = `$${paymentAmount}`;
+          // Make the marker bigger to fit the payment amount
+          el.style.width = '40px';
+          el.style.height = '40px';
+          el.style.fontSize = '14px';
+        } else {
+          el.innerHTML = `$`;
+        }
         el.style.backgroundColor = '#f59e0b'; // Amber/gold for jobs
       }
       
