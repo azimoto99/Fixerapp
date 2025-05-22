@@ -311,48 +311,26 @@ const UserDrawerV2: React.FC<UserDrawerProps> = ({
 
                     <Separator className="my-1 w-12 opacity-30" />
 
-                    {/* Financial sections - clean vector design */}
+                    {/* Unified Wallet section - clean vector design */}
                     <Tooltip>
                       <TooltipTrigger asChild>
                         <button 
-                          onClick={() => handleTabChange("payments")}
+                          onClick={() => handleTabChange("wallet")}
                           className={cn(
                             "flex flex-col items-center justify-center w-14 h-14 rounded-lg transition-all duration-200",
-                            activeTab === "payments" 
+                            activeTab === "wallet" 
                               ? "bg-primary/10 text-primary shadow-sm" 
                               : "hover:bg-primary/5 hover:shadow-sm text-foreground dark:text-foreground/90"
                           )}
                         >
-                          <CreditCard className="h-5 w-5 mb-1 stroke-[1.5px]" />
-                          <span className="text-xs font-medium">Payments</span>
+                          <Wallet className="h-5 w-5 mb-1 stroke-[1.5px]" />
+                          <span className="text-xs font-medium">Wallet</span>
                         </button>
                       </TooltipTrigger>
                       <TooltipContent side="right">
-                        <p>Manage your payment methods and history</p>
+                        <p>Manage your earnings, payments, and withdrawals</p>
                       </TooltipContent>
                     </Tooltip>
-                    
-                    {user.accountType === 'worker' && (
-                      <Tooltip>
-                        <TooltipTrigger asChild>
-                          <button 
-                            onClick={() => handleTabChange("earnings")}
-                            className={cn(
-                              "flex flex-col items-center justify-center w-14 h-14 rounded-lg transition-all duration-200",
-                              activeTab === "earnings" 
-                                ? "bg-primary/10 text-primary shadow-sm" 
-                                : "hover:bg-primary/5 hover:shadow-sm text-foreground dark:text-foreground/90"
-                            )}
-                          >
-                            <BarChart2 className="h-5 w-5 mb-1 stroke-[1.5px]" />
-                            <span className="text-xs font-medium">Earnings</span>
-                          </button>
-                        </TooltipTrigger>
-                        <TooltipContent side="right">
-                          <p>Track your earnings and payouts</p>
-                        </TooltipContent>
-                      </Tooltip>
-                    )}
                     
                     {user.accountType === 'poster' && (
                       <Tooltip>
