@@ -583,13 +583,7 @@ const MapSection: React.FC<MapSectionProps> = ({ jobs, selectedJob, onSelectJob,
       </div>
       
       {/* New Job Details Card */}
-      {selectedJobId !== null && (
-        <JobDetailsCard 
-          jobId={selectedJobId} 
-          isOpen={showJobDetailsCard} 
-          onClose={() => setShowJobDetailsCard(false)}
-        />
-      )}
+
     </div>
   );
 };
