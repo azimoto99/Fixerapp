@@ -138,6 +138,78 @@ const JobDetailsCard: React.FC<JobDetailsCardProps> = ({ jobId, isOpen, onClose 
     enabled: isOpen && !!jobId,
   });
 
+  // Job status update mutation
+  const updateJobStatusMutation = useMutation({
+    mutationFn: async (data: { 
+      status: 'open' | 'assigned' | 'in_progress' | 'completed' | 'canceled';
+      workerLocation?: { latitude: number; longitude: number };
+    }) => {
+      const response = await apiRequest('PUT', `/api/jobs/${jobId}/status`, data);
+      
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || 'Failed to update job status');
+      }
+      
+      return response.json();
+    },
+    onSuccess: () => {
+      // Invalidate job queries to reflect updated status
+      queryClient.invalidateQueries({ queryKey: ['/api/jobs'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/jobs', jobId] });
+      
+      setIsCheckingLocation(false);
+      setShowLocationVerificationError(false);
+      
+      toast({
+        title: 'Job Updated',
+        description: 'Job status has been updated successfully.',
+      });
+    },
+    onError: (error: Error) => {
+      setIsCheckingLocation(false);
+      
+      // Special handling for location verification errors
+      if (error.message.includes('within 500 feet')) {
+        setShowLocationVerificationError(true);
+        const distanceMatch = error.message.match(/distance: (\d+)/);
+        if (distanceMatch && distanceMatch[1]) {
+          setDistanceToJob(parseInt(distanceMatch[1]));
+        }
+      } else {
+        toast({
+          title: 'Error',
+          description: error.message,
+          variant: 'destructive',
+        });
+      }
+    },
+  });
+  
+  // Worker location update mutation
+  const updateWorkerLocationMutation = useMutation({
+    mutationFn: async (data: { 
+      latitude: number; 
+      longitude: number;
+    }) => {
+      const response = await apiRequest('POST', `/api/jobs/${jobId}/worker-location`, data);
+      
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || 'Failed to update worker location');
+      }
+      
+      return response.json();
+    },
+    onSuccess: () => {
+      // Successfully updated worker location
+      console.log('Worker location updated');
+    },
+    onError: (error: Error) => {
+      console.error('Failed to update worker location:', error);
+    },
+  });
+  
   // Apply for job mutation
   const applyMutation = useMutation({
     mutationFn: async () => {
