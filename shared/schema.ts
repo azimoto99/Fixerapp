@@ -462,3 +462,185 @@ export const NOTIFICATION_TYPES = [
   "review_received",
   "system_message"
 ] as const;
+
+// ============================================
+// ADMIN SYSTEM TABLES
+// ============================================
+
+// Admin users table for secure admin access
+export const adminUsers = pgTable("admin_users", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id").references(() => users.id).notNull(), // Link to regular user
+  role: text("role").notNull().default("admin"), // "super_admin", "admin", "moderator", "support"
+  permissions: text("permissions").array().default([]), // Array of permission strings
+  isActive: boolean("is_active").notNull().default(true),
+  lastLogin: timestamp("last_login"),
+  createdAt: timestamp("created_at").defaultNow(),
+  createdBy: integer("created_by").references(() => users.id), // Who created this admin
+});
+
+// Admin action audit log for security tracking
+export const adminAuditLog = pgTable("admin_audit_log", {
+  id: serial("id").primaryKey(),
+  adminId: integer("admin_id").references(() => adminUsers.id).notNull(),
+  action: text("action").notNull(), // "user_ban", "job_edit", "financial_review", etc.
+  targetType: text("target_type").notNull(), // "user", "job", "transaction", etc.
+  targetId: integer("target_id"), // ID of the affected record
+  details: jsonb("details").default({}), // Additional action details
+  ipAddress: text("ip_address"),
+  userAgent: text("user_agent"),
+  timestamp: timestamp("timestamp").defaultNow(),
+});
+
+// Platform analytics data for dashboard
+export const platformAnalytics = pgTable("platform_analytics", {
+  id: serial("id").primaryKey(),
+  date: date("date").notNull(), // Date for daily analytics
+  totalUsers: integer("total_users").default(0),
+  newUsers: integer("new_users").default(0),
+  activeUsers: integer("active_users").default(0),
+  totalJobs: integer("total_jobs").default(0),
+  jobsPosted: integer("jobs_posted").default(0),
+  jobsCompleted: integer("jobs_completed").default(0),
+  totalRevenue: doublePrecision("total_revenue").default(0),
+  platformFees: doublePrecision("platform_fees").default(0),
+  payouts: doublePrecision("payouts").default(0),
+  completionRate: doublePrecision("completion_rate").default(0),
+  averageJobValue: doublePrecision("average_job_value").default(0),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+// User strikes and moderation actions
+export const userStrikes = pgTable("user_strikes", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id").references(() => users.id).notNull(),
+  adminId: integer("admin_id").references(() => adminUsers.id),
+  type: text("type").notNull(), // "warning", "strike", "suspension", "ban"
+  reason: text("reason").notNull(),
+  details: text("details"),
+  jobId: integer("job_id").references(() => jobs.id), // Related job if applicable
+  isActive: boolean("is_active").notNull().default(true),
+  expiresAt: timestamp("expires_at"), // For temporary suspensions
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+// User reports for moderation queue
+export const userReports = pgTable("user_reports", {
+  id: serial("id").primaryKey(),
+  reporterId: integer("reporter_id").references(() => users.id).notNull(),
+  reportedUserId: integer("reported_user_id").references(() => users.id).notNull(),
+  jobId: integer("job_id").references(() => jobs.id), // Related job if applicable
+  category: text("category").notNull(), // "inappropriate_behavior", "fraud", "no_show", etc.
+  description: text("description").notNull(),
+  priority: text("priority").notNull().default("medium"), // "low", "medium", "high", "critical"
+  status: text("status").notNull().default("pending"), // "pending", "reviewed", "resolved", "dismissed"
+  assignedTo: integer("assigned_to").references(() => adminUsers.id),
+  resolution: text("resolution"),
+  resolvedAt: timestamp("resolved_at"),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+// System alerts and notifications for admins
+export const systemAlerts = pgTable("system_alerts", {
+  id: serial("id").primaryKey(),
+  type: text("type").notNull(), // "payment_failure", "system_error", "security_breach", etc.
+  severity: text("severity").notNull().default("medium"), // "low", "medium", "high", "critical"
+  title: text("title").notNull(),
+  description: text("description").notNull(),
+  details: jsonb("details").default({}),
+  isResolved: boolean("is_resolved").notNull().default(false),
+  resolvedBy: integer("resolved_by").references(() => adminUsers.id),
+  resolvedAt: timestamp("resolved_at"),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+// Platform configuration settings
+export const platformSettings = pgTable("platform_settings", {
+  id: serial("id").primaryKey(),
+  key: text("key").notNull().unique(),
+  value: jsonb("value").notNull(),
+  description: text("description"),
+  category: text("category").notNull().default("general"), // "general", "payment", "moderation", etc.
+  updatedBy: integer("updated_by").references(() => adminUsers.id),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+// Admin schemas
+export const insertAdminUserSchema = createInsertSchema(adminUsers).omit({
+  id: true,
+  createdAt: true
+});
+
+export const insertAdminAuditLogSchema = createInsertSchema(adminAuditLog).omit({
+  id: true,
+  timestamp: true
+});
+
+export const insertPlatformAnalyticsSchema = createInsertSchema(platformAnalytics).omit({
+  id: true,
+  createdAt: true
+});
+
+export const insertUserStrikeSchema = createInsertSchema(userStrikes).omit({
+  id: true,
+  createdAt: true
+});
+
+export const insertUserReportSchema = createInsertSchema(userReports).omit({
+  id: true,
+  createdAt: true
+});
+
+export const insertSystemAlertSchema = createInsertSchema(systemAlerts).omit({
+  id: true,
+  createdAt: true
+});
+
+export const insertPlatformSettingsSchema = createInsertSchema(platformSettings).omit({
+  id: true,
+  updatedAt: true
+});
+
+// Admin types
+export type AdminUser = typeof adminUsers.$inferSelect;
+export type InsertAdminUser = z.infer<typeof insertAdminUserSchema>;
+
+export type AdminAuditLog = typeof adminAuditLog.$inferSelect;
+export type InsertAdminAuditLog = z.infer<typeof insertAdminAuditLogSchema>;
+
+export type PlatformAnalytics = typeof platformAnalytics.$inferSelect;
+export type InsertPlatformAnalytics = z.infer<typeof insertPlatformAnalyticsSchema>;
+
+export type UserStrike = typeof userStrikes.$inferSelect;
+export type InsertUserStrike = z.infer<typeof insertUserStrikeSchema>;
+
+export type UserReport = typeof userReports.$inferSelect;
+export type InsertUserReport = z.infer<typeof insertUserReportSchema>;
+
+export type SystemAlert = typeof systemAlerts.$inferSelect;
+export type InsertSystemAlert = z.infer<typeof insertSystemAlertSchema>;
+
+export type PlatformSettings = typeof platformSettings.$inferSelect;
+export type InsertPlatformSettings = z.infer<typeof insertPlatformSettingsSchema>;
+
+// Admin permission constants
+export const ADMIN_ROLES = [
+  "super_admin",
+  "admin", 
+  "moderator",
+  "support"
+] as const;
+
+export const ADMIN_PERMISSIONS = [
+  "users_view",
+  "users_edit", 
+  "users_ban",
+  "jobs_view",
+  "jobs_edit",
+  "jobs_moderate",
+  "financial_view",
+  "financial_edit",
+  "analytics_view",
+  "system_config",
+  "admin_manage"
+] as const;

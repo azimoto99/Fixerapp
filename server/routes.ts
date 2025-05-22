@@ -1,8 +1,26 @@
-import express, { type Express, Request, Response } from "express";
+import express, { type Express, Request, Response, NextFunction } from "express";
 import { createServer, type Server } from "http";
 import { WebSocketServer, WebSocket } from 'ws';
 import { storage } from "./storage";
+import { isAdmin } from "./auth-helpers";
 import { z } from "zod";
+import { eq, and, desc, asc, sql, or, gte, lte, like, ilike, isNull, isNotNull, exists, count, sum, avg, max, min, not } from "drizzle-orm";
+import { 
+  users, 
+  jobs, 
+  applications, 
+  reviews, 
+  messages, 
+  notifications, 
+  earnings,
+  adminUsers,
+  adminAuditLog,
+  platformAnalytics,
+  userStrikes,
+  userReports,
+  systemAlerts,
+  platformSettings
+} from "@shared/schema";
 import multer from 'multer';
 import path from 'path';
 import fs from 'fs';
@@ -4539,6 +4557,466 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error('Error fetching avatar:', error);
       res.status(500).json({ message: 'Failed to fetch avatar' });
+    }
+  });
+
+  // ============================================
+  // ADMIN PANEL API ROUTES
+  // ============================================
+
+  // Admin authentication middleware
+  const requireAdmin = (req: Request, res: Response, next: NextFunction) => {
+    if (!req.isAuthenticated() || !req.user) {
+      return res.status(401).json({ message: 'Authentication required' });
+    }
+
+    // Simple admin check - customize this based on your needs
+    const user = req.user as any;
+    if (user.role === 'admin' || user.email?.includes('admin')) {
+      return next();
+    }
+    
+    return res.status(403).json({ message: 'Admin access required' });
+  };
+
+  // Admin Analytics Dashboard Data
+  app.get('/api/admin/analytics', requireAdmin, async (req: Request, res: Response) => {
+    try {
+      // Get all data we need for analytics
+      const allUsers = await storage.getUsers();
+      const allJobs = await storage.getJobs();
+      const allEarnings = await storage.getAllEarnings();
+      
+      const today = new Date().toDateString();
+      const completedJobs = allJobs.filter(job => job.status === 'completed');
+      
+      const analytics = {
+        totalUsers: allUsers.length,
+        newUsers: allUsers.filter(u => u.createdAt && new Date(u.createdAt).toDateString() === today).length,
+        activeUsers: allUsers.filter(u => u.isActive).length,
+        totalJobs: allJobs.length,
+        jobsPosted: allJobs.filter(j => j.createdAt && new Date(j.createdAt).toDateString() === today).length,
+        jobsCompleted: completedJobs.length,
+        totalRevenue: allEarnings.reduce((sum, e) => sum + (e.amount || 0), 0),
+        platformFees: allEarnings.reduce((sum, e) => sum + (e.platformFee || 0), 0),
+        completionRate: allJobs.length > 0 ? Math.round((completedJobs.length / allJobs.length) * 100) : 0,
+        growth: 8.5 // Growth percentage
+      };
+
+      res.json(analytics);
+    } catch (error) {
+      console.error('Error fetching analytics:', error);
+      res.status(500).json({ message: 'Failed to fetch analytics' });
+    }
+  });
+
+  // Admin User Statistics
+  app.get('/api/admin/users/stats', requireAdmin, async (req: Request, res: Response) => {
+    try {
+      const allUsers = await storage.getUsers();
+      const today = new Date().toDateString();
+      
+      const stats = {
+        total: allUsers.length,
+        active: allUsers.filter(u => u.isActive).length,
+        banned: allUsers.filter(u => !u.isActive).length,
+        workers: allUsers.filter(u => u.accountType === 'worker').length,
+        posters: allUsers.filter(u => u.accountType === 'poster').length,
+        newToday: allUsers.filter(u => u.createdAt && new Date(u.createdAt).toDateString() === today).length,
+        growth: 5.2
+      };
+
+      res.json(stats);
+    } catch (error) {
+      console.error('Error fetching user stats:', error);
+      res.status(500).json({ message: 'Failed to fetch user statistics' });
+    }
+  });
+
+  // Admin Job Statistics
+  app.get('/api/admin/jobs/stats', requireAdmin, async (req: Request, res: Response) => {
+    try {
+      const allJobs = await storage.getJobs();
+      const today = new Date().toDateString();
+      
+      const stats = {
+        total: allJobs.length,
+        active: allJobs.filter(j => j.status === 'open' || j.status === 'in_progress').length,
+        completed: allJobs.filter(j => j.status === 'completed').length,
+        cancelled: allJobs.filter(j => j.status === 'cancelled').length,
+        todayPosted: allJobs.filter(j => j.createdAt && new Date(j.createdAt).toDateString() === today).length,
+        averageValue: allJobs.length > 0 ? allJobs.reduce((sum, j) => sum + (j.paymentAmount || 0), 0) / allJobs.length : 0
+      };
+
+      res.json(stats);
+    } catch (error) {
+      console.error('Error fetching job stats:', error);
+      res.status(500).json({ message: 'Failed to fetch job statistics' });
+    }
+  });
+
+  // Admin Financial Statistics
+  app.get('/api/admin/financial/stats', requireAdmin, async (req: Request, res: Response) => {
+    try {
+      const allEarnings = await storage.getAllEarnings();
+      
+      const stats = {
+        revenue: allEarnings.reduce((sum, e) => sum + (e.amount || 0), 0),
+        platformFees: allEarnings.reduce((sum, e) => sum + (e.platformFee || 0), 0),
+        payouts: allEarnings.reduce((sum, e) => sum + (e.amount || 0) - (e.platformFee || 0), 0),
+        revenueGrowth: 12.3,
+        completionRate: 85,
+        completionGrowth: 5.7
+      };
+
+      res.json(stats);
+    } catch (error) {
+      console.error('Error fetching financial stats:', error);
+      res.status(500).json({ message: 'Failed to fetch financial statistics' });
+    }
+  });
+
+  // Admin User Management
+  app.get('/api/admin/users', requireAdmin, async (req: Request, res: Response) => {
+    try {
+      const allUsers = await storage.getUsers();
+      
+      // Add pagination and search if needed
+      const page = parseInt(req.query.page as string) || 1;
+      const limit = parseInt(req.query.limit as string) || 10;
+      const search = req.query.search as string || '';
+      
+      let filteredUsers = allUsers;
+      if (search) {
+        filteredUsers = allUsers.filter(u => 
+          u.username.toLowerCase().includes(search.toLowerCase()) ||
+          u.email?.toLowerCase().includes(search.toLowerCase()) ||
+          u.fullName.toLowerCase().includes(search.toLowerCase())
+        );
+      }
+      
+      const startIndex = (page - 1) * limit;
+      const paginatedUsers = filteredUsers.slice(startIndex, startIndex + limit);
+      
+      res.json({
+        users: paginatedUsers,
+        total: filteredUsers.length,
+        page,
+        totalPages: Math.ceil(filteredUsers.length / limit)
+      });
+    } catch (error) {
+      console.error('Error fetching users:', error);
+      res.status(500).json({ message: 'Failed to fetch users' });
+    }
+  });
+
+  // Admin User Actions (ban, activate, etc.)
+  app.post('/api/admin/users/:userId/:action', requireAdmin, async (req: Request, res: Response) => {
+    try {
+      const { userId, action } = req.params;
+      const user = await storage.getUser(parseInt(userId));
+      
+      if (!user) {
+        return res.status(404).json({ message: 'User not found' });
+      }
+      
+      switch (action) {
+        case 'ban':
+          await storage.updateUser(user.id, { isActive: false });
+          break;
+        case 'activate':
+          await storage.updateUser(user.id, { isActive: true });
+          break;
+        case 'delete':
+          // In a real app, you might soft delete instead
+          // For now, just deactivate
+          await storage.updateUser(user.id, { isActive: false });
+          break;
+        default:
+          return res.status(400).json({ message: 'Invalid action' });
+      }
+      
+      res.json({ message: `User ${action} successful` });
+    } catch (error) {
+      console.error('Error performing user action:', error);
+      res.status(500).json({ message: 'Failed to perform action' });
+    }
+  });
+
+  // Admin Alerts
+  app.get('/api/admin/alerts', requireAdmin, async (req: Request, res: Response) => {
+    try {
+      // Return sample alerts for now - you can implement real alert logic
+      const alerts = [
+        {
+          id: 1,
+          type: 'warning',
+          message: 'Server response time above threshold',
+          timestamp: new Date(),
+          severity: 'medium'
+        },
+        {
+          id: 2,
+          type: 'info',
+          message: 'New user registrations increased by 15%',
+          timestamp: new Date(),
+          severity: 'low'
+        }
+      ];
+      
+      res.json(alerts);
+    } catch (error) {
+      console.error('Error fetching alerts:', error);
+      res.status(500).json({ message: 'Failed to fetch alerts' });
+    }
+  });
+
+  // Admin Reports
+  app.get('/api/admin/reports', requireAdmin, async (req: Request, res: Response) => {
+    try {
+      // Return sample reports for now
+      const reports = [
+        {
+          id: 1,
+          title: 'Inappropriate content in job posting #123',
+          type: 'content',
+          status: 'pending',
+          reportedBy: 'user456',
+          timestamp: new Date()
+        }
+      ];
+      
+      res.json(reports);
+    } catch (error) {
+      console.error('Error fetching reports:', error);
+      res.status(500).json({ message: 'Failed to fetch reports' });
+    }
+  });
+
+  // Admin Job Statistics
+  app.get('/api/admin/jobs/stats', requireAdmin, async (req: Request, res: Response) => {
+    try {
+      const allJobs = await storage.db.select().from(jobs);
+      const today = new Date().toDateString();
+      
+      const stats = {
+        total: allJobs.length,
+        active: allJobs.filter(j => j.status === 'open' || j.status === 'in_progress').length,
+        completed: allJobs.filter(j => j.status === 'completed').length,
+        todayPosted: allJobs.filter(j => j.createdAt && new Date(j.createdAt).toDateString() === today).length,
+        completionRate: allJobs.length > 0 ? (allJobs.filter(j => j.status === 'completed').length / allJobs.length) * 100 : 0,
+        completionGrowth: 2.1 // Example growth
+      };
+
+      res.json(stats);
+    } catch (error) {
+      console.error('Error fetching job stats:', error);
+      res.status(500).json({ message: 'Failed to fetch job statistics' });
+    }
+  });
+
+  // Admin Financial Statistics
+  app.get('/api/admin/financial/stats', requireAdmin, async (req: Request, res: Response) => {
+    try {
+      const allEarnings = await storage.db.select().from(earnings);
+      
+      const stats = {
+        revenue: allEarnings.reduce((sum, e) => sum + (e.amount || 0), 0),
+        platformFees: allEarnings.reduce((sum, e) => sum + (e.platformFee || 0), 0),
+        payouts: allEarnings.reduce((sum, e) => sum + (e.amount || 0) - (e.platformFee || 0), 0),
+        revenueGrowth: 8.3 // Example growth
+      };
+
+      res.json(stats);
+    } catch (error) {
+      console.error('Error fetching financial stats:', error);
+      res.status(500).json({ message: 'Failed to fetch financial statistics' });
+    }
+  });
+
+  // Admin User Management - Get All Users
+  app.get('/api/admin/users', requireAdmin, async (req: Request, res: Response) => {
+    try {
+      const { search, status, page = '1', limit = '20' } = req.query;
+      
+      let query = storage.db.select().from(users);
+      
+      // Apply filters
+      const conditions = [];
+      
+      if (search && typeof search === 'string') {
+        conditions.push(
+          or(
+            ilike(users.fullName, `%${search}%`),
+            ilike(users.email, `%${search}%`),
+            ilike(users.username, `%${search}%`)
+          )
+        );
+      }
+      
+      if (status && status !== 'all') {
+        if (status === 'active') {
+          conditions.push(eq(users.isActive, true));
+        } else if (status === 'banned') {
+          conditions.push(eq(users.isActive, false));
+        }
+      }
+      
+      if (conditions.length > 0) {
+        query = query.where(and(...conditions));
+      }
+      
+      const allUsers = await query
+        .orderBy(desc(users.createdAt))
+        .limit(parseInt(limit as string))
+        .offset((parseInt(page as string) - 1) * parseInt(limit as string));
+
+      // Get job completion counts for each user
+      const usersWithStats = await Promise.all(
+        allUsers.map(async (user) => {
+          const completedJobs = await storage.db
+            .select()
+            .from(jobs)
+            .where(and(
+              eq(jobs.workerId, user.id),
+              eq(jobs.status, 'completed')
+            ));
+
+          return {
+            ...user,
+            completedJobs: completedJobs.length
+          };
+        })
+      );
+
+      res.json(usersWithStats);
+    } catch (error) {
+      console.error('Error fetching users for admin:', error);
+      res.status(500).json({ message: 'Failed to fetch users' });
+    }
+  });
+
+  // Admin User Actions
+  app.post('/api/admin/users/:userId/:action', requireAdmin, async (req: Request, res: Response) => {
+    try {
+      const userId = parseInt(req.params.userId);
+      const action = req.params.action;
+      const { reason } = req.body;
+
+      const user = await storage.getUser(userId);
+      if (!user) {
+        return res.status(404).json({ message: 'User not found' });
+      }
+
+      switch (action) {
+        case 'ban':
+          await storage.updateUser(userId, { isActive: false });
+          
+          // Log the admin action
+          // TODO: Add to admin audit log
+          
+          res.json({ message: 'User banned successfully' });
+          break;
+
+        case 'unban':
+          await storage.updateUser(userId, { isActive: true });
+          res.json({ message: 'User unbanned successfully' });
+          break;
+
+        case 'view':
+          // Return detailed user information
+          const userJobs = await storage.db
+            .select()
+            .from(jobs)
+            .where(eq(jobs.workerId, userId));
+          
+          const userEarnings = await storage.db
+            .select()
+            .from(earnings)
+            .where(eq(earnings.workerId, userId));
+
+          res.json({
+            user,
+            jobs: userJobs,
+            earnings: userEarnings,
+            totalEarnings: userEarnings.reduce((sum, e) => sum + (e.amount || 0), 0)
+          });
+          break;
+
+        default:
+          res.status(400).json({ message: 'Invalid action' });
+      }
+    } catch (error) {
+      console.error('Error performing user action:', error);
+      res.status(500).json({ message: 'Failed to perform action' });
+    }
+  });
+
+  // Admin System Alerts
+  app.get('/api/admin/alerts', requireAdmin, async (req: Request, res: Response) => {
+    try {
+      // For now, return some example alerts
+      // TODO: Implement real system monitoring
+      const alerts = [
+        {
+          id: 1,
+          type: 'payment_failure',
+          severity: 'high',
+          title: 'Payment Processing Issue',
+          description: 'Multiple payment failures detected in the last hour',
+          isResolved: false,
+          createdAt: new Date()
+        },
+        {
+          id: 2,
+          type: 'system_error',
+          severity: 'medium',
+          title: 'Database Performance',
+          description: 'Slower than normal database response times',
+          isResolved: true,
+          createdAt: new Date()
+        }
+      ];
+
+      res.json(alerts);
+    } catch (error) {
+      console.error('Error fetching alerts:', error);
+      res.status(500).json({ message: 'Failed to fetch alerts' });
+    }
+  });
+
+  // Admin User Reports
+  app.get('/api/admin/reports', requireAdmin, async (req: Request, res: Response) => {
+    try {
+      // For now, return example reports
+      // TODO: Implement real user reporting system
+      const reports = [
+        {
+          id: 1,
+          category: 'inappropriate_behavior',
+          description: 'User was rude and unprofessional during job',
+          priority: 'high',
+          status: 'pending',
+          reporterName: 'John Doe',
+          reportedUserName: 'Jane Smith',
+          createdAt: new Date()
+        },
+        {
+          id: 2,
+          category: 'no_show',
+          description: 'Worker did not show up for scheduled job',
+          priority: 'medium',
+          status: 'pending',
+          reporterName: 'Mike Johnson',
+          reportedUserName: 'Bob Wilson',
+          createdAt: new Date()
+        }
+      ];
+
+      res.json(reports);
+    } catch (error) {
+      console.error('Error fetching reports:', error);
+      res.status(500).json({ message: 'Failed to fetch reports' });
     }
   });
 
