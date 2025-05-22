@@ -149,7 +149,7 @@ const UserDrawerV2: React.FC<UserDrawerProps> = ({
       case "profile":
         return <ProfileContent user={user} />;
       case "earnings":
-        return <EarningsContent userId={user.id} />;
+        return <EarningsContentV2 userId={user.id} />;
       case "payments":
         return <PaymentsContent userId={user.id} />;
       case "reviews":
