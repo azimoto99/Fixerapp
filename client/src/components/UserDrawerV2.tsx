@@ -25,7 +25,7 @@ import { Badge } from "@/components/ui/badge";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import ProfileContent from './drawer-contents/ProfileContent';
-import EarningsContent from './drawer-contents/EarningsContent';
+import EarningsContentV2 from './drawer-contents/EarningsContentV2';
 import ReviewsContent from './drawer-contents/ReviewsContent';
 import SettingsContent from './drawer-contents/SettingsContent';
 import PaymentsContent from './drawer-contents/PaymentsContent';
@@ -181,34 +181,34 @@ const UserDrawerV2: React.FC<UserDrawerProps> = ({
         <div className="fixed inset-0 bg-black/50 backdrop-blur-sm" style={{ zIndex: 99999 }}>
           <div
             ref={drawerRef}
-            className="fixed top-0 right-0 bottom-0 w-[360px] bg-background shadow-lg transform transition-transform duration-300 animate-in slide-in-from-right overflow-hidden"
+            className="fixed top-0 right-0 bottom-0 w-[360px] bg-background shadow-xl transform transition-transform duration-300 animate-in slide-in-from-right overflow-hidden"
             style={{ zIndex: 100000 }}
           >
-            {/* Drawer header with elevated design - more compact */}
-            <div className="bg-gradient-to-r from-primary to-primary/80 text-primary-foreground shadow-md">
-              <div className="px-4 pt-3 pb-3 relative">
+            {/* Modernized drawer header with cleaner design */}
+            <div className="bg-primary/95 text-primary-foreground shadow-md">
+              <div className="px-4 pt-4 pb-3 relative">
                 {/* Top bar with close button - absolute positioning */}
                 <button 
                   onClick={closeDrawer}
-                  className="absolute top-2 right-2 bg-primary-foreground/20 backdrop-blur-sm text-primary-foreground hover:bg-primary-foreground/30 rounded-full w-6 h-6 flex items-center justify-center"
+                  className="absolute top-2 right-2 bg-primary-foreground/20 backdrop-blur-sm text-primary-foreground hover:bg-primary-foreground/30 rounded-full w-7 h-7 flex items-center justify-center transition-colors"
                   aria-label="Close menu"
                 >
-                  <X className="h-3 w-3" />
+                  <X className="h-4 w-4" />
                 </button>
                 
-                {/* User profile section */}
+                {/* User profile section - simplified and modern */}
                 <div className="flex items-center gap-3">
-                  <Avatar className="h-10 w-10 border border-primary-foreground/30">
+                  <Avatar className="h-12 w-12 border-2 border-primary-foreground/30 shadow-sm">
                     <AvatarImage src={user.avatarUrl || undefined} alt={user.fullName} />
-                    <AvatarFallback className="bg-primary/80 text-primary-foreground text-sm">
+                    <AvatarFallback className="bg-primary-foreground/10 text-primary-foreground text-sm font-semibold">
                       {user.fullName?.charAt(0) || 'U'}
                     </AvatarFallback>
                   </Avatar>
                   
                   <div>
                     <div className="font-medium text-base tracking-tight">{user.fullName}</div>
-                    <div className="text-xs text-primary-foreground/80 flex items-center gap-1.5">
-                      <Badge variant="outline" className="font-normal capitalize text-[10px] px-1.5 py-0 h-4 bg-primary-foreground/10 hover:bg-primary-foreground/20 text-primary-foreground border-primary-foreground/20">
+                    <div className="text-xs text-primary-foreground/90 flex items-center gap-2 mt-0.5">
+                      <Badge variant="outline" className="font-normal capitalize text-[10px] px-2 py-0 h-4 bg-primary-foreground/10 hover:bg-primary-foreground/20 text-primary-foreground border-primary-foreground/20">
                         {user.accountType}
                       </Badge>
                       {user.rating && user.rating > 0 && (
@@ -221,42 +221,42 @@ const UserDrawerV2: React.FC<UserDrawerProps> = ({
                   </div>
                 </div>
                 
-                {/* Quick stats - more compact */}
-                <div className="grid grid-cols-3 gap-1.5 mt-2">
-                  <div className="bg-primary-foreground/10 rounded p-1 text-center">
-                    <div className="text-[9px] text-primary-foreground/80">Jobs</div>
-                    <div className="text-sm font-medium">{user.completedJobs || 0}</div>
+                {/* Quick stats with modern clean design */}
+                <div className="grid grid-cols-3 gap-2 mt-3">
+                  <div className="bg-primary-foreground/10 rounded-lg p-1.5 text-center shadow-sm">
+                    <div className="text-[10px] text-primary-foreground/80 font-medium">Jobs</div>
+                    <div className="text-sm font-semibold">{user.completedJobs || 0}</div>
                   </div>
-                  <div className="bg-primary-foreground/10 rounded p-1 text-center">
-                    <div className="text-[9px] text-primary-foreground/80">Rating</div>
-                    <div className="text-sm font-medium flex items-center justify-center">
+                  <div className="bg-primary-foreground/10 rounded-lg p-1.5 text-center shadow-sm">
+                    <div className="text-[10px] text-primary-foreground/80 font-medium">Rating</div>
+                    <div className="text-sm font-semibold flex items-center justify-center">
                       <StarIcon className="h-3 w-3 text-yellow-300 mr-0.5" />
                       {user.rating?.toFixed(1) || '-'}
                     </div>
                   </div>
-                  <div className="bg-primary-foreground/10 rounded p-1 text-center">
-                    <div className="text-[9px] text-primary-foreground/80">Success</div>
-                    <div className="text-sm font-medium">{user.successRate ? `${user.successRate}%` : '-'}</div>
+                  <div className="bg-primary-foreground/10 rounded-lg p-1.5 text-center shadow-sm">
+                    <div className="text-[10px] text-primary-foreground/80 font-medium">Success</div>
+                    <div className="text-sm font-semibold">{user.successRate ? `${user.successRate}%` : '-'}</div>
                   </div>
                 </div>
               </div>
             </div>
 
             <div className="flex h-[calc(100vh-150px)] overflow-hidden">
-              {/* Enhanced sidebar navigation with tooltips */}
+              {/* Modern sidebar navigation with vector styling */}
               <TooltipProvider>
-                <div className="w-[80px] border-r border-border bg-background/80 dark:bg-background py-4 flex flex-col items-center h-full overflow-y-auto">
-                  <div className="flex flex-col items-center space-y-1">
+                <div className="w-[80px] border-r border-border/40 bg-background/95 dark:bg-background py-4 flex flex-col items-center h-full overflow-y-auto">
+                  <div className="flex flex-col items-center space-y-2">
                     {/* Main sections */}
                     <div className="mb-2 px-2 py-1 w-full">
                       <Tooltip>
                         <TooltipTrigger asChild>
                           <button
                             onClick={() => navigateTo('/')}
-                            className="flex flex-col items-center justify-center w-full h-14 rounded-lg hover:bg-accent dark:hover:bg-accent/20 text-foreground dark:text-foreground/80"
+                            className="flex flex-col items-center justify-center w-full h-14 rounded-lg hover:bg-primary/5 hover:shadow-sm transition-all duration-200 text-foreground dark:text-foreground/90"
                           >
-                            <Home className="h-5 w-5 mb-1" />
-                            <span className="text-xs">Home</span>
+                            <Home className="h-5 w-5 mb-1 stroke-[1.5px]" />
+                            <span className="text-xs font-medium">Home</span>
                           </button>
                         </TooltipTrigger>
                         <TooltipContent side="right">
@@ -265,22 +265,22 @@ const UserDrawerV2: React.FC<UserDrawerProps> = ({
                       </Tooltip>
                     </div>
 
-                    <Separator className="my-2 w-10" />
+                    <Separator className="my-1 w-12 opacity-30" />
 
-                    {/* User sections */}
+                    {/* User sections - clean vector design */}
                     <Tooltip>
                       <TooltipTrigger asChild>
                         <button 
                           onClick={() => handleTabChange("profile")}
                           className={cn(
-                            "flex flex-col items-center justify-center w-14 h-14 rounded-lg",
+                            "flex flex-col items-center justify-center w-14 h-14 rounded-lg transition-all duration-200",
                             activeTab === "profile" 
-                              ? "bg-primary/10 text-primary dark:bg-primary/20 dark:text-primary" 
-                              : "hover:bg-accent dark:hover:bg-accent/20 text-foreground dark:text-foreground/80"
+                              ? "bg-primary/10 text-primary shadow-sm" 
+                              : "hover:bg-primary/5 hover:shadow-sm text-foreground dark:text-foreground/90"
                           )}
                         >
-                          <User className="h-5 w-5 mb-1" />
-                          <span className="text-xs">Profile</span>
+                          <User className="h-5 w-5 mb-1 stroke-[1.5px]" />
+                          <span className="text-xs font-medium">Profile</span>
                         </button>
                       </TooltipTrigger>
                       <TooltipContent side="right">
@@ -294,17 +294,17 @@ const UserDrawerV2: React.FC<UserDrawerProps> = ({
                         <button 
                           onClick={() => handleTabChange("reviews")}
                           className={cn(
-                            "flex flex-col items-center justify-center w-14 h-14 rounded-lg relative",
+                            "flex flex-col items-center justify-center w-14 h-14 rounded-lg relative transition-all duration-200",
                             activeTab === "reviews" 
-                              ? "bg-primary/10 text-primary dark:bg-primary/20 dark:text-primary" 
-                              : "hover:bg-accent dark:hover:bg-accent/20 text-foreground dark:text-foreground/80"
+                              ? "bg-primary/10 text-primary shadow-sm" 
+                              : "hover:bg-primary/5 hover:shadow-sm text-foreground dark:text-foreground/90"
                           )}
                         >
-                          <StarIcon className="h-5 w-5 mb-1" />
-                          <span className="text-xs">Reviews</span>
+                          <StarIcon className="h-5 w-5 mb-1 stroke-[1.5px]" />
+                          <span className="text-xs font-medium">Reviews</span>
                           {/* Show notification dot for new reviews */}
                           {user.rating && user.rating > 0 && (
-                            <span className="absolute top-1 right-1 h-2 w-2 bg-red-500 rounded-full"></span>
+                            <span className="absolute top-1 right-1 h-2 w-2 bg-red-500 rounded-full animate-pulse"></span>
                           )}
                         </button>
                       </TooltipTrigger>
@@ -313,22 +313,22 @@ const UserDrawerV2: React.FC<UserDrawerProps> = ({
                       </TooltipContent>
                     </Tooltip>
 
-                    <Separator className="my-2 w-10" />
+                    <Separator className="my-1 w-12 opacity-30" />
 
-                    {/* Financial sections */}
+                    {/* Financial sections - clean vector design */}
                     <Tooltip>
                       <TooltipTrigger asChild>
                         <button 
                           onClick={() => handleTabChange("payments")}
                           className={cn(
-                            "flex flex-col items-center justify-center w-14 h-14 rounded-lg",
+                            "flex flex-col items-center justify-center w-14 h-14 rounded-lg transition-all duration-200",
                             activeTab === "payments" 
-                              ? "bg-primary/10 text-primary dark:bg-primary/20 dark:text-primary" 
-                              : "hover:bg-accent dark:hover:bg-accent/20 text-foreground dark:text-foreground/80"
+                              ? "bg-primary/10 text-primary shadow-sm" 
+                              : "hover:bg-primary/5 hover:shadow-sm text-foreground dark:text-foreground/90"
                           )}
                         >
-                          <CreditCard className="h-5 w-5 mb-1" />
-                          <span className="text-xs">Payments</span>
+                          <CreditCard className="h-5 w-5 mb-1 stroke-[1.5px]" />
+                          <span className="text-xs font-medium">Payments</span>
                         </button>
                       </TooltipTrigger>
                       <TooltipContent side="right">
@@ -342,14 +342,14 @@ const UserDrawerV2: React.FC<UserDrawerProps> = ({
                           <button 
                             onClick={() => handleTabChange("earnings")}
                             className={cn(
-                              "flex flex-col items-center justify-center w-14 h-14 rounded-lg",
+                              "flex flex-col items-center justify-center w-14 h-14 rounded-lg transition-all duration-200",
                               activeTab === "earnings" 
-                                ? "bg-primary/10 text-primary dark:bg-primary/20 dark:text-primary" 
-                                : "hover:bg-accent dark:hover:bg-accent/20 text-foreground dark:text-foreground/80"
+                                ? "bg-primary/10 text-primary shadow-sm" 
+                                : "hover:bg-primary/5 hover:shadow-sm text-foreground dark:text-foreground/90"
                             )}
                           >
-                            <BarChart2 className="h-5 w-5 mb-1" />
-                            <span className="text-xs">Earnings</span>
+                            <BarChart2 className="h-5 w-5 mb-1 stroke-[1.5px]" />
+                            <span className="text-xs font-medium">Earnings</span>
                           </button>
                         </TooltipTrigger>
                         <TooltipContent side="right">
@@ -363,10 +363,10 @@ const UserDrawerV2: React.FC<UserDrawerProps> = ({
                         <TooltipTrigger asChild>
                           <button 
                             onClick={() => navigateTo('/payment-dashboard')}
-                            className="flex flex-col items-center justify-center w-14 h-14 rounded-lg hover:bg-accent dark:hover:bg-accent/20 text-foreground dark:text-foreground/80"
+                            className="flex flex-col items-center justify-center w-14 h-14 rounded-lg hover:bg-primary/5 hover:shadow-sm transition-all duration-200 text-foreground dark:text-foreground/90"
                           >
-                            <LayoutDashboard className="h-5 w-5 mb-1" />
-                            <span className="text-xs">Dashboard</span>
+                            <LayoutDashboard className="h-5 w-5 mb-1 stroke-[1.5px]" />
+                            <span className="text-xs font-medium">Dashboard</span>
                           </button>
                         </TooltipTrigger>
                         <TooltipContent side="right">
