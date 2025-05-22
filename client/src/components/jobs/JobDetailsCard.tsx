@@ -153,7 +153,7 @@ const JobDetailsCard: React.FC<JobDetailsCardProps> = ({ jobId, isOpen, onClose 
       
       return response.json();
     },
-    onSuccess: () => {
+    onSuccess: (data, variables) => {
       // Invalidate job queries to reflect updated status
       queryClient.invalidateQueries({ queryKey: ['/api/jobs'] });
       queryClient.invalidateQueries({ queryKey: ['/api/jobs', jobId] });
@@ -161,10 +161,24 @@ const JobDetailsCard: React.FC<JobDetailsCardProps> = ({ jobId, isOpen, onClose 
       setIsCheckingLocation(false);
       setShowLocationVerificationError(false);
       
-      toast({
-        title: 'Job Updated',
-        description: 'Job status has been updated successfully.',
-      });
+      // Different toast messages based on the status transition
+      let title, description;
+      
+      switch(variables.status) {
+        case 'in_progress':
+          title = 'Job Started';
+          description = 'You have started working on this job';
+          break;
+        case 'completed':
+          title = 'Job Completed';
+          description = 'You have marked this job as complete';
+          break;
+        default:
+          title = 'Job Updated';
+          description = 'Job status has been updated successfully.';
+      }
+      
+      toast({ title, description });
     },
     onError: (error: Error) => {
       setIsCheckingLocation(false);
@@ -247,57 +261,11 @@ const JobDetailsCard: React.FC<JobDetailsCardProps> = ({ jobId, isOpen, onClose 
     }
   });
 
-  // Start job mutation
-  const startJobMutation = useMutation({
-    mutationFn: async () => {
-      const response = await apiRequest('PATCH', `/api/jobs/${jobId}/start`, {
-        workerId: user?.id
-      });
-      
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.message || 'Failed to start job');
-      }
-      
-      return response.json();
-    },
-    onSuccess: () => {
-      toast({
-        title: 'Job Started',
-        description: 'You have started working on this job',
-      });
-      queryClient.invalidateQueries({ queryKey: ['/api/jobs', jobId] });
-    },
-    onError: (error: Error) => {
-      toast({
-        variant: 'destructive',
-        title: 'Start Failed',
-        description: error.message || 'Failed to start this job',
-      });
-    }
-  });
+// We already have updateJobStatusMutation defined earlier
 
   // Handle applying for job
   const handleApply = () => {
     applyMutation.mutate();
-  };
-
-  // Function to calculate distance between two coordinates
-  const calculateDistance = (lat1: number, lon1: number, lat2: number, lon2: number): number => {
-    // Earth's radius in feet
-    const R = 20902231; // 3959 miles * 5280 feet
-
-    const dLat = (lat2 - lat1) * Math.PI / 180;
-    const dLon = (lon2 - lon1) * Math.PI / 180;
-    
-    const a = 
-      Math.sin(dLat/2) * Math.sin(dLat/2) +
-      Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * 
-      Math.sin(dLon/2) * Math.sin(dLon/2);
-    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
-    const distance = R * c;
-    
-    return Math.round(distance);
   };
 
   // Get user's current location
@@ -319,6 +287,24 @@ const JobDetailsCard: React.FC<JobDetailsCardProps> = ({ jobId, isOpen, onClose 
         { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
       );
     });
+  };
+
+  // Function to calculate distance between two coordinates
+  const calculateDistance = (lat1: number, lon1: number, lat2: number, lon2: number): number => {
+    // Earth's radius in feet
+    const R = 20902231; // 3959 miles * 5280 feet
+
+    const dLat = (lat2 - lat1) * Math.PI / 180;
+    const dLon = (lon2 - lon1) * Math.PI / 180;
+    
+    const a = 
+      Math.sin(dLat/2) * Math.sin(dLat/2) +
+      Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * 
+      Math.sin(dLon/2) * Math.sin(dLon/2);
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+    const distance = R * c;
+    
+    return Math.round(distance);
   };
 
   // Verify worker location against job location
