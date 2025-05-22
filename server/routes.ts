@@ -2816,8 +2816,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         try {
           const accountLink = await stripe.accountLinks.create({
             account: storedUser.stripeConnectAccountId,
-            refresh_url: `${process.env.APP_URL || 'https://fixer.replit.app'}/earnings?refresh=true`,
-            return_url: `${process.env.APP_URL || 'https://fixer.replit.app'}/earnings?setup=complete`,
+            refresh_url: `${process.env.APP_URL || 'https://fixer.replit.app'}/?refresh=connect`,
+            return_url: `${process.env.APP_URL || 'https://fixer.replit.app'}/?setup=complete`,
             type: 'account_onboarding',
           });
           
@@ -2890,8 +2890,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Create an account link for onboarding
       const accountLink = await stripe.accountLinks.create({
         account: account.id,
-        refresh_url: `${process.env.APP_URL || 'https://fixer.replit.app'}/profile?refresh=true`,
-        return_url: `${process.env.APP_URL || 'https://fixer.replit.app'}/profile?success=true`,
+        refresh_url: `${process.env.APP_URL || 'https://fixer.replit.app'}/?refresh=connect`,
+        return_url: `${process.env.APP_URL || 'https://fixer.replit.app'}/?setup=complete`,
         type: 'account_onboarding',
       });
       
