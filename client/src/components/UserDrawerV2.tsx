@@ -23,7 +23,7 @@ import { Separator } from "@/components/ui/separator";
 import { Badge } from "@/components/ui/badge";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import ProfileContent from './drawer-contents/ProfileContent';
+import ProfileContentV2 from './drawer-contents/ProfileContentV2';
 import WalletContent from './drawer-contents/WalletContent';
 import ReviewsContent from './drawer-contents/ReviewsContent';
 import SettingsContent from './drawer-contents/SettingsContent';

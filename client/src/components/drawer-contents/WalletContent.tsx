@@ -20,7 +20,9 @@ import {
   Download,
   Filter,
   Eye,
-  EyeOff
+  EyeOff,
+  CreditCard,
+  Plus
 } from 'lucide-react';
 
 interface WalletContentProps {
@@ -51,6 +53,12 @@ const WalletContent: React.FC<WalletContentProps> = ({ user }) => {
   // Fetch payments data
   const { data: payments, isLoading: paymentsLoading } = useQuery({
     queryKey: ['/api/payments'],
+    enabled: !!user,
+  });
+
+  // Fetch payment methods
+  const { data: paymentMethods, isLoading: paymentMethodsLoading } = useQuery({
+    queryKey: ['/api/stripe/payment-methods'],
     enabled: !!user,
   });
 
@@ -165,7 +173,7 @@ const WalletContent: React.FC<WalletContentProps> = ({ user }) => {
     }
   };
 
-  if (earningsLoading || paymentsLoading) {
+  if (earningsLoading || paymentsLoading || paymentMethodsLoading) {
     return (
       <div className="space-y-4">
         <div className="animate-pulse">
@@ -260,6 +268,53 @@ const WalletContent: React.FC<WalletContentProps> = ({ user }) => {
               <Trophy className="h-4 w-4 text-yellow-500" />
               {completedJobs}
             </p>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Payment Methods */}
+      <Card>
+        <CardHeader className="pb-3">
+          <div className="flex items-center justify-between">
+            <CardTitle className="text-base">Payment Methods</CardTitle>
+            <Button variant="outline" size="sm" className="text-xs">
+              <Plus className="h-3 w-3 mr-1" />
+              Add Card
+            </Button>
+          </div>
+        </CardHeader>
+        <CardContent>
+          <div className="space-y-2">
+            {paymentMethods && paymentMethods.length > 0 ? (
+              paymentMethods.map((method: any) => (
+                <div key={method.id} className="flex items-center justify-between p-3 rounded-lg border bg-card">
+                  <div className="flex items-center space-x-3">
+                    <div className="p-2 bg-primary/10 rounded-lg">
+                      <CreditCard className="h-4 w-4 text-primary" />
+                    </div>
+                    <div>
+                      <p className="font-medium text-sm">
+                        •••• •••• •••• {method.card?.last4}
+                      </p>
+                      <p className="text-xs text-muted-foreground">
+                        {method.card?.brand?.toUpperCase()} • Expires {method.card?.exp_month}/{method.card?.exp_year}
+                      </p>
+                    </div>
+                  </div>
+                  <div className="text-xs text-muted-foreground">
+                    {method.id === paymentMethods[0]?.id && (
+                      <span className="text-primary font-medium">Default</span>
+                    )}
+                  </div>
+                </div>
+              ))
+            ) : (
+              <div className="text-center py-6">
+                <CreditCard className="h-8 w-8 text-muted-foreground mx-auto mb-2" />
+                <p className="text-sm text-muted-foreground">No payment methods added</p>
+                <p className="text-xs text-muted-foreground mt-1">Add a card to make payments</p>
+              </div>
+            )}
           </div>
         </CardContent>
       </Card>
