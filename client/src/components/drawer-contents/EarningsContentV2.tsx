@@ -250,6 +250,21 @@ const EarningsContentV2: React.FC<EarningsContentProps> = ({ userId }) => {
                     size="sm"
                     variant="outline"
                     className="text-xs"
+                    onClick={() => {
+                      refetchAccount();
+                      toast({
+                        title: "Refreshing",
+                        description: "Checking your payment account status...",
+                        variant: "default",
+                      });
+                    }}
+                  >
+                    Refresh Status
+                  </Button>
+                  <Button 
+                    size="sm"
+                    variant="outline"
+                    className="text-xs"
                     asChild
                   >
                     <a href="https://stripe.com/connect" target="_blank" rel="noopener noreferrer">
