@@ -251,7 +251,12 @@ const JobDetailsCard: React.FC<JobDetailsCardProps> = ({ jobId, isOpen, onClose 
       setApplicationMessage('');
       setProposedRate('');
       setExpectedDuration('');
-      queryClient.invalidateQueries({ queryKey: ['/api/applications', jobId, user?.id] });
+      
+      // Invalidate all relevant queries to refresh the UI
+      queryClient.invalidateQueries({ queryKey: [`/api/jobs/${jobId}/applications/worker/${user?.id}`] });
+      queryClient.invalidateQueries({ queryKey: [`/api/jobs/${jobId}/applications`] });
+      queryClient.invalidateQueries({ queryKey: ['/api/jobs'] });
+      queryClient.invalidateQueries({ queryKey: [`/api/jobs/${jobId}`] });
     },
     onError: (error: Error) => {
       toast({
