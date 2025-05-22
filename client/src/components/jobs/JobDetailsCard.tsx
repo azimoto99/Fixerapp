@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import Portal from '@/components/Portal';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '@/hooks/use-auth';
 import { apiRequest } from '@/lib/queryClient';
@@ -869,7 +870,7 @@ const JobDetailsCard: React.FC<JobDetailsCardProps> = ({ jobId, isOpen, onClose 
           
           {/* Apply Dialog */}
           <Dialog open={showApplyDialog} onOpenChange={setShowApplyDialog}>
-            <DialogContent className="sm:max-w-md !z-[220] relative" style={{ zIndex: 220 }}>
+            <DialogContent className="sm:max-w-md" style={{ zIndex: 9999, position: 'relative' }}>
               <DialogHeader>
                 <DialogTitle>Apply for Job</DialogTitle>
                 <DialogDescription>
