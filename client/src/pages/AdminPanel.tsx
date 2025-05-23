@@ -1333,7 +1333,7 @@ export default function AdminPanel() {
                   <div>
                     <Label className="text-sm font-medium">Status</Label>
                     <Badge className={getStatusColor(selectedJob.status)}>
-                      {selectedJob.status.replace('_', ' ')}
+                      {selectedJob.status?.replace('_', ' ') || 'Unknown'}
                     </Badge>
                   </div>
                   <div>
@@ -1400,7 +1400,7 @@ export default function AdminPanel() {
                   <div>
                     <Label className="text-sm font-medium">Status</Label>
                     <Badge className={getStatusColor(selectedTicket.status)}>
-                      {selectedTicket.status.replace('_', ' ')}
+                      {selectedTicket.status?.replace('_', ' ') || 'Unknown'}
                     </Badge>
                   </div>
                   <div>

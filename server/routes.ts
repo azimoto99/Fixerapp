@@ -4908,7 +4908,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Get all earnings using available storage methods
       const allEarnings = [];
       for (const user of allUsers) {
-        const userEarnings = await storage.getEarningsByWorker(user.id);
+        const userEarnings = await storage.getEarnings(user.id);
         allEarnings.push(...userEarnings);
       }
       
@@ -5103,7 +5103,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const allEarnings = [];
       
       for (const user of allUsers) {
-        const userEarnings = await storage.getEarningsByWorker(user.id);
+        const userEarnings = await storage.getEarnings(user.id);
         allEarnings.push(...userEarnings);
       }
       
@@ -5452,7 +5452,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const allEarnings = [];
       
       for (const user of allUsers) {
-        const userEarnings = await storage.getEarningsByWorker(user.id);
+        const userEarnings = await storage.getEarnings(user.id);
         allEarnings.push(...userEarnings);
       }
       
@@ -5564,7 +5564,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           const allJobs = await storage.getJobs();
           const userJobs = allJobs.filter(job => job.workerId === userId);
           
-          const userEarnings = await storage.getEarningsByWorker(userId);
+          const userEarnings = await storage.getEarnings(userId);
 
           res.json({
             user,
