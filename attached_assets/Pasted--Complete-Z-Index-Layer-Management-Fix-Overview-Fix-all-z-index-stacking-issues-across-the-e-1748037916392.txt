@@ -1,0 +1,426 @@
+# Complete Z-Index Layer Management Fix
+
+## Overview
+Fix all z-index stacking issues across the entire application. Create a proper layering system where drawers, modals, tooltips, and main content have correct visual hierarchy with no overlapping or visibility problems.
+
+## Z-Index Stacking System to Implement
+
+### 1. Standardized Z-Index Scale
+```css
+/* CSS Custom Properties for Z-Index Management */
+:root {
+  /* Base layers */
+  --z-base: 0;
+  --z-content: 1;
+  --z-elevated: 10;
+  
+  /* Navigation layers */
+  --z-header: 100;
+  --z-sidebar: 200;
+  --z-navigation: 300;
+  
+  /* Interactive elements */
+  --z-dropdown: 1000;
+  --z-sticky: 1100;
+  --z-tooltip: 2000;
+  --z-popover: 2100;
+  
+  /* Overlay layers */
+  --z-drawer: 3000;
+  --z-drawer-backdrop: 2900;
+  --z-modal: 4000;
+  --z-modal-backdrop: 3900;
+  --z-toast: 5000;
+  --z-loading: 6000;
+  
+  /* Critical system layers */
+  --z-debug: 9000;
+  --z-emergency: 9999;
+}
+```
+
+### 2. Component-Specific Z-Index Fixes
+
+#### Main Page Elements
+```css
+/* Main page structure */
+.main-content {
+  z-index: var(--z-content);
+  position: relative;
+}
+
+.header, .navbar {
+  z-index: var(--z-header);
+  position: relative;
+}
+
+.sidebar {
+  z-index: var(--z-sidebar);
+  position: fixed;
+}
+
+.footer {
+  z-index: var(--z-content);
+  position: relative;
+}
+```
+
+#### Drawer Components
+```css
+/* All drawer components */
+.drawer {
+  z-index: var(--z-drawer);
+  position: fixed;
+}
+
+.drawer-backdrop {
+  z-index: var(--z-drawer-backdrop);
+  position: fixed;
+}
+
+.drawer-overlay {
+  z-index: var(--z-drawer);
+  position: fixed;
+}
+
+/* Specific drawer types */
+.navigation-drawer {
+  z-index: var(--z-drawer);
+}
+
+.filter-drawer {
+  z-index: var(--z-drawer);
+}
+
+.user-menu-drawer {
+  z-index: var(--z-drawer);
+}
+
+.notification-drawer {
+  z-index: var(--z-drawer);
+}
+```
+
+#### Interactive Elements
+```css
+/* Dropdowns and menus */
+.dropdown-menu {
+  z-index: var(--z-dropdown);
+  position: absolute;
+}
+
+.context-menu {
+  z-index: var(--z-dropdown);
+  position: fixed;
+}
+
+/* Tooltips and popovers */
+.tooltip {
+  z-index: var(--z-tooltip);
+  position: absolute;
+}
+
+.popover {
+  z-index: var(--z-popover);
+  position: absolute;
+}
+
+/* Sticky elements */
+.sticky-header {
+  z-index: var(--z-sticky);
+  position: sticky;
+}
+
+.floating-action-button {
+  z-index: var(--z-elevated);
+  position: fixed;
+}
+```
+
+#### Modal and Overlay Elements
+```css
+/* Modal components */
+.modal {
+  z-index: var(--z-modal);
+  position: fixed;
+}
+
+.modal-backdrop {
+  z-index: var(--z-modal-backdrop);
+  position: fixed;
+}
+
+/* Toast notifications */
+.toast, .notification {
+  z-index: var(--z-toast);
+  position: fixed;
+}
+
+/* Loading overlays */
+.loading-overlay {
+  z-index: var(--z-loading);
+  position: fixed;
+}
+```
+
+## Systematic Fix Process
+
+### 3. Audit Current Z-Index Usage
+```bash
+# Search for all z-index declarations
+grep -r "z-index" --include="*.css" --include="*.scss" --include="*.jsx" --include="*.tsx" --include="*.vue" .
+
+# Search for style attributes with z-index
+grep -r "zIndex" --include="*.js" --include="*.jsx" --include="*.ts" --include="*.tsx" .
+
+# Search for inline styles
+grep -r "style.*z-index" --include="*.html" --include="*.jsx" --include="*.tsx" .
+```
+
+### 4. Component-by-Component Fixes
+
+#### Navigation Components
+- **Header/Navbar**: Should stay above content but below drawers
+- **Sidebar**: Should be above main content but below modals
+- **Breadcrumbs**: Should be part of content layer
+- **Tab Navigation**: Should be elevated above content
+
+#### Drawer Components  
+- **Side Drawers**: Should overlay everything except modals
+- **Bottom Drawers**: Same z-index as side drawers
+- **Drawer Backdrops**: Just below drawer content
+- **Multiple Drawers**: Same z-index (only one should be open)
+
+#### Form Elements
+- **Input Focus States**: Should be above surrounding content
+- **Dropdown Selects**: Should be above other form elements
+- **Date Pickers**: Should be above form but below modals
+- **File Upload Overlays**: Should be clearly visible
+
+#### Interactive Elements
+- **Tooltips**: Should appear above everything except modals
+- **Context Menus**: Should be above content and navigation
+- **Floating Buttons**: Should be visible but not intrusive
+- **Notification Badges**: Should be above parent elements
+
+### 5. Responsive Z-Index Considerations
+```css
+/* Mobile-specific z-index adjustments */
+@media (max-width: 768px) {
+  .mobile-drawer {
+    z-index: var(--z-drawer);
+  }
+  
+  .mobile-header {
+    z-index: var(--z-header);
+  }
+  
+  .mobile-navigation {
+    z-index: var(--z-navigation);
+  }
+}
+
+/* Tablet-specific adjustments */
+@media (min-width: 769px) and (max-width: 1024px) {
+  .tablet-sidebar {
+    z-index: var(--z-sidebar);
+  }
+}
+```
+
+## Specific Problem Areas to Address
+
+### 6. Common Z-Index Issues to Fix
+
+#### Drawer Behind Content
+```css
+/* BEFORE - Drawer gets hidden */
+.drawer {
+  z-index: 1;
+  position: fixed;
+}
+
+.main-content {
+  z-index: 10;
+  position: relative;
+}
+
+/* AFTER - Drawer properly overlays */
+.drawer {
+  z-index: var(--z-drawer); /* 3000 */
+  position: fixed;
+}
+
+.main-content {
+  z-index: var(--z-content); /* 1 */
+  position: relative;
+}
+```
+
+#### Modal Behind Drawer
+```css
+/* BEFORE - Modal hidden by drawer */
+.modal {
+  z-index: 2000;
+}
+
+.drawer {
+  z-index: 3000;
+}
+
+/* AFTER - Modal above drawer */
+.modal {
+  z-index: var(--z-modal); /* 4000 */
+}
+
+.drawer {
+  z-index: var(--z-drawer); /* 3000 */
+}
+```
+
+#### Tooltip Behind Dropdown
+```css
+/* BEFORE - Tooltip not visible */
+.tooltip {
+  z-index: 100;
+}
+
+.dropdown {
+  z-index: 1000;
+}
+
+/* AFTER - Tooltip above dropdown */
+.tooltip {
+  z-index: var(--z-tooltip); /* 2000 */
+}
+
+.dropdown {
+  z-index: var(--z-dropdown); /* 1000 */
+}
+```
+
+### 7. Framework-Specific Fixes
+
+#### React/JSX Inline Styles
+```jsx
+// BEFORE - Random z-index values
+<div style={{zIndex: 999}}>
+<div style={{zIndex: 1001}}>
+<div style={{zIndex: 50}}>
+
+// AFTER - Consistent CSS custom properties
+<div style={{zIndex: 'var(--z-drawer)'}}>
+<div style={{zIndex: 'var(--z-modal)'}}>
+<div style={{zIndex: 'var(--z-elevated)'}}>
+```
+
+#### CSS-in-JS Libraries
+```javascript
+// BEFORE - Magic numbers
+const drawerStyles = {
+  zIndex: 9999
+};
+
+// AFTER - Semantic values
+const drawerStyles = {
+  zIndex: 'var(--z-drawer)'
+};
+```
+
+#### CSS Modules/Styled Components
+```css
+/* Use CSS custom properties consistently */
+.drawer {
+  z-index: var(--z-drawer);
+}
+
+.modal {
+  z-index: var(--z-modal);
+}
+```
+
+## Testing Requirements
+
+### 8. Visual Hierarchy Testing
+Test these scenarios after implementing fixes:
+
+1. **Main Page Load**: All elements in correct stacking order
+2. **Open Drawer**: Drawer appears above main content
+3. **Open Modal from Drawer**: Modal appears above drawer
+4. **Tooltip on Modal**: Tooltip visible above modal content
+5. **Multiple Drawers**: Only top drawer is interactive
+6. **Mobile Menu**: Navigation properly overlays content
+7. **Dropdown in Drawer**: Dropdown visible within drawer
+8. **Loading States**: Loading overlays block interaction appropriately
+
+### 9. Cross-Browser Testing
+- **Chrome**: Verify z-index rendering
+- **Firefox**: Check for rendering differences  
+- **Safari**: Test iOS/macOS behavior
+- **Edge**: Ensure compatibility
+- **Mobile Browsers**: Test touch interactions with layered elements
+
+### 10. Accessibility Testing
+- **Screen Readers**: Ensure logical reading order despite visual stacking
+- **Keyboard Navigation**: Tab order respects visual hierarchy
+- **Focus Management**: Focus trapped appropriately in modals/drawers
+- **ARIA Labels**: Proper labeling for layered interactive elements
+
+## Implementation Guidelines
+
+### 11. Code Standards
+```css
+/* DO - Use semantic CSS custom properties */
+.component {
+  z-index: var(--z-drawer);
+}
+
+/* DON'T - Use magic numbers */
+.component {
+  z-index: 9999;
+}
+
+/* DO - Document z-index purpose */
+.modal {
+  z-index: var(--z-modal); /* Above drawers, below emergency alerts */
+}
+
+/* DON'T - Leave unexplained high values */
+.element {
+  z-index: 999999; /* Why so high? */
+}
+```
+
+### 12. Maintenance Rules
+1. **Never use arbitrary z-index values** - Always use CSS custom properties
+2. **Document the purpose** of each z-index layer
+3. **Test visual hierarchy** after any z-index changes
+4. **Update the scale** if new layers are needed
+5. **Remove unused z-index** declarations during cleanup
+
+## Deliverables
+
+### 13. Expected Outcomes
+- **CSS Custom Properties**: Complete z-index scale implemented
+- **Component Fixes**: All drawers, modals, tooltips properly layered
+- **Documentation**: Clear explanation of layering system
+- **Test Report**: Verification that all stacking issues are resolved
+- **Style Guide**: Guidelines for future z-index usage
+
+### 14. Success Criteria
+- **No visual stacking issues** - All elements appear in correct order
+- **Consistent behavior** - Same layering across all pages and components  
+- **Mobile compatibility** - Proper stacking on all device sizes
+- **Accessibility compliance** - Screen readers and keyboard navigation work correctly
+- **Maintainable system** - Easy to understand and extend z-index scale
+
+## Immediate Action Items
+
+1. **Implement CSS custom properties** for z-index scale
+2. **Audit all existing z-index** declarations
+3. **Fix drawer stacking issues** first (most critical)
+4. **Update modal and overlay** z-index values
+5. **Test thoroughly** on all pages and components
+6. **Document the new system** for future reference
+
+Start with the most visible stacking problems (drawers behind content, modals not appearing) and work systematically through all interactive elements.

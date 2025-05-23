@@ -2,37 +2,76 @@
 @tailwind components;
 @tailwind utilities;
 
-/* Global z-index strategy for consistent layering */
+/* Dragon Z-Index Layer Management System */
 :root {
   /* Base layers */
-  --z-background: 1;
-  --z-content: 10;
+  --z-base: 0;
+  --z-content: 1;
+  --z-elevated: 10;
   
-  /* Navigation and controls */
-  --z-controls: 100;
-  --z-header: 200;
+  /* Navigation layers */
+  --z-header: 100;
+  --z-sidebar: 200;
   --z-navigation: 300;
   
-  /* Map layers */
-  --z-map-base: 5;
-  --z-map-tiles: 10;
-  --z-map-markers: 20;
-  --z-map-controls: 400;
-  --z-map-popups: 450;
+  /* Interactive elements */
+  --z-dropdown: 1000;
+  --z-sticky: 1100;
+  --z-tooltip: 2000;
+  --z-popover: 2100;
   
-  /* Overlay UI elements */
-  --z-tooltips: 500;
-  --z-fixed-elements: 600;
-  --z-dropdown: 700;
-  --z-modals: 800;
+  /* Overlay layers */
+  --z-drawer: 3000;
+  --z-drawer-backdrop: 2900;
+  --z-modal: 4000;
+  --z-modal-backdrop: 3900;
+  --z-toast: 5000;
+  --z-loading: 6000;
   
-  /* Top-level elements */
-  --z-drawer-backdrop: 9000;
-  --z-drawer: 9100;
-  --z-dialogs: 9500;
-  --z-job-card: 9800;
-  --z-toasts: 9900;
-  --z-critical: 10000;
+  /* Critical system layers */
+  --z-debug: 9000;
+  --z-emergency: 9999;
+}
+
+/* Dragon Z-Index Component Classes */
+.main-content {
+  z-index: var(--z-content);
+  position: relative;
+}
+
+.header, .navbar {
+  z-index: var(--z-header);
+  position: relative;
+}
+
+.drawer {
+  z-index: var(--z-drawer);
+  position: fixed;
+}
+
+.drawer-backdrop {
+  z-index: var(--z-drawer-backdrop);
+  position: fixed;
+}
+
+.modal {
+  z-index: var(--z-modal);
+  position: fixed;
+}
+
+.modal-backdrop {
+  z-index: var(--z-modal-backdrop);
+  position: fixed;
+}
+
+.tooltip {
+  z-index: var(--z-tooltip);
+  position: absolute;
+}
+
+.toast, .notification {
+  z-index: var(--z-toast);
+  position: fixed;
 }
 
 :root {

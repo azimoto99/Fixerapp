@@ -577,17 +577,17 @@ export default function SimpleUserDrawer2({ isOpen, onClose }: SimpleUserDrawerP
   }
 
   return (
-    <Portal zIndex={9999}>
-      <div style={{ 
+    <Portal zIndex={3000}>
+      <div className="drawer-backdrop" style={{ 
         position: 'fixed', 
         inset: 0, 
         backgroundColor: 'rgba(0, 0, 0, 0.5)',
         backdropFilter: 'blur(4px)',
-        pointerEvents: 'all',
-        zIndex: 9999
+        pointerEvents: 'all'
       }}>
         <div
           ref={drawerRef}
+          className="drawer"
           style={{
             position: 'fixed',
             top: 0,
@@ -598,8 +598,7 @@ export default function SimpleUserDrawer2({ isOpen, onClose }: SimpleUserDrawerP
             boxShadow: '-2px 0 10px rgba(0, 0, 0, 0.2)',
             overflowY: 'auto',
             animation: 'slide-in 0.3s ease-out',
-            pointerEvents: 'all',
-            zIndex: 10000
+            pointerEvents: 'all'
           }}
         >
           {/* Drawer header */}
