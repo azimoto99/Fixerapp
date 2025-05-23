@@ -113,36 +113,16 @@ const MapSection: React.FC<MapSectionProps> = ({ jobs, selectedJob, onSelectJob,
   
   // Handle selecting a job when a map marker is clicked
   const handleMarkerClick = (job: Job) => {
-    if (onSelectJob) {
-      onSelectJob(job);
-      
-      // Set the selected job ID and show the new job details card
-      if (job.id) {
-        setSelectedJobId(job.id);
-        setShowJobDetailsCard(true);
-      } else {
-        // If we're showing a sample job from a marker click, create a temp job object
-        const tempJob: Job = {
-          id: 0,
-          title: job.title || 'Sample Job',
-          description: 'This is a sample job to demonstrate the job detail card functionality.',
-          category: 'Cleaning',
-          posterId: 1,
-          workerId: null,
-          status: 'open',
-          paymentType: job.paymentType || 'fixed',
-          paymentAmount: parseFloat((job.description || '').replace(/\$/g, '')) || 100,
-          serviceFee: 5,
-          totalAmount: parseFloat((job.description || '').replace(/\$/g, '')) + 5 || 105,
-          latitude: job.latitude,
-          longitude: job.longitude,
-          location: 'Sample Location',
-          datePosted: new Date(),
-          dateNeeded: null as any,
-          dateCompleted: null as any,
-          autoAccept: false
-        };
-        onSelectJob(tempJob);
+    // Directly open the job details card without showing the intermediate panel
+    if (job.id) {
+      // Trigger the JobDetailsCard directly via event
+      window.dispatchEvent(new CustomEvent('open-job-details', { 
+        detail: { jobId: job.id }
+      }));
+    } else {
+      // For jobs without ID, fall back to the old behavior
+      if (onSelectJob) {
+        onSelectJob(job);
         setSelectedJobId(0);
         setShowJobDetailsCard(true);
       }

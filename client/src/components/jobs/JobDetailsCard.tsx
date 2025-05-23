@@ -521,21 +521,9 @@ const JobDetailsCard: React.FC<JobDetailsCardProps> = ({ jobId, isOpen, onClose 
         variants={variants}
       >
         <Card className="w-full max-w-3xl shadow-lg border rounded-xl overflow-hidden relative">
-          {/* Expand/Collapse Handle */}
+          {/* Single Close Button */}
           <div 
             className="absolute right-4 top-3 z-10 cursor-pointer rounded-full bg-background/80 backdrop-blur-sm p-1 shadow-sm border"
-            onClick={() => setIsExpanded(!isExpanded)}
-          >
-            {isExpanded ? (
-              <ChevronDown className="h-5 w-5 text-muted-foreground" />
-            ) : (
-              <ChevronUp className="h-5 w-5 text-muted-foreground" />
-            )}
-          </div>
-          
-          {/* Close Button */}
-          <div 
-            className="absolute right-12 top-3 z-10 cursor-pointer rounded-full bg-background/80 backdrop-blur-sm p-1 shadow-sm border"
             onClick={onClose}
           >
             <X className="h-5 w-5 text-muted-foreground" />
