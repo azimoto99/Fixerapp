@@ -1564,7 +1564,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   apiRouter.get("/jobs", async (req: Request, res: Response) => {
     try {
-      const { category, status, posterId, workerId, search } = req.query;
+      const { category, status, posterId, workerId, search, hasCoordinates } = req.query;
+      
+      // Special handling for map display - return ALL jobs with coordinates
+      if (hasCoordinates === 'true') {
+        const allJobs = await storage.db
+          .select()
+          .from(jobs)
+          .where(and(
+            isNotNull(jobs.latitude),
+            isNotNull(jobs.longitude)
+          ));
+        return res.json(allJobs);
+      }
       
       const filters: {
         category?: string;
@@ -4857,18 +4869,29 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // ============================================
 
   // Admin authentication middleware
-  const requireAdmin = (req: Request, res: Response, next: NextFunction) => {
+  const requireAdmin = async (req: Request, res: Response, next: NextFunction) => {
     if (!req.isAuthenticated() || !req.user) {
       return res.status(401).json({ message: 'Authentication required' });
     }
 
-    // Check the is_admin field from database
-    const user = req.user as any;
-    if (user.isAdmin === true || user.is_admin === true || user.role === 'admin' || user.email?.includes('admin')) {
-      return next();
+    try {
+      // Get fresh user data from database to check admin status
+      const userId = (req.user as any).id;
+      const adminUser = await storage.db
+        .select({ isAdmin: users.isAdmin })
+        .from(users)
+        .where(eq(users.id, userId))
+        .limit(1);
+
+      if (adminUser.length > 0 && adminUser[0].isAdmin === true) {
+        return next();
+      }
+      
+      return res.status(403).json({ error: 'Admin access required' });
+    } catch (error) {
+      console.error('Admin check error:', error);
+      return res.status(500).json({ error: 'Admin verification failed' });
     }
-    
-    return res.status(403).json({ message: 'Admin access required' });
   };
 
 
