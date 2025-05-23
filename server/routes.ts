@@ -4,6 +4,7 @@ import { WebSocketServer, WebSocket } from 'ws';
 import { storage } from "./storage";
 import { isAdmin } from "./auth-helpers";
 import { z } from "zod";
+import { db } from "./db";
 import { eq, and, desc, asc, sql, or, gte, lte, like, ilike, isNull, isNotNull, exists, count, sum, avg, max, min, not } from "drizzle-orm";
 import { 
   users, 
@@ -19,7 +20,11 @@ import {
   userStrikes,
   userReports,
   systemAlerts,
-  platformSettings
+  platformSettings,
+  supportTickets,
+  supportMessages,
+  disputes,
+  refunds
 } from "@shared/schema";
 import multer from 'multer';
 import path from 'path';
@@ -4508,6 +4513,135 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error('Error marking message as read:', error);
       res.status(500).json({ message: 'Failed to mark message as read' });
+    }
+  });
+
+  // === SUPPORT SYSTEM API ===
+  
+  // Create support ticket
+  app.post('/api/support/tickets', async (req: Request, res: Response) => {
+    if (!req.isAuthenticated()) {
+      return res.sendStatus(401);
+    }
+
+    try {
+      const { category, subject, description, priority, jobId } = req.body;
+      
+      // Generate unique ticket number
+      const ticketNumber = `TK${Date.now().toString().slice(-6)}`;
+      
+      const newTicket = await db.insert(supportTickets).values({
+        userId: req.user!.id,
+        ticketNumber,
+        category,
+        subject,
+        description,
+        priority: priority || 'medium',
+        jobId: jobId || null,
+        status: 'open'
+      }).returning();
+
+      res.json(newTicket[0]);
+    } catch (error) {
+      console.error('Error creating support ticket:', error);
+      res.status(500).json({ message: 'Failed to create support ticket' });
+    }
+  });
+
+  // Get user's support tickets
+  app.get('/api/support/tickets', async (req: Request, res: Response) => {
+    if (!req.isAuthenticated()) {
+      return res.sendStatus(401);
+    }
+
+    try {
+      const userTickets = await db.select()
+        .from(supportTickets)
+        .where(eq(supportTickets.userId, req.user!.id))
+        .orderBy(desc(supportTickets.createdAt));
+
+      res.json(userTickets);
+    } catch (error) {
+      console.error('Error fetching support tickets:', error);
+      res.status(500).json({ message: 'Failed to fetch support tickets' });
+    }
+  });
+
+  // Create dispute
+  app.post('/api/support/disputes', async (req: Request, res: Response) => {
+    if (!req.isAuthenticated()) {
+      return res.sendStatus(401);
+    }
+
+    try {
+      const { jobId, disputeType, description, requestedResolution, urgency } = req.body;
+      
+      // First create a support ticket for the dispute
+      const ticketNumber = `DT${Date.now().toString().slice(-6)}`;
+      
+      const ticket = await db.insert(supportTickets).values({
+        userId: req.user!.id,
+        ticketNumber,
+        category: 'JOB_DISPUTE',
+        subject: `Job Dispute - ${disputeType}`,
+        description,
+        priority: urgency || 'high',
+        jobId: parseInt(jobId),
+        status: 'open'
+      }).returning();
+
+      // Get job details to find the other party
+      const job = await db.select()
+        .from(jobs)
+        .where(eq(jobs.id, parseInt(jobId)))
+        .limit(1);
+
+      if (job.length === 0) {
+        return res.status(404).json({ message: 'Job not found' });
+      }
+
+      // Determine who is being disputed against
+      const disputedAgainstId = req.user!.id === job[0].posterId ? job[0].workerId : job[0].posterId;
+
+      // Create the dispute record
+      const dispute = await db.insert(disputes).values({
+        ticketId: ticket[0].id,
+        jobId: parseInt(jobId),
+        disputerId: req.user!.id,
+        disputedAgainstId,
+        disputeType,
+        requestedResolution
+      }).returning();
+
+      res.json({ ticket: ticket[0], dispute: dispute[0] });
+    } catch (error) {
+      console.error('Error creating dispute:', error);
+      res.status(500).json({ message: 'Failed to create dispute' });
+    }
+  });
+
+  // Get user's jobs for dispute forms
+  app.get('/api/jobs/user', async (req: Request, res: Response) => {
+    if (!req.isAuthenticated()) {
+      return res.sendStatus(401);
+    }
+
+    try {
+      // Get jobs where user is either poster or worker
+      const userJobs = await db.select()
+        .from(jobs)
+        .where(
+          or(
+            eq(jobs.posterId, req.user!.id),
+            eq(jobs.workerId, req.user!.id)
+          )
+        )
+        .orderBy(desc(jobs.datePosted));
+
+      res.json(userJobs);
+    } catch (error) {
+      console.error('Error fetching user jobs:', error);
+      res.status(500).json({ message: 'Failed to fetch user jobs' });
     }
   });
 

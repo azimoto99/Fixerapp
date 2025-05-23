@@ -1,123 +1,67 @@
-import React, { useState } from 'react';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { useAuth } from '@/hooks/use-auth';
-import { apiRequest } from '@/lib/queryClient';
-import { useToast } from '@/hooks/use-toast';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
-import { Textarea } from '@/components/ui/textarea';
-import { Input } from '@/components/ui/input';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from '@/components/ui/dialog';
-import {
-  AlertTriangle,
-  MessageCircle,
-  Ticket,
-  FileText,
-  Clock,
-  CheckCircle,
-  XCircle,
-  Upload,
-  Send,
-  HelpCircle,
-  Shield,
-  AlertCircle,
-  DollarSign,
-  User,
-  Bug
-} from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Badge } from "@/components/ui/badge";
+import { Separator } from "@/components/ui/separator";
+import { HelpCircle, MessageSquare, AlertTriangle, DollarSign, Plus, Clock, CheckCircle, XCircle, ArrowLeft } from "lucide-react";
+import { useToast } from "@/hooks/use-toast";
+import { apiRequest } from "@/lib/queryClient";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 
-const DISPUTE_TYPES = {
-  JOB_NOT_COMPLETED: "Worker didn't complete the job",
-  POOR_QUALITY: "Work quality was unsatisfactory", 
-  NO_SHOW: "Worker didn't show up",
-  PAYMENT_ERROR: "Payment was charged incorrectly",
-  OVERCHARGED: "Was charged more than agreed amount",
-  FRAUD_WORKER: "Suspicious worker behavior",
-  FRAUD_POSTER: "Fake job posting",
-  HARASSMENT: "Inappropriate behavior/messages",
-  SAFETY_CONCERN: "Safety issue during job"
-};
+interface SupportTicket {
+  id: number;
+  ticketNumber: string;
+  category: string;
+  subject: string;
+  description: string;
+  status: string;
+  priority: string;
+  createdAt: string;
+  updatedAt: string;
+  jobId?: number;
+}
 
-const TICKET_CATEGORIES = {
-  JOB_DISPUTE: "Job Dispute",
-  PAYMENT_ISSUE: "Payment Problem",
-  FRAUD_REPORT: "Report Fraud/Scam",
-  ACCOUNT_ISSUE: "Account Issue",
-  TECHNICAL_BUG: "Technical Bug",
-  GENERAL_INQUIRY: "General Question"
-};
+interface Job {
+  id: number;
+  title: string;
+  status: string;
+  datePosted: string;
+}
 
 export default function SupportContent() {
-  const { user } = useAuth();
+  const [activeView, setActiveView] = useState<'main' | 'create-ticket' | 'create-dispute' | 'my-tickets'>('main');
+  const [isCreateTicketOpen, setIsCreateTicketOpen] = useState(false);
+  const [isCreateDisputeOpen, setIsCreateDisputeOpen] = useState(false);
   const { toast } = useToast();
   const queryClient = useQueryClient();
-  
-  const [showTicketDialog, setShowTicketDialog] = useState(false);
-  const [showDisputeDialog, setShowDisputeDialog] = useState(false);
-  const [ticketForm, setTicketForm] = useState({
-    category: '',
-    subject: '',
-    description: '',
-    priority: 'medium',
-    jobId: ''
-  });
-  const [disputeForm, setDisputeForm] = useState({
-    jobId: '',
-    disputeType: '',
-    description: '',
-    requestedResolution: '',
-    urgency: 'medium'
-  });
 
-  // Fetch user's support tickets
+  // Fetch user's tickets
   const { data: tickets = [] } = useQuery({
     queryKey: ['/api/support/tickets'],
-    queryFn: async () => {
-      const response = await apiRequest('GET', '/api/support/tickets');
-      if (!response.ok) return [];
-      return response.json();
-    },
-    enabled: !!user,
+    enabled: activeView === 'my-tickets'
   });
 
   // Fetch user's jobs for dispute forms
-  const { data: userJobs = [] } = useQuery({
+  const { data: userJobs = [] } = useQuery<Job[]>({
     queryKey: ['/api/jobs/user'],
-    queryFn: async () => {
-      const response = await apiRequest('GET', '/api/jobs/user');
-      if (!response.ok) return [];
-      return response.json();
-    },
-    enabled: !!user,
+    enabled: isCreateDisputeOpen
   });
 
   // Create support ticket mutation
   const createTicketMutation = useMutation({
-    mutationFn: async (ticketData: any) => {
-      const response = await apiRequest('POST', '/api/support/tickets', ticketData);
-      if (!response.ok) {
-        throw new Error('Failed to create support ticket');
-      }
-      return response.json();
-    },
+    mutationFn: (data: any) => apiRequest('POST', '/api/support/tickets', data),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['/api/support/tickets'] });
-      setShowTicketDialog(false);
-      setTicketForm({ category: '', subject: '', description: '', priority: 'medium', jobId: '' });
       toast({
         title: "Support Ticket Created",
-        description: "We'll respond to your request within 24 hours",
+        description: "Your support ticket has been submitted successfully.",
       });
+      setIsCreateTicketOpen(false);
+      queryClient.invalidateQueries({ queryKey: ['/api/support/tickets'] });
     },
     onError: () => {
       toast({
@@ -125,26 +69,19 @@ export default function SupportContent() {
         description: "Failed to create support ticket. Please try again.",
         variant: "destructive",
       });
-    },
+    }
   });
 
   // Create dispute mutation
   const createDisputeMutation = useMutation({
-    mutationFn: async (disputeData: any) => {
-      const response = await apiRequest('POST', '/api/support/disputes', disputeData);
-      if (!response.ok) {
-        throw new Error('Failed to create dispute');
-      }
-      return response.json();
-    },
+    mutationFn: (data: any) => apiRequest('POST', '/api/support/disputes', data),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['/api/support/tickets'] });
-      setShowDisputeDialog(false);
-      setDisputeForm({ jobId: '', disputeType: '', description: '', requestedResolution: '', urgency: 'medium' });
       toast({
         title: "Dispute Filed",
-        description: "Our team will review your dispute within 48 hours",
+        description: "Your dispute has been submitted for review.",
       });
+      setIsCreateDisputeOpen(false);
+      queryClient.invalidateQueries({ queryKey: ['/api/support/tickets'] });
     },
     onError: () => {
       toast({
@@ -152,362 +89,354 @@ export default function SupportContent() {
         description: "Failed to file dispute. Please try again.",
         variant: "destructive",
       });
-    },
+    }
   });
 
-  const handleSubmitTicket = () => {
-    if (!ticketForm.category || !ticketForm.subject || !ticketForm.description) {
-      toast({
-        title: "Missing Information",
-        description: "Please fill in all required fields",
-        variant: "destructive",
-      });
-      return;
-    }
-    createTicketMutation.mutate(ticketForm);
+  const handleCreateTicket = (formData: FormData) => {
+    const data = {
+      category: formData.get('category'),
+      subject: formData.get('subject'),
+      description: formData.get('description'),
+      priority: formData.get('priority'),
+      jobId: formData.get('jobId') ? parseInt(formData.get('jobId') as string) : null
+    };
+    createTicketMutation.mutate(data);
   };
 
-  const handleSubmitDispute = () => {
-    if (!disputeForm.jobId || !disputeForm.disputeType || !disputeForm.description) {
-      toast({
-        title: "Missing Information",
-        description: "Please fill in all required fields",
-        variant: "destructive",
-      });
-      return;
-    }
-    createDisputeMutation.mutate(disputeForm);
+  const handleCreateDispute = (formData: FormData) => {
+    const data = {
+      jobId: formData.get('jobId'),
+      disputeType: formData.get('disputeType'),
+      description: formData.get('description'),
+      requestedResolution: formData.get('requestedResolution'),
+      urgency: formData.get('urgency')
+    };
+    createDisputeMutation.mutate(data);
   };
 
-  const getStatusIcon = (status: string) => {
-    switch (status) {
-      case 'open': return <Clock className="h-4 w-4 text-blue-500" />;
-      case 'in_progress': return <AlertCircle className="h-4 w-4 text-yellow-500" />;
-      case 'resolved': return <CheckCircle className="h-4 w-4 text-green-500" />;
-      case 'closed': return <XCircle className="h-4 w-4 text-gray-500" />;
-      default: return <Clock className="h-4 w-4 text-gray-500" />;
-    }
+  const getStatusBadge = (status: string) => {
+    const statusColors = {
+      'open': 'bg-blue-100 text-blue-800',
+      'in_progress': 'bg-yellow-100 text-yellow-800',
+      'resolved': 'bg-green-100 text-green-800',
+      'closed': 'bg-gray-100 text-gray-800'
+    };
+    return statusColors[status as keyof typeof statusColors] || 'bg-gray-100 text-gray-800';
   };
 
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'open': return 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400';
-      case 'in_progress': return 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400';
-      case 'resolved': return 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400';
-      case 'closed': return 'bg-gray-100 text-gray-800 dark:bg-gray-900/30 dark:text-gray-400';
-      default: return 'bg-gray-100 text-gray-800 dark:bg-gray-900/30 dark:text-gray-400';
-    }
+  const getPriorityBadge = (priority: string) => {
+    const priorityColors = {
+      'low': 'bg-blue-100 text-blue-800',
+      'medium': 'bg-yellow-100 text-yellow-800',
+      'high': 'bg-orange-100 text-orange-800',
+      'urgent': 'bg-red-100 text-red-800'
+    };
+    return priorityColors[priority as keyof typeof priorityColors] || 'bg-gray-100 text-gray-800';
   };
+
+  if (activeView === 'my-tickets') {
+    return (
+      <div className="space-y-6 p-6">
+        <div className="flex items-center space-x-4">
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => setActiveView('main')}
+            className="flex items-center space-x-2"
+          >
+            <ArrowLeft className="h-4 w-4" />
+            <span>Back</span>
+          </Button>
+          <div>
+            <h2 className="text-2xl font-bold">My Support Tickets</h2>
+            <p className="text-muted-foreground">Track your support requests and disputes</p>
+          </div>
+        </div>
+
+        <div className="space-y-4">
+          {tickets.length === 0 ? (
+            <Card>
+              <CardContent className="text-center py-8">
+                <MessageSquare className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+                <p className="text-muted-foreground">No support tickets found</p>
+                <Button 
+                  className="mt-4" 
+                  onClick={() => setActiveView('main')}
+                >
+                  Create Your First Ticket
+                </Button>
+              </CardContent>
+            </Card>
+          ) : (
+            tickets.map((ticket: SupportTicket) => (
+              <Card key={ticket.id}>
+                <CardHeader>
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <CardTitle className="text-lg">{ticket.subject}</CardTitle>
+                      <CardDescription>Ticket #{ticket.ticketNumber}</CardDescription>
+                    </div>
+                    <div className="flex space-x-2">
+                      <Badge className={getStatusBadge(ticket.status)}>
+                        {ticket.status.replace('_', ' ')}
+                      </Badge>
+                      <Badge variant="outline" className={getPriorityBadge(ticket.priority)}>
+                        {ticket.priority}
+                      </Badge>
+                    </div>
+                  </div>
+                </CardHeader>
+                <CardContent>
+                  <p className="text-sm text-muted-foreground mb-2">{ticket.description}</p>
+                  <div className="flex items-center text-xs text-muted-foreground">
+                    <Clock className="h-3 w-3 mr-1" />
+                    Created {new Date(ticket.createdAt).toLocaleDateString()}
+                  </div>
+                </CardContent>
+              </Card>
+            ))
+          )}
+        </div>
+      </div>
+    );
+  }
 
   return (
-    <div className="p-4 space-y-6">
-      <div className="flex items-center space-x-2">
-        <HelpCircle className="h-5 w-5 text-primary" />
-        <h2 className="text-xl font-semibold">Help & Support</h2>
+    <div className="space-y-6 p-6">
+      <div className="text-center">
+        <h2 className="text-2xl font-bold mb-2">Support Center</h2>
+        <p className="text-muted-foreground">
+          Get help, report issues, or contact our support team
+        </p>
       </div>
-
-      <Tabs defaultValue="contact" className="space-y-4">
-        <TabsList className="grid w-full grid-cols-4">
-          <TabsTrigger value="contact">Contact</TabsTrigger>
-          <TabsTrigger value="issues">Report Issue</TabsTrigger>
-          <TabsTrigger value="tickets">My Tickets</TabsTrigger>
-          <TabsTrigger value="help">Help Center</TabsTrigger>
-        </TabsList>
-
-        {/* Contact Support Tab */}
-        <TabsContent value="contact" className="space-y-4">
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center space-x-2">
-                <MessageCircle className="h-5 w-5" />
-                <span>Contact Support</span>
-              </CardTitle>
-              <CardDescription>
-                Get help from our support team
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="grid grid-cols-2 gap-4">
-                <Button 
-                  className="h-16 flex-col space-y-2"
-                  onClick={() => {
-                    // Implement live chat functionality
-                    toast({
-                      title: "Live Chat",
-                      description: "Live chat feature coming soon!",
-                    });
-                  }}
-                >
-                  <MessageCircle className="h-6 w-6" />
-                  <span>Start Live Chat</span>
-                </Button>
-                
-                <Dialog open={showTicketDialog} onOpenChange={setShowTicketDialog}>
-                  <DialogTrigger asChild>
-                    <Button variant="outline" className="h-16 flex-col space-y-2">
-                      <Ticket className="h-6 w-6" />
-                      <span>Submit Ticket</span>
-                    </Button>
-                  </DialogTrigger>
-                  <DialogContent className="max-w-md">
-                    <DialogHeader>
-                      <DialogTitle>Submit Support Ticket</DialogTitle>
-                      <DialogDescription>
-                        Describe your issue and we'll help you resolve it
-                      </DialogDescription>
-                    </DialogHeader>
-                    <div className="space-y-4">
-                      <Select value={ticketForm.category} onValueChange={(value) => setTicketForm({...ticketForm, category: value})}>
+      
+      <div className="grid gap-4">
+        <Card>
+          <CardHeader className="flex flex-row items-center space-y-0 pb-2">
+            <div className="flex items-center space-x-2">
+              <HelpCircle className="h-5 w-5 text-blue-500" />
+              <CardTitle className="text-lg">General Support</CardTitle>
+            </div>
+          </CardHeader>
+          <CardContent>
+            <CardDescription className="mb-4">
+              Get help with account issues, platform features, or general questions
+            </CardDescription>
+            <Dialog open={isCreateTicketOpen} onOpenChange={setIsCreateTicketOpen}>
+              <DialogTrigger asChild>
+                <Button className="w-full">Create Support Ticket</Button>
+              </DialogTrigger>
+              <DialogContent className="sm:max-w-[425px]">
+                <form onSubmit={(e) => {
+                  e.preventDefault();
+                  handleCreateTicket(new FormData(e.currentTarget));
+                }}>
+                  <DialogHeader>
+                    <DialogTitle>Create Support Ticket</DialogTitle>
+                    <DialogDescription>
+                      Describe your issue and we'll help you resolve it quickly.
+                    </DialogDescription>
+                  </DialogHeader>
+                  <div className="grid gap-4 py-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="category">Category</Label>
+                      <Select name="category" required>
                         <SelectTrigger>
                           <SelectValue placeholder="Select category" />
                         </SelectTrigger>
                         <SelectContent>
-                          {Object.entries(TICKET_CATEGORIES).map(([key, value]) => (
-                            <SelectItem key={key} value={key}>{value}</SelectItem>
-                          ))}
+                          <SelectItem value="ACCOUNT_ISSUE">Account Issue</SelectItem>
+                          <SelectItem value="TECHNICAL_SUPPORT">Technical Support</SelectItem>
+                          <SelectItem value="BILLING_QUESTION">Billing Question</SelectItem>
+                          <SelectItem value="FEATURE_REQUEST">Feature Request</SelectItem>
+                          <SelectItem value="OTHER">Other</SelectItem>
                         </SelectContent>
                       </Select>
-                      
-                      <Input
-                        placeholder="Subject"
-                        value={ticketForm.subject}
-                        onChange={(e) => setTicketForm({...ticketForm, subject: e.target.value})}
-                      />
-                      
-                      <Textarea
-                        placeholder="Describe your issue in detail..."
-                        value={ticketForm.description}
-                        onChange={(e) => setTicketForm({...ticketForm, description: e.target.value})}
-                        rows={4}
-                      />
-                      
-                      <Select value={ticketForm.priority} onValueChange={(value) => setTicketForm({...ticketForm, priority: value})}>
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="priority">Priority</Label>
+                      <Select name="priority" defaultValue="medium">
                         <SelectTrigger>
                           <SelectValue />
                         </SelectTrigger>
                         <SelectContent>
-                          <SelectItem value="low">Low Priority</SelectItem>
-                          <SelectItem value="medium">Medium Priority</SelectItem>
-                          <SelectItem value="high">High Priority</SelectItem>
+                          <SelectItem value="low">Low</SelectItem>
+                          <SelectItem value="medium">Medium</SelectItem>
+                          <SelectItem value="high">High</SelectItem>
                           <SelectItem value="urgent">Urgent</SelectItem>
                         </SelectContent>
                       </Select>
-                      
-                      <Button 
-                        onClick={handleSubmitTicket} 
-                        disabled={createTicketMutation.isPending}
-                        className="w-full"
-                      >
-                        {createTicketMutation.isPending ? "Submitting..." : "Submit Ticket"}
-                      </Button>
                     </div>
-                  </DialogContent>
-                </Dialog>
-              </div>
-            </CardContent>
-          </Card>
-        </TabsContent>
-
-        {/* Report Issue Tab */}
-        <TabsContent value="issues" className="space-y-4">
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center space-x-2">
-                <AlertTriangle className="h-5 w-5" />
-                <span>Report an Issue</span>
-              </CardTitle>
-              <CardDescription>
-                Select the type of issue you want to report
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="grid grid-cols-1 gap-2">
-                <Dialog open={showDisputeDialog} onOpenChange={setShowDisputeDialog}>
-                  <DialogTrigger asChild>
-                    <Button variant="outline" className="justify-start">
-                      <Shield className="h-4 w-4 mr-2" />
-                      Job Dispute
+                    <div className="space-y-2">
+                      <Label htmlFor="subject">Subject</Label>
+                      <Input name="subject" placeholder="Brief description of your issue" required />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="description">Description</Label>
+                      <Textarea 
+                        name="description" 
+                        placeholder="Please provide detailed information about your issue"
+                        rows={4}
+                        required 
+                      />
+                    </div>
+                  </div>
+                  <DialogFooter>
+                    <Button type="submit" disabled={createTicketMutation.isPending}>
+                      {createTicketMutation.isPending ? 'Creating...' : 'Create Ticket'}
                     </Button>
-                  </DialogTrigger>
-                  <DialogContent className="max-w-md">
-                    <DialogHeader>
-                      <DialogTitle>File Job Dispute</DialogTitle>
-                      <DialogDescription>
-                        Report issues with a specific job
-                      </DialogDescription>
-                    </DialogHeader>
-                    <div className="space-y-4">
-                      <Select value={disputeForm.jobId} onValueChange={(value) => setDisputeForm({...disputeForm, jobId: value})}>
+                  </DialogFooter>
+                </form>
+              </DialogContent>
+            </Dialog>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="flex flex-row items-center space-y-0 pb-2">
+            <div className="flex items-center space-x-2">
+              <AlertTriangle className="h-5 w-5 text-orange-500" />
+              <CardTitle className="text-lg">File Dispute</CardTitle>
+            </div>
+          </CardHeader>
+          <CardContent>
+            <CardDescription className="mb-4">
+              Report problems with jobs, payments, or user behavior
+            </CardDescription>
+            <Dialog open={isCreateDisputeOpen} onOpenChange={setIsCreateDisputeOpen}>
+              <DialogTrigger asChild>
+                <Button variant="outline" className="w-full">File Dispute</Button>
+              </DialogTrigger>
+              <DialogContent className="sm:max-w-[425px]">
+                <form onSubmit={(e) => {
+                  e.preventDefault();
+                  handleCreateDispute(new FormData(e.currentTarget));
+                }}>
+                  <DialogHeader>
+                    <DialogTitle>File a Dispute</DialogTitle>
+                    <DialogDescription>
+                      Report issues with a specific job or transaction.
+                    </DialogDescription>
+                  </DialogHeader>
+                  <div className="grid gap-4 py-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="jobId">Related Job</Label>
+                      <Select name="jobId" required>
                         <SelectTrigger>
-                          <SelectValue placeholder="Select job" />
+                          <SelectValue placeholder="Select a job" />
                         </SelectTrigger>
                         <SelectContent>
-                          {userJobs.map((job: any) => (
+                          {userJobs.map((job) => (
                             <SelectItem key={job.id} value={job.id.toString()}>
-                              {job.title} - ${job.paymentAmount}
+                              {job.title} - {job.status}
                             </SelectItem>
                           ))}
                         </SelectContent>
                       </Select>
-                      
-                      <Select value={disputeForm.disputeType} onValueChange={(value) => setDisputeForm({...disputeForm, disputeType: value})}>
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="disputeType">Dispute Type</Label>
+                      <Select name="disputeType" required>
                         <SelectTrigger>
-                          <SelectValue placeholder="Type of dispute" />
+                          <SelectValue placeholder="Select dispute type" />
                         </SelectTrigger>
                         <SelectContent>
-                          {Object.entries(DISPUTE_TYPES).map(([key, value]) => (
-                            <SelectItem key={key} value={key}>{value}</SelectItem>
-                          ))}
+                          <SelectItem value="WORK_NOT_COMPLETED">Work Not Completed</SelectItem>
+                          <SelectItem value="POOR_QUALITY">Poor Quality Work</SelectItem>
+                          <SelectItem value="PAYMENT_ISSUE">Payment Issue</SelectItem>
+                          <SelectItem value="NO_SHOW">No Show</SelectItem>
+                          <SelectItem value="SAFETY_CONCERN">Safety Concern</SelectItem>
+                          <SelectItem value="OTHER">Other</SelectItem>
                         </SelectContent>
                       </Select>
-                      
-                      <Textarea
-                        placeholder="Describe what happened..."
-                        value={disputeForm.description}
-                        onChange={(e) => setDisputeForm({...disputeForm, description: e.target.value})}
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="urgency">Urgency</Label>
+                      <Select name="urgency" defaultValue="high">
+                        <SelectTrigger>
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="medium">Medium</SelectItem>
+                          <SelectItem value="high">High</SelectItem>
+                          <SelectItem value="urgent">Urgent</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="description">Description</Label>
+                      <Textarea 
+                        name="description" 
+                        placeholder="Describe what happened and provide any relevant details"
                         rows={4}
+                        required 
                       />
-                      
-                      <Input
-                        placeholder="What resolution are you seeking?"
-                        value={disputeForm.requestedResolution}
-                        onChange={(e) => setDisputeForm({...disputeForm, requestedResolution: e.target.value})}
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="requestedResolution">Requested Resolution</Label>
+                      <Textarea 
+                        name="requestedResolution" 
+                        placeholder="What outcome are you seeking?"
+                        rows={3}
+                        required 
                       />
-                      
-                      <Button 
-                        onClick={handleSubmitDispute} 
-                        disabled={createDisputeMutation.isPending}
-                        className="w-full"
-                      >
-                        {createDisputeMutation.isPending ? "Filing..." : "File Dispute"}
-                      </Button>
                     </div>
-                  </DialogContent>
-                </Dialog>
-                
-                <Button variant="outline" className="justify-start" onClick={() => {
-                  setTicketForm({...ticketForm, category: 'PAYMENT_ISSUE'});
-                  setShowTicketDialog(true);
-                }}>
-                  <DollarSign className="h-4 w-4 mr-2" />
-                  Payment Problem
-                </Button>
-                
-                <Button variant="outline" className="justify-start" onClick={() => {
-                  setTicketForm({...ticketForm, category: 'FRAUD_REPORT'});
-                  setShowTicketDialog(true);
-                }}>
-                  <AlertCircle className="h-4 w-4 mr-2" />
-                  Report Fraud/Scam
-                </Button>
-                
-                <Button variant="outline" className="justify-start" onClick={() => {
-                  setTicketForm({...ticketForm, category: 'ACCOUNT_ISSUE'});
-                  setShowTicketDialog(true);
-                }}>
-                  <User className="h-4 w-4 mr-2" />
-                  Account Issue
-                </Button>
-                
-                <Button variant="outline" className="justify-start" onClick={() => {
-                  setTicketForm({...ticketForm, category: 'TECHNICAL_BUG'});
-                  setShowTicketDialog(true);
-                }}>
-                  <Bug className="h-4 w-4 mr-2" />
-                  Technical Bug
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
-        </TabsContent>
+                  </div>
+                  <DialogFooter>
+                    <Button type="submit" disabled={createDisputeMutation.isPending}>
+                      {createDisputeMutation.isPending ? 'Filing...' : 'File Dispute'}
+                    </Button>
+                  </DialogFooter>
+                </form>
+              </DialogContent>
+            </Dialog>
+          </CardContent>
+        </Card>
 
-        {/* My Tickets Tab */}
-        <TabsContent value="tickets" className="space-y-4">
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center space-x-2">
-                <FileText className="h-5 w-5" />
-                <span>My Support Requests</span>
-              </CardTitle>
-              <CardDescription>
-                View and track your support tickets
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              {tickets.length === 0 ? (
-                <div className="text-center py-8 text-muted-foreground">
-                  <FileText className="h-12 w-12 mx-auto mb-4 opacity-50" />
-                  <p>No support tickets yet</p>
-                  <p className="text-sm">Create a ticket to get help with any issues</p>
-                </div>
-              ) : (
-                <div className="space-y-3">
-                  {tickets.map((ticket: any) => (
-                    <div key={ticket.id} className="flex items-center justify-between p-3 border rounded-lg">
-                      <div className="flex items-center space-x-3">
-                        {getStatusIcon(ticket.status)}
-                        <div>
-                          <p className="font-medium">#{ticket.ticketNumber} - {ticket.subject}</p>
-                          <p className="text-sm text-muted-foreground">{ticket.category}</p>
-                        </div>
-                      </div>
-                      <Badge className={getStatusColor(ticket.status)}>
-                        {ticket.status.replace('_', ' ').toUpperCase()}
-                      </Badge>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </CardContent>
-          </Card>
-        </TabsContent>
+        <Card>
+          <CardHeader className="flex flex-row items-center space-y-0 pb-2">
+            <div className="flex items-center space-x-2">
+              <DollarSign className="h-5 w-5 text-green-500" />
+              <CardTitle className="text-lg">Payment Support</CardTitle>
+            </div>
+          </CardHeader>
+          <CardContent>
+            <CardDescription className="mb-4">
+              Issues with payments, refunds, or billing questions
+            </CardDescription>
+            <Button 
+              variant="outline" 
+              className="w-full"
+              onClick={() => {
+                setIsCreateTicketOpen(true);
+              }}
+            >
+              Request Payment Help
+            </Button>
+          </CardContent>
+        </Card>
 
-        {/* Help Center Tab */}
-        <TabsContent value="help" className="space-y-4">
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center space-x-2">
-                <HelpCircle className="h-5 w-5" />
-                <span>Help Center</span>
-              </CardTitle>
-              <CardDescription>
-                Find answers to common questions
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="grid grid-cols-1 gap-2">
-                <Button variant="outline" className="justify-start h-auto p-4">
-                  <div className="text-left">
-                    <p className="font-medium">Frequently Asked Questions</p>
-                    <p className="text-sm text-muted-foreground">Common questions and answers</p>
-                  </div>
-                </Button>
-                
-                <Button variant="outline" className="justify-start h-auto p-4">
-                  <div className="text-left">
-                    <p className="font-medium">How to Use the App</p>
-                    <p className="text-sm text-muted-foreground">Step-by-step guides</p>
-                  </div>
-                </Button>
-                
-                <Button variant="outline" className="justify-start h-auto p-4">
-                  <div className="text-left">
-                    <p className="font-medium">Payment & Billing Info</p>
-                    <p className="text-sm text-muted-foreground">Understanding payments and fees</p>
-                  </div>
-                </Button>
-                
-                <Button variant="outline" className="justify-start h-auto p-4">
-                  <div className="text-left">
-                    <p className="font-medium">Community Guidelines</p>
-                    <p className="text-sm text-muted-foreground">Rules and best practices</p>
-                  </div>
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
-        </TabsContent>
-      </Tabs>
+        <Card>
+          <CardHeader className="flex flex-row items-center space-y-0 pb-2">
+            <div className="flex items-center space-x-2">
+              <MessageSquare className="h-5 w-5 text-purple-500" />
+              <CardTitle className="text-lg">My Tickets</CardTitle>
+            </div>
+          </CardHeader>
+          <CardContent>
+            <CardDescription className="mb-4">
+              View and manage your existing support tickets
+            </CardDescription>
+            <Button 
+              variant="secondary" 
+              className="w-full"
+              onClick={() => setActiveView('my-tickets')}
+            >
+              View My Tickets ({tickets.length})
+            </Button>
+          </CardContent>
+        </Card>
+      </div>
     </div>
   );
 }

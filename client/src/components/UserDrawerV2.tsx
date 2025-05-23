@@ -388,15 +388,20 @@ const UserDrawerV2: React.FC<UserDrawerProps> = ({
                     <Tooltip>
                       <TooltipTrigger asChild>
                         <button 
-                          onClick={() => window.open('/help', '_blank')}
-                          className="flex flex-col items-center justify-center w-14 h-14 rounded-lg hover:bg-accent dark:hover:bg-accent/20 text-foreground dark:text-foreground/80"
+                          onClick={() => handleTabChange("support")}
+                          className={cn(
+                            "flex flex-col items-center justify-center w-14 h-14 rounded-lg transition-all duration-200",
+                            activeTab === "support" 
+                              ? "bg-primary/10 text-primary shadow-sm" 
+                              : "hover:bg-primary/5 hover:shadow-sm text-foreground dark:text-foreground/90"
+                          )}
                         >
-                          <HelpCircle className="h-5 w-5 mb-1" />
-                          <span className="text-xs">Help</span>
+                          <HelpCircle className="h-5 w-5 mb-1 stroke-[1.5px]" />
+                          <span className="text-xs font-medium">Support</span>
                         </button>
                       </TooltipTrigger>
                       <TooltipContent side="right">
-                        <p>Get help and support</p>
+                        <p>Get help, report issues, and file disputes</p>
                       </TooltipContent>
                     </Tooltip>
                   </div>
