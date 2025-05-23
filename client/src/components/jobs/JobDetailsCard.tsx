@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import Portal from '@/components/Portal';
+import { MessagingInterface } from '@/components/MessagingInterface';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '@/hooks/use-auth';
 import { apiRequest } from '@/lib/queryClient';
@@ -42,7 +43,10 @@ import {
   AlertCircle,
   MapIcon,
   Navigation,
-  Compass
+  Compass,
+  MessageSquare,
+  Phone,
+  Video
 } from 'lucide-react';
 import {
   AlertDialog,
@@ -607,6 +611,16 @@ const JobDetailsCard: React.FC<JobDetailsCardProps> = ({ jobId, isOpen, onClose 
                       onClick={() => setActiveTab('applications')}
                     >
                       Applications {applications.length > 0 && `(${applications.length})`}
+                    </button>
+                  )}
+                  {/* Show messaging tab when there's a relevant conversation partner */}
+                  {(isJobPoster || hasApplied || (job?.workerId && job.workerId === user?.id)) && (
+                    <button
+                      className={`px-3 py-2 ${activeTab === 'messages' ? 'border-b-2 border-primary text-primary' : 'text-muted-foreground'} transition-colors`}
+                      onClick={() => setActiveTab('messages')}
+                    >
+                      <MessageSquare className="h-4 w-4 mr-1" />
+                      Messages
                     </button>
                   )}
                 </div>
