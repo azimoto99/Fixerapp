@@ -4645,6 +4645,163 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Process automated refund
+  app.post('/api/support/refunds', async (req: Request, res: Response) => {
+    if (!req.isAuthenticated()) {
+      return res.sendStatus(401);
+    }
+
+    try {
+      const { ticketId, refundAmount, reason, paymentIntentId } = req.body;
+      
+      // Create refund record
+      const refund = await db.insert(refunds).values({
+        ticketId: parseInt(ticketId),
+        userId: req.user!.id,
+        amount: parseFloat(refundAmount),
+        reason,
+        status: 'pending',
+        stripeRefundId: null
+      }).returning();
+
+      // Process Stripe refund if payment intent provided
+      if (paymentIntentId) {
+        try {
+          const stripeRefund = await stripe.refunds.create({
+            payment_intent: paymentIntentId,
+            amount: Math.round(parseFloat(refundAmount) * 100), // Convert to cents
+            reason: reason === 'FRAUDULENT' ? 'fraudulent' : 'requested_by_customer'
+          });
+
+          // Update refund with Stripe ID
+          await db.update(refunds)
+            .set({ 
+              stripeRefundId: stripeRefund.id,
+              status: 'processed',
+              processedAt: new Date()
+            })
+            .where(eq(refunds.id, refund[0].id));
+
+          res.json({ 
+            refund: { ...refund[0], stripeRefundId: stripeRefund.id, status: 'processed' },
+            stripeRefund 
+          });
+        } catch (stripeError) {
+          console.error('Stripe refund error:', stripeError);
+          
+          // Update refund status to failed
+          await db.update(refunds)
+            .set({ status: 'failed' })
+            .where(eq(refunds.id, refund[0].id));
+
+          res.status(400).json({ 
+            message: 'Failed to process Stripe refund',
+            error: stripeError.message,
+            refund: { ...refund[0], status: 'failed' }
+          });
+        }
+      } else {
+        res.json({ refund: refund[0] });
+      }
+    } catch (error) {
+      console.error('Error processing refund:', error);
+      res.status(500).json({ message: 'Failed to process refund' });
+    }
+  });
+
+  // Get user's refunds
+  app.get('/api/support/refunds', async (req: Request, res: Response) => {
+    if (!req.isAuthenticated()) {
+      return res.sendStatus(401);
+    }
+
+    try {
+      const userRefunds = await db.select()
+        .from(refunds)
+        .where(eq(refunds.userId, req.user!.id))
+        .orderBy(desc(refunds.createdAt));
+
+      res.json(userRefunds);
+    } catch (error) {
+      console.error('Error fetching refunds:', error);
+      res.status(500).json({ message: 'Failed to fetch refunds' });
+    }
+  });
+
+  // Add support message to existing ticket
+  app.post('/api/support/tickets/:ticketId/messages', async (req: Request, res: Response) => {
+    if (!req.isAuthenticated()) {
+      return res.sendStatus(401);
+    }
+
+    try {
+      const { ticketId } = req.params;
+      const { message, attachmentUrl } = req.body;
+
+      // Verify ticket belongs to user
+      const ticket = await db.select()
+        .from(supportTickets)
+        .where(and(
+          eq(supportTickets.id, parseInt(ticketId)),
+          eq(supportTickets.userId, req.user!.id)
+        ))
+        .limit(1);
+
+      if (ticket.length === 0) {
+        return res.status(404).json({ message: 'Ticket not found' });
+      }
+
+      // Create support message
+      const supportMessage = await db.insert(supportMessages).values({
+        ticketId: parseInt(ticketId),
+        senderId: req.user!.id,
+        message,
+        attachmentUrl: attachmentUrl || null,
+        isAdminReply: false
+      }).returning();
+
+      res.json(supportMessage[0]);
+    } catch (error) {
+      console.error('Error adding support message:', error);
+      res.status(500).json({ message: 'Failed to add message' });
+    }
+  });
+
+  // Get messages for a support ticket
+  app.get('/api/support/tickets/:ticketId/messages', async (req: Request, res: Response) => {
+    if (!req.isAuthenticated()) {
+      return res.sendStatus(401);
+    }
+
+    try {
+      const { ticketId } = req.params;
+
+      // Verify ticket belongs to user
+      const ticket = await db.select()
+        .from(supportTickets)
+        .where(and(
+          eq(supportTickets.id, parseInt(ticketId)),
+          eq(supportTickets.userId, req.user!.id)
+        ))
+        .limit(1);
+
+      if (ticket.length === 0) {
+        return res.status(404).json({ message: 'Ticket not found' });
+      }
+
+      // Get all messages for the ticket
+      const messages = await db.select()
+        .from(supportMessages)
+        .where(eq(supportMessages.ticketId, parseInt(ticketId)))
+        .orderBy(asc(supportMessages.createdAt));
+
+      res.json(messages);
+    } catch (error) {
+      console.error('Error fetching support messages:', error);
+      res.status(500).json({ message: 'Failed to fetch messages' });
+    }
+  });
+
   // === AVATAR UPLOAD API ===
   
   // Upload profile avatar

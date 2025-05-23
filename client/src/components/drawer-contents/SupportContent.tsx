@@ -33,15 +33,28 @@ interface Job {
   datePosted: string;
 }
 
+interface Refund {
+  id: number;
+  ticketId: number;
+  userId: number;
+  amount: number;
+  reason: string;
+  status: string;
+  stripeRefundId?: string;
+  processedAt?: string;
+  createdAt: string;
+}
+
 export default function SupportContent() {
-  const [activeView, setActiveView] = useState<'main' | 'create-ticket' | 'create-dispute' | 'my-tickets'>('main');
+  const [activeView, setActiveView] = useState<'main' | 'create-ticket' | 'create-dispute' | 'my-tickets' | 'request-refund'>('main');
   const [isCreateTicketOpen, setIsCreateTicketOpen] = useState(false);
   const [isCreateDisputeOpen, setIsCreateDisputeOpen] = useState(false);
+  const [isRefundRequestOpen, setIsRefundRequestOpen] = useState(false);
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
   // Fetch user's tickets
-  const { data: tickets = [] } = useQuery({
+  const { data: tickets = [] } = useQuery<SupportTicket[]>({
     queryKey: ['/api/support/tickets'],
     enabled: activeView === 'my-tickets'
   });
@@ -87,6 +100,26 @@ export default function SupportContent() {
       toast({
         title: "Error",
         description: "Failed to file dispute. Please try again.",
+        variant: "destructive",
+      });
+    }
+  });
+
+  // Create refund mutation
+  const createRefundMutation = useMutation({
+    mutationFn: (data: any) => apiRequest('POST', '/api/support/refunds', data),
+    onSuccess: () => {
+      toast({
+        title: "Refund Requested",
+        description: "Your refund request has been submitted for processing.",
+      });
+      setIsRefundRequestOpen(false);
+      queryClient.invalidateQueries({ queryKey: ['/api/support/tickets'] });
+    },
+    onError: () => {
+      toast({
+        title: "Error",
+        description: "Failed to process refund request. Please try again.",
         variant: "destructive",
       });
     }
@@ -404,15 +437,86 @@ export default function SupportContent() {
             <CardDescription className="mb-4">
               Issues with payments, refunds, or billing questions
             </CardDescription>
-            <Button 
-              variant="outline" 
-              className="w-full"
-              onClick={() => {
-                setIsCreateTicketOpen(true);
-              }}
-            >
-              Request Payment Help
-            </Button>
+            <Dialog open={isRefundRequestOpen} onOpenChange={setIsRefundRequestOpen}>
+              <DialogTrigger asChild>
+                <Button variant="outline" className="w-full">Request Refund</Button>
+              </DialogTrigger>
+              <DialogContent className="sm:max-w-[425px]">
+                <form onSubmit={(e) => {
+                  e.preventDefault();
+                  const formData = new FormData(e.currentTarget);
+                  const data = {
+                    ticketId: formData.get('ticketId'),
+                    refundAmount: formData.get('refundAmount'),
+                    reason: formData.get('reason'),
+                    paymentIntentId: formData.get('paymentIntentId')
+                  };
+                  createRefundMutation.mutate(data);
+                }}>
+                  <DialogHeader>
+                    <DialogTitle>Request Refund</DialogTitle>
+                    <DialogDescription>
+                      Request a refund for a payment or transaction issue.
+                    </DialogDescription>
+                  </DialogHeader>
+                  <div className="grid gap-4 py-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="reason">Refund Reason</Label>
+                      <Select name="reason" required>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select reason" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="JOB_NOT_COMPLETED">Job Not Completed</SelectItem>
+                          <SelectItem value="POOR_SERVICE">Poor Service Quality</SelectItem>
+                          <SelectItem value="BILLING_ERROR">Billing Error</SelectItem>
+                          <SelectItem value="FRAUDULENT">Fraudulent Transaction</SelectItem>
+                          <SelectItem value="OTHER">Other</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="refundAmount">Refund Amount ($)</Label>
+                      <Input 
+                        name="refundAmount" 
+                        type="number" 
+                        step="0.01" 
+                        min="0.01"
+                        placeholder="Enter amount to refund" 
+                        required 
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="paymentIntentId">Payment ID (optional)</Label>
+                      <Input 
+                        name="paymentIntentId" 
+                        placeholder="pi_xxxxxxxxxxxx (from Stripe receipt)"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="ticketId">Related Support Ticket (optional)</Label>
+                      <Select name="ticketId">
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select a ticket" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {tickets.map((ticket) => (
+                            <SelectItem key={ticket.id} value={ticket.id.toString()}>
+                              #{ticket.ticketNumber} - {ticket.subject}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
+                  <DialogFooter>
+                    <Button type="submit" disabled={createRefundMutation.isPending}>
+                      {createRefundMutation.isPending ? 'Processing...' : 'Request Refund'}
+                    </Button>
+                  </DialogFooter>
+                </form>
+              </DialogContent>
+            </Dialog>
           </CardContent>
         </Card>
 
