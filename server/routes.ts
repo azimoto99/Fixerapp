@@ -4884,13 +4884,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       
       // Additional database check for other users
-      const adminUser = await storage.db
-        .select({ isAdmin: users.isAdmin })
-        .from(users)
-        .where(eq(users.id, userId))
-        .limit(1);
+      const adminUser = await storage.getUser(req.user.id);
 
-      if (adminUser.length > 0 && adminUser[0].isAdmin === true) {
+      if (adminUser && adminUser.isAdmin === true) {
         return next();
       }
       
@@ -5494,17 +5490,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Get job completion counts for each user
       const usersWithStats = await Promise.all(
         allUsers.map(async (user) => {
-          const completedJobs = await storage.db
-            .select()
-            .from(jobs)
-            .where(and(
-              eq(jobs.workerId, user.id),
-              eq(jobs.status, 'completed')
-            ));
+          // Get user job statistics
+          const allJobs = await storage.getJobs();
+          const userCompletedJobs = allJobs.filter(job => 
+            job.workerId === user.id && job.status === 'completed'
+          );
 
           return {
             ...user,
-            completedJobs: completedJobs.length
+            completedJobs: userCompletedJobs.length
           };
         })
       );
@@ -5541,21 +5535,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
         case 'delete':
           // Delete user and all associated data
-          await storage.db.delete(users).where(eq(users.id, userId));
+          await storage.deleteUser(userId);
           res.json({ message: 'User deleted successfully' });
           break;
 
         case 'view':
           // Return detailed user information
-          const userJobs = await storage.db
-            .select()
-            .from(jobs)
-            .where(eq(jobs.workerId, userId));
+          const allJobs = await storage.getJobs();
+          const userJobs = allJobs.filter(job => job.workerId === userId);
           
-          const userEarnings = await storage.db
-            .select()
-            .from(earnings)
-            .where(eq(earnings.workerId, userId));
+          const userEarnings = await storage.getEarningsByWorker(userId);
 
           res.json({
             user,
@@ -5585,7 +5574,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       // Delete job from database
-      await storage.db.delete(jobs).where(eq(jobs.id, jobId));
+      await storage.deleteJob(jobId);
       
       res.json({ message: 'Job deleted successfully' });
     } catch (error) {
