@@ -4906,9 +4906,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get('/api/admin/dashboard-stats', requireAdmin, async (req: Request, res: Response) => {
     try {
       // Get all users directly from database
-      const allUsers = await storage.db.select().from(users);
-      const allJobs = await storage.db.select().from(jobs);
-      const allEarnings = await storage.db.select().from(earnings);
+      const allUsers = await storage.getAllUsers();
+      const allJobs = await storage.getJobs();
+      const allEarnings = await storage.getAllEarnings();
       
       const activeUsers = allUsers.filter(u => u.isActive).length;
       const completedJobs = allJobs.filter(j => j.status === 'completed').length;
@@ -4946,7 +4946,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get('/api/admin/users', requireAdmin, async (req: Request, res: Response) => {
     try {
       const { search } = req.query;
-      let allUsers = await storage.db.select().from(users);
+      let allUsers = await storage.getAllUsers();
       
       // Apply search filter
       if (search) {
@@ -4959,7 +4959,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       
       // Enhance users with additional stats
-      const allJobs = await storage.db.select().from(jobs);
+      const allJobs = await storage.getJobs();
       const usersWithStats = allUsers.map(user => {
         const postedJobs = allJobs.filter(job => job.posterId === user.id);
         const completedAsWorker = allJobs.filter(job => job.workerId === user.id && job.status === 'completed');
@@ -5023,8 +5023,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get('/api/admin/jobs', requireAdmin, async (req: Request, res: Response) => {
     try {
       const { search } = req.query;
-      let allJobs = await storage.db.select().from(jobs);
-      const allUsers = await storage.db.select().from(users);
+      let allJobs = await storage.getJobs();
+      const allUsers = await storage.getAllUsers();
       
       // Apply search filter
       if (search) {
@@ -5096,7 +5096,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Financial/Transactions API
   app.get('/api/admin/transactions', requireAdmin, async (req: Request, res: Response) => {
     try {
-      const allEarnings = await storage.db.select().from(earnings);
+      const allEarnings = await storage.getAllEarnings();
       
       // Transform earnings into transaction format
       const transactions = allEarnings.map(earning => ({
@@ -5274,7 +5274,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Admin User Statistics
   app.get('/api/admin/users/stats', requireAdmin, async (req: Request, res: Response) => {
     try {
-      const allUsers = await storage.db.select().from(users);
+      const allUsers = await storage.getAllUsers();
       const today = new Date().toDateString();
       
       const stats = {
@@ -5299,7 +5299,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Admin User Management
   app.get('/api/admin/users', requireAdmin, async (req: Request, res: Response) => {
     try {
-      const allUsers = await storage.db.select().from(users);
+      const allUsers = await storage.getAllUsers();
       
       // Add pagination and search if needed
       const page = parseInt(req.query.page as string) || 1;
@@ -5416,7 +5416,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Admin Job Statistics
   app.get('/api/admin/jobs/stats', requireAdmin, async (req: Request, res: Response) => {
     try {
-      const allJobs = await storage.db.select().from(jobs);
+      const allJobs = await storage.getJobs();
       const today = new Date().toDateString();
       
       const stats = {
@@ -5438,7 +5438,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Admin Financial Statistics
   app.get('/api/admin/financial/stats', requireAdmin, async (req: Request, res: Response) => {
     try {
-      const allEarnings = await storage.db.select().from(earnings);
+      const allEarnings = await storage.getAllEarnings();
       
       const stats = {
         revenue: allEarnings.reduce((sum, e) => sum + (e.amount || 0), 0),
@@ -5459,7 +5459,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const { search, status, page = '1', limit = '20' } = req.query;
       
-      let query = storage.db.select().from(users);
+      let query = storage.getAllUsers();
       
       // Apply filters
       const conditions = [];
@@ -5766,7 +5766,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   apiRouter.get("/admin/dashboard-stats", isAuthenticated, isAdmin, async (req: Request, res: Response) => {
     try {
       // Get simple counts using storage methods for reliable data
-      const allUsers = await storage.db.select().from(users);
+      const allUsers = await storage.getAllUsers();
       const allJobs = await storage.getJobs();
       
       const activeJobs = allJobs.filter(job => job.status === 'open' || job.status === 'in_progress');
@@ -5830,7 +5830,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const { page = 1, limit = 50, search } = req.query;
       
       // Use storage methods for reliable data access
-      let allUsers = await storage.db.select().from(users);
+      let allUsers = await storage.getAllUsers();
       const allJobs = await storage.getJobs();
       
       // Apply search filter
@@ -5967,7 +5967,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       // Use storage methods for reliable data access
       let allJobs = await storage.getJobs();
-      const allUsers = await storage.db.select().from(users);
+      const allUsers = await storage.getAllUsers();
       
       // Apply filters
       if (status && status !== 'all') {
