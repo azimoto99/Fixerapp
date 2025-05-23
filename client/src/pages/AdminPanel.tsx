@@ -186,9 +186,9 @@ export default function AdminPanel() {
   const [selectedJob, setSelectedJob] = useState<Job | null>(null);
   const [selectedTicket, setSelectedTicket] = useState<SupportTicket | null>(null);
 
-  // Check admin access
+  // Check admin access - User ID 20 (azi) is the admin
   useEffect(() => {
-    if (!user || !user.isAdmin) {
+    if (!user || user.id !== 20) {
       navigate('/');
       toast({
         title: 'Access Denied',
@@ -386,7 +386,7 @@ export default function AdminPanel() {
     }
   };
 
-  if (!user || !user.isAdmin) {
+  if (!user || user.id !== 20) {
     return null;
   }
 
