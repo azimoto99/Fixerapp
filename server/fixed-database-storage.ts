@@ -2,7 +2,7 @@ import { IStorage } from "./storage";
 import { DatabaseStorage } from "./database-storage";
 import connectPg from "connect-pg-simple";
 import session from "express-session";
-import { pool } from "./db";
+import { pool, db } from "./db";
 
 /**
  * This is a wrapper around DatabaseStorage that catches errors and logs them,
@@ -11,6 +11,7 @@ import { pool } from "./db";
 export class FixedDatabaseStorage implements IStorage {
   private storage: DatabaseStorage;
   public sessionStore: session.Store;
+  public db = db; // Expose the database connection for admin queries
 
   constructor() {
     this.storage = new DatabaseStorage();
