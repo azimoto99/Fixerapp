@@ -613,8 +613,8 @@ const JobDetailsCard: React.FC<JobDetailsCardProps> = ({ jobId, isOpen, onClose 
                       Applications {applications.length > 0 && `(${applications.length})`}
                     </button>
                   )}
-                  {/* Show messaging tab when there's a relevant conversation partner */}
-                  {(isJobPoster || hasApplied || (job?.workerId && job.workerId === user?.id)) && (
+                  {/* Show messaging tab only for workers, not job posters */}
+                  {!isJobPoster && (hasApplied || (job?.workerId && job.workerId === user?.id)) && (
                     <button
                       className={`px-3 py-2 ${activeTab === 'messages' ? 'border-b-2 border-primary text-primary' : 'text-muted-foreground'} transition-colors`}
                       onClick={() => setActiveTab('messages')}
@@ -807,19 +807,13 @@ const JobDetailsCard: React.FC<JobDetailsCardProps> = ({ jobId, isOpen, onClose 
                 )}
                 
                 {/* Messages Tab Content - Real-time job conversations */}
-                {activeTab === 'messages' && user && (
+                {activeTab === 'messages' && user && !isJobPoster && (
                   <div className="h-96 border rounded-lg overflow-hidden">
                     <MessagingInterface
                       jobId={job.id}
-                      recipientId={isJobPoster ? 
-                        (job.workerId || (applications.find(app => app.status === 'accepted')?.workerId)) :
-                        job.posterId
-                      }
-                      recipientName={isJobPoster ? 
-                        'Assigned Worker' : 
-                        (poster?.fullName || `Job Poster #${job.posterId}`)
-                      }
-                      recipientAvatar={isJobPoster ? undefined : poster?.avatarUrl}
+                      recipientId={job.posterId}
+                      recipientName={poster?.fullName || poster?.username || 'Job Poster'}
+                      recipientAvatar={poster?.avatarUrl}
                       currentUserId={user.id}
                       className="h-full"
                     />

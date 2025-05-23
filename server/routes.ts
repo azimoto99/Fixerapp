@@ -5330,7 +5330,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           case 'authenticate':
             // Store user connection
             if (message.userId) {
-              connectedClients.set(message.userId, ws);
+              // Authentication is now handled by WebSocketService
               console.log(`User ${message.userId} connected via WebSocket`);
             }
             break;
