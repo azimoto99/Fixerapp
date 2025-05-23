@@ -63,7 +63,7 @@ import createPaymentIntentRouter from "./api/stripe-api-create-payment-intent";
 import { setupStripeWebhooks } from "./api/stripe-webhooks";
 import { setupStripeTransfersRoutes } from "./api/stripe-transfers";
 import { setupStripePaymentMethodsRoutes } from "./api/stripe-payment-methods";
-import { adminRouter } from "./api/admin-api";
+
 import "./api/storage-extensions"; // Import to register extended storage methods
 import "./storage-extensions"; // Import admin and payment extensions
 import * as crypto from 'crypto';
@@ -4871,36 +4871,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     return res.status(403).json({ message: 'Admin access required' });
   };
 
-  // Admin Analytics Dashboard Data
-  app.get('/api/admin/analytics', requireAdmin, async (req: Request, res: Response) => {
-    try {
-      // Get all data we need for analytics
-      const allUsers = await storage.getUsers();
-      const allJobs = await storage.getJobs();
-      const allEarnings = await storage.getAllEarnings();
-      
-      const today = new Date().toDateString();
-      const completedJobs = allJobs.filter(job => job.status === 'completed');
-      
-      const analytics = {
-        totalUsers: allUsers.length,
-        newUsers: allUsers.filter(u => u.createdAt && new Date(u.createdAt).toDateString() === today).length,
-        activeUsers: allUsers.filter(u => u.isActive).length,
-        totalJobs: allJobs.length,
-        jobsPosted: allJobs.filter(j => j.createdAt && new Date(j.createdAt).toDateString() === today).length,
-        jobsCompleted: completedJobs.length,
-        totalRevenue: allEarnings.reduce((sum, e) => sum + (e.amount || 0), 0),
-        platformFees: allEarnings.reduce((sum, e) => sum + (e.platformFee || 0), 0),
-        completionRate: allJobs.length > 0 ? Math.round((completedJobs.length / allJobs.length) * 100) : 0,
-        growth: 8.5 // Growth percentage
-      };
 
-      res.json(analytics);
-    } catch (error) {
-      console.error('Error fetching analytics:', error);
-      res.status(500).json({ message: 'Failed to fetch analytics' });
-    }
-  });
 
   // Admin User Statistics
   app.get('/api/admin/users/stats', requireAdmin, async (req: Request, res: Response) => {
@@ -4925,48 +4896,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Admin Job Statistics
-  app.get('/api/admin/jobs/stats', requireAdmin, async (req: Request, res: Response) => {
-    try {
-      const allJobs = await storage.getJobs();
-      const today = new Date().toDateString();
-      
-      const stats = {
-        total: allJobs.length,
-        active: allJobs.filter(j => j.status === 'open' || j.status === 'in_progress').length,
-        completed: allJobs.filter(j => j.status === 'completed').length,
-        cancelled: allJobs.filter(j => j.status === 'cancelled').length,
-        todayPosted: allJobs.filter(j => j.createdAt && new Date(j.createdAt).toDateString() === today).length,
-        averageValue: allJobs.length > 0 ? allJobs.reduce((sum, j) => sum + (j.paymentAmount || 0), 0) / allJobs.length : 0
-      };
 
-      res.json(stats);
-    } catch (error) {
-      console.error('Error fetching job stats:', error);
-      res.status(500).json({ message: 'Failed to fetch job statistics' });
-    }
-  });
-
-  // Admin Financial Statistics
-  app.get('/api/admin/financial/stats', requireAdmin, async (req: Request, res: Response) => {
-    try {
-      const allEarnings = await storage.getAllEarnings();
-      
-      const stats = {
-        revenue: allEarnings.reduce((sum, e) => sum + (e.amount || 0), 0),
-        platformFees: allEarnings.reduce((sum, e) => sum + (e.platformFee || 0), 0),
-        payouts: allEarnings.reduce((sum, e) => sum + (e.amount || 0) - (e.platformFee || 0), 0),
-        revenueGrowth: 12.3,
-        completionRate: 85,
-        completionGrowth: 5.7
-      };
-
-      res.json(stats);
-    } catch (error) {
-      console.error('Error fetching financial stats:', error);
-      res.status(500).json({ message: 'Failed to fetch financial statistics' });
-    }
-  });
 
   // Admin User Management
   app.get('/api/admin/users', requireAdmin, async (req: Request, res: Response) => {
@@ -5615,27 +5545,37 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const { page = 1, limit = 50, status, category } = req.query;
       
-      let query = db.select({
-        job: jobs,
-        poster: {
-          id: users.id,
-          username: users.username,
-          fullName: users.fullName
-        }
-      }).from(jobs).leftJoin(users, eq(jobs.posterId, users.id));
+      // Use storage methods for reliable data access
+      let allJobs = await storage.getJobs();
+      const allUsers = await storage.getUsers();
       
+      // Apply filters
       if (status && status !== 'all') {
-        query = query.where(eq(jobs.status, status as string));
+        allJobs = allJobs.filter(job => job.status === status);
       }
       
       if (category && category !== 'all') {
-        query = query.where(eq(jobs.category, category as string));
+        allJobs = allJobs.filter(job => job.category === category);
       }
       
-      const offset = (Number(page) - 1) * Number(limit);
-      const jobsData = await query.limit(Number(limit)).offset(offset);
+      // Add poster information
+      const jobsWithPoster = allJobs.map(job => {
+        const poster = allUsers.find(user => user.id === job.posterId);
+        return {
+          job: job,
+          poster: poster ? {
+            id: poster.id,
+            username: poster.username,
+            fullName: poster.fullName
+          } : null
+        };
+      });
       
-      res.json(jobsData);
+      // Apply pagination
+      const startIndex = (Number(page) - 1) * Number(limit);
+      const paginatedJobs = jobsWithPoster.slice(startIndex, startIndex + Number(limit));
+      
+      res.json(paginatedJobs);
     } catch (error) {
       console.error('Admin jobs fetch error:', error);
       res.status(500).json({ message: 'Failed to fetch jobs' });
