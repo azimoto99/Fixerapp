@@ -100,6 +100,19 @@ const JobDetailsCard: React.FC<JobDetailsCardProps> = ({ jobId, isOpen, onClose 
     enabled: isOpen && !!jobId,
   });
 
+  // Fetch poster details
+  const { data: poster } = useQuery({
+    queryKey: ['/api/users', job?.posterId],
+    queryFn: async () => {
+      const response = await apiRequest('GET', `/api/users/${job?.posterId}`);
+      if (!response.ok) {
+        return null;
+      }
+      return response.json();
+    },
+    enabled: isOpen && !!job?.posterId,
+  });
+
   // Fetch application status if user is a worker
   const { data: application } = useQuery({
     queryKey: ['/api/applications', jobId, user?.id],
@@ -656,16 +669,14 @@ const JobDetailsCard: React.FC<JobDetailsCardProps> = ({ jobId, isOpen, onClose 
                               variant="ghost" 
                               className="mt-2 h-8 px-2 text-xs flex items-center bg-primary/10 hover:bg-primary/20 text-primary"
                               onClick={() => {
-                                // Center map on this job's location
-                                window.dispatchEvent(new CustomEvent('center-map-on-job', { 
+                                // Center map on this job's location without breaking pin functionality
+                                window.dispatchEvent(new CustomEvent('center-map-on-location', { 
                                   detail: { 
-                                    jobId: job.id,
                                     latitude: job.latitude, 
                                     longitude: job.longitude 
                                   }
                                 }));
-                                // Close the job details card
-                                if (onClose) onClose();
+                                // Don't close the job details card - keep it open
                               }}
                             >
                               <MapPin className="h-3 w-3 mr-1" />
@@ -676,6 +687,45 @@ const JobDetailsCard: React.FC<JobDetailsCardProps> = ({ jobId, isOpen, onClose 
                       </div>
                     </div>
                     
+                    {/* Posted By Section */}
+                    <div className="mt-4">
+                      <h3 className="text-md font-medium mb-2">Posted By</h3>
+                      <div className="bg-muted/30 rounded-lg p-4 border flex items-center justify-between">
+                        <div className="flex items-center">
+                          <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center mr-3">
+                            <User className="h-5 w-5 text-primary" />
+                          </div>
+                          <div>
+                            <p className="font-medium">
+                              {poster?.fullName || poster?.username || `User #${job.posterId}`}
+                            </p>
+                            <p className="text-sm text-muted-foreground">
+                              Job Poster
+                            </p>
+                          </div>
+                        </div>
+                        {user && user.id !== job.posterId && (
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => {
+                              // Open messaging drawer with this poster
+                              window.dispatchEvent(new CustomEvent('open-messaging', {
+                                detail: { 
+                                  contactId: job.posterId,
+                                  contactName: poster?.fullName || poster?.username || `User #${job.posterId}`
+                                }
+                              }));
+                            }}
+                            className="text-xs"
+                          >
+                            <Send className="h-3 w-3 mr-1" />
+                            Message
+                          </Button>
+                        )}
+                      </div>
+                    </div>
+
                     {/* Job description */}
                     <div className="mt-4">
                       <h3 className="text-md font-medium mb-2">Description</h3>
