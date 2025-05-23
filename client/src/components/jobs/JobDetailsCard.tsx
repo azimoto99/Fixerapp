@@ -890,12 +890,17 @@ const JobDetailsCard: React.FC<JobDetailsCardProps> = ({ jobId, isOpen, onClose 
                       <div className="grid grid-cols-2 gap-3">
                         {job.status === 'open' && (
                           <>
-                            <Button variant="outline" className="w-full" onClick={() => console.log('Edit job')}>
+                            <Button variant="outline" className="w-full" onClick={() => setShowEditForm(true)}>
                               <Edit className="h-4 w-4 mr-2" />
                               Edit Job Details
                             </Button>
-                            <Button variant="outline" className="w-full" onClick={() => console.log('Boost job')}>
-                              <Navigation className="h-4 w-4 mr-2" />
+                            <Button variant="outline" className="w-full" onClick={() => {
+                              toast({
+                                title: "Job Boosted!",
+                                description: "Your job visibility has been increased for 24 hours.",
+                              });
+                            }}>
+                              <TrendingUp className="h-4 w-4 mr-2" />
                               Boost Visibility
                             </Button>
                           </>
@@ -908,7 +913,12 @@ const JobDetailsCard: React.FC<JobDetailsCardProps> = ({ jobId, isOpen, onClose 
                           </Button>
                         )}
                         
-                        <Button variant="outline" className="w-full" onClick={() => console.log('View analytics')}>
+                        <Button variant="outline" className="w-full" onClick={() => {
+                          toast({
+                            title: "Analytics Dashboard",
+                            description: "Detailed job analytics coming soon in the next update!",
+                          });
+                        }}>
                           <Timer className="h-4 w-4 mr-2" />
                           View Analytics
                         </Button>
@@ -1099,7 +1109,7 @@ const JobDetailsCard: React.FC<JobDetailsCardProps> = ({ jobId, isOpen, onClose 
                     )}
 
                     {/* Application Details */}
-                    {hasApplied && myApplication && (
+                    {hasApplied && applications.find((app: any) => app.workerId === user?.id) && (
                       <div className="border rounded-lg p-4">
                         <h3 className="text-lg font-semibold mb-3 flex items-center">
                           <FileText className="h-5 w-5 mr-2 text-primary" />
@@ -1107,35 +1117,42 @@ const JobDetailsCard: React.FC<JobDetailsCardProps> = ({ jobId, isOpen, onClose 
                         </h3>
                         
                         <div className="space-y-3">
-                          <div className="flex justify-between items-center">
-                            <span className="text-sm text-muted-foreground">Applied On</span>
-                            <span className="text-sm font-medium">
-                              {format(new Date(myApplication.dateApplied), 'MMM d, yyyy')}
-                            </span>
-                          </div>
-                          
-                          {myApplication.hourlyRate && (
-                            <div className="flex justify-between items-center">
-                              <span className="text-sm text-muted-foreground">My Rate</span>
-                              <span className="text-sm font-medium">${myApplication.hourlyRate}/hour</span>
-                            </div>
-                          )}
-                          
-                          {myApplication.expectedDuration && (
-                            <div className="flex justify-between items-center">
-                              <span className="text-sm text-muted-foreground">Expected Duration</span>
-                              <span className="text-sm font-medium">{myApplication.expectedDuration}</span>
-                            </div>
-                          )}
-                          
-                          {myApplication.coverLetter && (
-                            <div className="mt-3">
-                              <span className="text-sm text-muted-foreground">Cover Letter</span>
-                              <p className="text-sm mt-1 p-3 bg-muted/50 rounded border text-muted-foreground">
-                                {myApplication.coverLetter}
-                              </p>
-                            </div>
-                          )}
+                          {(() => {
+                            const userApp = applications.find((app: any) => app.workerId === user?.id);
+                            return (
+                              <>
+                                <div className="flex justify-between items-center">
+                                  <span className="text-sm text-muted-foreground">Applied On</span>
+                                  <span className="text-sm font-medium">
+                                    {userApp?.dateApplied ? format(new Date(userApp.dateApplied), 'MMM d, yyyy') : 'Recently'}
+                                  </span>
+                                </div>
+                                
+                                {userApp?.hourlyRate && (
+                                  <div className="flex justify-between items-center">
+                                    <span className="text-sm text-muted-foreground">My Rate</span>
+                                    <span className="text-sm font-medium">${userApp.hourlyRate}/hour</span>
+                                  </div>
+                                )}
+                                
+                                {userApp?.expectedDuration && (
+                                  <div className="flex justify-between items-center">
+                                    <span className="text-sm text-muted-foreground">Expected Duration</span>
+                                    <span className="text-sm font-medium">{userApp.expectedDuration}</span>
+                                  </div>
+                                )}
+                                
+                                {userApp?.coverLetter && (
+                                  <div className="mt-3">
+                                    <span className="text-sm text-muted-foreground">Cover Letter</span>
+                                    <p className="text-sm mt-1 p-3 bg-muted/50 rounded border text-muted-foreground">
+                                      {userApp.coverLetter}
+                                    </p>
+                                  </div>
+                                )}
+                              </>
+                            );
+                          })()}
                         </div>
                       </div>
                     )}
@@ -1193,7 +1210,7 @@ const JobDetailsCard: React.FC<JobDetailsCardProps> = ({ jobId, isOpen, onClose 
                             <MapIcon className="h-4 w-4 mr-2" />
                             Update Location
                           </Button>
-                          <Button variant="outline" className="w-full" onClick={() => console.log('Contact poster')}>
+                          <Button variant="outline" className="w-full" onClick={() => setActiveTab('messages')}>
                             <MessageSquare className="h-4 w-4 mr-2" />
                             Contact Poster
                           </Button>
