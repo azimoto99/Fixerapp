@@ -22,7 +22,7 @@ import PaymentSuccess from "@/pages/payment-success";
 import PaymentsPage from "@/pages/payments-page";
 import NotificationsPage from "@/pages/notifications-page";
 import UserProfile from "@/pages/UserProfile";
-import AdminPanel from "@/pages/AdminPanel";
+import AdminPanel from "@/pages/AdminPanelFixed";
 import { AuthProvider } from "@/hooks/use-auth";
 import { NotificationProvider } from "@/hooks/use-notifications";
 import { ProtectedRoute } from "@/lib/protected-route";
