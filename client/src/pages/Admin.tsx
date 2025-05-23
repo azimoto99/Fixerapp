@@ -133,31 +133,35 @@ function AnalyticsDashboard() {
   const stats = [
     {
       title: "Total Users",
-      value: users?.total || 0,
-      change: users?.growth || 0,
+      value: dashboardStats?.totalUsers || 0,
+      change: dashboardStats?.todaySignups || 0,
       icon: Users,
-      color: "text-blue-600"
+      color: "text-blue-600",
+      subtitle: "registered users"
     },
     {
       title: "Active Jobs",
-      value: jobs?.active || 0,
-      change: jobs?.todayPosted || 0,
+      value: dashboardStats?.activeJobs || 0,
+      change: dashboardStats?.todayJobs || 0,
       icon: Briefcase,
-      color: "text-green-600"
+      color: "text-green-600",
+      subtitle: "open positions"
     },
     {
       title: "Platform Revenue",
-      value: `$${financial?.revenue?.toLocaleString() || 0}`,
-      change: financial?.revenueGrowth || 0,
+      value: `$${(dashboardStats?.totalRevenue || 0).toLocaleString()}`,
+      change: financialData?.monthlyRevenue || 0,
       icon: DollarSign,
-      color: "text-purple-600"
+      color: "text-purple-600",
+      subtitle: "total earnings"
     },
     {
-      title: "Completion Rate",
-      value: `${jobs?.completionRate || 0}%`,
-      change: jobs?.completionGrowth || 0,
-      icon: TrendingUp,
-      color: "text-orange-600"
+      title: "Pending Reports",
+      value: dashboardStats?.pendingReports || 0,
+      change: 0,
+      icon: AlertTriangle,
+      color: "text-orange-600",
+      subtitle: "need attention"
     }
   ];
 
