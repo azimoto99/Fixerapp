@@ -182,76 +182,33 @@ export default function PostJob() {
     setShowPaymentForm(false);
   };
 
-  // Submit the form directly if it's an hourly job (which doesn't require upfront payment)
+  // All jobs now require payment-first workflow for security
   async function onSubmit(values: z.infer<typeof formSchema>) {
     console.log('Form submitted with values:', values);
     
-    if (values.paymentType === 'hourly') {
-      // For hourly jobs, we don't collect payment upfront
-      try {
-        console.log('Starting submission for hourly job');
-        setIsSubmitting(true);
-        
-        // Set the poster id from the current user
-        if (user) {
-          values.posterId = user.id;
-          console.log('Set poster ID to:', user.id);
-        } else {
-          console.warn('No user found when submitting job');
-        }
-        
-        // Create the job
-        const response = await apiRequest('POST', '/api/jobs', values);
-        const jobResponse = await response.json();
-        
-        // Create tasks for the job if there are any
-        if (tasks.length > 0) {
-          try {
-            // Submit each task with the job ID
-            const taskPromises = tasks.map(task => {
-              const taskData = {
-                jobId: jobResponse.id,
-                description: task.description,
-                position: task.position,
-                isOptional: task.isOptional,
-                dueTime: task.dueTime,
-                location: task.location,
-                latitude: task.latitude,
-                longitude: task.longitude,
-                bonusAmount: task.bonusAmount || 0
-              };
-              
-              return apiRequest('POST', '/api/tasks', taskData);
-            });
-            
-            await Promise.all(taskPromises);
-            console.log('All tasks created successfully');
-          } catch (taskError) {
-            console.error('Error creating tasks:', taskError);
-            // We don't fail the whole job if tasks fail to be created
-          }
-        }
-        
-        toast({
-          title: "Job Posted",
-          description: "Your job has been posted successfully!"
-        });
-        
-        // Navigate to the job details page
-        navigate(`/job/${jobResponse.id}`);
-      } catch (error) {
-        toast({
-          title: "Error",
-          description: "Failed to post job. Please try again.",
-          variant: "destructive"
-        });
-      } finally {
-        setIsSubmitting(false);
-      }
-    } else {
-      // For fixed price jobs, collect payment details
-      handleFormSubmit(values);
+    if (!user) {
+      toast({
+        title: "Login Required",
+        description: "Please login to post a job",
+        variant: "destructive"
+      });
+      navigate('/login');
+      return;
     }
+
+    if (values.paymentAmount < 10) {
+      toast({
+        title: "Invalid Payment Amount",
+        description: "Minimum payment amount is $10",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    // ALL jobs now require payment-first workflow for security
+    // Store form data and show payment form
+    setFormData(values);
+    setShowPaymentForm(true);
   }
 
   return (
