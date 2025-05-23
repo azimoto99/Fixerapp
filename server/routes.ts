@@ -1568,14 +1568,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       // Special handling for map display - return ALL jobs with coordinates
       if (hasCoordinates === 'true') {
-        const allJobs = await storage.db
-          .select()
-          .from(jobs)
-          .where(and(
-            isNotNull(jobs.latitude),
-            isNotNull(jobs.longitude)
-          ));
-        return res.json(allJobs);
+        const allJobs = await storage.getJobs({});
+        const jobsWithCoordinates = allJobs.filter(job => 
+          job.latitude !== null && 
+          job.longitude !== null &&
+          !isNaN(Number(job.latitude)) && 
+          !isNaN(Number(job.longitude))
+        );
+        return res.json(jobsWithCoordinates);
       }
       
       const filters: {
