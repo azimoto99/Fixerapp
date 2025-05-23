@@ -414,6 +414,79 @@ export const insertContactRequestSchema = createInsertSchema(contactRequests);
 export type ContactRequest = typeof contactRequests.$inferSelect;
 export type InsertContactRequest = z.infer<typeof insertContactRequestSchema>;
 
+// Support tickets table
+export const supportTickets = pgTable("support_tickets", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id").notNull().references(() => users.id),
+  ticketNumber: varchar("ticket_number", { length: 20 }).notNull().unique(),
+  category: varchar("category", { length: 50 }).notNull(),
+  priority: varchar("priority", { length: 20 }).notNull().default("medium"),
+  subject: varchar("subject", { length: 200 }).notNull(),
+  description: text("description").notNull(),
+  status: varchar("status", { length: 20 }).notNull().default("open"),
+  assignedAgentId: integer("assigned_agent_id"),
+  jobId: integer("job_id").references(() => jobs.id),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+  resolvedAt: timestamp("resolved_at"),
+});
+
+// Support messages (for ticket threads)
+export const supportMessages = pgTable("support_messages", {
+  id: serial("id").primaryKey(),
+  ticketId: integer("ticket_id").notNull().references(() => supportTickets.id),
+  senderId: integer("sender_id").notNull(),
+  senderType: varchar("sender_type", { length: 10 }).notNull(), // 'user' or 'admin'
+  message: text("message").notNull(),
+  attachments: jsonb("attachments"),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+});
+
+// Disputes table
+export const disputes = pgTable("disputes", {
+  id: serial("id").primaryKey(),
+  ticketId: integer("ticket_id").notNull().references(() => supportTickets.id),
+  jobId: integer("job_id").notNull().references(() => jobs.id),
+  disputerId: integer("disputer_id").notNull().references(() => users.id),
+  disputedAgainstId: integer("disputed_against_id").references(() => users.id),
+  disputeType: varchar("dispute_type", { length: 50 }).notNull(),
+  evidenceFiles: jsonb("evidence_files"),
+  requestedResolution: varchar("requested_resolution", { length: 100 }),
+  adminDecision: text("admin_decision"),
+  resolutionAction: varchar("resolution_action", { length: 50 }),
+  refundAmount: doublePrecision("refund_amount"),
+  resolvedAt: timestamp("resolved_at"),
+});
+
+// Refunds tracking
+export const refunds = pgTable("refunds", {
+  id: serial("id").primaryKey(),
+  disputeId: integer("dispute_id").references(() => disputes.id),
+  jobId: integer("job_id").notNull().references(() => jobs.id),
+  userId: integer("user_id").notNull().references(() => users.id),
+  originalAmount: doublePrecision("original_amount").notNull(),
+  refundAmount: doublePrecision("refund_amount").notNull(),
+  reason: text("reason"),
+  stripeRefundId: varchar("stripe_refund_id", { length: 100 }),
+  processedBy: integer("processed_by"),
+  status: varchar("status", { length: 20 }).notNull().default("pending"),
+  processedAt: timestamp("processed_at").notNull().defaultNow(),
+});
+
+export const insertSupportTicketSchema = createInsertSchema(supportTickets);
+export const insertSupportMessageSchema = createInsertSchema(supportMessages);
+export const insertDisputeSchema = createInsertSchema(disputes);
+export const insertRefundSchema = createInsertSchema(refunds);
+
+export type SupportTicket = typeof supportTickets.$inferSelect;
+export type InsertSupportTicket = z.infer<typeof insertSupportTicketSchema>;
+export type SupportMessage = typeof supportMessages.$inferSelect;
+export type InsertSupportMessage = z.infer<typeof insertSupportMessageSchema>;
+export type Dispute = typeof disputes.$inferSelect;
+export type InsertDispute = z.infer<typeof insertDisputeSchema>;
+export type Refund = typeof refunds.$inferSelect;
+export type InsertRefund = z.infer<typeof insertRefundSchema>;
+
 // Categories enum for job types
 export const JOB_CATEGORIES = [
   "Home Maintenance",

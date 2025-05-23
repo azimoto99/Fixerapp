@@ -27,6 +27,7 @@ import ProfileContentV2 from './drawer-contents/ProfileContentV2';
 import WalletContent from './drawer-contents/WalletContent';
 import ReviewsContent from './drawer-contents/ReviewsContent';
 import SettingsContent from './drawer-contents/SettingsContent';
+import SupportContent from './drawer-contents/SupportContent';
 
 interface UserDrawerProps {
   children?: React.ReactNode;
@@ -159,6 +160,8 @@ const UserDrawerV2: React.FC<UserDrawerProps> = ({
         return <ReviewsContent userId={user.id} />;
       case "settings":
         return <SettingsContent user={user} />;
+      case "support":
+        return <SupportContent />;
       default:
         return <ProfileContentV2 user={user} onSignOut={handleLogout} />;
     }

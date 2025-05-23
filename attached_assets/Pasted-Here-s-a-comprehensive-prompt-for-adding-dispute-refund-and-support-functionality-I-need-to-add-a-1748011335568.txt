@@ -1,0 +1,241 @@
+Here's a comprehensive prompt for adding dispute, refund, and support functionality:
+I need to add a comprehensive dispute, refund, and support system to my app. Add this functionality to the helpContent section of UserDrawerV2, and create corresponding admin management tools.
+
+USER-FACING SUPPORT SYSTEM (helpContent in UserDrawerV2):
+
+**New Help Tab Layout:**
+┌─ HELP & SUPPORT ─────────────────────┐
+│ 🎧 CONTACT SUPPORT                   │
+│ [Start Live Chat] [Submit Ticket]    │
+├──────────────────────────────────────┤
+│ ⚠️  REPORT AN ISSUE                  │
+│ • Job Dispute                        │
+│ • Payment Problem                    │
+│ • Report Fraud/Scam                  │
+│ • Account Issue                      │
+│ • Technical Bug                      │
+├──────────────────────────────────────┤
+│ 📋 MY SUPPORT REQUESTS               │
+│ • #1247 - Payment Issue (Open)      │
+│ • #1203 - Job Dispute (Resolved)    │
+│ [View All Tickets]                  │
+├──────────────────────────────────────┤
+│ 💡 HELP CENTER                      │
+│ • Frequently Asked Questions        │
+│ • How to Use the App               │
+│ • Payment & Billing Info           │
+│ • Community Guidelines             │
+└──────────────────────────────────────┘
+
+**Support Features to Implement:**
+
+**1. Live Chat System:**
+- Real-time chat with support agents
+- File/screenshot upload capability
+- Chat history persistence
+- Typing indicators and read receipts
+- Auto-assignment to available agents
+- Chat rating system after resolution
+
+**2. Ticket System:**
+- Support ticket creation with categories:
+  - Job Disputes
+  - Payment Issues
+  - Fraud Reports
+  - Account Problems
+  - Technical Bugs
+  - General Inquiries
+- Priority levels (Low, Medium, High, Urgent)
+- File attachment support
+- Ticket status tracking (Open, In Progress, Resolved, Closed)
+- Email notifications for updates
+
+**3. Dispute Types to Handle:**
+```javascript
+const disputeTypes = {
+  JOB_NOT_COMPLETED: "Worker didn't complete the job",
+  POOR_QUALITY: "Work quality was unsatisfactory", 
+  NO_SHOW: "Worker didn't show up",
+  PAYMENT_ERROR: "Payment was charged incorrectly",
+  OVERCHARGED: "Was charged more than agreed amount",
+  FRAUD_WORKER: "Suspicious worker behavior",
+  FRAUD_POSTER: "Fake job posting",
+  HARASSMENT: "Inappropriate behavior/messages",
+  SAFETY_CONCERN: "Safety issue during job"
+};
+4. Dispute Form Fields:
+
+Dispute type selection
+Job ID reference
+Detailed description (required)
+Evidence upload (photos, screenshots, messages)
+Requested resolution (refund, redo work, account action)
+Urgency level
+Contact preference
+
+DATABASE SCHEMA ADDITIONS:
+sql-- Support tickets table
+CREATE TABLE support_tickets (
+  id SERIAL PRIMARY KEY,
+  user_id INTEGER REFERENCES users(id),
+  ticket_number VARCHAR(20) UNIQUE,
+  category VARCHAR(50) NOT NULL,
+  priority VARCHAR(20) DEFAULT 'medium',
+  subject VARCHAR(200) NOT NULL,
+  description TEXT NOT NULL,
+  status VARCHAR(20) DEFAULT 'open',
+  assigned_agent_id INTEGER REFERENCES admin_users(id),
+  job_id INTEGER REFERENCES jobs(id),
+  created_at TIMESTAMP DEFAULT NOW(),
+  updated_at TIMESTAMP DEFAULT NOW(),
+  resolved_at TIMESTAMP
+);
+
+-- Support messages (for ticket threads)
+CREATE TABLE support_messages (
+  id SERIAL PRIMARY KEY,
+  ticket_id INTEGER REFERENCES support_tickets(id),
+  sender_id INTEGER, -- user_id or admin_id
+  sender_type VARCHAR(10), -- 'user' or 'admin'
+  message TEXT NOT NULL,
+  attachments JSONB,
+  created_at TIMESTAMP DEFAULT NOW()
+);
+
+-- Disputes table
+CREATE TABLE disputes (
+  id SERIAL PRIMARY KEY,
+  ticket_id INTEGER REFERENCES support_tickets(id),
+  job_id INTEGER REFERENCES jobs(id),
+  disputer_id INTEGER REFERENCES users(id),
+  disputed_against_id INTEGER REFERENCES users(id),
+  dispute_type VARCHAR(50) NOT NULL,
+  evidence_files JSONB,
+  requested_resolution VARCHAR(100),
+  admin_decision TEXT,
+  resolution_action VARCHAR(50), -- 'refund', 'partial_refund', 'no_action', 'account_warning'
+  refund_amount DECIMAL,
+  resolved_at TIMESTAMP
+);
+
+-- Refunds tracking
+CREATE TABLE refunds (
+  id SERIAL PRIMARY KEY,
+  dispute_id INTEGER REFERENCES disputes(id),
+  job_id INTEGER REFERENCES jobs(id),
+  user_id INTEGER REFERENCES users(id),
+  original_amount DECIMAL NOT NULL,
+  refund_amount DECIMAL NOT NULL,
+  reason TEXT,
+  stripe_refund_id VARCHAR(100),
+  processed_by INTEGER REFERENCES admin_users(id),
+  status VARCHAR(20) DEFAULT 'pending',
+  processed_at TIMESTAMP DEFAULT NOW()
+);
+ADMIN PANEL ENHANCEMENTS:
+Support Management Dashboard:
+┌─ SUPPORT DASHBOARD ──────────────────┐
+│ Open: 23 | In Progress: 12 | Today: 8│
+├──────────────────────────────────────┤
+│ TICKET QUEUE                         │
+│ 🔴 #1247 Payment Issue (2h ago)     │
+│ 🟡 #1246 Job Dispute (4h ago)       │
+│ 🟢 #1245 General Question (1d ago)  │
+├──────────────────────────────────────┤
+│ DISPUTE QUEUE                        │
+│ ⚠️  Job #892 - No Show Dispute      │
+│ ⚠️  Job #887 - Quality Complaint    │
+│ [View All Disputes]                  │
+└──────────────────────────────────────┘
+Admin Features Required:
+1. Ticket Management:
+
+View all support tickets with filtering/sorting
+Assign tickets to specific admin agents
+Respond to tickets with internal notes
+Escalate urgent issues
+Bulk ticket operations
+Ticket analytics and response time tracking
+
+2. Dispute Resolution Tools:
+
+Review dispute evidence (photos, chat logs)
+Contact both parties for additional information
+Make resolution decisions with detailed reasoning
+Process refunds directly from admin panel
+Issue warnings or penalties to users
+Track dispute resolution success rates
+
+3. Refund Processing System:
+
+One-click refund processing through Stripe
+Partial refund capabilities
+Refund reason tracking and reporting
+Automatic notification to affected users
+Refund audit trail and financial reporting
+Bulk refund processing for mass issues
+
+4. Chat/Live Support:
+
+Live chat interface for admins
+Multiple concurrent chat handling
+Chat transfer between agents
+Saved response templates
+Chat analytics and performance metrics
+Integration with ticket system
+
+Admin Interface Components:
+Dispute Review Modal:
+┌─ DISPUTE #1247 REVIEW ───────────────┐
+│ Job: House Cleaning | Amount: $50    │
+│ Reporter: Jane Smith vs Mike Johnson  │
+├──────────────────────────────────────┤
+│ Issue: Worker didn't show up         │
+│ Evidence: [2 photos] [Chat logs]     │
+├──────────────────────────────────────┤
+│ RESOLUTION OPTIONS:                  │
+│ ○ Full Refund ($50)                  │
+│ ○ Partial Refund [$____]             │
+│ ○ No Refund - Invalid Claim         │
+│ ○ Warning to Worker                  │
+│ ○ Account Suspension                 │
+├──────────────────────────────────────┤
+│ Admin Notes: [________________]      │
+│ [Process Resolution] [Need More Info]│
+└──────────────────────────────────────┘
+Financial Controls:
+
+Transaction reversal capabilities
+Platform fee adjustments
+Manual payout controls
+Fraud prevention tools
+Financial dispute tracking
+Revenue impact reporting
+
+Security & Audit Features:
+
+All admin actions logged with timestamps
+Dispute decision audit trail
+Refund authorization workflow
+Suspicious activity flagging
+Regular dispute pattern analysis
+
+Integration Requirements:
+
+Stripe refund API integration
+Email notification system
+Push notification for urgent disputes
+File storage for evidence uploads
+Real-time chat infrastructure
+
+Performance Metrics:
+
+Average resolution time
+User satisfaction ratings
+Dispute resolution accuracy
+Refund processing efficiency
+Agent performance tracking
+
+Build a comprehensive support system that handles user disputes, enables efficient admin management, processes refunds seamlessly, and maintains detailed audit trails for all resolution activities.
+
+This prompt gives Replit AI everything needed to build a professional support and dispute resolution system integrated into your existing app structure.
