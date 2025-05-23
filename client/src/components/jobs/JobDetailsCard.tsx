@@ -296,6 +296,58 @@ const JobDetailsCard: React.FC<JobDetailsCardProps> = ({ jobId, isOpen, onClose 
     }
   });
 
+  // Initialize edit form data when job loads
+  useEffect(() => {
+    if (job && user?.id === job.posterId) {
+      setEditFormData({
+        title: job.title || '',
+        description: job.description || '',
+        paymentAmount: job.paymentAmount?.toString() || '',
+        estimatedHours: job.estimatedHours?.toString() || '',
+        location: job.location || ''
+      });
+    }
+  }, [job, user?.id]);
+
+  // Edit job mutation
+  const editJobMutation = useMutation({
+    mutationFn: async (data: any) => {
+      const response = await apiRequest('PUT', `/api/jobs/${jobId}`, data);
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || 'Failed to update job');
+      }
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/jobs'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/jobs', jobId] });
+      setShowEditForm(false);
+      toast({
+        title: "Job Updated Successfully",
+        description: "Your job details have been saved.",
+      });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Update Failed",
+        description: error.message,
+        variant: "destructive",
+      });
+    }
+  });
+
+  const handleSaveEditJob = () => {
+    const updatedData = {
+      title: editFormData.title,
+      description: editFormData.description,
+      paymentAmount: parseFloat(editFormData.paymentAmount),
+      estimatedHours: editFormData.estimatedHours ? parseFloat(editFormData.estimatedHours) : null,
+      location: editFormData.location
+    };
+    editJobMutation.mutate(updatedData);
+  };
+
 // No duplicate mutations
 
   // Handle applying for job
@@ -890,7 +942,12 @@ const JobDetailsCard: React.FC<JobDetailsCardProps> = ({ jobId, isOpen, onClose 
                       <div className="grid grid-cols-2 gap-3">
                         {job.status === 'open' && (
                           <>
-                            <Button variant="outline" className="w-full" onClick={() => setShowEditForm(true)}>
+                            <Button 
+                              variant="outline" 
+                              className="w-full" 
+                              onClick={() => setShowEditForm(true)}
+                              disabled={editJobMutation.isPending}
+                            >
                               <Edit className="h-4 w-4 mr-2" />
                               Edit Job Details
                             </Button>
