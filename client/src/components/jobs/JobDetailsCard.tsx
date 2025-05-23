@@ -806,6 +806,26 @@ const JobDetailsCard: React.FC<JobDetailsCardProps> = ({ jobId, isOpen, onClose 
                   <JobApplicationsTab applications={applications} jobId={job.id} />
                 )}
                 
+                {/* Messages Tab Content - Real-time job conversations */}
+                {activeTab === 'messages' && user && (
+                  <div className="h-96 border rounded-lg overflow-hidden">
+                    <MessagingInterface
+                      jobId={job.id}
+                      recipientId={isJobPoster ? 
+                        (job.workerId || (applications.find(app => app.status === 'accepted')?.workerId)) :
+                        job.posterId
+                      }
+                      recipientName={isJobPoster ? 
+                        'Assigned Worker' : 
+                        (poster?.fullName || `Job Poster #${job.posterId}`)
+                      }
+                      recipientAvatar={isJobPoster ? undefined : poster?.avatarUrl}
+                      currentUserId={user.id}
+                      className="h-full"
+                    />
+                  </div>
+                )}
+                
                 {/* Posted by information */}
                 <div className="flex items-center justify-between text-xs text-muted-foreground mt-2">
                   <div className="flex items-center">
