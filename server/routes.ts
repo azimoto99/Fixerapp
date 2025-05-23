@@ -5092,7 +5092,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Financial/Transactions API
   app.get('/api/admin/transactions', requireAdmin, async (req: Request, res: Response) => {
     try {
-      const allEarnings = await storage.getAllEarnings();
+      // Get all earnings using available storage methods
+      const allUsers = await storage.getAllUsers();
+      const allEarnings = [];
+      
+      for (const user of allUsers) {
+        const userEarnings = await storage.getEarningsByWorker(user.id);
+        allEarnings.push(...userEarnings);
+      }
       
       // Transform earnings into transaction format
       const transactions = allEarnings.map(earning => ({

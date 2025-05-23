@@ -349,7 +349,7 @@ export default function AdminPanel() {
   };
 
   const getStatusColor = (status: string) => {
-    switch (status.toLowerCase()) {
+    switch (status?.toLowerCase()) {
       case 'active':
       case 'completed':
       case 'verified':
@@ -372,7 +372,7 @@ export default function AdminPanel() {
   };
 
   const getPriorityColor = (priority: string) => {
-    switch (priority.toLowerCase()) {
+    switch (priority?.toLowerCase()) {
       case 'urgent':
         return 'bg-red-100 text-red-800 border-red-200';
       case 'high':
