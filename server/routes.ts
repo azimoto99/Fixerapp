@@ -4905,9 +4905,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Dashboard Stats API
   app.get('/api/admin/dashboard-stats', requireAdmin, async (req: Request, res: Response) => {
     try {
-      const allUsers = await storage.getUsers();
-      const allJobs = await storage.getJobs();
-      const allEarnings = await storage.getEarnings();
+      // Get all users directly from database
+      const allUsers = await storage.db.select().from(users);
+      const allJobs = await storage.db.select().from(jobs);
+      const allEarnings = await storage.db.select().from(earnings);
       
       const activeUsers = allUsers.filter(u => u.isActive).length;
       const completedJobs = allJobs.filter(j => j.status === 'completed').length;
@@ -4917,8 +4918,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const today = new Date();
       const lastMonth = new Date(today.getFullYear(), today.getMonth() - 1, today.getDate());
       
-      const recentUsers = allUsers.filter(u => new Date(u.createdAt || 0) > lastMonth);
-      const recentJobs = allJobs.filter(j => new Date(j.createdAt || 0) > lastMonth);
+      const recentUsers = allUsers.filter(u => new Date(u.lastActive || 0) > lastMonth);
+      const recentJobs = allJobs.filter(j => new Date(j.datePosted || 0) > lastMonth);
       
       const userGrowth = allUsers.length > 0 ? (recentUsers.length / allUsers.length) * 100 : 0;
       const jobGrowth = allJobs.length > 0 ? (recentJobs.length / allJobs.length) * 100 : 0;
@@ -4945,7 +4946,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get('/api/admin/users', requireAdmin, async (req: Request, res: Response) => {
     try {
       const { search } = req.query;
-      let allUsers = await storage.getUsers();
+      let allUsers = await storage.db.select().from(users);
       
       // Apply search filter
       if (search) {
@@ -4958,7 +4959,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       
       // Enhance users with additional stats
-      const allJobs = await storage.getJobs();
+      const allJobs = await storage.db.select().from(jobs);
       const usersWithStats = allUsers.map(user => {
         const postedJobs = allJobs.filter(job => job.posterId === user.id);
         const completedAsWorker = allJobs.filter(job => job.workerId === user.id && job.status === 'completed');
@@ -4968,13 +4969,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
           postedJobs: postedJobs.length,
           completedJobs: completedAsWorker.length,
           verificationStatus: user.isActive ? 'verified' : 'pending',
-          lastLogin: user.lastLogin || user.createdAt
+          lastLogin: user.lastActive || new Date().toISOString()
         };
       });
       
       res.json(usersWithStats);
     } catch (error) {
-      console.error('Error fetching users:', error);
+      console.error('Admin users fetch error:', error);
       res.status(500).json({ message: 'Failed to fetch users' });
     }
   });
@@ -5022,8 +5023,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get('/api/admin/jobs', requireAdmin, async (req: Request, res: Response) => {
     try {
       const { search } = req.query;
-      let allJobs = await storage.getJobs();
-      const allUsers = await storage.getUsers();
+      let allJobs = await storage.db.select().from(jobs);
+      const allUsers = await storage.db.select().from(users);
       
       // Apply search filter
       if (search) {
@@ -5050,7 +5051,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       res.json(jobsWithDetails);
     } catch (error) {
-      console.error('Error fetching jobs:', error);
+      console.error('Admin jobs fetch error:', error);
       res.status(500).json({ message: 'Failed to fetch jobs' });
     }
   });
@@ -5095,8 +5096,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Financial/Transactions API
   app.get('/api/admin/transactions', requireAdmin, async (req: Request, res: Response) => {
     try {
-      const allEarnings = await storage.getEarnings();
-      const allUsers = await storage.getUsers();
+      const allEarnings = await storage.db.select().from(earnings);
       
       // Transform earnings into transaction format
       const transactions = allEarnings.map(earning => ({
@@ -5112,7 +5112,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       res.json(transactions);
     } catch (error) {
-      console.error('Error fetching transactions:', error);
+      console.error('Admin transactions fetch error:', error);
       res.status(500).json({ message: 'Failed to fetch transactions' });
     }
   });
