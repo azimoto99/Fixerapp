@@ -16,6 +16,7 @@ export const users = pgTable("users", {
   skills: text("skills").array(), // Array of skill names for workers
   rating: doublePrecision("rating"), // Average rating from completed jobs
   isActive: boolean("is_active").notNull().default(true),
+  isAdmin: boolean("is_admin").notNull().default(false), // Admin privileges
   lastActive: timestamp("last_active").defaultNow(),
   // Location data
   latitude: doublePrecision("latitude"), // Latitude coordinate for user's location
