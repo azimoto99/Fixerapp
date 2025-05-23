@@ -1,6 +1,7 @@
 import express, { type Express, Request, Response, NextFunction } from "express";
 import { createServer, type Server } from "http";
 import { WebSocketServer, WebSocket } from 'ws';
+import { WebSocketService } from './websocket-service';
 import { storage } from "./storage";
 import { isAdmin } from "./auth-helpers";
 import { z } from "zod";

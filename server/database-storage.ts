@@ -1073,4 +1073,82 @@ export class DatabaseStorage implements IStorage {
     
     return updatedMessage;
   }
+
+  // Enhanced messaging methods for real-time chat
+  async getMessageById(messageId: number): Promise<Message | undefined> {
+    const [message] = await this.db
+      .select()
+      .from(messages)
+      .where(eq(messages.id, messageId))
+      .limit(1);
+    
+    return message;
+  }
+
+  async getPendingMessages(userId: number): Promise<Message[]> {
+    const pendingMessages = await this.db
+      .select()
+      .from(messages)
+      .where(
+        and(
+          eq(messages.recipientId, userId),
+          eq(messages.isRead, false)
+        )
+      )
+      .orderBy(asc(messages.createdAt));
+    
+    return pendingMessages;
+  }
+
+  async getMessagesForJob(jobId: number): Promise<Message[]> {
+    const jobMessages = await this.db
+      .select()
+      .from(messages)
+      .where(eq(messages.jobId, jobId))
+      .orderBy(asc(messages.createdAt));
+    
+    return jobMessages;
+  }
+
+  async getConversation(userId1: number, userId2: number, jobId?: number): Promise<Message[]> {
+    let query = this.db
+      .select()
+      .from(messages)
+      .where(
+        or(
+          and(eq(messages.senderId, userId1), eq(messages.recipientId, userId2)),
+          and(eq(messages.senderId, userId2), eq(messages.recipientId, userId1))
+        )
+      );
+
+    if (jobId) {
+      query = query.where(eq(messages.jobId, jobId));
+    }
+
+    const conversation = await query.orderBy(asc(messages.createdAt));
+    return conversation;
+  }
+
+  async createMessage(message: any): Promise<Message> {
+    const [newMessage] = await this.db.insert(messages).values(message).returning();
+    return newMessage;
+  }
+
+  async markMessageAsRead(messageId: number, userId: number): Promise<Message | undefined> {
+    const [updatedMessage] = await this.db
+      .update(messages)
+      .set({ 
+        isRead: true, 
+        readAt: new Date() 
+      })
+      .where(
+        and(
+          eq(messages.id, messageId),
+          eq(messages.recipientId, userId)
+        )
+      )
+      .returning();
+    
+    return updatedMessage;
+  }
 }

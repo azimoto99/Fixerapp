@@ -157,7 +157,12 @@ export interface IStorage {
   // Message operations
   getMessagesBetweenUsers(userId1: number, userId2: number): Promise<Message[]>;
   markMessagesAsRead(recipientId: number, senderId: number): Promise<boolean>;
+  markMessageAsRead(messageId: number, userId: number): Promise<Message | undefined>;
   createMessage(message: InsertMessage): Promise<Message>;
+  getMessageById(messageId: number): Promise<Message | undefined>;
+  getPendingMessages(userId: number): Promise<Message[]>;
+  getMessagesForJob(jobId: number): Promise<Message[]>;
+  getConversation(userId1: number, userId2: number, jobId?: number): Promise<Message[]>;
   
   // User profile operations
   searchUsers(query: string, excludeUserId?: number): Promise<User[]>;
