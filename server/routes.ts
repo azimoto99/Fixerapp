@@ -5274,7 +5274,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Admin User Statistics
   app.get('/api/admin/users/stats', requireAdmin, async (req: Request, res: Response) => {
     try {
-      const allUsers = await storage.getUsers();
+      const allUsers = await storage.db.select().from(users);
       const today = new Date().toDateString();
       
       const stats = {
@@ -5299,7 +5299,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Admin User Management
   app.get('/api/admin/users', requireAdmin, async (req: Request, res: Response) => {
     try {
-      const allUsers = await storage.getUsers();
+      const allUsers = await storage.db.select().from(users);
       
       // Add pagination and search if needed
       const page = parseInt(req.query.page as string) || 1;
@@ -5766,7 +5766,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   apiRouter.get("/admin/dashboard-stats", isAuthenticated, isAdmin, async (req: Request, res: Response) => {
     try {
       // Get simple counts using storage methods for reliable data
-      const allUsers = await storage.getUsers();
+      const allUsers = await storage.db.select().from(users);
       const allJobs = await storage.getJobs();
       
       const activeJobs = allJobs.filter(job => job.status === 'open' || job.status === 'in_progress');
@@ -5830,7 +5830,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const { page = 1, limit = 50, search } = req.query;
       
       // Use storage methods for reliable data access
-      let allUsers = await storage.getUsers();
+      let allUsers = await storage.db.select().from(users);
       const allJobs = await storage.getJobs();
       
       // Apply search filter
@@ -5967,7 +5967,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       // Use storage methods for reliable data access
       let allJobs = await storage.getJobs();
-      const allUsers = await storage.getUsers();
+      const allUsers = await storage.db.select().from(users);
       
       // Apply filters
       if (status && status !== 'all') {
