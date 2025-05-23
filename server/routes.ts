@@ -5133,16 +5133,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
       switch (action) {
         case 'ban':
           await storage.updateUser(userId, { isActive: false });
-          
-          // Log the admin action
-          // TODO: Add to admin audit log
-          
           res.json({ message: 'User banned successfully' });
           break;
 
         case 'unban':
           await storage.updateUser(userId, { isActive: true });
           res.json({ message: 'User unbanned successfully' });
+          break;
+
+        case 'delete':
+          // Delete user and all associated data
+          await storage.db.delete(users).where(eq(users.id, userId));
+          res.json({ message: 'User deleted successfully' });
           break;
 
         case 'view':
@@ -5171,6 +5173,26 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error('Error performing user action:', error);
       res.status(500).json({ message: 'Failed to perform action' });
+    }
+  });
+
+  // Admin Job Actions - Delete Jobs
+  app.delete('/api/admin/jobs/:jobId', requireAdmin, async (req: Request, res: Response) => {
+    try {
+      const jobId = parseInt(req.params.jobId);
+      
+      const job = await storage.getJob(jobId);
+      if (!job) {
+        return res.status(404).json({ message: 'Job not found' });
+      }
+
+      // Delete job from database
+      await storage.db.delete(jobs).where(eq(jobs.id, jobId));
+      
+      res.json({ message: 'Job deleted successfully' });
+    } catch (error) {
+      console.error('Error deleting job:', error);
+      res.status(500).json({ message: 'Failed to delete job' });
     }
   });
 
