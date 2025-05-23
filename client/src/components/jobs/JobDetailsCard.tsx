@@ -46,7 +46,11 @@ import {
   Compass,
   MessageSquare,
   Phone,
-  Video
+  Video,
+  FileText,
+  Save,
+  Star,
+  TrendingUp
 } from 'lucide-react';
 import {
   AlertDialog,
@@ -90,6 +94,14 @@ const JobDetailsCard: React.FC<JobDetailsCardProps> = ({ jobId, isOpen, onClose 
   const [distanceToJob, setDistanceToJob] = useState<number | null>(null);
   const [isCheckingLocation, setIsCheckingLocation] = useState(false);
   const [showWorkerMap, setShowWorkerMap] = useState(false);
+  const [showEditForm, setShowEditForm] = useState(false);
+  const [editFormData, setEditFormData] = useState({
+    title: '',
+    description: '',
+    paymentAmount: '',
+    estimatedHours: '',
+    location: ''
+  });
 
   // Fetch job details
   const { data: job, isLoading } = useQuery({
