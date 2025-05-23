@@ -5408,5 +5408,240 @@ export async function registerRoutes(app: Express): Promise<Server> {
     });
   });
 
+  // ========================================
+  // COMPREHENSIVE ADMIN PANEL ENDPOINTS
+  // ========================================
+
+  // Dashboard & Analytics
+  apiRouter.get("/admin/dashboard-stats", isAuthenticated, isAdmin, async (req: Request, res: Response) => {
+    try {
+      const [
+        totalUsers,
+        activeJobs,
+        totalRevenue,
+        pendingReports,
+        todaySignups,
+        todayJobs,
+        completedJobs
+      ] = await Promise.all([
+        db.select({ count: count() }).from(users),
+        db.select({ count: count() }).from(jobs).where(eq(jobs.status, 'open')),
+        db.select({ total: sum(earnings.amount) }).from(earnings),
+        db.select({ count: count() }).from(userReports).where(eq(userReports.status, 'pending')),
+        db.select({ count: count() }).from(users).where(gte(users.datePosted, new Date(Date.now() - 86400000))),
+        db.select({ count: count() }).from(jobs).where(gte(jobs.datePosted, new Date(Date.now() - 86400000))),
+        db.select({ count: count() }).from(jobs).where(eq(jobs.status, 'completed'))
+      ]);
+
+      res.json({
+        totalUsers: totalUsers[0].count,
+        activeJobs: activeJobs[0].count,
+        totalRevenue: Number(totalRevenue[0].total) || 0,
+        pendingReports: pendingReports[0].count,
+        todaySignups: todaySignups[0].count,
+        todayJobs: todayJobs[0].count,
+        completedJobs: completedJobs[0].count,
+        platformHealth: 'healthy'
+      });
+    } catch (error) {
+      console.error('Admin dashboard stats error:', error);
+      res.status(500).json({ message: 'Failed to fetch dashboard stats' });
+    }
+  });
+
+  // System Health Monitor
+  apiRouter.get("/admin/system-health", isAuthenticated, isAdmin, async (req: Request, res: Response) => {
+    try {
+      const dbHealthCheck = await db.select({ count: count() }).from(users);
+      const serverUptime = process.uptime();
+      const memoryUsage = process.memoryUsage();
+      
+      res.json({
+        database: dbHealthCheck ? 'healthy' : 'error',
+        server: 'healthy',
+        uptime: Math.floor(serverUptime / 3600), // hours
+        memoryUsage: Math.round(memoryUsage.heapUsed / 1024 / 1024), // MB
+        status: 'operational'
+      });
+    } catch (error) {
+      res.status(500).json({
+        database: 'error',
+        server: 'error',
+        status: 'degraded'
+      });
+    }
+  });
+
+  // User Management - Comprehensive user directory
+  apiRouter.get("/admin/users", isAuthenticated, isAdmin, async (req: Request, res: Response) => {
+    try {
+      const { page = 1, limit = 50, search } = req.query;
+      
+      let query = db.select().from(users);
+      
+      if (search) {
+        const searchTerm = `%${search}%`;
+        query = query.where(
+          or(
+            ilike(users.username, searchTerm),
+            ilike(users.fullName, searchTerm),
+            ilike(users.email, searchTerm)
+          )
+        );
+      }
+      
+      const offset = (Number(page) - 1) * Number(limit);
+      const usersData = await query.limit(Number(limit)).offset(offset);
+      
+      // Get additional stats for each user
+      const usersWithStats = await Promise.all(
+        usersData.map(async (user) => {
+          const [jobsPosted, jobsCompleted, totalEarnings] = await Promise.all([
+            db.select({ count: count() }).from(jobs).where(eq(jobs.posterId, user.id)),
+            db.select({ count: count() }).from(jobs).where(and(eq(jobs.workerId, user.id), eq(jobs.status, 'completed'))),
+            db.select({ total: sum(earnings.amount) }).from(earnings).where(eq(earnings.userId, user.id))
+          ]);
+          
+          return {
+            ...user,
+            password: undefined, // Never return passwords
+            stats: {
+              jobsPosted: jobsPosted[0].count,
+              jobsCompleted: jobsCompleted[0].count,
+              totalEarnings: Number(totalEarnings[0].total) || 0
+            }
+          };
+        })
+      );
+      
+      res.json(usersWithStats);
+    } catch (error) {
+      console.error('Admin users fetch error:', error);
+      res.status(500).json({ message: 'Failed to fetch users' });
+    }
+  });
+
+  // User account controls
+  apiRouter.post("/admin/users/:id/suspend", isAuthenticated, isAdmin, async (req: Request, res: Response) => {
+    try {
+      const userId = parseInt(req.params.id);
+      const { reason } = req.body;
+      
+      await db.update(users)
+        .set({ 
+          isActive: false,
+          updatedAt: new Date()
+        })
+        .where(eq(users.id, userId));
+      
+      // Log admin action
+      await db.insert(adminAuditLog).values({
+        adminId: req.user!.id,
+        action: 'suspend_user',
+        targetType: 'user',
+        targetId: userId,
+        details: { reason },
+        timestamp: new Date()
+      });
+      
+      res.json({ message: 'User suspended successfully' });
+    } catch (error) {
+      console.error('Suspend user error:', error);
+      res.status(500).json({ message: 'Failed to suspend user' });
+    }
+  });
+
+  apiRouter.post("/admin/users/:id/activate", isAuthenticated, isAdmin, async (req: Request, res: Response) => {
+    try {
+      const userId = parseInt(req.params.id);
+      
+      await db.update(users)
+        .set({ 
+          isActive: true,
+          updatedAt: new Date()
+        })
+        .where(eq(users.id, userId));
+      
+      // Log admin action
+      await db.insert(adminAuditLog).values({
+        adminId: req.user!.id,
+        action: 'activate_user',
+        targetType: 'user',
+        targetId: userId,
+        timestamp: new Date()
+      });
+      
+      res.json({ message: 'User activated successfully' });
+    } catch (error) {
+      console.error('Activate user error:', error);
+      res.status(500).json({ message: 'Failed to activate user' });
+    }
+  });
+
+  // Financial Management
+  apiRouter.get("/admin/financial/overview", isAuthenticated, isAdmin, async (req: Request, res: Response) => {
+    try {
+      const [
+        totalRevenue,
+        monthlyRevenue,
+        pendingPayouts,
+        disputesCount,
+        refundsTotal
+      ] = await Promise.all([
+        db.select({ total: sum(earnings.amount) }).from(earnings),
+        db.select({ total: sum(earnings.amount) }).from(earnings)
+          .where(gte(earnings.dateEarned, new Date(Date.now() - 30 * 86400000))),
+        db.select({ total: sum(earnings.amount) }).from(earnings)
+          .where(eq(earnings.status, 'pending')),
+        db.select({ count: count() }).from(disputes).where(eq(disputes.status, 'open')),
+        db.select({ total: sum(refunds.refundAmount) }).from(refunds)
+          .where(eq(refunds.status, 'completed'))
+      ]);
+
+      res.json({
+        totalRevenue: Number(totalRevenue[0].total) || 0,
+        monthlyRevenue: Number(monthlyRevenue[0].total) || 0,
+        pendingPayouts: Number(pendingPayouts[0].total) || 0,
+        disputesCount: disputesCount[0].count,
+        refundsTotal: Number(refundsTotal[0].total) || 0
+      });
+    } catch (error) {
+      console.error('Financial overview error:', error);
+      res.status(500).json({ message: 'Failed to fetch financial data' });
+    }
+  });
+
+  // Job Management & Moderation
+  apiRouter.get("/admin/jobs", isAuthenticated, isAdmin, async (req: Request, res: Response) => {
+    try {
+      const { page = 1, limit = 50, status, category } = req.query;
+      
+      let query = db.select({
+        job: jobs,
+        poster: {
+          id: users.id,
+          username: users.username,
+          fullName: users.fullName
+        }
+      }).from(jobs).leftJoin(users, eq(jobs.posterId, users.id));
+      
+      if (status && status !== 'all') {
+        query = query.where(eq(jobs.status, status as string));
+      }
+      
+      if (category && category !== 'all') {
+        query = query.where(eq(jobs.category, category as string));
+      }
+      
+      const offset = (Number(page) - 1) * Number(limit);
+      const jobsData = await query.limit(Number(limit)).offset(offset);
+      
+      res.json(jobsData);
+    } catch (error) {
+      console.error('Admin jobs fetch error:', error);
+      res.status(500).json({ message: 'Failed to fetch jobs' });
+    }
+  });
+
   return httpServer;
 }
