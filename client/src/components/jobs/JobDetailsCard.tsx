@@ -940,7 +940,7 @@ const JobDetailsCard: React.FC<JobDetailsCardProps> = ({ jobId, isOpen, onClose 
                       </h3>
                       
                       <div className="grid grid-cols-2 gap-3">
-                        {job.status === 'open' && (
+                        {job.status === 'open' && !job.workerId && (
                           <>
                             <Button 
                               variant="outline" 

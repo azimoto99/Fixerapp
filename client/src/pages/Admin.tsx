@@ -1,11 +1,17 @@
 import { useState, useEffect } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Textarea } from "@/components/ui/textarea";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Progress } from "@/components/ui/progress";
+import { useToast } from "@/hooks/use-toast";
+import { apiRequest } from "@/lib/queryClient";
 import { 
   Users, 
   Briefcase, 
@@ -33,7 +39,49 @@ import {
   Calendar,
   Download,
   Zap,
-  MessageSquare
+  MessageSquare,
+  BarChart3,
+  PieChart,
+  Wallet,
+  CreditCard,
+  Ticket,
+  Mail,
+  Globe,
+  Database,
+  Server,
+  Cpu,
+  HardDrive,
+  Wifi,
+  RefreshCw,
+  Plus,
+  Minus,
+  Home,
+  LineChart,
+  Target,
+  Award,
+  Star,
+  MapPin,
+  Phone,
+  Lock,
+  Unlock,
+  Key,
+  Trash2,
+  Archive,
+  AlertCircle,
+  CheckCircle2,
+  XOctagon,
+  Volume2,
+  VolumeX,
+  ThumbsUp,
+  ThumbsDown,
+  Heart,
+  Share2,
+  Copy,
+  ExternalLink,
+  RotateCcw,
+  RotateCw,
+  Maximize2,
+  Minimize2
 } from "lucide-react";
 import {
   DropdownMenu,
