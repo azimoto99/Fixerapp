@@ -4904,7 +4904,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Get all users directly from database
       const allUsers = await storage.getAllUsers();
       const allJobs = await storage.getJobs();
-      const allEarnings = await storage.getAllEarnings();
+      
+      // Get all earnings using available storage methods
+      const allEarnings = [];
+      for (const user of allUsers) {
+        const userEarnings = await storage.getEarningsByWorker(user.id);
+        allEarnings.push(...userEarnings);
+      }
       
       const activeUsers = allUsers.filter(u => u.isActive).length;
       const completedJobs = allJobs.filter(j => j.status === 'completed').length;
@@ -5441,7 +5447,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Admin Financial Statistics
   app.get('/api/admin/financial/stats', requireAdmin, async (req: Request, res: Response) => {
     try {
-      const allEarnings = await storage.getAllEarnings();
+      // Get all earnings using available storage methods
+      const allUsers = await storage.getAllUsers();
+      const allEarnings = [];
+      
+      for (const user of allUsers) {
+        const userEarnings = await storage.getEarningsByWorker(user.id);
+        allEarnings.push(...userEarnings);
+      }
       
       const stats = {
         revenue: allEarnings.reduce((sum, e) => sum + (e.amount || 0), 0),

@@ -754,7 +754,7 @@ export default function AdminPanel() {
                           <TableCell>{formatCurrency(job.budget)}</TableCell>
                           <TableCell>
                             <Badge className={getStatusColor(job.status)}>
-                              {job.status.replace('_', ' ')}
+                              {job.status?.replace('_', ' ') || 'Unknown'}
                             </Badge>
                           </TableCell>
                           <TableCell>{formatDate(job.createdAt)}</TableCell>
@@ -994,7 +994,7 @@ export default function AdminPanel() {
                           </TableCell>
                           <TableCell>
                             <Badge className={getStatusColor(ticket.status)}>
-                              {ticket.status.replace('_', ' ')}
+                              {ticket.status?.replace('_', ' ') || 'Unknown'}
                             </Badge>
                           </TableCell>
                           <TableCell>{formatDate(ticket.createdAt)}</TableCell>
