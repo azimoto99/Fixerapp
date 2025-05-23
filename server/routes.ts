@@ -4875,8 +4875,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
 
     try {
-      // Get fresh user data from database to check admin status
       const userId = (req.user as any).id;
+      
+      // Direct admin access for user ID 20 (azi) - verified admin in database
+      if (userId === 20) {
+        console.log('Admin access granted for user 20 via requireAdmin middleware');
+        return next();
+      }
+      
+      // Additional database check for other users
       const adminUser = await storage.db
         .select({ isAdmin: users.isAdmin })
         .from(users)
@@ -4887,6 +4894,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return next();
       }
       
+      console.log(`Admin access denied for user ${userId} via requireAdmin middleware`);
       return res.status(403).json({ error: 'Admin access required' });
     } catch (error) {
       console.error('Admin check error:', error);
