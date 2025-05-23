@@ -4,6 +4,7 @@ import { WebSocketServer, WebSocket } from 'ws';
 import { WebSocketService } from './websocket-service';
 import { storage } from "./storage";
 import { isAdmin } from "./auth-helpers";
+import { createJobWithPaymentFirst, updateJobWithPaymentCheck } from './payment-first-job-posting';
 import { z } from "zod";
 import { db } from "./db";
 import { eq, and, desc, asc, sql, or, gte, lte, like, ilike, isNull, isNotNull, exists, count, sum, avg, max, min, not } from "drizzle-orm";
