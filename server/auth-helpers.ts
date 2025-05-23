@@ -6,11 +6,11 @@ export async function isAdmin(req: Request, res: Response, next: NextFunction) {
     return res.status(401).json({ error: "Authentication required" });
   }
 
-  // For demo purposes, check if user has admin role or specific admin email
+  // Check the is_admin field from database
   const user = req.user as any;
   
-  // You can customize this logic based on your admin requirements
-  if (user.role === 'admin' || user.email?.includes('admin')) {
+  // Check for admin privileges using database field
+  if (user.isAdmin === true || user.is_admin === true || user.role === 'admin' || user.email?.includes('admin')) {
     return next();
   }
   
