@@ -176,23 +176,150 @@ function AnalyticsDashboard() {
                 <div>
                   <p className="text-sm font-medium text-muted-foreground">{stat.title}</p>
                   <p className="text-2xl font-bold">{stat.value}</p>
-                  <p className={`text-xs ${stat.change >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                    {stat.change >= 0 ? '+' : ''}{stat.change}% from yesterday
-                  </p>
+                  <p className="text-xs text-muted-foreground">{stat.subtitle}</p>
+                  {stat.change > 0 && (
+                    <p className="text-xs text-green-600 flex items-center gap-1 mt-1">
+                      <TrendingUp className="h-3 w-3" />
+                      +{stat.change} today
+                    </p>
+                  )}
                 </div>
-                <stat.icon className={`h-8 w-8 ${stat.color}`} />
+                <div className={`p-3 rounded-full bg-background border-2 ${stat.color.replace('text-', 'border-')}`}>
+                  <stat.icon className={`h-6 w-6 ${stat.color}`} />
+                </div>
               </div>
             </CardContent>
           </Card>
         ))}
       </div>
 
-      {/* Real-time Activity */}
+      {/* System Health Monitor */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Server className="h-5 w-5" />
+              System Health
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-4">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <Database className="h-4 w-4" />
+                  <span className="text-sm">Database</span>
+                </div>
+                <Badge variant="secondary" className="bg-green-100 text-green-800">
+                  {systemHealth?.database || 'Healthy'}
+                </Badge>
+              </div>
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <Cpu className="h-4 w-4" />
+                  <span className="text-sm">Server</span>
+                </div>
+                <Badge variant="secondary" className="bg-green-100 text-green-800">
+                  {systemHealth?.status || 'Operational'}
+                </Badge>
+              </div>
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <HardDrive className="h-4 w-4" />
+                  <span className="text-sm">Memory Usage</span>
+                </div>
+                <span className="text-sm text-muted-foreground">
+                  {systemHealth?.memoryUsage || 0} MB
+                </span>
+              </div>
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <Clock className="h-4 w-4" />
+                  <span className="text-sm">Uptime</span>
+                </div>
+                <span className="text-sm text-muted-foreground">
+                  {systemHealth?.uptime || 0} hours
+                </span>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Activity className="h-5 w-5" />
+              Quick Actions
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-2 gap-3">
+              <Button variant="outline" className="h-auto p-4 flex flex-col gap-2">
+                <Bell className="h-5 w-5" />
+                <span className="text-xs">Send Notice</span>
+              </Button>
+              <Button variant="outline" className="h-auto p-4 flex flex-col gap-2">
+                <RefreshCw className="h-5 w-5" />
+                <span className="text-xs">Refresh Data</span>
+              </Button>
+              <Button variant="outline" className="h-auto p-4 flex flex-col gap-2">
+                <Download className="h-5 w-5" />
+                <span className="text-xs">Export Report</span>
+              </Button>
+              <Button variant="outline" className="h-auto p-4 flex flex-col gap-2">
+                <Settings className="h-5 w-5" />
+                <span className="text-xs">Settings</span>
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Financial Overview */}
+      {financialData && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Wallet className="h-5 w-5" />
+              Financial Overview
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+              <div className="text-center p-4 bg-muted rounded-lg">
+                <p className="text-2xl font-bold text-green-600">
+                  ${(financialData.totalRevenue || 0).toLocaleString()}
+                </p>
+                <p className="text-sm text-muted-foreground">Total Revenue</p>
+              </div>
+              <div className="text-center p-4 bg-muted rounded-lg">
+                <p className="text-2xl font-bold text-blue-600">
+                  ${(financialData.monthlyRevenue || 0).toLocaleString()}
+                </p>
+                <p className="text-sm text-muted-foreground">This Month</p>
+              </div>
+              <div className="text-center p-4 bg-muted rounded-lg">
+                <p className="text-2xl font-bold text-orange-600">
+                  ${(financialData.pendingPayouts || 0).toLocaleString()}
+                </p>
+                <p className="text-sm text-muted-foreground">Pending Payouts</p>
+              </div>
+              <div className="text-center p-4 bg-muted rounded-lg">
+                <p className="text-2xl font-bold text-red-600">
+                  {financialData.disputesCount || 0}
+                </p>
+                <p className="text-sm text-muted-foreground">Open Disputes</p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Recent Activity */}
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Activity className="h-5 w-5" />
-            Real-time Platform Activity
+            Recent Platform Activity
           </CardTitle>
         </CardHeader>
         <CardContent>
@@ -200,7 +327,7 @@ function AnalyticsDashboard() {
             <div className="flex items-center justify-between p-3 bg-muted rounded-lg">
               <div className="flex items-center gap-3">
                 <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
-                <span className="text-sm">New job posted: "House Cleaning in Downtown"</span>
+                <span className="text-sm">System operating normally</span>
               </div>
               <span className="text-xs text-muted-foreground">2 min ago</span>
             </div>
