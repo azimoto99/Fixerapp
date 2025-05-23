@@ -18,7 +18,7 @@ export async function isAdmin(req: Request, res: Response, next: NextFunction) {
     
     // Additional database check for other users
     const dbUser = await storage.getUser(user.id);
-    if (dbUser && (dbUser as any).is_admin === true) {
+    if (dbUser && (dbUser as any).isAdmin === true) {
       return next();
     }
     
