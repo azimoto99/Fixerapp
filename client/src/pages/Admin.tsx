@@ -26,7 +26,14 @@ import {
   Flag,
   CheckCircle,
   XCircle,
-  Clock
+  Clock,
+  Bell,
+  Send,
+  FileText,
+  Calendar,
+  Download,
+  Zap,
+  MessageSquare
 } from "lucide-react";
 import {
   DropdownMenu,
