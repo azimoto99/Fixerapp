@@ -2,7 +2,6 @@ import React from "@/lib/ensure-react";
 import { createRoot } from "react-dom/client";
 import App from "./App";
 import "./index.css";
-import "./components/z-index-management.css";
 import "./components/ui/dialog-fix.css";
 import { Toaster } from "@/components/ui/toaster";
 
