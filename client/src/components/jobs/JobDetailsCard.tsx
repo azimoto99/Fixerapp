@@ -606,22 +606,44 @@ const JobDetailsCard: React.FC<JobDetailsCardProps> = ({ jobId, isOpen, onClose 
                     Tasks {tasks.length > 0 && `(${tasks.filter(t => t.isCompleted).length}/${tasks.length})`}
                   </button>
                   {isJobPoster && (
-                    <button
-                      className={`px-3 py-2 ${activeTab === 'applications' ? 'border-b-2 border-primary text-primary' : 'text-muted-foreground'} transition-colors`}
-                      onClick={() => setActiveTab('applications')}
-                    >
-                      Applications {applications.length > 0 && `(${applications.length})`}
-                    </button>
+                    <>
+                      <button
+                        className={`px-3 py-2 ${activeTab === 'applications' ? 'border-b-2 border-primary text-primary' : 'text-muted-foreground'} transition-colors`}
+                        onClick={() => setActiveTab('applications')}
+                      >
+                        Applications {applications.length > 0 && `(${applications.length})`}
+                      </button>
+                      <button
+                        className={`px-3 py-2 ${activeTab === 'manage' ? 'border-b-2 border-primary text-primary' : 'text-muted-foreground'} transition-colors`}
+                        onClick={() => setActiveTab('manage')}
+                      >
+                        <Briefcase className="h-4 w-4 mr-1" />
+                        Manage
+                      </button>
+                    </>
                   )}
-                  {/* Show messaging tab only for workers, not job posters */}
-                  {!isJobPoster && (hasApplied || (job?.workerId && job.workerId === user?.id)) && (
-                    <button
-                      className={`px-3 py-2 ${activeTab === 'messages' ? 'border-b-2 border-primary text-primary' : 'text-muted-foreground'} transition-colors`}
-                      onClick={() => setActiveTab('messages')}
-                    >
-                      <MessageSquare className="h-4 w-4 mr-1" />
-                      Messages
-                    </button>
+                  {/* Enhanced worker view tabs */}
+                  {!isJobPoster && user?.accountType === 'worker' && (
+                    <>
+                      {(hasApplied || (job?.workerId && job.workerId === user?.id)) && (
+                        <button
+                          className={`px-3 py-2 ${activeTab === 'messages' ? 'border-b-2 border-primary text-primary' : 'text-muted-foreground'} transition-colors`}
+                          onClick={() => setActiveTab('messages')}
+                        >
+                          <MessageSquare className="h-4 w-4 mr-1" />
+                          Messages
+                        </button>
+                      )}
+                      {(hasApplied || (job?.workerId && job.workerId === user?.id)) && (
+                        <button
+                          className={`px-3 py-2 ${activeTab === 'worker-info' ? 'border-b-2 border-primary text-primary' : 'text-muted-foreground'} transition-colors`}
+                          onClick={() => setActiveTab('worker-info')}
+                        >
+                          <Briefcase className="h-4 w-4 mr-1" />
+                          My Work
+                        </button>
+                      )}
+                    </>
                   )}
                 </div>
                 
@@ -817,6 +839,163 @@ const JobDetailsCard: React.FC<JobDetailsCardProps> = ({ jobId, isOpen, onClose 
                       currentUserId={user.id}
                       className="h-full"
                     />
+                  </div>
+                )}
+
+                {/* Manage Tab Content - Enhanced job poster controls */}
+                {activeTab === 'manage' && isJobPoster && (
+                  <div className="space-y-6">
+                    {/* Job Status Overview */}
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="bg-gradient-to-r from-blue-50 to-blue-100 dark:from-blue-900/20 dark:to-blue-800/20 rounded-lg p-4 border border-blue-200 dark:border-blue-800">
+                        <div className="flex items-center justify-between">
+                          <div>
+                            <p className="text-sm font-medium text-blue-700 dark:text-blue-300">Applications</p>
+                            <p className="text-2xl font-bold text-blue-900 dark:text-blue-100">{applications.length}</p>
+                          </div>
+                          <User className="h-8 w-8 text-blue-500" />
+                        </div>
+                      </div>
+                      
+                      <div className="bg-gradient-to-r from-green-50 to-green-100 dark:from-green-900/20 dark:to-green-800/20 rounded-lg p-4 border border-green-200 dark:border-green-800">
+                        <div className="flex items-center justify-between">
+                          <div>
+                            <p className="text-sm font-medium text-green-700 dark:text-green-300">Status</p>
+                            <p className="text-lg font-bold text-green-900 dark:text-green-100 capitalize">{job.status}</p>
+                          </div>
+                          <CheckCircle2 className="h-8 w-8 text-green-500" />
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Quick Actions */}
+                    <div className="border rounded-lg p-4">
+                      <h3 className="text-lg font-semibold mb-3 flex items-center">
+                        <Edit className="h-5 w-5 mr-2 text-primary" />
+                        Quick Actions
+                      </h3>
+                      
+                      <div className="grid grid-cols-2 gap-3">
+                        {job.status === 'open' && (
+                          <>
+                            <Button variant="outline" className="w-full" onClick={() => console.log('Edit job')}>
+                              <Edit className="h-4 w-4 mr-2" />
+                              Edit Job Details
+                            </Button>
+                            <Button variant="outline" className="w-full" onClick={() => console.log('Boost job')}>
+                              <Navigation className="h-4 w-4 mr-2" />
+                              Boost Visibility
+                            </Button>
+                          </>
+                        )}
+                        
+                        {job.status === 'assigned' && (
+                          <Button variant="outline" className="w-full" onClick={() => setShowWorkerMap(true)}>
+                            <MapIcon className="h-4 w-4 mr-2" />
+                            Track Worker
+                          </Button>
+                        )}
+                        
+                        <Button variant="outline" className="w-full" onClick={() => console.log('View analytics')}>
+                          <Timer className="h-4 w-4 mr-2" />
+                          View Analytics
+                        </Button>
+                      </div>
+                    </div>
+
+                    {/* Job Performance Metrics */}
+                    <div className="border rounded-lg p-4">
+                      <h3 className="text-lg font-semibold mb-3 flex items-center">
+                        <CheckCircle2 className="h-5 w-5 mr-2 text-primary" />
+                        Performance Metrics
+                      </h3>
+                      
+                      <div className="space-y-3">
+                        <div className="flex justify-between items-center">
+                          <span className="text-sm text-muted-foreground">Posted</span>
+                          <span className="text-sm font-medium">{format(new Date(job.datePosted), 'MMM d, yyyy')}</span>
+                        </div>
+                        
+                        <div className="flex justify-between items-center">
+                          <span className="text-sm text-muted-foreground">Days Active</span>
+                          <span className="text-sm font-medium">
+                            {Math.floor((new Date().getTime() - new Date(job.datePosted).getTime()) / (1000 * 60 * 60 * 24))} days
+                          </span>
+                        </div>
+                        
+                        <div className="flex justify-between items-center">
+                          <span className="text-sm text-muted-foreground">Applications Rate</span>
+                          <span className="text-sm font-medium">
+                            {applications.length > 0 ? `${applications.length} received` : 'No applications yet'}
+                          </span>
+                        </div>
+                        
+                        {tasks.length > 0 && (
+                          <div className="flex justify-between items-center">
+                            <span className="text-sm text-muted-foreground">Task Progress</span>
+                            <span className="text-sm font-medium">
+                              {tasks.filter(t => t.isCompleted).length}/{tasks.length} completed
+                            </span>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Payment & Budget Tracking */}
+                    <div className="border rounded-lg p-4">
+                      <h3 className="text-lg font-semibold mb-3 flex items-center">
+                        <DollarSign className="h-5 w-5 mr-2 text-primary" />
+                        Payment & Budget
+                      </h3>
+                      
+                      <div className="space-y-3">
+                        <div className="flex justify-between items-center">
+                          <span className="text-sm text-muted-foreground">Job Budget</span>
+                          <span className="text-lg font-bold text-green-600">
+                            ${job.paymentAmount.toFixed(2)} {job.paymentType === 'hourly' ? '/hour' : 'total'}
+                          </span>
+                        </div>
+                        
+                        <div className="flex justify-between items-center">
+                          <span className="text-sm text-muted-foreground">Payment Status</span>
+                          <Badge variant={job.status === 'completed' ? 'default' : 'secondary'}>
+                            {job.status === 'completed' ? 'Payment Due' : 'Pending Completion'}
+                          </Badge>
+                        </div>
+                        
+                        {job.estimatedHours && (
+                          <div className="flex justify-between items-center">
+                            <span className="text-sm text-muted-foreground">Estimated Total</span>
+                            <span className="text-sm font-medium">
+                              ${(job.paymentAmount * job.estimatedHours).toFixed(2)}
+                            </span>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Advanced Controls */}
+                    {job.status === 'open' && applications.length === 0 && (
+                      <div className="border border-yellow-200 bg-yellow-50 dark:bg-yellow-900/20 dark:border-yellow-800 rounded-lg p-4">
+                        <div className="flex items-start space-x-3">
+                          <AlertCircle className="h-5 w-5 text-yellow-600 dark:text-yellow-400 mt-0.5" />
+                          <div className="flex-1">
+                            <h4 className="text-sm font-medium text-yellow-800 dark:text-yellow-200">No Applications Yet</h4>
+                            <p className="text-sm text-yellow-700 dark:text-yellow-300 mt-1">
+                              Consider adjusting your job details or payment to attract more workers.
+                            </p>
+                            <div className="mt-3 flex space-x-2">
+                              <Button size="sm" variant="outline" className="text-yellow-700 border-yellow-300 hover:bg-yellow-100">
+                                Edit Payment
+                              </Button>
+                              <Button size="sm" variant="outline" className="text-yellow-700 border-yellow-300 hover:bg-yellow-100">
+                                Update Details
+                              </Button>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    )}
                   </div>
                 )}
                 
