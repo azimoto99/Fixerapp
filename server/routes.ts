@@ -4356,11 +4356,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Initialize Stripe payment methods API
   setupStripePaymentMethodsRoutes(app);
 
-  // ===== REAL-TIME MESSAGING SYSTEM =====
+  // ===== ROBUST REAL-TIME MESSAGING SYSTEM =====
   
-  // WebSocket connection tracking
-  const connectedClients = new Map<number, WebSocket>();
-  const messageRooms = new Map<string, Set<WebSocket>>();
+  // Initialize WebSocket service with enterprise-grade features
+  let webSocketService: WebSocketService;
   
   // Configure avatar upload storage
   const avatarStorage = multer.diskStorage({
