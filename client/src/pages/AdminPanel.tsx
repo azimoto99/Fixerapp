@@ -3,7 +3,6 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { apiRequest } from '@/lib/queryClient';
 import { useAuth } from '@/hooks/use-auth';
 import { useLocation } from 'wouter';
-import { useToast } from '@/hooks/use-toast';
 import { 
   Tabs, 
   TabsContent, 
@@ -14,16 +13,22 @@ import {
   Card,
   CardContent,
   CardDescription,
-  CardFooter,
   CardHeader,
   CardTitle,
 } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Separator } from '@/components/ui/separator';
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table';
 import {
   Dialog,
   DialogContent,
@@ -31,1234 +36,1428 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-} from "@/components/ui/dialog";
+  DialogTrigger,
+} from '@/components/ui/dialog';
+import { Textarea } from '@/components/ui/textarea';
+import { Label } from '@/components/ui/label';
+import { Switch } from '@/components/ui/switch';
+import { useToast } from '@/hooks/use-toast';
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import {
-  Table,
-  TableBody,
-  TableCaption,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@/components/ui/table';
-import {
+  Shield,
   Users,
   Briefcase,
-  CreditCard,
-  Bell,
-  AlertCircle,
-  Shield,
+  DollarSign,
+  AlertTriangle,
+  Settings,
+  HelpCircle,
+  BarChart3,
   Search,
   RefreshCw,
-  Settings,
-  DollarSign,
-  BarChart2,
-  HelpCircle,
-  User,
-  Star,
-  Calendar,
-  Clock,
-  FileText,
-  MoreHorizontal,
+  Ban,
   CheckCircle,
   XCircle,
-  Ban,
-  LockKeyhole,
-  AlertTriangle
+  Eye,
+  Trash2,
+  MessageSquare,
+  Download,
+  Filter,
+  Plus,
+  Edit,
+  FileText,
+  Activity,
+  TrendingUp,
+  Clock,
+  MapPin,
+  Star,
+  Mail,
+  Phone,
+  Calendar,
+  CreditCard,
+  AlertCircle,
+  Info,
+  UserCheck,
+  UserX,
+  Bookmark,
+  Flag,
+  Hash,
+  Globe,
+  Server,
+  Database,
+  Zap,
+  Wifi,
+  Monitor,
+  HardDrive,
+  Cpu,
+  MemoryStick
 } from 'lucide-react';
-import { Skeleton } from '@/components/ui/skeleton';
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-  AlertDialogTrigger,
-} from "@/components/ui/alert-dialog";
 
-const AdminPanel = () => {
-  const { toast } = useToast();
+interface User {
+  id: number;
+  username: string;
+  fullName: string;
+  email: string;
+  accountType: 'worker' | 'poster';
+  isActive: boolean;
+  isAdmin: boolean;
+  rating: number;
+  createdAt: string;
+  lastLogin?: string;
+  totalEarnings?: number;
+  completedJobs?: number;
+  postedJobs?: number;
+  avatarUrl?: string;
+  verificationStatus?: 'pending' | 'verified' | 'rejected';
+}
+
+interface Job {
+  id: number;
+  title: string;
+  description: string;
+  category: string;
+  status: 'open' | 'in_progress' | 'completed' | 'cancelled';
+  budget: number;
+  location: string;
+  posterId: number;
+  workerId?: number;
+  createdAt: string;
+  completedAt?: string;
+  posterName?: string;
+  workerName?: string;
+}
+
+interface Transaction {
+  id: number;
+  amount: number;
+  type: 'payment' | 'refund' | 'fee' | 'payout';
+  status: 'pending' | 'completed' | 'failed';
+  userId: number;
+  jobId?: number;
+  createdAt: string;
+  description: string;
+}
+
+interface SupportTicket {
+  id: number;
+  title: string;
+  description: string;
+  status: 'open' | 'in_progress' | 'resolved' | 'closed';
+  priority: 'low' | 'medium' | 'high' | 'urgent';
+  userId: number;
+  assignedTo?: number;
+  createdAt: string;
+  updatedAt: string;
+  userName?: string;
+  category: 'technical' | 'billing' | 'dispute' | 'general';
+}
+
+interface SystemMetric {
+  name: string;
+  value: number;
+  unit: string;
+  status: 'good' | 'warning' | 'critical';
+  trend: 'up' | 'down' | 'stable';
+}
+
+interface DashboardStats {
+  totalUsers: number;
+  activeUsers: number;
+  totalJobs: number;
+  completedJobs: number;
+  totalRevenue: number;
+  pendingSupport: number;
+  systemHealth: 'healthy' | 'warning' | 'critical';
+  userGrowth: number;
+  jobGrowth: number;
+  revenueGrowth: number;
+}
+
+// Component starts here
+export default function AdminPanel() {
   const { user } = useAuth();
-  const [, navigate] = useLocation();
-  const [activeTab, setActiveTab] = useState('dashboard');
-  const [searchQuery, setSearchQuery] = useState('');
+  const [_, navigate] = useLocation();
+  const { toast } = useToast();
   const queryClient = useQueryClient();
   
-  // Admin job creation state
-  const [showAdminJobModal, setShowAdminJobModal] = useState(false);
-  const [jobTitle, setJobTitle] = useState('');
-  const [jobDescription, setJobDescription] = useState('');
-  const [jobCategory, setJobCategory] = useState('Cleaning');
-  const [jobLocation, setJobLocation] = useState('');
-  const [jobBudget, setJobBudget] = useState('');
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  
-  // REMOVED: Admin job creation that bypassed payment - security vulnerability fixed
-  // All jobs must go through the standard payment-first workflow for platform integrity;
-  
-  // Check if user is authorized to access the admin panel (only azi with ID 20)
+  // State for filters and search
+  const [userSearch, setUserSearch] = useState('');
+  const [jobSearch, setJobSearch] = useState('');
+  const [supportSearch, setSupportSearch] = useState('');
+  const [selectedUser, setSelectedUser] = useState<User | null>(null);
+  const [selectedJob, setSelectedJob] = useState<Job | null>(null);
+  const [selectedTicket, setSelectedTicket] = useState<SupportTicket | null>(null);
+
+  // Check admin access
   useEffect(() => {
-    if (!user) {
-      toast({
-        title: "Authentication Required",
-        description: "Please log in to continue.",
-        variant: "destructive"
-      });
-      navigate('/login');
-      return;
-    }
-    
-    if (user.id !== 20) {
-      toast({
-        title: "Access Denied",
-        description: "You don't have permission to access the admin panel.",
-        variant: "destructive"
-      });
+    if (!user || !user.isAdmin) {
       navigate('/');
-    }
-  }, [user, navigate, toast]);
-
-  // Dashboard stats query
-  const { 
-    data: dashboardStats, 
-    isLoading: isLoadingStats,
-    refetch: refetchStats
-  } = useQuery({
-    queryKey: ['/api/admin/stats'],
-    queryFn: async () => {
-      const res = await apiRequest('GET', '/api/admin/stats');
-      if (!res.ok) {
-        throw new Error('Failed to fetch admin stats');
-      }
-      return res.json();
-    }
-  });
-
-  // Users query
-  const { 
-    data: users, 
-    isLoading: isLoadingUsers,
-    refetch: refetchUsers
-  } = useQuery({
-    queryKey: ['/api/admin/users', { search: searchQuery }],
-    queryFn: async () => {
-      const res = await apiRequest('GET', `/api/admin/users${searchQuery ? `?search=${searchQuery}` : ''}`);
-      if (!res.ok) {
-        throw new Error('Failed to fetch users');
-      }
-      return res.json();
-    }
-  });
-
-  // Jobs query
-  const { 
-    data: jobs, 
-    isLoading: isLoadingJobs,
-    refetch: refetchJobs
-  } = useQuery({
-    queryKey: ['/api/admin/jobs', { search: searchQuery }],
-    queryFn: async () => {
-      const res = await apiRequest('GET', `/api/admin/jobs${searchQuery ? `?search=${searchQuery}` : ''}`);
-      if (!res.ok) {
-        throw new Error('Failed to fetch jobs');
-      }
-      return res.json();
-    }
-  });
-
-  // Payments query
-  const { 
-    data: payments, 
-    isLoading: isLoadingPayments,
-    refetch: refetchPayments
-  } = useQuery({
-    queryKey: ['/api/admin/payments', { search: searchQuery }],
-    queryFn: async () => {
-      const res = await apiRequest('GET', `/api/admin/payments${searchQuery ? `?search=${searchQuery}` : ''}`);
-      if (!res.ok) {
-        throw new Error('Failed to fetch payments');
-      }
-      return res.json();
-    }
-  });
-
-  // System status query
-  const { 
-    data: systemStatus, 
-    isLoading: isLoadingSystem,
-    refetch: refetchSystem
-  } = useQuery({
-    queryKey: ['/api/admin/system'],
-    queryFn: async () => {
-      const res = await apiRequest('GET', '/api/admin/system');
-      if (!res.ok) {
-        throw new Error('Failed to fetch system status');
-      }
-      return res.json();
-    }
-  });
-
-  // Handle search
-  const handleSearch = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (activeTab === 'users') refetchUsers();
-    if (activeTab === 'jobs') refetchJobs();
-    if (activeTab === 'payments') refetchPayments();
-  };
-
-  // State for confirmation dialogs
-  const [confirmationState, setConfirmationState] = useState<{
-    open: boolean;
-    userId?: number;
-    username?: string;
-    action?: string;
-    title: string;
-    description: string;
-    dangerous: boolean;
-  }>({
-    open: false,
-    title: '',
-    description: '',
-    dangerous: false
-  });
-  
-  // Open confirmation dialog for actions that need confirmation
-  const openConfirmation = (userId: number, action: string, username: string) => {
-    let title = 'Confirm Action';
-    let description = `Are you sure you want to perform this action?`;
-    let dangerous = false;
-    
-    if (action === 'delete') {
-      title = 'Delete User';
-      description = `Are you sure you want to permanently delete the user "${username}"? This action cannot be undone.`;
-      dangerous = true;
-    } else if (action === 'reset-password') {
-      title = 'Reset Password';
-      description = `Are you sure you want to reset the password for user "${username}"? They will need to create a new password.`;
-      dangerous = false;
-    } else if (action === 'deactivate') {
-      title = 'Deactivate User';
-      description = `Are you sure you want to deactivate user "${username}"? They will no longer be able to access the platform.`;
-      dangerous = false;
-    }
-    
-    setConfirmationState({
-      open: true,
-      userId,
-      username,
-      action,
-      title,
-      description,
-      dangerous
-    });
-  };
-  
-  // Close confirmation dialog
-  const closeConfirmation = () => {
-    setConfirmationState({
-      ...confirmationState,
-      open: false
-    });
-  };
-
-  // Execute the confirmed action
-  const executeUserAction = async () => {
-    if (!confirmationState.userId || !confirmationState.action) return;
-    
-    const userId = confirmationState.userId;
-    const action = confirmationState.action;
-    
-    try {
-      const res = await apiRequest('POST', '/api/admin/users/action', {
-        userId,
-        action
-      });
-
-      if (!res.ok) {
-        const error = await res.json();
-        throw new Error(error.message || 'Action failed');
-      }
-
       toast({
-        title: 'Success',
-        description: `User action "${action}" completed successfully`,
-      });
-
-      // Close the confirmation dialog
-      closeConfirmation();
-      
-      // Refresh user data
-      refetchUsers();
-    } catch (error: any) {
-      toast({
-        title: 'Error',
-        description: error.message || 'Failed to perform action',
-        variant: 'destructive',
-      });
-      
-      // Keep the dialog open on error
-      setConfirmationState({
-        ...confirmationState,
-        description: `Error: ${error.message || 'Unknown error occurred'}`
-      });
-    }
-  };
-  
-  // Handle user actions - determines whether to show confirmation or execute directly
-  const handleUserAction = (userId: number, action: string, username: string) => {
-    // Actions that require confirmation
-    if (['delete', 'reset-password', 'deactivate'].includes(action)) {
-      openConfirmation(userId, action, username);
-    } else {
-      // Actions that can be executed immediately
-      executeAction(userId, action);
-    }
-  };
-  
-  // Direct execution for actions that don't need confirmation
-  const executeAction = async (userId: number, action: string) => {
-    try {
-      const res = await apiRequest('POST', '/api/admin/users/action', {
-        userId,
-        action
-      });
-
-      if (!res.ok) {
-        const error = await res.json();
-        throw new Error(error.message || 'Action failed');
-      }
-
-      toast({
-        title: 'Success',
-        description: `User action "${action}" completed successfully`,
-      });
-
-      refetchUsers();
-    } catch (error: any) {
-      toast({
-        title: 'Error',
-        description: error.message || 'Failed to perform action',
+        title: 'Access Denied',
+        description: 'Admin privileges required to access this page.',
         variant: 'destructive',
       });
     }
-  };
+  }, [user, navigate]);
 
-  // Handle job actions
-  const handleJobAction = async (jobId: number, action: string) => {
-    try {
-      const res = await apiRequest('POST', '/api/admin/jobs/action', {
-        jobId,
-        action
-      });
+  // Dashboard Stats Query
+  const { data: dashboardStats, isLoading: isDashboardLoading } = useQuery({
+    queryKey: ['/api/admin/dashboard-stats'],
+    queryFn: async () => {
+      const res = await apiRequest('GET', '/api/admin/dashboard-stats');
+      if (!res.ok) throw new Error('Failed to fetch dashboard stats');
+      return res.json() as Promise<DashboardStats>;
+    }
+  });
 
-      if (!res.ok) {
-        const error = await res.json();
-        throw new Error(error.message || 'Action failed');
-      }
+  // Users Query
+  const { data: users = [], isLoading: isUsersLoading, refetch: refetchUsers } = useQuery({
+    queryKey: ['/api/admin/users', userSearch],
+    queryFn: async () => {
+      const searchParam = userSearch ? `?search=${encodeURIComponent(userSearch)}` : '';
+      const res = await apiRequest('GET', `/api/admin/users${searchParam}`);
+      if (!res.ok) throw new Error('Failed to fetch users');
+      return res.json() as Promise<User[]>;
+    }
+  });
 
+  // Jobs Query
+  const { data: jobs = [], isLoading: isJobsLoading, refetch: refetchJobs } = useQuery({
+    queryKey: ['/api/admin/jobs', jobSearch],
+    queryFn: async () => {
+      const searchParam = jobSearch ? `?search=${encodeURIComponent(jobSearch)}` : '';
+      const res = await apiRequest('GET', `/api/admin/jobs${searchParam}`);
+      if (!res.ok) throw new Error('Failed to fetch jobs');
+      return res.json() as Promise<Job[]>;
+    }
+  });
+
+  // Transactions Query
+  const { data: transactions = [], isLoading: isTransactionsLoading } = useQuery({
+    queryKey: ['/api/admin/transactions'],
+    queryFn: async () => {
+      const res = await apiRequest('GET', '/api/admin/transactions');
+      if (!res.ok) throw new Error('Failed to fetch transactions');
+      return res.json() as Promise<Transaction[]>;
+    }
+  });
+
+  // Support Tickets Query
+  const { data: supportTickets = [], isLoading: isSupportLoading, refetch: refetchSupport } = useQuery({
+    queryKey: ['/api/admin/support', supportSearch],
+    queryFn: async () => {
+      const searchParam = supportSearch ? `?search=${encodeURIComponent(supportSearch)}` : '';
+      const res = await apiRequest('GET', `/api/admin/support${searchParam}`);
+      if (!res.ok) throw new Error('Failed to fetch support tickets');
+      return res.json() as Promise<SupportTicket[]>;
+    }
+  });
+
+  // System Metrics Query
+  const { data: systemMetrics = [], isLoading: isSystemLoading } = useQuery({
+    queryKey: ['/api/admin/system-metrics'],
+    queryFn: async () => {
+      const res = await apiRequest('GET', '/api/admin/system-metrics');
+      if (!res.ok) throw new Error('Failed to fetch system metrics');
+      return res.json() as Promise<SystemMetric[]>;
+    }
+  });
+
+  // User Actions Mutation
+  const userActionMutation = useMutation({
+    mutationFn: async ({ userId, action, reason }: { userId: number; action: string; reason?: string }) => {
+      const res = await apiRequest('POST', `/api/admin/users/${userId}/${action}`, { reason });
+      if (!res.ok) throw new Error(`Failed to ${action} user`);
+      return res.json();
+    },
+    onSuccess: () => {
+      refetchUsers();
       toast({
         title: 'Success',
-        description: `Job action "${action}" completed successfully`,
+        description: 'User action completed successfully.',
       });
+    },
+    onError: (error) => {
+      toast({
+        title: 'Error',
+        description: error.message,
+        variant: 'destructive',
+      });
+    }
+  });
 
+  // Job Actions Mutation
+  const jobActionMutation = useMutation({
+    mutationFn: async ({ jobId, action, reason }: { jobId: number; action: string; reason?: string }) => {
+      const res = await apiRequest('POST', `/api/admin/jobs/${jobId}/${action}`, { reason });
+      if (!res.ok) throw new Error(`Failed to ${action} job`);
+      return res.json();
+    },
+    onSuccess: () => {
       refetchJobs();
-    } catch (error: any) {
-      toast({
-        title: 'Error',
-        description: error.message || 'Failed to perform action',
-        variant: 'destructive',
-      });
-    }
-  };
-
-  // Handle payment actions
-  const handlePaymentAction = async (paymentId: number, action: string) => {
-    try {
-      const res = await apiRequest('POST', '/api/admin/payments/action', {
-        paymentId,
-        action
-      });
-
-      if (!res.ok) {
-        const error = await res.json();
-        throw new Error(error.message || 'Action failed');
-      }
-
       toast({
         title: 'Success',
-        description: `Payment action "${action}" completed successfully`,
+        description: 'Job action completed successfully.',
       });
-
-      refetchPayments();
-    } catch (error: any) {
+    },
+    onError: (error) => {
       toast({
         title: 'Error',
-        description: error.message || 'Failed to perform action',
+        description: error.message,
         variant: 'destructive',
       });
     }
+  });
+
+  // Support Actions Mutation
+  const supportActionMutation = useMutation({
+    mutationFn: async ({ ticketId, action, note }: { ticketId: number; action: string; note?: string }) => {
+      const res = await apiRequest('POST', `/api/admin/support/${ticketId}/${action}`, { note });
+      if (!res.ok) throw new Error(`Failed to ${action} ticket`);
+      return res.json();
+    },
+    onSuccess: () => {
+      refetchSupport();
+      toast({
+        title: 'Success',
+        description: 'Support ticket updated successfully.',
+      });
+    },
+    onError: (error) => {
+      toast({
+        title: 'Error',
+        description: error.message,
+        variant: 'destructive',
+      });
+    }
+  });
+
+  // Helper functions
+  const formatCurrency = (amount: number) => {
+    return new Intl.NumberFormat('en-US', {
+      style: 'currency',
+      currency: 'USD',
+    }).format(amount);
   };
 
-  // Refresh all data
-  const refreshAllData = () => {
-    refetchStats();
-    refetchUsers();
-    refetchJobs();
-    refetchPayments();
-    refetchSystem();
-    
-    toast({
-      title: 'Refreshed',
-      description: 'All admin data has been refreshed',
+  const formatDate = (dateString: string) => {
+    return new Date(dateString).toLocaleDateString('en-US', {
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit',
     });
   };
+
+  const getStatusColor = (status: string) => {
+    switch (status.toLowerCase()) {
+      case 'active':
+      case 'completed':
+      case 'verified':
+      case 'resolved':
+        return 'bg-green-100 text-green-800';
+      case 'pending':
+      case 'in_progress':
+      case 'open':
+        return 'bg-yellow-100 text-yellow-800';
+      case 'inactive':
+      case 'cancelled':
+      case 'rejected':
+      case 'failed':
+        return 'bg-red-100 text-red-800';
+      case 'closed':
+        return 'bg-gray-100 text-gray-800';
+      default:
+        return 'bg-blue-100 text-blue-800';
+    }
+  };
+
+  const getPriorityColor = (priority: string) => {
+    switch (priority.toLowerCase()) {
+      case 'urgent':
+        return 'bg-red-100 text-red-800 border-red-200';
+      case 'high':
+        return 'bg-orange-100 text-orange-800 border-orange-200';
+      case 'medium':
+        return 'bg-yellow-100 text-yellow-800 border-yellow-200';
+      case 'low':
+        return 'bg-green-100 text-green-800 border-green-200';
+      default:
+        return 'bg-gray-100 text-gray-800 border-gray-200';
+    }
+  };
+
+  if (!user || !user.isAdmin) {
+    return null;
+  }
 
   return (
-    <div className="container mx-auto py-6 px-4 max-w-7xl">
-      <div className="flex items-center justify-between mb-6">
-        <div className="flex items-center space-x-2">
-          <Shield className="h-6 w-6 text-primary" />
-          <h1 className="text-2xl font-bold">Admin Panel</h1>
-        </div>
-        <Button onClick={refreshAllData} size="sm" variant="outline" className="gap-1">
-          <RefreshCw className="h-4 w-4" />
-          Refresh
-        </Button>
-      </div>
-
-      <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
-        <TabsList className="grid grid-cols-5">
-          <TabsTrigger value="dashboard" className="flex items-center gap-1">
-            <BarChart2 className="h-4 w-4" />
-            <span className="hidden sm:inline">Dashboard</span>
-          </TabsTrigger>
-          <TabsTrigger value="users" className="flex items-center gap-1">
-            <Users className="h-4 w-4" />
-            <span className="hidden sm:inline">Users</span>
-          </TabsTrigger>
-          <TabsTrigger value="jobs" className="flex items-center gap-1">
-            <Briefcase className="h-4 w-4" />
-            <span className="hidden sm:inline">Jobs</span>
-          </TabsTrigger>
-          <TabsTrigger value="payments" className="flex items-center gap-1">
-            <DollarSign className="h-4 w-4" />
-            <span className="hidden sm:inline">Payments</span>
-          </TabsTrigger>
-          <TabsTrigger value="system" className="flex items-center gap-1">
-            <Settings className="h-4 w-4" />
-            <span className="hidden sm:inline">System</span>
-          </TabsTrigger>
-        </TabsList>
-
-        {/* Dashboard Tab */}
-        <TabsContent value="dashboard" className="space-y-4">
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-            {/* Total Users Card */}
-            <Card>
-              <CardHeader className="pb-2">
-                <CardTitle className="text-sm font-medium">Total Users</CardTitle>
-              </CardHeader>
-              <CardContent>
-                {isLoadingStats ? (
-                  <Skeleton className="h-8 w-16" />
-                ) : (
-                  <div className="text-2xl font-bold">{dashboardStats?.totalUsers || 0}</div>
-                )}
-                <p className="text-xs text-muted-foreground mt-1">
-                  {isLoadingStats ? (
-                    <Skeleton className="h-4 w-24" />
-                  ) : (
-                    <>+{dashboardStats?.newUsers || 0} from last month</>
-                  )}
-                </p>
-              </CardContent>
-            </Card>
-
-            {/* Active Jobs Card */}
-            <Card>
-              <CardHeader className="pb-2">
-                <CardTitle className="text-sm font-medium">Active Jobs</CardTitle>
-              </CardHeader>
-              <CardContent>
-                {isLoadingStats ? (
-                  <Skeleton className="h-8 w-16" />
-                ) : (
-                  <div className="text-2xl font-bold">{dashboardStats?.activeJobs || 0}</div>
-                )}
-                <p className="text-xs text-muted-foreground mt-1">
-                  {isLoadingStats ? (
-                    <Skeleton className="h-4 w-24" />
-                  ) : (
-                    <>{dashboardStats?.completedJobs || 0} completed this month</>
-                  )}
-                </p>
-              </CardContent>
-            </Card>
-
-            {/* Revenue Card */}
-            <Card>
-              <CardHeader className="pb-2">
-                <CardTitle className="text-sm font-medium">Revenue</CardTitle>
-              </CardHeader>
-              <CardContent>
-                {isLoadingStats ? (
-                  <Skeleton className="h-8 w-16" />
-                ) : (
-                  <div className="text-2xl font-bold">${dashboardStats?.revenue?.toFixed(2) || '0.00'}</div>
-                )}
-                <p className="text-xs text-muted-foreground mt-1">
-                  {isLoadingStats ? (
-                    <Skeleton className="h-4 w-24" />
-                  ) : (
-                    <>+${dashboardStats?.revenueGrowth?.toFixed(2) || '0.00'} from last month</>
-                  )}
-                </p>
-              </CardContent>
-            </Card>
-
-            {/* System Status Card */}
-            <Card>
-              <CardHeader className="pb-2">
-                <CardTitle className="text-sm font-medium">System Status</CardTitle>
-              </CardHeader>
-              <CardContent>
-                {isLoadingStats ? (
-                  <Skeleton className="h-8 w-16" />
-                ) : (
-                  <div className="flex items-center gap-2">
-                    <div className={`w-3 h-3 rounded-full ${systemStatus?.healthy ? 'bg-green-500' : 'bg-red-500'}`}></div>
-                    <span className="text-sm font-medium">{systemStatus?.healthy ? 'Healthy' : 'Issues Detected'}</span>
-                  </div>
-                )}
-                <p className="text-xs text-muted-foreground mt-1">
-                  {isLoadingStats ? (
-                    <Skeleton className="h-4 w-24" />
-                  ) : (
-                    <>Last checked: {new Date().toLocaleTimeString()}</>
-                  )}
-                </p>
-              </CardContent>
-            </Card>
-          </div>
-
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-            {/* Recent Activity */}
-            <Card className="col-span-1">
-              <CardHeader>
-                <CardTitle>Recent Activity</CardTitle>
-                <CardDescription>Latest actions across the platform</CardDescription>
-              </CardHeader>
-              <CardContent>
-                {isLoadingStats ? (
-                  <div className="space-y-2">
-                    {Array(5).fill(0).map((_, i) => (
-                      <div key={i} className="flex items-center gap-2">
-                        <Skeleton className="h-8 w-8 rounded-full" />
-                        <div className="space-y-1">
-                          <Skeleton className="h-4 w-32" />
-                          <Skeleton className="h-3 w-24" />
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                ) : dashboardStats?.recentActivity && dashboardStats.recentActivity.length > 0 ? (
-                  <ScrollArea className="h-[300px]">
-                    <div className="space-y-4">
-                      {dashboardStats.recentActivity.map((activity: any, i: number) => (
-                        <div key={i} className="flex items-start gap-3">
-                          <div className="rounded-full w-8 h-8 flex items-center justify-center bg-muted">
-                            {getActivityIcon(activity.type)}
-                          </div>
-                          <div className="space-y-1">
-                            <p className="text-sm">{activity.description}</p>
-                            <p className="text-xs text-muted-foreground">
-                              {new Date(activity.timestamp).toLocaleString()}
-                            </p>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  </ScrollArea>
-                ) : (
-                  <div className="flex flex-col items-center justify-center h-[300px] text-center">
-                    <Clock className="h-8 w-8 text-muted-foreground mb-2 opacity-50" />
-                    <p className="text-sm text-muted-foreground">No recent activity</p>
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-
-            {/* Analytics Overview */}
-            <Card className="col-span-1">
-              <CardHeader>
-                <CardTitle>Analytics Overview</CardTitle>
-                <CardDescription>Platform performance metrics</CardDescription>
-              </CardHeader>
-              <CardContent>
-                {isLoadingStats ? (
-                  <div className="space-y-4">
-                    {Array(4).fill(0).map((_, i) => (
-                      <div key={i} className="space-y-1">
-                        <Skeleton className="h-4 w-24" />
-                        <Skeleton className="h-4 w-full" />
-                      </div>
-                    ))}
-                  </div>
-                ) : dashboardStats?.analytics ? (
-                  <div className="space-y-6">
-                    {Object.entries(dashboardStats.analytics).map(([key, value]: [string, any]) => (
-                      <div key={key}>
-                        <div className="flex items-center justify-between mb-1">
-                          <span className="text-sm font-medium">{formatAnalyticsKey(key)}</span>
-                          <span className="text-sm">{typeof value === 'number' ? 
-                            (key.includes('rate') ? `${(value * 100).toFixed(1)}%` : value) : 
-                            JSON.stringify(value)}</span>
-                        </div>
-                        {typeof value === 'number' && (
-                          <div className="w-full bg-muted rounded-full h-2">
-                            <div 
-                              className="bg-primary h-2 rounded-full" 
-                              style={{ width: `${Math.min(100, key.includes('rate') ? value * 100 : (value / 100) * 100)}%` }}
-                            />
-                          </div>
-                        )}
-                      </div>
-                    ))}
-                  </div>
-                ) : (
-                  <div className="flex flex-col items-center justify-center h-[300px] text-center">
-                    <BarChart2 className="h-8 w-8 text-muted-foreground mb-2 opacity-50" />
-                    <p className="text-sm text-muted-foreground">No analytics data available</p>
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-          </div>
-        </TabsContent>
-
-        {/* Users Tab */}
-        <TabsContent value="users" className="space-y-4">
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="text-xl font-semibold">User Management</h2>
-            <form onSubmit={handleSearch} className="flex items-center gap-2">
-              <Input
-                placeholder="Search users..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="max-w-[200px]"
-              />
-              <Button type="submit" size="sm" variant="outline">
-                <Search className="h-4 w-4" />
-              </Button>
-            </form>
-          </div>
-
-          <Card>
-            <CardContent className="p-0">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>ID</TableHead>
-                    <TableHead>Name</TableHead>
-                    <TableHead>Email</TableHead>
-                    <TableHead>Type</TableHead>
-                    <TableHead>Status</TableHead>
-                    <TableHead>Actions</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {isLoadingUsers ? (
-                    Array(5).fill(0).map((_, i) => (
-                      <TableRow key={i}>
-                        <TableCell><Skeleton className="h-4 w-8" /></TableCell>
-                        <TableCell><Skeleton className="h-4 w-24" /></TableCell>
-                        <TableCell><Skeleton className="h-4 w-32" /></TableCell>
-                        <TableCell><Skeleton className="h-4 w-16" /></TableCell>
-                        <TableCell><Skeleton className="h-4 w-16" /></TableCell>
-                        <TableCell><Skeleton className="h-8 w-20" /></TableCell>
-                      </TableRow>
-                    ))
-                  ) : users && users.length > 0 ? (
-                    users.map((user: any) => (
-                      <TableRow key={user.id}>
-                        <TableCell>{user.id}</TableCell>
-                        <TableCell>
-                          <div className="flex items-center gap-2">
-                            <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center text-primary font-medium">
-                              {user.fullName?.charAt(0) || user.username?.charAt(0) || '?'}
-                            </div>
-                            <div>
-                              <div className="font-medium">{user.fullName || user.username}</div>
-                              <div className="text-xs text-muted-foreground">@{user.username}</div>
-                            </div>
-                          </div>
-                        </TableCell>
-                        <TableCell>{user.email}</TableCell>
-                        <TableCell>
-                          <Badge variant={user.accountType === 'worker' ? 'default' : 'secondary'}>
-                            {user.accountType}
-                          </Badge>
-                        </TableCell>
-                        <TableCell>
-                          <Badge variant={user.isActive ? 'outline' : 'destructive'}>
-                            {user.isActive ? 'Active' : 'Inactive'}
-                          </Badge>
-                        </TableCell>
-                        <TableCell>
-                          <DropdownMenu>
-                            <DropdownMenuTrigger asChild>
-                              <Button variant="ghost" size="icon">
-                                <MoreHorizontal className="h-4 w-4" />
-                              </Button>
-                            </DropdownMenuTrigger>
-                            <DropdownMenuContent align="end">
-                              <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                              <DropdownMenuItem onClick={() => window.open(`/user/${user.id}`, '_blank')}>
-                                View Profile
-                              </DropdownMenuItem>
-                              <DropdownMenuSeparator />
-                              <DropdownMenuItem onClick={() => handleUserAction(user.id, user.isActive ? 'deactivate' : 'activate', user.username)}>
-                                {user.isActive ? 'Deactivate User' : 'Activate User'}
-                              </DropdownMenuItem>
-                              <DropdownMenuItem onClick={() => handleUserAction(user.id, 'verify', user.username)}>
-                                Verify Identity
-                              </DropdownMenuItem>
-                              <DropdownMenuItem 
-                                onClick={() => handleUserAction(user.id, 'reset-password', user.username)}
-                                className="text-amber-600 dark:text-amber-400"
-                              >
-                                Reset Password
-                              </DropdownMenuItem>
-                              <DropdownMenuSeparator />
-                              <DropdownMenuItem 
-                                onClick={() => handleUserAction(user.id, 'delete', user.username)}
-                                className="text-red-600 dark:text-red-400"
-                              >
-                                Delete User
-                              </DropdownMenuItem>
-                            </DropdownMenuContent>
-                          </DropdownMenu>
-                        </TableCell>
-                      </TableRow>
-                    ))
-                  ) : (
-                    <TableRow>
-                      <TableCell colSpan={6} className="text-center py-8">
-                        <div className="flex flex-col items-center justify-center text-muted-foreground">
-                          <Users className="h-8 w-8 mb-2 opacity-50" />
-                          <p>No users found</p>
-                        </div>
-                      </TableCell>
-                    </TableRow>
-                  )}
-                </TableBody>
-              </Table>
-            </CardContent>
-          </Card>
-        </TabsContent>
-
-        {/* Jobs Tab */}
-        <TabsContent value="jobs" className="space-y-4">
-          <div className="flex items-center justify-between mb-4">
-            <div className="flex items-center gap-3">
-              <h2 className="text-xl font-semibold">Job Management</h2>
-              <Button size="sm" variant="default" onClick={() => setShowAdminJobModal(true)}>
-                <Briefcase className="h-4 w-4 mr-2" /> Create Admin Job
-              </Button>
+    <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
+      <div className="container mx-auto py-6 px-4 max-w-7xl">
+        <div className="flex items-center justify-between mb-6">
+          <div className="flex items-center space-x-3">
+            <Shield className="h-8 w-8 text-blue-600" />
+            <div>
+              <h1 className="text-3xl font-bold text-gray-900 dark:text-white">Admin Panel</h1>
+              <p className="text-gray-600 dark:text-gray-400">Platform Management & Control Center</p>
             </div>
-            <form onSubmit={handleSearch} className="flex items-center gap-2">
-              <Input
-                placeholder="Search jobs..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="max-w-[200px]"
-              />
-              <Button type="submit" size="sm" variant="outline">
-                <Search className="h-4 w-4" />
-              </Button>
-            </form>
           </div>
+          <Button 
+            onClick={() => {
+              queryClient.invalidateQueries();
+              toast({ title: 'Data Refreshed', description: 'All admin data has been updated.' });
+            }}
+            size="sm" 
+            variant="outline" 
+            className="gap-2"
+          >
+            <RefreshCw className="h-4 w-4" />
+            Refresh All
+          </Button>
+        </div>
 
-          <Card>
-            <CardContent className="p-0">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>ID</TableHead>
-                    <TableHead>Title</TableHead>
-                    <TableHead>Status</TableHead>
-                    <TableHead>Payment</TableHead>
-                    <TableHead>Date Posted</TableHead>
-                    <TableHead>Actions</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {isLoadingJobs ? (
-                    Array(5).fill(0).map((_, i) => (
-                      <TableRow key={i}>
-                        <TableCell><Skeleton className="h-4 w-8" /></TableCell>
-                        <TableCell><Skeleton className="h-4 w-32" /></TableCell>
-                        <TableCell><Skeleton className="h-4 w-16" /></TableCell>
-                        <TableCell><Skeleton className="h-4 w-16" /></TableCell>
-                        <TableCell><Skeleton className="h-4 w-24" /></TableCell>
-                        <TableCell><Skeleton className="h-8 w-20" /></TableCell>
-                      </TableRow>
-                    ))
-                  ) : jobs && jobs.length > 0 ? (
-                    jobs.map((job: any) => (
-                      <TableRow key={job.id}>
-                        <TableCell>{job.id}</TableCell>
-                        <TableCell>
-                          <div>
-                            <div className="font-medium">{job.title}</div>
-                            <div className="text-xs text-muted-foreground">by {job.posterName || `User #${job.posterId}`}</div>
+        <Tabs defaultValue="dashboard" className="space-y-6">
+          <TabsList className="grid w-full grid-cols-7 lg:w-auto lg:inline-grid">
+            <TabsTrigger value="dashboard" className="flex items-center gap-2">
+              <BarChart3 className="h-4 w-4" />
+              Dashboard
+            </TabsTrigger>
+            <TabsTrigger value="users" className="flex items-center gap-2">
+              <Users className="h-4 w-4" />
+              Users
+            </TabsTrigger>
+            <TabsTrigger value="jobs" className="flex items-center gap-2">
+              <Briefcase className="h-4 w-4" />
+              Jobs
+            </TabsTrigger>
+            <TabsTrigger value="financial" className="flex items-center gap-2">
+              <DollarSign className="h-4 w-4" />
+              Financial
+            </TabsTrigger>
+            <TabsTrigger value="support" className="flex items-center gap-2">
+              <HelpCircle className="h-4 w-4" />
+              Support
+            </TabsTrigger>
+            <TabsTrigger value="system" className="flex items-center gap-2">
+              <Settings className="h-4 w-4" />
+              System
+            </TabsTrigger>
+            <TabsTrigger value="reports" className="flex items-center gap-2">
+              <FileText className="h-4 w-4" />
+              Reports
+            </TabsTrigger>
+          </TabsList>
+
+          {/* Dashboard Tab */}
+          <TabsContent value="dashboard" className="space-y-6">
+            <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
+              <Card>
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                  <CardTitle className="text-sm font-medium">Total Users</CardTitle>
+                  <Users className="h-4 w-4 text-muted-foreground" />
+                </CardHeader>
+                <CardContent>
+                  <div className="text-2xl font-bold">{dashboardStats?.totalUsers || 0}</div>
+                  <p className="text-xs text-muted-foreground">
+                    +{dashboardStats?.userGrowth || 0}% from last month
+                  </p>
+                </CardContent>
+              </Card>
+              <Card>
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                  <CardTitle className="text-sm font-medium">Active Jobs</CardTitle>
+                  <Briefcase className="h-4 w-4 text-muted-foreground" />
+                </CardHeader>
+                <CardContent>
+                  <div className="text-2xl font-bold">{dashboardStats?.totalJobs || 0}</div>
+                  <p className="text-xs text-muted-foreground">
+                    +{dashboardStats?.jobGrowth || 0}% from last month
+                  </p>
+                </CardContent>
+              </Card>
+              <Card>
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                  <CardTitle className="text-sm font-medium">Total Revenue</CardTitle>
+                  <DollarSign className="h-4 w-4 text-muted-foreground" />
+                </CardHeader>
+                <CardContent>
+                  <div className="text-2xl font-bold">{formatCurrency(dashboardStats?.totalRevenue || 0)}</div>
+                  <p className="text-xs text-muted-foreground">
+                    +{dashboardStats?.revenueGrowth || 0}% from last month
+                  </p>
+                </CardContent>
+              </Card>
+              <Card>
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                  <CardTitle className="text-sm font-medium">Support Tickets</CardTitle>
+                  <AlertTriangle className="h-4 w-4 text-muted-foreground" />
+                </CardHeader>
+                <CardContent>
+                  <div className="text-2xl font-bold">{dashboardStats?.pendingSupport || 0}</div>
+                  <p className="text-xs text-muted-foreground">
+                    Pending resolution
+                  </p>
+                </CardContent>
+              </Card>
+            </div>
+
+            {/* System Health Overview */}
+            <div className="grid gap-6 md:grid-cols-2">
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <Activity className="h-5 w-5" />
+                    System Health
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-4">
+                    {systemMetrics.map((metric, index) => (
+                      <div key={index} className="flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                          <div className={`w-3 h-3 rounded-full ${
+                            metric.status === 'good' ? 'bg-green-500' :
+                            metric.status === 'warning' ? 'bg-yellow-500' : 'bg-red-500'
+                          }`} />
+                          <span className="text-sm font-medium">{metric.name}</span>
+                        </div>
+                        <div className="text-right">
+                          <div className="text-sm font-mono">{metric.value}{metric.unit}</div>
+                          <div className={`text-xs ${
+                            metric.trend === 'up' ? 'text-green-600' :
+                            metric.trend === 'down' ? 'text-red-600' : 'text-gray-600'
+                          }`}>
+                            {metric.trend === 'up' ? '↗' : metric.trend === 'down' ? '↘' : '→'} {metric.trend}
                           </div>
-                        </TableCell>
-                        <TableCell>
-                          <JobStatusBadge status={job.status} />
-                        </TableCell>
-                        <TableCell>${job.paymentAmount.toFixed(2)}</TableCell>
-                        <TableCell>{new Date(job.datePosted).toLocaleDateString()}</TableCell>
-                        <TableCell>
-                          <DropdownMenu>
-                            <DropdownMenuTrigger asChild>
-                              <Button variant="ghost" size="icon">
-                                <MoreHorizontal className="h-4 w-4" />
-                              </Button>
-                            </DropdownMenuTrigger>
-                            <DropdownMenuContent align="end">
-                              <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                              <DropdownMenuItem onClick={() => window.open(`/job/${job.id}`, '_blank')}>
-                                View Job
-                              </DropdownMenuItem>
-                              <DropdownMenuSeparator />
-                              <DropdownMenuItem onClick={() => handleJobAction(job.id, 'feature')}>
-                                Feature Job
-                              </DropdownMenuItem>
-                              <DropdownMenuItem onClick={() => handleJobAction(job.id, job.status === 'open' ? 'close' : 'reopen')}>
-                                {job.status === 'open' ? 'Close Job' : 'Reopen Job'}
-                              </DropdownMenuItem>
-                              <DropdownMenuSeparator />
-                              <DropdownMenuItem 
-                                onClick={() => handleJobAction(job.id, 'delete')}
-                                className="text-red-600 dark:text-red-400"
-                              >
-                                Delete Job
-                              </DropdownMenuItem>
-                            </DropdownMenuContent>
-                          </DropdownMenu>
-                        </TableCell>
-                      </TableRow>
-                    ))
-                  ) : (
-                    <TableRow>
-                      <TableCell colSpan={6} className="text-center py-8">
-                        <div className="flex flex-col items-center justify-center text-muted-foreground">
-                          <Briefcase className="h-8 w-8 mb-2 opacity-50" />
-                          <p>No jobs found</p>
                         </div>
-                      </TableCell>
-                    </TableRow>
-                  )}
-                </TableBody>
-              </Table>
-            </CardContent>
-          </Card>
-        </TabsContent>
-
-        {/* Payments Tab */}
-        <TabsContent value="payments" className="space-y-4">
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="text-xl font-semibold">Payment Management</h2>
-            <form onSubmit={handleSearch} className="flex items-center gap-2">
-              <Input
-                placeholder="Search payments..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="max-w-[200px]"
-              />
-              <Button type="submit" size="sm" variant="outline">
-                <Search className="h-4 w-4" />
-              </Button>
-            </form>
-          </div>
-
-          <Card>
-            <CardContent className="p-0">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>ID</TableHead>
-                    <TableHead>Type</TableHead>
-                    <TableHead>Amount</TableHead>
-                    <TableHead>Status</TableHead>
-                    <TableHead>Date</TableHead>
-                    <TableHead>Actions</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {isLoadingPayments ? (
-                    Array(5).fill(0).map((_, i) => (
-                      <TableRow key={i}>
-                        <TableCell><Skeleton className="h-4 w-8" /></TableCell>
-                        <TableCell><Skeleton className="h-4 w-16" /></TableCell>
-                        <TableCell><Skeleton className="h-4 w-16" /></TableCell>
-                        <TableCell><Skeleton className="h-4 w-16" /></TableCell>
-                        <TableCell><Skeleton className="h-4 w-24" /></TableCell>
-                        <TableCell><Skeleton className="h-8 w-20" /></TableCell>
-                      </TableRow>
-                    ))
-                  ) : payments && payments.length > 0 ? (
-                    payments.map((payment: any) => (
-                      <TableRow key={payment.id}>
-                        <TableCell>{payment.id}</TableCell>
-                        <TableCell>
-                          <Badge variant="outline">
-                            {payment.type}
-                          </Badge>
-                        </TableCell>
-                        <TableCell>${payment.amount.toFixed(2)}</TableCell>
-                        <TableCell>
-                          <PaymentStatusBadge status={payment.status} />
-                        </TableCell>
-                        <TableCell>{new Date(payment.createdAt).toLocaleDateString()}</TableCell>
-                        <TableCell>
-                          <DropdownMenu>
-                            <DropdownMenuTrigger asChild>
-                              <Button variant="ghost" size="icon">
-                                <MoreHorizontal className="h-4 w-4" />
-                              </Button>
-                            </DropdownMenuTrigger>
-                            <DropdownMenuContent align="end">
-                              <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                              <DropdownMenuItem onClick={() => handlePaymentAction(payment.id, 'view')}>
-                                View Details
-                              </DropdownMenuItem>
-                              <DropdownMenuSeparator />
-                              {payment.status === 'pending' && (
-                                <DropdownMenuItem onClick={() => handlePaymentAction(payment.id, 'process')}>
-                                  Process Manually
-                                </DropdownMenuItem>
-                              )}
-                              {payment.status === 'processing' && (
-                                <DropdownMenuItem onClick={() => handlePaymentAction(payment.id, 'complete')}>
-                                  Mark as Completed
-                                </DropdownMenuItem>
-                              )}
-                              {['completed', 'processing'].includes(payment.status) && (
-                                <DropdownMenuItem 
-                                  onClick={() => handlePaymentAction(payment.id, 'refund')}
-                                  className="text-amber-600 dark:text-amber-400"
-                                >
-                                  Issue Refund
-                                </DropdownMenuItem>
-                              )}
-                              <DropdownMenuSeparator />
-                              <DropdownMenuItem 
-                                onClick={() => handlePaymentAction(payment.id, 'delete')}
-                                className="text-red-600 dark:text-red-400"
-                              >
-                                Delete Record
-                              </DropdownMenuItem>
-                            </DropdownMenuContent>
-                          </DropdownMenu>
-                        </TableCell>
-                      </TableRow>
-                    ))
-                  ) : (
-                    <TableRow>
-                      <TableCell colSpan={6} className="text-center py-8">
-                        <div className="flex flex-col items-center justify-center text-muted-foreground">
-                          <CreditCard className="h-8 w-8 mb-2 opacity-50" />
-                          <p>No payments found</p>
-                        </div>
-                      </TableCell>
-                    </TableRow>
-                  )}
-                </TableBody>
-              </Table>
-            </CardContent>
-          </Card>
-        </TabsContent>
-
-        {/* System Tab */}
-        <TabsContent value="system" className="space-y-4">
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="text-xl font-semibold">System Status</h2>
-            <Button onClick={refetchSystem} size="sm" variant="outline" className="gap-1">
-              <RefreshCw className="h-4 w-4" />
-              Refresh
-            </Button>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {/* System Health */}
-            <Card>
-              <CardHeader>
-                <CardTitle>System Health</CardTitle>
-                <CardDescription>Current status of system components</CardDescription>
-              </CardHeader>
-              <CardContent>
-                {isLoadingSystem ? (
-                  <div className="space-y-4">
-                    {Array(4).fill(0).map((_, i) => (
-                      <div key={i} className="flex justify-between items-center">
-                        <Skeleton className="h-4 w-32" />
-                        <Skeleton className="h-6 w-16" />
                       </div>
                     ))}
                   </div>
-                ) : systemStatus?.components ? (
-                  <div className="space-y-4">
-                    {Object.entries(systemStatus.components).map(([key, value]: [string, any]) => (
-                      <div key={key} className="flex justify-between items-center">
-                        <span className="font-medium">{formatSystemComponent(key)}</span>
-                        <Badge variant={value.status === 'ok' ? 'default' : 'destructive'}>
-                          {value.status === 'ok' ? 'Healthy' : 'Issue'}
-                        </Badge>
-                      </div>
-                    ))}
-                  </div>
-                ) : (
-                  <div className="flex flex-col items-center justify-center py-8 text-center">
-                    <AlertCircle className="h-8 w-8 text-muted-foreground mb-2 opacity-50" />
-                    <p className="text-sm text-muted-foreground">System status information unavailable</p>
-                  </div>
-                )}
-              </CardContent>
-            </Card>
+                </CardContent>
+              </Card>
 
-            {/* API Status */}
-            <Card>
-              <CardHeader>
-                <CardTitle>External Services</CardTitle>
-                <CardDescription>Status of connected services</CardDescription>
-              </CardHeader>
-              <CardContent>
-                {isLoadingSystem ? (
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <TrendingUp className="h-5 w-5" />
+                    Recent Activity
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
                   <div className="space-y-4">
-                    {Array(3).fill(0).map((_, i) => (
-                      <div key={i} className="flex justify-between items-center">
-                        <Skeleton className="h-4 w-32" />
-                        <Skeleton className="h-6 w-16" />
+                    <div className="flex items-center gap-3">
+                      <UserCheck className="h-4 w-4 text-green-600" />
+                      <div className="flex-1">
+                        <p className="text-sm">New user registered</p>
+                        <p className="text-xs text-gray-500">2 minutes ago</p>
                       </div>
-                    ))}
-                  </div>
-                ) : systemStatus?.services ? (
-                  <div className="space-y-4">
-                    {Object.entries(systemStatus.services).map(([key, value]: [string, any]) => (
-                      <div key={key} className="flex justify-between items-center">
-                        <span className="font-medium">{formatServiceName(key)}</span>
-                        <Badge variant={value.status === 'ok' ? 'default' : 'destructive'}>
-                          {value.status === 'ok' ? 'Connected' : 'Error'}
-                        </Badge>
-                      </div>
-                    ))}
-                  </div>
-                ) : (
-                  <div className="flex flex-col items-center justify-center py-8 text-center">
-                    <AlertCircle className="h-8 w-8 text-muted-foreground mb-2 opacity-50" />
-                    <p className="text-sm text-muted-foreground">External services status unavailable</p>
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-          </div>
-
-          <Card>
-            <CardHeader>
-              <CardTitle>System Configuration</CardTitle>
-              <CardDescription>Environment details and settings</CardDescription>
-            </CardHeader>
-            <CardContent>
-              {isLoadingSystem ? (
-                <div className="space-y-4">
-                  {Array(5).fill(0).map((_, i) => (
-                    <div key={i}>
-                      <Skeleton className="h-4 w-32 mb-1" />
-                      <Skeleton className="h-8 w-full" />
                     </div>
-                  ))}
-                </div>
-              ) : systemStatus?.config ? (
-                <div className="space-y-4">
-                  {Object.entries(systemStatus.config)
-                    .filter(([key]) => !key.includes('key') && !key.includes('secret') && !key.includes('password'))
-                    .map(([key, value]: [string, any]) => (
-                      <div key={key}>
-                        <p className="text-sm font-medium mb-1">{formatConfigKey(key)}</p>
-                        <div className="bg-muted p-2 rounded-md">
-                          <code className="text-xs break-all">
-                            {typeof value === 'object' ? JSON.stringify(value, null, 2) : String(value)}
-                          </code>
-                        </div>
+                    <div className="flex items-center gap-3">
+                      <Briefcase className="h-4 w-4 text-blue-600" />
+                      <div className="flex-1">
+                        <p className="text-sm">Job posted: "Web Development"</p>
+                        <p className="text-xs text-gray-500">5 minutes ago</p>
                       </div>
-                  ))}
-                </div>
-              ) : (
-                <div className="flex flex-col items-center justify-center py-8 text-center">
-                  <AlertCircle className="h-8 w-8 text-muted-foreground mb-2 opacity-50" />
-                  <p className="text-sm text-muted-foreground">Configuration information unavailable</p>
-                </div>
-              )}
-            </CardContent>
-          </Card>
+                    </div>
+                    <div className="flex items-center gap-3">
+                      <DollarSign className="h-4 w-4 text-green-600" />
+                      <div className="flex-1">
+                        <p className="text-sm">Payment processed: $150</p>
+                        <p className="text-xs text-gray-500">8 minutes ago</p>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-3">
+                      <MessageSquare className="h-4 w-4 text-yellow-600" />
+                      <div className="flex-1">
+                        <p className="text-sm">New support ticket opened</p>
+                        <p className="text-xs text-gray-500">12 minutes ago</p>
+                      </div>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+          </TabsContent>
 
-          <Card>
-            <CardHeader>
-              <CardTitle>Admin Actions</CardTitle>
-              <CardDescription>Perform system-wide administrative tasks</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                <Button variant="outline" className="h-auto py-4 flex flex-col items-center justify-center gap-2">
-                  <RefreshCw className="h-6 w-6" />
-                  <div className="text-center">
-                    <p className="font-medium">Flush Cache</p>
-                    <p className="text-xs text-muted-foreground">Clear system cache</p>
-                  </div>
-                </Button>
-                <Button variant="outline" className="h-auto py-4 flex flex-col items-center justify-center gap-2">
-                  <FileText className="h-6 w-6" />
-                  <div className="text-center">
-                    <p className="font-medium">View Logs</p>
-                    <p className="text-xs text-muted-foreground">System activity logs</p>
-                  </div>
-                </Button>
-                <Button variant="outline" className="h-auto py-4 flex flex-col items-center justify-center gap-2">
-                  <Settings className="h-6 w-6" />
-                  <div className="text-center">
-                    <p className="font-medium">Configuration</p>
-                    <p className="text-xs text-muted-foreground">Update system settings</p>
-                  </div>
+          {/* Users Tab */}
+          <TabsContent value="users" className="space-y-6">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-4">
+                <Input
+                  placeholder="Search users..."
+                  value={userSearch}
+                  onChange={(e) => setUserSearch(e.target.value)}
+                  className="w-80"
+                />
+                <Button variant="outline" size="sm">
+                  <Filter className="h-4 w-4 mr-2" />
+                  Filter
                 </Button>
               </div>
-            </CardContent>
-          </Card>
-        </TabsContent>
-      </Tabs>
+              <Button onClick={() => refetchUsers()}>
+                <RefreshCw className="h-4 w-4 mr-2" />
+                Refresh
+              </Button>
+            </div>
+
+            <Card>
+              <CardHeader>
+                <CardTitle>User Management</CardTitle>
+                <CardDescription>
+                  Manage user accounts, permissions, and verification status
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                {isUsersLoading ? (
+                  <div className="flex items-center justify-center py-8">
+                    <div className="animate-spin w-8 h-8 border-4 border-primary border-t-transparent rounded-full" />
+                  </div>
+                ) : (
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>User</TableHead>
+                        <TableHead>Type</TableHead>
+                        <TableHead>Status</TableHead>
+                        <TableHead>Rating</TableHead>
+                        <TableHead>Joined</TableHead>
+                        <TableHead>Actions</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {users.map((user) => (
+                        <TableRow key={user.id}>
+                          <TableCell>
+                            <div className="flex items-center gap-3">
+                              <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center">
+                                <span className="text-xs font-medium text-blue-600">
+                                  {user.fullName?.charAt(0) || user.username.charAt(0)}
+                                </span>
+                              </div>
+                              <div>
+                                <div className="font-medium">{user.fullName || user.username}</div>
+                                <div className="text-sm text-gray-500">{user.email}</div>
+                              </div>
+                            </div>
+                          </TableCell>
+                          <TableCell>
+                            <Badge variant={user.accountType === 'worker' ? 'default' : 'secondary'}>
+                              {user.accountType}
+                            </Badge>
+                          </TableCell>
+                          <TableCell>
+                            <Badge className={getStatusColor(user.isActive ? 'active' : 'inactive')}>
+                              {user.isActive ? 'Active' : 'Inactive'}
+                            </Badge>
+                          </TableCell>
+                          <TableCell>
+                            <div className="flex items-center gap-1">
+                              <Star className="h-4 w-4 text-yellow-400 fill-current" />
+                              <span>{user.rating?.toFixed(1) || 'N/A'}</span>
+                            </div>
+                          </TableCell>
+                          <TableCell>{formatDate(user.createdAt)}</TableCell>
+                          <TableCell>
+                            <div className="flex items-center gap-2">
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={() => setSelectedUser(user)}
+                              >
+                                <Eye className="h-4 w-4" />
+                              </Button>
+                              <Button
+                                size="sm"
+                                variant={user.isActive ? "destructive" : "default"}
+                                onClick={() => {
+                                  userActionMutation.mutate({
+                                    userId: user.id,
+                                    action: user.isActive ? 'ban' : 'unban'
+                                  });
+                                }}
+                              >
+                                {user.isActive ? <Ban className="h-4 w-4" /> : <CheckCircle className="h-4 w-4" />}
+                              </Button>
+                            </div>
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                )}
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          {/* Jobs Tab */}
+          <TabsContent value="jobs" className="space-y-6">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-4">
+                <Input
+                  placeholder="Search jobs..."
+                  value={jobSearch}
+                  onChange={(e) => setJobSearch(e.target.value)}
+                  className="w-80"
+                />
+                <Button variant="outline" size="sm">
+                  <Filter className="h-4 w-4 mr-2" />
+                  Filter
+                </Button>
+              </div>
+              <Button onClick={() => refetchJobs()}>
+                <RefreshCw className="h-4 w-4 mr-2" />
+                Refresh
+              </Button>
+            </div>
+
+            <Card>
+              <CardHeader>
+                <CardTitle>Job Management</CardTitle>
+                <CardDescription>
+                  Monitor and moderate job posts across the platform
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                {isJobsLoading ? (
+                  <div className="flex items-center justify-center py-8">
+                    <div className="animate-spin w-8 h-8 border-4 border-primary border-t-transparent rounded-full" />
+                  </div>
+                ) : (
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Job</TableHead>
+                        <TableHead>Category</TableHead>
+                        <TableHead>Budget</TableHead>
+                        <TableHead>Status</TableHead>
+                        <TableHead>Posted</TableHead>
+                        <TableHead>Actions</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {jobs.map((job) => (
+                        <TableRow key={job.id}>
+                          <TableCell>
+                            <div>
+                              <div className="font-medium">{job.title}</div>
+                              <div className="text-sm text-gray-500 line-clamp-1">
+                                {job.description}
+                              </div>
+                              <div className="text-xs text-gray-400 flex items-center gap-1 mt-1">
+                                <MapPin className="h-3 w-3" />
+                                {job.location}
+                              </div>
+                            </div>
+                          </TableCell>
+                          <TableCell>
+                            <Badge variant="outline">{job.category}</Badge>
+                          </TableCell>
+                          <TableCell>{formatCurrency(job.budget)}</TableCell>
+                          <TableCell>
+                            <Badge className={getStatusColor(job.status)}>
+                              {job.status.replace('_', ' ')}
+                            </Badge>
+                          </TableCell>
+                          <TableCell>{formatDate(job.createdAt)}</TableCell>
+                          <TableCell>
+                            <div className="flex items-center gap-2">
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={() => setSelectedJob(job)}
+                              >
+                                <Eye className="h-4 w-4" />
+                              </Button>
+                              <Button
+                                size="sm"
+                                variant="destructive"
+                                onClick={() => {
+                                  jobActionMutation.mutate({
+                                    jobId: job.id,
+                                    action: 'remove'
+                                  });
+                                }}
+                              >
+                                <Trash2 className="h-4 w-4" />
+                              </Button>
+                            </div>
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                )}
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          {/* Financial Tab */}
+          <TabsContent value="financial" className="space-y-6">
+            <div className="grid gap-6 md:grid-cols-3">
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <DollarSign className="h-5 w-5" />
+                    Total Revenue
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="text-2xl font-bold">{formatCurrency(dashboardStats?.totalRevenue || 0)}</div>
+                  <p className="text-sm text-green-600">+12.5% from last month</p>
+                </CardContent>
+              </Card>
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <CreditCard className="h-5 w-5" />
+                    Platform Fees
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="text-2xl font-bold">{formatCurrency((dashboardStats?.totalRevenue || 0) * 0.1)}</div>
+                  <p className="text-sm text-gray-600">10% commission rate</p>
+                </CardContent>
+              </Card>
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <TrendingUp className="h-5 w-5" />
+                    Pending Payouts
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="text-2xl font-bold">{formatCurrency(2850)}</div>
+                  <p className="text-sm text-yellow-600">Awaiting processing</p>
+                </CardContent>
+              </Card>
+            </div>
+
+            <Card>
+              <CardHeader>
+                <CardTitle>Transaction History</CardTitle>
+                <CardDescription>
+                  Monitor all financial transactions on the platform
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                {isTransactionsLoading ? (
+                  <div className="flex items-center justify-center py-8">
+                    <div className="animate-spin w-8 h-8 border-4 border-primary border-t-transparent rounded-full" />
+                  </div>
+                ) : (
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>ID</TableHead>
+                        <TableHead>Type</TableHead>
+                        <TableHead>Amount</TableHead>
+                        <TableHead>Status</TableHead>
+                        <TableHead>Date</TableHead>
+                        <TableHead>Description</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {transactions.map((transaction) => (
+                        <TableRow key={transaction.id}>
+                          <TableCell>#{transaction.id}</TableCell>
+                          <TableCell>
+                            <Badge variant="outline">{transaction.type}</Badge>
+                          </TableCell>
+                          <TableCell>{formatCurrency(transaction.amount)}</TableCell>
+                          <TableCell>
+                            <Badge className={getStatusColor(transaction.status)}>
+                              {transaction.status}
+                            </Badge>
+                          </TableCell>
+                          <TableCell>{formatDate(transaction.createdAt)}</TableCell>
+                          <TableCell className="max-w-xs truncate">
+                            {transaction.description}
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                )}
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          {/* Support Tab */}
+          <TabsContent value="support" className="space-y-6">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-4">
+                <Input
+                  placeholder="Search support tickets..."
+                  value={supportSearch}
+                  onChange={(e) => setSupportSearch(e.target.value)}
+                  className="w-80"
+                />
+                <Button variant="outline" size="sm">
+                  <Filter className="h-4 w-4 mr-2" />
+                  Filter
+                </Button>
+              </div>
+              <div className="flex gap-2">
+                <Button variant="outline">
+                  <Download className="h-4 w-4 mr-2" />
+                  Export
+                </Button>
+                <Button onClick={() => refetchSupport()}>
+                  <RefreshCw className="h-4 w-4 mr-2" />
+                  Refresh
+                </Button>
+              </div>
+            </div>
+
+            <div className="grid gap-6 md:grid-cols-4">
+              <Card>
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-sm">Open Tickets</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="text-2xl font-bold text-red-600">
+                    {supportTickets.filter(t => t.status === 'open').length}
+                  </div>
+                </CardContent>
+              </Card>
+              <Card>
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-sm">In Progress</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="text-2xl font-bold text-yellow-600">
+                    {supportTickets.filter(t => t.status === 'in_progress').length}
+                  </div>
+                </CardContent>
+              </Card>
+              <Card>
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-sm">Resolved Today</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="text-2xl font-bold text-green-600">
+                    {supportTickets.filter(t => t.status === 'resolved').length}
+                  </div>
+                </CardContent>
+              </Card>
+              <Card>
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-sm">Avg Response Time</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="text-2xl font-bold text-blue-600">2.3h</div>
+                </CardContent>
+              </Card>
+            </div>
+
+            <Card>
+              <CardHeader>
+                <CardTitle>Support Tickets</CardTitle>
+                <CardDescription>
+                  Manage customer support requests and help tickets
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                {isSupportLoading ? (
+                  <div className="flex items-center justify-center py-8">
+                    <div className="animate-spin w-8 h-8 border-4 border-primary border-t-transparent rounded-full" />
+                  </div>
+                ) : (
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Ticket</TableHead>
+                        <TableHead>Category</TableHead>
+                        <TableHead>Priority</TableHead>
+                        <TableHead>Status</TableHead>
+                        <TableHead>Created</TableHead>
+                        <TableHead>Actions</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {supportTickets.map((ticket) => (
+                        <TableRow key={ticket.id}>
+                          <TableCell>
+                            <div>
+                              <div className="font-medium">#{ticket.id} {ticket.title}</div>
+                              <div className="text-sm text-gray-500">
+                                by {ticket.userName || `User ${ticket.userId}`}
+                              </div>
+                            </div>
+                          </TableCell>
+                          <TableCell>
+                            <Badge variant="outline">{ticket.category}</Badge>
+                          </TableCell>
+                          <TableCell>
+                            <Badge className={getPriorityColor(ticket.priority)}>
+                              {ticket.priority}
+                            </Badge>
+                          </TableCell>
+                          <TableCell>
+                            <Badge className={getStatusColor(ticket.status)}>
+                              {ticket.status.replace('_', ' ')}
+                            </Badge>
+                          </TableCell>
+                          <TableCell>{formatDate(ticket.createdAt)}</TableCell>
+                          <TableCell>
+                            <div className="flex items-center gap-2">
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={() => setSelectedTicket(ticket)}
+                              >
+                                <Eye className="h-4 w-4" />
+                              </Button>
+                              <Button
+                                size="sm"
+                                variant="default"
+                                onClick={() => {
+                                  supportActionMutation.mutate({
+                                    ticketId: ticket.id,
+                                    action: 'assign'
+                                  });
+                                }}
+                              >
+                                <UserCheck className="h-4 w-4" />
+                              </Button>
+                            </div>
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                )}
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          {/* System Tab */}
+          <TabsContent value="system" className="space-y-6">
+            <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
+              <Card>
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                  <CardTitle className="text-sm font-medium">Server Status</CardTitle>
+                  <Server className="h-4 w-4 text-muted-foreground" />
+                </CardHeader>
+                <CardContent>
+                  <div className="flex items-center gap-2">
+                    <div className="w-3 h-3 rounded-full bg-green-500" />
+                    <span className="text-sm font-medium">Online</span>
+                  </div>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Uptime: 99.9%
+                  </p>
+                </CardContent>
+              </Card>
+              <Card>
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                  <CardTitle className="text-sm font-medium">Database</CardTitle>
+                  <Database className="h-4 w-4 text-muted-foreground" />
+                </CardHeader>
+                <CardContent>
+                  <div className="flex items-center gap-2">
+                    <div className="w-3 h-3 rounded-full bg-green-500" />
+                    <span className="text-sm font-medium">Healthy</span>
+                  </div>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Response: 12ms
+                  </p>
+                </CardContent>
+              </Card>
+              <Card>
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                  <CardTitle className="text-sm font-medium">API Status</CardTitle>
+                  <Zap className="h-4 w-4 text-muted-foreground" />
+                </CardHeader>
+                <CardContent>
+                  <div className="flex items-center gap-2">
+                    <div className="w-3 h-3 rounded-full bg-green-500" />
+                    <span className="text-sm font-medium">Operational</span>
+                  </div>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Requests: 1.2K/min
+                  </p>
+                </CardContent>
+              </Card>
+              <Card>
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                  <CardTitle className="text-sm font-medium">Storage</CardTitle>
+                  <HardDrive className="h-4 w-4 text-muted-foreground" />
+                </CardHeader>
+                <CardContent>
+                  <div className="text-2xl font-bold">78%</div>
+                  <p className="text-xs text-muted-foreground">
+                    Used: 156GB / 200GB
+                  </p>
+                </CardContent>
+              </Card>
+            </div>
+
+            <div className="grid gap-6 md:grid-cols-2">
+              <Card>
+                <CardHeader>
+                  <CardTitle>Performance Metrics</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-4">
+                    {systemMetrics.map((metric, index) => (
+                      <div key={index} className="flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                          <div className={`w-3 h-3 rounded-full ${
+                            metric.status === 'good' ? 'bg-green-500' :
+                            metric.status === 'warning' ? 'bg-yellow-500' : 'bg-red-500'
+                          }`} />
+                          <span className="text-sm font-medium">{metric.name}</span>
+                        </div>
+                        <div className="text-right">
+                          <div className="text-sm font-mono">{metric.value}{metric.unit}</div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardHeader>
+                  <CardTitle>System Configuration</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-4">
+                    <div className="flex items-center justify-between">
+                      <Label htmlFor="maintenance-mode">Maintenance Mode</Label>
+                      <Switch id="maintenance-mode" />
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <Label htmlFor="new-registrations">New User Registrations</Label>
+                      <Switch id="new-registrations" defaultChecked />
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <Label htmlFor="job-posting">Job Posting</Label>
+                      <Switch id="job-posting" defaultChecked />
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <Label htmlFor="payments">Payment Processing</Label>
+                      <Switch id="payments" defaultChecked />
+                    </div>
+                    <Separator />
+                    <Button className="w-full" variant="outline">
+                      <Settings className="h-4 w-4 mr-2" />
+                      Advanced Settings
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+          </TabsContent>
+
+          {/* Reports Tab */}
+          <TabsContent value="reports" className="space-y-6">
+            <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <FileText className="h-5 w-5" />
+                    User Reports
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <p className="text-sm text-gray-600 mb-4">
+                    Generate comprehensive user activity and engagement reports
+                  </p>
+                  <Button className="w-full">
+                    <Download className="h-4 w-4 mr-2" />
+                    Generate Report
+                  </Button>
+                </CardContent>
+              </Card>
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <BarChart3 className="h-5 w-5" />
+                    Financial Reports
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <p className="text-sm text-gray-600 mb-4">
+                    Export transaction history and revenue analytics
+                  </p>
+                  <Button className="w-full">
+                    <Download className="h-4 w-4 mr-2" />
+                    Generate Report
+                  </Button>
+                </CardContent>
+              </Card>
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <TrendingUp className="h-5 w-5" />
+                    Performance Reports
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <p className="text-sm text-gray-600 mb-4">
+                    System performance and usage statistics
+                  </p>
+                  <Button className="w-full">
+                    <Download className="h-4 w-4 mr-2" />
+                    Generate Report
+                  </Button>
+                </CardContent>
+              </Card>
+            </div>
+
+            <Card>
+              <CardHeader>
+                <CardTitle>Custom Report Builder</CardTitle>
+                <CardDescription>
+                  Create custom reports with specific date ranges and filters
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="grid gap-4 md:grid-cols-2">
+                  <div className="space-y-2">
+                    <Label htmlFor="report-type">Report Type</Label>
+                    <select className="w-full p-2 border border-gray-300 rounded-md">
+                      <option>User Activity</option>
+                      <option>Financial Summary</option>
+                      <option>Job Analytics</option>
+                      <option>Support Metrics</option>
+                    </select>
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="date-range">Date Range</Label>
+                    <select className="w-full p-2 border border-gray-300 rounded-md">
+                      <option>Last 7 days</option>
+                      <option>Last 30 days</option>
+                      <option>Last 3 months</option>
+                      <option>Custom range</option>
+                    </select>
+                  </div>
+                </div>
+                <div className="flex gap-2 mt-4">
+                  <Button>
+                    <Download className="h-4 w-4 mr-2" />
+                    Generate & Download
+                  </Button>
+                  <Button variant="outline">
+                    <Eye className="h-4 w-4 mr-2" />
+                    Preview
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
+        </Tabs>
+
+        {/* User Detail Modal */}
+        {selectedUser && (
+          <Dialog open={!!selectedUser} onOpenChange={() => setSelectedUser(null)}>
+            <DialogContent className="max-w-2xl">
+              <DialogHeader>
+                <DialogTitle>User Details: {selectedUser.fullName || selectedUser.username}</DialogTitle>
+              </DialogHeader>
+              <div className="grid gap-4 py-4">
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <Label className="text-sm font-medium">Email</Label>
+                    <p className="text-sm text-gray-600">{selectedUser.email}</p>
+                  </div>
+                  <div>
+                    <Label className="text-sm font-medium">Account Type</Label>
+                    <p className="text-sm text-gray-600">{selectedUser.accountType}</p>
+                  </div>
+                  <div>
+                    <Label className="text-sm font-medium">Status</Label>
+                    <Badge className={getStatusColor(selectedUser.isActive ? 'active' : 'inactive')}>
+                      {selectedUser.isActive ? 'Active' : 'Inactive'}
+                    </Badge>
+                  </div>
+                  <div>
+                    <Label className="text-sm font-medium">Rating</Label>
+                    <p className="text-sm text-gray-600">{selectedUser.rating?.toFixed(1) || 'N/A'}</p>
+                  </div>
+                  <div>
+                    <Label className="text-sm font-medium">Joined</Label>
+                    <p className="text-sm text-gray-600">{formatDate(selectedUser.createdAt)}</p>
+                  </div>
+                  <div>
+                    <Label className="text-sm font-medium">Last Login</Label>
+                    <p className="text-sm text-gray-600">
+                      {selectedUser.lastLogin ? formatDate(selectedUser.lastLogin) : 'Never'}
+                    </p>
+                  </div>
+                </div>
+              </div>
+              <DialogFooter>
+                <Button variant="outline" onClick={() => setSelectedUser(null)}>
+                  Close
+                </Button>
+                <Button 
+                  variant={selectedUser.isActive ? "destructive" : "default"}
+                  onClick={() => {
+                    userActionMutation.mutate({
+                      userId: selectedUser.id,
+                      action: selectedUser.isActive ? 'ban' : 'unban'
+                    });
+                    setSelectedUser(null);
+                  }}
+                >
+                  {selectedUser.isActive ? 'Ban User' : 'Unban User'}
+                </Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
+        )}
+
+        {/* Job Detail Modal */}
+        {selectedJob && (
+          <Dialog open={!!selectedJob} onOpenChange={() => setSelectedJob(null)}>
+            <DialogContent className="max-w-2xl">
+              <DialogHeader>
+                <DialogTitle>Job Details: {selectedJob.title}</DialogTitle>
+              </DialogHeader>
+              <div className="grid gap-4 py-4">
+                <div>
+                  <Label className="text-sm font-medium">Description</Label>
+                  <p className="text-sm text-gray-600">{selectedJob.description}</p>
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <Label className="text-sm font-medium">Category</Label>
+                    <p className="text-sm text-gray-600">{selectedJob.category}</p>
+                  </div>
+                  <div>
+                    <Label className="text-sm font-medium">Budget</Label>
+                    <p className="text-sm text-gray-600">{formatCurrency(selectedJob.budget)}</p>
+                  </div>
+                  <div>
+                    <Label className="text-sm font-medium">Status</Label>
+                    <Badge className={getStatusColor(selectedJob.status)}>
+                      {selectedJob.status.replace('_', ' ')}
+                    </Badge>
+                  </div>
+                  <div>
+                    <Label className="text-sm font-medium">Location</Label>
+                    <p className="text-sm text-gray-600">{selectedJob.location}</p>
+                  </div>
+                  <div>
+                    <Label className="text-sm font-medium">Posted</Label>
+                    <p className="text-sm text-gray-600">{formatDate(selectedJob.createdAt)}</p>
+                  </div>
+                  {selectedJob.completedAt && (
+                    <div>
+                      <Label className="text-sm font-medium">Completed</Label>
+                      <p className="text-sm text-gray-600">{formatDate(selectedJob.completedAt)}</p>
+                    </div>
+                  )}
+                </div>
+              </div>
+              <DialogFooter>
+                <Button variant="outline" onClick={() => setSelectedJob(null)}>
+                  Close
+                </Button>
+                <Button 
+                  variant="destructive"
+                  onClick={() => {
+                    jobActionMutation.mutate({
+                      jobId: selectedJob.id,
+                      action: 'remove'
+                    });
+                    setSelectedJob(null);
+                  }}
+                >
+                  Remove Job
+                </Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
+        )}
+
+        {/* Support Ticket Detail Modal */}
+        {selectedTicket && (
+          <Dialog open={!!selectedTicket} onOpenChange={() => setSelectedTicket(null)}>
+            <DialogContent className="max-w-2xl">
+              <DialogHeader>
+                <DialogTitle>Support Ticket #{selectedTicket.id}</DialogTitle>
+                <DialogDescription>{selectedTicket.title}</DialogDescription>
+              </DialogHeader>
+              <div className="grid gap-4 py-4">
+                <div>
+                  <Label className="text-sm font-medium">Description</Label>
+                  <p className="text-sm text-gray-600">{selectedTicket.description}</p>
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <Label className="text-sm font-medium">Category</Label>
+                    <Badge variant="outline">{selectedTicket.category}</Badge>
+                  </div>
+                  <div>
+                    <Label className="text-sm font-medium">Priority</Label>
+                    <Badge className={getPriorityColor(selectedTicket.priority)}>
+                      {selectedTicket.priority}
+                    </Badge>
+                  </div>
+                  <div>
+                    <Label className="text-sm font-medium">Status</Label>
+                    <Badge className={getStatusColor(selectedTicket.status)}>
+                      {selectedTicket.status.replace('_', ' ')}
+                    </Badge>
+                  </div>
+                  <div>
+                    <Label className="text-sm font-medium">User</Label>
+                    <p className="text-sm text-gray-600">
+                      {selectedTicket.userName || `User ${selectedTicket.userId}`}
+                    </p>
+                  </div>
+                  <div>
+                    <Label className="text-sm font-medium">Created</Label>
+                    <p className="text-sm text-gray-600">{formatDate(selectedTicket.createdAt)}</p>
+                  </div>
+                  <div>
+                    <Label className="text-sm font-medium">Last Update</Label>
+                    <p className="text-sm text-gray-600">{formatDate(selectedTicket.updatedAt)}</p>
+                  </div>
+                </div>
+                <div>
+                  <Label htmlFor="admin-response" className="text-sm font-medium">Admin Response</Label>
+                  <Textarea 
+                    id="admin-response"
+                    placeholder="Type your response here..."
+                    className="mt-1"
+                  />
+                </div>
+              </div>
+              <DialogFooter className="gap-2">
+                <Button variant="outline" onClick={() => setSelectedTicket(null)}>
+                  Close
+                </Button>
+                <Button 
+                  onClick={() => {
+                    supportActionMutation.mutate({
+                      ticketId: selectedTicket.id,
+                      action: 'assign'
+                    });
+                    setSelectedTicket(null);
+                  }}
+                >
+                  Assign to Me
+                </Button>
+                <Button 
+                  onClick={() => {
+                    supportActionMutation.mutate({
+                      ticketId: selectedTicket.id,
+                      action: 'resolve'
+                    });
+                    setSelectedTicket(null);
+                  }}
+                >
+                  Mark Resolved
+                </Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
+        )}
+      </div>
     </div>
   );
-};
-
-// Helper components
-const JobStatusBadge = ({ status }: { status: string }) => {
-  let variant: "default" | "secondary" | "destructive" | "outline" = "outline";
-  
-  switch (status) {
-    case 'open':
-      variant = "default";
-      break;
-    case 'assigned':
-      variant = "secondary";
-      break;
-    case 'completed':
-      variant = "outline";
-      break;
-    case 'canceled':
-      variant = "destructive";
-      break;
-  }
-  
-  return <Badge variant={variant}>{status}</Badge>;
-};
-
-const PaymentStatusBadge = ({ status }: { status: string }) => {
-  let variant: "default" | "secondary" | "destructive" | "outline" = "outline";
-  
-  switch (status) {
-    case 'completed':
-      variant = "default";
-      break;
-    case 'processing':
-      variant = "secondary";
-      break;
-    case 'pending':
-      variant = "outline";
-      break;
-    case 'failed':
-    case 'refunded':
-      variant = "destructive";
-      break;
-  }
-  
-  return <Badge variant={variant}>{status}</Badge>;
-};
-
-// Helper functions
-const getActivityIcon = (type: string) => {
-  switch (type) {
-    case 'user':
-      return <User className="h-4 w-4" />;
-    case 'job':
-      return <Briefcase className="h-4 w-4" />;
-    case 'payment':
-      return <DollarSign className="h-4 w-4" />;
-    case 'review':
-      return <Star className="h-4 w-4" />;
-    case 'system':
-      return <Settings className="h-4 w-4" />;
-    default:
-      return <Bell className="h-4 w-4" />;
-  }
-};
-
-const formatAnalyticsKey = (key: string) => {
-  return key
-    .replace(/([A-Z])/g, ' $1')
-    .replace(/^./, (str) => str.toUpperCase())
-    .replace(/([a-z])([A-Z])/g, '$1 $2')
-    .replace(/_/g, ' ')
-    .replace(/Num/g, 'Number of');
-};
-
-const formatSystemComponent = (key: string) => {
-  const componentNames: Record<string, string> = {
-    'database': 'Database',
-    'redis': 'Redis Cache',
-    'server': 'Web Server',
-    'queue': 'Task Queue',
-    'storage': 'File Storage'
-  };
-  
-  return componentNames[key] || key.charAt(0).toUpperCase() + key.slice(1);
-};
-
-const formatServiceName = (key: string) => {
-  const serviceNames: Record<string, string> = {
-    'stripe': 'Stripe Payments',
-    'mapbox': 'Mapbox',
-    'aws': 'AWS',
-    'smtp': 'Email Service'
-  };
-  
-  return serviceNames[key] || key.charAt(0).toUpperCase() + key.slice(1);
-};
-
-const formatConfigKey = (key: string) => {
-  return key
-    .replace(/([A-Z])/g, ' $1')
-    .replace(/^./, (str) => str.toUpperCase())
-    .replace(/([a-z])([A-Z])/g, '$1 $2')
-    .replace(/_/g, ' ');
-};
-
-export default AdminPanel;
+}
