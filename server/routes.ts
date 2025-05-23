@@ -5643,5 +5643,159 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Content Moderation - Flagged content review
+  apiRouter.get("/admin/moderation/flagged-content", isAuthenticated, isAdmin, async (req: Request, res: Response) => {
+    try {
+      const flaggedReports = await db.select({
+        report: userReports,
+        reporter: {
+          id: users.id,
+          username: users.username,
+          fullName: users.fullName
+        }
+      })
+      .from(userReports)
+      .leftJoin(users, eq(userReports.reporterId, users.id))
+      .where(eq(userReports.status, 'pending'))
+      .orderBy(desc(userReports.createdAt));
+
+      res.json(flaggedReports);
+    } catch (error) {
+      console.error('Flagged content fetch error:', error);
+      res.status(500).json({ message: 'Failed to fetch flagged content' });
+    }
+  });
+
+  // Marketing & Promotions - Create campaign
+  apiRouter.post("/admin/marketing/campaigns", isAuthenticated, isAdmin, async (req: Request, res: Response) => {
+    try {
+      const { title, description, type, targetAudience, startDate, endDate } = req.body;
+      
+      const campaignData = {
+        title,
+        description,
+        type,
+        targetAudience,
+        startDate: new Date(startDate),
+        endDate: new Date(endDate),
+        createdBy: req.user!.id,
+        createdAt: new Date(),
+        status: 'active'
+      };
+
+      // Log admin action
+      await db.insert(adminAuditLog).values({
+        adminId: req.user!.id,
+        action: 'create_campaign',
+        targetType: 'marketing',
+        details: campaignData,
+        timestamp: new Date()
+      });
+      
+      res.json({ message: 'Campaign created successfully', campaign: campaignData });
+    } catch (error) {
+      console.error('Campaign creation error:', error);
+      res.status(500).json({ message: 'Failed to create campaign' });
+    }
+  });
+
+  // System Configuration - Update platform settings
+  apiRouter.put("/admin/settings/platform", isAuthenticated, isAdmin, async (req: Request, res: Response) => {
+    try {
+      const { settingKey, settingValue } = req.body;
+      
+      // Update or insert platform setting
+      await db.insert(platformSettings).values({
+        settingKey,
+        settingValue: JSON.stringify(settingValue),
+        updatedBy: req.user!.id,
+        updatedAt: new Date()
+      });
+
+      // Log admin action
+      await db.insert(adminAuditLog).values({
+        adminId: req.user!.id,
+        action: 'update_settings',
+        targetType: 'platform',
+        details: { settingKey, settingValue },
+        timestamp: new Date()
+      });
+      
+      res.json({ message: 'Settings updated successfully' });
+    } catch (error) {
+      console.error('Settings update error:', error);
+      res.status(500).json({ message: 'Failed to update settings' });
+    }
+  });
+
+  // Advanced Analytics - Generate custom report
+  apiRouter.post("/admin/analytics/custom-report", isAuthenticated, isAdmin, async (req: Request, res: Response) => {
+    try {
+      const { reportType, dateRange, filters } = req.body;
+      
+      const startDate = new Date(dateRange.start);
+      const endDate = new Date(dateRange.end);
+      
+      let reportData = {};
+      
+      switch (reportType) {
+        case 'user_growth':
+          const userGrowth = await db.select({ 
+            date: users.datePosted,
+            count: count() 
+          })
+          .from(users)
+          .where(and(
+            gte(users.datePosted, startDate),
+            lte(users.datePosted, endDate)
+          ))
+          .groupBy(users.datePosted);
+          
+          reportData = { userGrowth };
+          break;
+          
+        case 'revenue_analysis':
+          const revenueAnalysis = await db.select({
+            date: earnings.dateEarned,
+            total: sum(earnings.amount)
+          })
+          .from(earnings)
+          .where(and(
+            gte(earnings.dateEarned, startDate),
+            lte(earnings.dateEarned, endDate)
+          ))
+          .groupBy(earnings.dateEarned);
+          
+          reportData = { revenueAnalysis };
+          break;
+          
+        case 'job_completion':
+          const jobCompletion = await db.select({
+            status: jobs.status,
+            count: count()
+          })
+          .from(jobs)
+          .where(and(
+            gte(jobs.datePosted, startDate),
+            lte(jobs.datePosted, endDate)
+          ))
+          .groupBy(jobs.status);
+          
+          reportData = { jobCompletion };
+          break;
+      }
+      
+      res.json({
+        reportType,
+        dateRange,
+        generatedAt: new Date(),
+        data: reportData
+      });
+    } catch (error) {
+      console.error('Custom report error:', error);
+      res.status(500).json({ message: 'Failed to generate report' });
+    }
+  });
+
   return httpServer;
 }
