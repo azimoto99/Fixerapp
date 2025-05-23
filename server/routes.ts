@@ -4862,9 +4862,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       return res.status(401).json({ message: 'Authentication required' });
     }
 
-    // Simple admin check - customize this based on your needs
+    // Check the is_admin field from database
     const user = req.user as any;
-    if (user.role === 'admin' || user.email?.includes('admin')) {
+    if (user.isAdmin === true || user.is_admin === true || user.role === 'admin' || user.email?.includes('admin')) {
       return next();
     }
     
