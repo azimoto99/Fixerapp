@@ -234,7 +234,10 @@ export function EnhancedTicketDialog({
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2">
                     <Label>Priority</Label>
-                    <Select value={priority} onValueChange={setPriority}>
+                    <Select value={priority} onValueChange={(value) => {
+                      setPriority(value);
+                      handleTicketUpdate({ priority: value });
+                    }}>
                       <SelectTrigger>
                         <SelectValue />
                       </SelectTrigger>
@@ -248,7 +251,10 @@ export function EnhancedTicketDialog({
                   </div>
                   <div className="space-y-2">
                     <Label>Status</Label>
-                    <Select value={status} onValueChange={setStatus}>
+                    <Select value={status} onValueChange={(value) => {
+                      setStatus(value);
+                      handleTicketUpdate({ status: value });
+                    }}>
                       <SelectTrigger>
                         <SelectValue />
                       </SelectTrigger>

@@ -265,7 +265,11 @@ export default function AdminPanel() {
   // User Actions Mutation
   const userActionMutation = useMutation({
     mutationFn: async ({ userId, action, reason }: { userId: number; action: string; reason?: string }) => {
-      const res = await apiRequest('POST', `/api/admin/users/${userId}/${action}`, { reason });
+      const res = await apiRequest('POST', `/api/admin/users/${userId}/${action}`, { 
+        reason,
+        adminId: user?.id,
+        timestamp: new Date().toISOString()
+      });
       if (!res.ok) throw new Error(`Failed to ${action} user`);
       return res.json();
     },
