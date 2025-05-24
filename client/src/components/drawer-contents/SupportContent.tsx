@@ -255,7 +255,11 @@ export default function SupportContent() {
             <CardDescription className="mb-4">
               Get help with account issues, platform features, or general questions
             </CardDescription>
-            <Dialog open={isCreateTicketOpen} onOpenChange={setIsCreateTicketOpen}>
+            <Dialog open={isCreateTicketOpen} onOpenChange={(open) => {
+              // Only allow closing via the X button or form submission
+              if (!open) return;
+              setIsCreateTicketOpen(open);
+            }}>
               <DialogTrigger asChild>
                 <Button className="w-full" onClick={() => setIsCreateTicketOpen(true)}>Create Support Ticket</Button>
               </DialogTrigger>
@@ -263,11 +267,13 @@ export default function SupportContent() {
                 className="sm:max-w-[425px] support-dialog" 
                 onPointerDownOutside={(e) => e.preventDefault()}
                 onInteractOutside={(e) => e.preventDefault()}
+                onEscapeKeyDown={(e) => e.preventDefault()}
               >
                 <form onSubmit={(e) => {
                   e.preventDefault();
                   e.stopPropagation();
                   handleCreateTicket(new FormData(e.currentTarget));
+                  setIsCreateTicketOpen(false);
                 }}>
                   <DialogHeader>
                     <DialogTitle>Create Support Ticket</DialogTitle>
@@ -319,7 +325,10 @@ export default function SupportContent() {
                       />
                     </div>
                   </div>
-                  <DialogFooter>
+                  <DialogFooter className="flex gap-2">
+                    <Button type="button" variant="outline" onClick={() => setIsCreateTicketOpen(false)}>
+                      Cancel
+                    </Button>
                     <Button type="submit" disabled={createTicketMutation.isPending}>
                       {createTicketMutation.isPending ? 'Creating...' : 'Create Ticket'}
                     </Button>
@@ -341,7 +350,11 @@ export default function SupportContent() {
             <CardDescription className="mb-4">
               Report problems with jobs, payments, or user behavior
             </CardDescription>
-            <Dialog open={isCreateDisputeOpen} onOpenChange={setIsCreateDisputeOpen}>
+            <Dialog open={isCreateDisputeOpen} onOpenChange={(open) => {
+              // Only allow closing via manual action
+              if (!open) return;
+              setIsCreateDisputeOpen(open);
+            }}>
               <DialogTrigger asChild>
                 <Button variant="outline" className="w-full" onClick={() => setIsCreateDisputeOpen(true)}>File Dispute</Button>
               </DialogTrigger>
@@ -349,11 +362,13 @@ export default function SupportContent() {
                 className="sm:max-w-[425px] support-dialog" 
                 onPointerDownOutside={(e) => e.preventDefault()}
                 onInteractOutside={(e) => e.preventDefault()}
+                onEscapeKeyDown={(e) => e.preventDefault()}
               >
                 <form onSubmit={(e) => {
                   e.preventDefault();
                   e.stopPropagation();
                   handleCreateDispute(new FormData(e.currentTarget));
+                  setIsCreateDisputeOpen(false);
                 }}>
                   <DialogHeader>
                     <DialogTitle>File a Dispute</DialogTitle>
