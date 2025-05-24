@@ -259,9 +259,10 @@ export default function SupportContent() {
               <DialogTrigger asChild>
                 <Button className="w-full" onClick={() => setIsCreateTicketOpen(true)}>Create Support Ticket</Button>
               </DialogTrigger>
-              <DialogContent className="sm:max-w-[425px] support-dialog">
+              <DialogContent className="sm:max-w-[425px] support-dialog" onClick={(e) => e.stopPropagation()}>
                 <form onSubmit={(e) => {
                   e.preventDefault();
+                  e.stopPropagation();
                   handleCreateTicket(new FormData(e.currentTarget));
                 }}>
                   <DialogHeader>
@@ -340,9 +341,10 @@ export default function SupportContent() {
               <DialogTrigger asChild>
                 <Button variant="outline" className="w-full" onClick={() => setIsCreateDisputeOpen(true)}>File Dispute</Button>
               </DialogTrigger>
-              <DialogContent className="sm:max-w-[425px] support-dialog">
+              <DialogContent className="sm:max-w-[425px] support-dialog" onClick={(e) => e.stopPropagation()}>
                 <form onSubmit={(e) => {
                   e.preventDefault();
+                  e.stopPropagation();
                   handleCreateDispute(new FormData(e.currentTarget));
                 }}>
                   <DialogHeader>
@@ -441,9 +443,10 @@ export default function SupportContent() {
               <DialogTrigger asChild>
                 <Button variant="outline" className="w-full" onClick={() => setIsRefundRequestOpen(true)}>Request Refund</Button>
               </DialogTrigger>
-              <DialogContent className="sm:max-w-[425px] support-dialog">
+              <DialogContent className="sm:max-w-[425px] support-dialog" onClick={(e) => e.stopPropagation()}>
                 <form onSubmit={(e) => {
                   e.preventDefault();
+                  e.stopPropagation();
                   const formData = new FormData(e.currentTarget);
                   const data = {
                     ticketId: formData.get('ticketId'),
