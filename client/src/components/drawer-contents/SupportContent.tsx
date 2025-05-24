@@ -257,9 +257,9 @@ export default function SupportContent() {
             </CardDescription>
             <Dialog open={isCreateTicketOpen} onOpenChange={setIsCreateTicketOpen}>
               <DialogTrigger asChild>
-                <Button className="w-full">Create Support Ticket</Button>
+                <Button className="w-full" onClick={() => setIsCreateTicketOpen(true)}>Create Support Ticket</Button>
               </DialogTrigger>
-              <DialogContent className="sm:max-w-[425px]">
+              <DialogContent className="sm:max-w-[425px] support-dialog">
                 <form onSubmit={(e) => {
                   e.preventDefault();
                   handleCreateTicket(new FormData(e.currentTarget));
@@ -338,9 +338,9 @@ export default function SupportContent() {
             </CardDescription>
             <Dialog open={isCreateDisputeOpen} onOpenChange={setIsCreateDisputeOpen}>
               <DialogTrigger asChild>
-                <Button variant="outline" className="w-full">File Dispute</Button>
+                <Button variant="outline" className="w-full" onClick={() => setIsCreateDisputeOpen(true)}>File Dispute</Button>
               </DialogTrigger>
-              <DialogContent className="sm:max-w-[425px]">
+              <DialogContent className="sm:max-w-[425px] support-dialog">
                 <form onSubmit={(e) => {
                   e.preventDefault();
                   handleCreateDispute(new FormData(e.currentTarget));
@@ -439,9 +439,9 @@ export default function SupportContent() {
             </CardDescription>
             <Dialog open={isRefundRequestOpen} onOpenChange={setIsRefundRequestOpen}>
               <DialogTrigger asChild>
-                <Button variant="outline" className="w-full">Request Refund</Button>
+                <Button variant="outline" className="w-full" onClick={() => setIsRefundRequestOpen(true)}>Request Refund</Button>
               </DialogTrigger>
-              <DialogContent className="sm:max-w-[425px]">
+              <DialogContent className="sm:max-w-[425px] support-dialog">
                 <form onSubmit={(e) => {
                   e.preventDefault();
                   const formData = new FormData(e.currentTarget);
