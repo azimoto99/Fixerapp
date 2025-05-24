@@ -5,6 +5,9 @@ import { WebSocketService } from './websocket-service';
 import { storage } from "./storage";
 import { isAdmin } from "./auth-helpers";
 import { createJobWithPaymentFirst, updateJobWithPaymentCheck } from './payment-first-job-posting';
+import { applySecurity, sanitizeInput, validateSqlInput, validatePasswordStrength, validateEmail, validatePhoneNumber, logSecurityEvent, securityConfig } from './security-config';
+import { body, param, query, validationResult } from 'express-validator';
+import xss from 'xss';
 import { z } from "zod";
 import { db } from "./db";
 import { eq, and, desc, asc, sql, or, gte, lte, like, ilike, isNull, isNotNull, exists, count, sum, avg, max, min, not } from "drizzle-orm";
@@ -207,6 +210,55 @@ async function isStripeAuthenticated(req: Request, res: Response, next: Function
 }
 
 export async function registerRoutes(app: Express): Promise<Server> {
+  // Apply comprehensive security middleware FIRST
+  applySecurity(app);
+  
+  // Security validation middleware
+  const validateInput = (req: Request, res: Response, next: NextFunction) => {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      logSecurityEvent('VALIDATION_FAILED', {
+        errors: errors.array(),
+        ip: req.ip,
+        userAgent: req.get('User-Agent'),
+        path: req.path
+      }, req.user?.id);
+      
+      return res.status(400).json({
+        success: false,
+        message: 'Input validation failed',
+        errors: errors.array()
+      });
+    }
+    next();
+  };
+
+  // Enhanced authentication middleware with security logging
+  const secureAuthenticated = (req: Request, res: Response, next: NextFunction) => {
+    if (!req.isAuthenticated() || !req.user) {
+      logSecurityEvent('UNAUTHORIZED_ACCESS_ATTEMPT', {
+        ip: req.ip,
+        userAgent: req.get('User-Agent'),
+        path: req.path
+      });
+      
+      return res.status(401).json({ 
+        success: false,
+        message: "Authentication required" 
+      });
+    }
+    
+    // Log successful authentication
+    logSecurityEvent('AUTHENTICATED_ACCESS', {
+      userId: req.user.id,
+      ip: req.ip,
+      userAgent: req.get('User-Agent'),
+      path: req.path
+    }, req.user.id);
+    
+    next();
+  };
+
   // Set up authentication
   setupAuth(app);
 
