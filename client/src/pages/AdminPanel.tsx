@@ -311,7 +311,10 @@ export default function AdminPanel() {
   // Support Actions Mutation
   const supportActionMutation = useMutation({
     mutationFn: async ({ ticketId, action, note }: { ticketId: number; action: string; note?: string }) => {
-      const res = await apiRequest('POST', `/api/admin/support/${ticketId}/${action}`, { note });
+      const res = await apiRequest('POST', `/api/admin/support/${ticketId}/${action}`, { 
+        note,
+        adminId: user?.id 
+      });
       if (!res.ok) throw new Error(`Failed to ${action} ticket`);
       return res.json();
     },

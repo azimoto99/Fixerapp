@@ -18,6 +18,7 @@ interface TicketMessage {
   senderName: string;
   senderType: 'user' | 'admin';
   createdAt: string;
+  ticketId: number;
   attachments?: Array<{
     id: string;
     filename: string;
@@ -25,6 +26,26 @@ interface TicketMessage {
     uploadedAt: string;
     url?: string;
   }>;
+}
+
+export function TicketMessagesDisplay({ messages, ticket }: { messages: TicketMessage[], ticket: SupportTicket }) {
+  return (
+    <div className="space-y-4 max-h-[300px] overflow-y-auto p-4">
+      {messages.map((message) => (
+        <div key={message.id} className={`flex gap-2 ${message.senderType === 'admin' ? 'justify-end' : ''}`}>
+          <div className={`rounded-lg p-3 max-w-[80%] ${message.senderType === 'admin' ? 'bg-primary/10' : 'bg-muted'}`}>
+            <div className="flex items-center gap-2 mb-1">
+              <span className="text-sm font-medium">{message.senderName}</span>
+              <span className="text-xs text-muted-foreground">
+                {new Date(message.createdAt).toLocaleString()}
+              </span>
+            </div>
+            <p className="text-sm">{message.message}</p>
+          </div>
+        </div>
+      ))}
+    </div>
+  );
 }
 
 interface SupportTicket {

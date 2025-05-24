@@ -5100,21 +5100,66 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const ticketId = parseInt(req.params.ticketId);
       const action = req.params.action;
-      const { note } = req.body;
+      const { note, adminId } = req.body;
       
-      // Mock support ticket actions - this would update a real support tickets table
-      console.log(`Support ticket ${ticketId} ${action} by admin. Note: ${note || 'No note provided'}`);
+      const ticket = await storage.getSupportTicket(ticketId);
+      if (!ticket) {
+        return res.status(404).json({ message: 'Ticket not found' });
+      }
       
       switch (action) {
         case 'assign':
+          await storage.updateSupportTicket(ticketId, {
+            status: 'in_progress',
+            assignedTo: adminId,
+            updatedAt: new Date().toISOString()
+          });
+          
+          if (note) {
+            await storage.addTicketResponse({
+              ticketId,
+              adminId,
+              message: note,
+              createdAt: new Date().toISOString()
+            });
+          }
+          
           res.json({ message: 'Ticket assigned successfully' });
           break;
           
         case 'resolve':
+          await storage.updateSupportTicket(ticketId, {
+            status: 'resolved',
+            updatedAt: new Date().toISOString()
+          });
+          
+          if (note) {
+            await storage.addTicketResponse({
+              ticketId,
+              adminId,
+              message: note,
+              createdAt: new Date().toISOString()
+            });
+          }
+          
           res.json({ message: 'Ticket resolved successfully' });
           break;
           
         case 'close':
+          await storage.updateSupportTicket(ticketId, {
+            status: 'closed',
+            updatedAt: new Date().toISOString()
+          });
+          
+          if (note) {
+            await storage.addTicketResponse({
+              ticketId,
+              adminId,
+              message: note,
+              createdAt: new Date().toISOString()
+            });
+          }
+          
           res.json({ message: 'Ticket closed successfully' });
           break;
           
