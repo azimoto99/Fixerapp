@@ -6,6 +6,7 @@ import { storage } from "./storage";
 import { isAdmin } from "./auth-helpers";
 import { createJobWithPaymentFirst, updateJobWithPaymentCheck } from './payment-first-job-posting';
 import { applySecurity, sanitizeInput, validateSqlInput, validatePasswordStrength, validateEmail, validatePhoneNumber, logSecurityEvent, securityConfig } from './security-config';
+import { validators, sanitizeRequest, enhancedAdminAuth } from './secure-endpoints';
 import { body, param, query, validationResult } from 'express-validator';
 import xss from 'xss';
 import { z } from "zod";
@@ -1435,14 +1436,34 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // CRITICAL SECURITY: All job creation must go through payment-first system
   // Redirect to payment-first endpoint to prevent payment bypass
-  apiRouter.post("/jobs", isAuthenticated, async (req: Request, res: Response) => {
-    // SECURITY: Block direct job creation without payment verification
-    return res.status(400).json({
-      success: false,
-      message: "Job creation requires payment verification. Use the payment-first job posting endpoint.",
-      redirectTo: "/api/jobs/payment-first"
+  apiRouter.post("/jobs", 
+    secureAuthenticated,
+    [
+      body('title').isLength({ min: 1, max: 200 }).withMessage('Title must be between 1 and 200 characters'),
+      body('description').isLength({ min: 1, max: 2000 }).withMessage('Description must be between 1 and 2000 characters'),
+      body('category').isIn(JOB_CATEGORIES).withMessage('Invalid job category'),
+      body('paymentAmount').isFloat({ min: 0.01 }).withMessage('Payment amount must be greater than 0'),
+      body('latitude').optional().isFloat({ min: -90, max: 90 }).withMessage('Invalid latitude'),
+      body('longitude').optional().isFloat({ min: -180, max: 180 }).withMessage('Invalid longitude')
+    ],
+    validateInput,
+    async (req: Request, res: Response) => {
+      // SECURITY: Block direct job creation without payment verification
+      logSecurityEvent('BLOCKED_DIRECT_JOB_CREATION', {
+        ip: req.ip,
+        userAgent: req.get('User-Agent'),
+        attemptedData: {
+          title: sanitizeInput(req.body.title),
+          category: req.body.category
+        }
+      }, req.user?.id);
+      
+      return res.status(400).json({
+        success: false,
+        message: "Job creation requires payment verification. Use the payment-first job posting endpoint.",
+        redirectTo: "/api/jobs/payment-first"
+      });
     });
-  });
 
   // Get all jobs endpoint  
   apiRouter.get("/jobs", async (req: Request, res: Response) => {
