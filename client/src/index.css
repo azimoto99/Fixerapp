@@ -9,6 +9,12 @@
   --z-content: 1;
   --z-elevated: 10;
   
+  /* Map and core UI */
+  --z-map: 1;
+  --z-map-controls: 20;
+  --z-search-bar: 30;
+  --z-job-buttons: 30;
+  
   /* Navigation layers */
   --z-header: 100;
   --z-sidebar: 200;
@@ -23,8 +29,17 @@
   /* Overlay layers */
   --z-drawer: 3000;
   --z-drawer-backdrop: 2900;
-  --z-modal: 4000;
-  --z-modal-backdrop: 3900;
+  --z-user-drawer: 3100;
+  --z-user-drawer-backdrop: 3000;
+  
+  /* Modal and dialog layers */
+  --z-modal-backdrop: 4000;
+  --z-modal: 4100;
+  --z-dialog-backdrop: 4200;
+  --z-dialog: 4300;
+  --z-support-dialog: 4400;
+  
+  /* Notification layers */
   --z-toast: 5000;
   --z-loading: 6000;
   
