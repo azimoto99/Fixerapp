@@ -184,11 +184,10 @@ const UserDrawerV2: React.FC<UserDrawerProps> = ({
 
       {/* Drawer overlay and container with maximum z-index to ensure it's on top */}
       {isOpen && (
-        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm" style={{ zIndex: 99999 }}>
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm user-drawer-backdrop">
           <div
             ref={drawerRef}
-            className="fixed top-0 right-0 bottom-0 w-[360px] bg-background shadow-xl transform transition-transform duration-300 animate-in slide-in-from-right overflow-hidden"
-            style={{ zIndex: 100000 }}
+            className="fixed top-0 right-0 bottom-0 w-[360px] bg-background shadow-xl transform transition-transform duration-300 animate-in slide-in-from-right overflow-hidden user-drawer"
           >
             {/* Modernized drawer header with cleaner design */}
             <div className="bg-primary/95 text-primary-foreground shadow-md">

@@ -69,6 +69,61 @@
   position: fixed;
 }
 
+.user-drawer {
+  z-index: var(--z-user-drawer);
+  position: fixed;
+}
+
+.user-drawer-backdrop {
+  z-index: var(--z-user-drawer-backdrop);
+  position: fixed;
+}
+
+.modal-backdrop {
+  z-index: var(--z-modal-backdrop);
+  position: fixed;
+}
+
+.modal {
+  z-index: var(--z-modal);
+  position: fixed;
+}
+
+.dialog-backdrop {
+  z-index: var(--z-dialog-backdrop);
+  position: fixed;
+}
+
+.dialog {
+  z-index: var(--z-dialog);
+  position: fixed;
+}
+
+.support-dialog {
+  z-index: var(--z-support-dialog);
+  position: fixed;
+}
+
+.map-controls {
+  z-index: var(--z-map-controls);
+  position: relative;
+}
+
+.search-bar {
+  z-index: var(--z-search-bar);
+  position: fixed;
+}
+
+.job-buttons {
+  z-index: var(--z-job-buttons);
+  position: fixed;
+}
+
+.drawer-backdrop {
+  z-index: var(--z-drawer-backdrop);
+  position: fixed;
+}
+
 .modal {
   z-index: var(--z-modal);
   position: fixed;
