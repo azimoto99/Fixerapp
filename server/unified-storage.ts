@@ -323,7 +323,7 @@ export class UnifiedStorage implements IStorage {
 
   async getEarningsByUserId(userId: number): Promise<Earning[]> {
     return this.safeExecute(async () => {
-      return await db.select().from(earnings).where(eq(earnings.workerId, userId)).orderBy(desc(earnings.createdAt));
+      return await db.select().from(earnings).where(eq(earnings.workerId, userId)).orderBy(desc(earnings.dateEarned));
     }, [], `getEarningsByUserId(${userId})`);
   }
 
