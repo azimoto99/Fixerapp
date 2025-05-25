@@ -409,8 +409,21 @@ export default function AdminPanelV2() {
                   <Users className="h-4 w-4 text-blue-600" />
                 </CardHeader>
                 <CardContent>
-                  <div className="text-2xl font-bold text-gray-900">{dashboardStats?.totalUsers || 0}</div>
-                  <p className="text-xs text-gray-500">Registered users</p>
+                  <div className="text-2xl font-bold text-gray-900">
+                    {dashboardStats?.userGrowth?.totalUsers || 0}
+                  </div>
+                  <p className="text-xs text-gray-500">
+                    +{dashboardStats?.userGrowth?.newUsersToday || 0} today
+                  </p>
+                  <div className="flex items-center mt-1">
+                    <span className={`text-xs font-medium ${
+                      (dashboardStats?.userGrowth?.growthRate || 0) >= 0 ? 'text-green-600' : 'text-red-600'
+                    }`}>
+                      {(dashboardStats?.userGrowth?.growthRate || 0) >= 0 ? '↗' : '↘'} 
+                      {Math.abs(dashboardStats?.userGrowth?.growthRate || 0).toFixed(1)}%
+                    </span>
+                    <span className="text-xs text-gray-500 ml-1">vs last month</span>
+                  </div>
                 </CardContent>
               </Card>
 
@@ -420,8 +433,17 @@ export default function AdminPanelV2() {
                   <Briefcase className="h-4 w-4 text-green-600" />
                 </CardHeader>
                 <CardContent>
-                  <div className="text-2xl font-bold text-gray-900">{dashboardStats?.activeJobs || 0}</div>
-                  <p className="text-xs text-gray-500">Currently open jobs</p>
+                  <div className="text-2xl font-bold text-gray-900">
+                    {dashboardStats?.jobMetrics?.activeJobs || 0}
+                  </div>
+                  <p className="text-xs text-gray-500">
+                    {dashboardStats?.jobMetrics?.totalJobs || 0} total jobs
+                  </p>
+                  <div className="flex items-center mt-1">
+                    <span className="text-xs font-medium text-blue-600">
+                      {(dashboardStats?.jobMetrics?.completionRate || 0).toFixed(1)}% completion rate
+                    </span>
+                  </div>
                 </CardContent>
               </Card>
 
@@ -431,8 +453,21 @@ export default function AdminPanelV2() {
                   <DollarSign className="h-4 w-4 text-emerald-600" />
                 </CardHeader>
                 <CardContent>
-                  <div className="text-2xl font-bold text-gray-900">${(dashboardStats?.totalRevenue || 0).toFixed(2)}</div>
-                  <p className="text-xs text-gray-500">Total platform revenue</p>
+                  <div className="text-2xl font-bold text-gray-900">
+                    ${(dashboardStats?.financialMetrics?.monthlyRevenue || 0).toLocaleString()}
+                  </div>
+                  <p className="text-xs text-gray-500">
+                    ${(dashboardStats?.financialMetrics?.totalRevenue || 0).toLocaleString()} total
+                  </p>
+                  <div className="flex items-center mt-1">
+                    <span className={`text-xs font-medium ${
+                      (dashboardStats?.financialMetrics?.revenueGrowth || 0) >= 0 ? 'text-green-600' : 'text-red-600'
+                    }`}>
+                      {(dashboardStats?.financialMetrics?.revenueGrowth || 0) >= 0 ? '↗' : '↘'} 
+                      {Math.abs(dashboardStats?.financialMetrics?.revenueGrowth || 0).toFixed(1)}%
+                    </span>
+                    <span className="text-xs text-gray-500 ml-1">growth</span>
+                  </div>
                 </CardContent>
               </Card>
 
