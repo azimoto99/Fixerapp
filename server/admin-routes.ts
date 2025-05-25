@@ -1633,8 +1633,7 @@ export function registerAdminRoutes(app: Express) {
 
   // Enhanced Financial Analytics Endpoint
   app.get("/api/admin/analytics/financials", 
-    enhancedAdminAuth, 
-    auditAdminAction('view_financial_analytics', 'financials'),
+    adminAuth, 
     async (req, res) => {
       try {
         // Return structured financial data to show actual platform metrics
