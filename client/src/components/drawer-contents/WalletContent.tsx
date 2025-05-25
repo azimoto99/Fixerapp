@@ -191,12 +191,38 @@ const WalletContent: React.FC<WalletContentProps> = ({ user }) => {
 
   return (
     <div className="space-y-6">
-      {/* Header */}
+      {/* Header with Section Toggle */}
       <div className="flex items-center justify-between">
         <h2 className="text-lg font-semibold flex items-center gap-2">
           <Wallet className="h-5 w-5" />
           Wallet
         </h2>
+        <div className="flex bg-gray-100 dark:bg-gray-800 rounded-lg p-1">
+          <Button
+            variant={activeSection === 'overview' ? 'default' : 'ghost'}
+            size="sm"
+            onClick={() => setActiveSection('overview')}
+            className="text-xs px-3"
+          >
+            Overview
+          </Button>
+          <Button
+            variant={activeSection === 'earnings' ? 'default' : 'ghost'}
+            size="sm"
+            onClick={() => setActiveSection('earnings')}
+            className="text-xs px-3"
+          >
+            Earnings
+          </Button>
+          <Button
+            variant={activeSection === 'payments' ? 'default' : 'ghost'}
+            size="sm"
+            onClick={() => setActiveSection('payments')}
+            className="text-xs px-3"
+          >
+            Payments
+          </Button>
+        </div>
       </div>
 
       {/* Balance Section */}
@@ -242,166 +268,159 @@ const WalletContent: React.FC<WalletContentProps> = ({ user }) => {
         </CardContent>
       </Card>
 
-      {/* Earnings Summary */}
-      <Card>
-        <CardHeader className="pb-3">
-          <CardTitle className="text-base flex items-center gap-2">
-            <TrendingUp className="h-4 w-4" />
-            Earnings Summary
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="grid grid-cols-2 gap-4">
-          <div className="space-y-1">
-            <p className="text-xs text-gray-500 dark:text-gray-400">Total Earned</p>
-            <p className="text-lg font-semibold">{formatCurrency(totalBalance)}</p>
-          </div>
-          <div className="space-y-1">
-            <p className="text-xs text-gray-500 dark:text-gray-400">This Week</p>
-            <p className="text-lg font-semibold text-green-600">{formatCurrency(thisWeekEarnings)}</p>
-          </div>
-          <div className="space-y-1">
-            <p className="text-xs text-gray-500 dark:text-gray-400">Avg per Job</p>
-            <p className="text-lg font-semibold">{formatCurrency(avgPerJob)}</p>
-          </div>
-          <div className="space-y-1">
-            <p className="text-xs text-gray-500 dark:text-gray-400">Jobs Completed</p>
-            <p className="text-lg font-semibold flex items-center gap-1">
-              <Trophy className="h-4 w-4 text-yellow-500" />
-              {completedJobs}
-            </p>
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* Payment Methods */}
-      <Card>
-        <CardHeader className="pb-3">
-          <div className="flex items-center justify-between">
-            <CardTitle className="text-base">Payment Methods</CardTitle>
-            <Button variant="outline" size="sm" className="text-xs">
-              <Plus className="h-3 w-3 mr-1" />
-              Add Card
-            </Button>
-          </div>
-        </CardHeader>
-        <CardContent>
-          <div className="space-y-2">
-            {paymentMethods && paymentMethods.length > 0 ? (
-              paymentMethods.map((method: any) => (
-                <div key={method.id} className="flex items-center justify-between p-3 rounded-lg border bg-card">
-                  <div className="flex items-center space-x-3">
-                    <div className="p-2 bg-primary/10 rounded-lg">
-                      <CreditCard className="h-4 w-4 text-primary" />
-                    </div>
-                    <div>
-                      <p className="font-medium text-sm">
-                        •••• •••• •••• {method.card?.last4}
-                      </p>
-                      <p className="text-xs text-muted-foreground">
-                        {method.card?.brand?.toUpperCase()} • Expires {method.card?.exp_month}/{method.card?.exp_year}
-                      </p>
-                    </div>
-                  </div>
-                  <div className="text-xs text-muted-foreground">
-                    {method.id === paymentMethods[0]?.id && (
-                      <span className="text-primary font-medium">Default</span>
-                    )}
-                  </div>
-                </div>
-              ))
-            ) : (
-              <div className="text-center py-6">
-                <CreditCard className="h-8 w-8 text-muted-foreground mx-auto mb-2" />
-                <p className="text-sm text-muted-foreground">No payment methods added</p>
-                <p className="text-xs text-muted-foreground mt-1">Add a card to make payments</p>
+      {/* Conditional Content Based on Active Section */}
+      {activeSection === 'overview' && (
+        <>
+          {/* Earnings Summary */}
+          <Card>
+            <CardHeader className="pb-3">
+              <CardTitle className="text-base flex items-center gap-2">
+                <TrendingUp className="h-4 w-4" />
+                Earnings Summary
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="grid grid-cols-2 gap-4">
+              <div className="space-y-1">
+                <p className="text-xs text-gray-500 dark:text-gray-400">Total Earned</p>
+                <p className="text-lg font-semibold">{formatCurrency(totalBalance)}</p>
               </div>
-            )}
-          </div>
-        </CardContent>
-      </Card>
+              <div className="space-y-1">
+                <p className="text-xs text-gray-500 dark:text-gray-400">This Week</p>
+                <p className="text-lg font-semibold text-green-600">{formatCurrency(thisWeekEarnings)}</p>
+              </div>
+              <div className="space-y-1">
+                <p className="text-xs text-gray-500 dark:text-gray-400">Avg per Job</p>
+                <p className="text-lg font-semibold">{formatCurrency(avgPerJob)}</p>
+              </div>
+              <div className="space-y-1">
+                <p className="text-xs text-gray-500 dark:text-gray-400">Jobs Completed</p>
+                <p className="text-lg font-semibold flex items-center gap-1">
+                  <Trophy className="h-4 w-4 text-yellow-500" />
+                  {completedJobs}
+                </p>
+              </div>
+            </CardContent>
+          </Card>
 
-      {/* Recent Transactions */}
-      <Card>
-        <CardHeader className="pb-3">
-          <div className="flex items-center justify-between">
-            <CardTitle className="text-base">Recent Transactions</CardTitle>
-            <div className="flex items-center gap-2">
-              <Button
-                variant={filterType === 'all' ? 'default' : 'outline'}
-                size="sm"
-                onClick={() => setFilterType('all')}
-                className="h-7 px-2 text-xs"
-              >
-                All
-              </Button>
-              <Button
-                variant={filterType === 'earnings' ? 'default' : 'outline'}
-                size="sm"
-                onClick={() => setFilterType('earnings')}
-                className="h-7 px-2 text-xs"
-              >
-                Earnings
-              </Button>
-              <Button
-                variant={filterType === 'withdrawals' ? 'default' : 'outline'}
-                size="sm"
-                onClick={() => setFilterType('withdrawals')}
-                className="h-7 px-2 text-xs"
-              >
-                Withdrawals
-              </Button>
-            </div>
-          </div>
-        </CardHeader>
-        <CardContent className="p-0">
-          <ScrollArea className="h-64">
-            <div className="space-y-1 p-4">
-              {filteredTransactions.length === 0 ? (
-                <div className="text-center py-8 text-gray-500 dark:text-gray-400">
-                  <DollarSign className="h-8 w-8 mx-auto mb-2 opacity-50" />
-                  <p className="text-sm">No transactions yet</p>
-                </div>
-              ) : (
-                filteredTransactions.map((transaction) => (
-                  <div
-                    key={transaction.id}
-                    className="flex items-center justify-between p-3 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors"
-                  >
-                    <div className="flex items-center gap-3">
-                      {getTransactionIcon(transaction.type)}
-                      <div className="min-w-0 flex-1">
-                        <div className="flex items-center gap-2">
-                          <p className="text-sm font-medium truncate">
-                            {transaction.jobTitle || transaction.description}
-                          </p>
-                          <Badge 
-                            variant={transaction.status === 'completed' ? 'default' : 'secondary'}
-                            className="h-5 px-1.5 text-xs"
-                          >
-                            {transaction.status}
-                          </Badge>
-                        </div>
-                        <p className="text-xs text-gray-500 dark:text-gray-400">
-                          {formatDate(transaction.date)}
-                        </p>
+          {/* Payment Methods */}
+          <Card>
+            <CardHeader className="pb-3">
+              <CardTitle className="text-base flex items-center gap-2">
+                <CreditCard className="h-4 w-4" />
+                Payment Methods
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              {paymentMethods && paymentMethods.length > 0 ? (
+                <div className="space-y-2">
+                  {paymentMethods.map((method: any) => (
+                    <div key={method.id} className="flex items-center justify-between p-3 border rounded-lg">
+                      <div className="flex items-center gap-3">
+                        <CreditCard className="h-4 w-4 text-gray-600" />
+                        <span className="text-sm">•••• {method.card?.last4}</span>
+                        <Badge variant="secondary" className="text-xs">
+                          {method.card?.brand?.toUpperCase()}
+                        </Badge>
                       </div>
                     </div>
-                    <div className="text-right">
-                      <p className={`text-sm font-semibold ${
-                        transaction.amount >= 0 
-                          ? 'text-green-600 dark:text-green-400' 
-                          : 'text-red-600 dark:text-red-400'
-                      }`}>
-                        {transaction.amount >= 0 ? '+' : ''}{formatCurrency(transaction.amount)}
-                      </p>
-                    </div>
-                  </div>
-                ))
+                  ))}
+                </div>
+              ) : (
+                <div className="text-center py-6 text-gray-500">
+                  <CreditCard className="h-8 w-8 mx-auto mb-2 opacity-50" />
+                  <p className="text-sm">No payment methods added</p>
+                </div>
               )}
-            </div>
-          </ScrollArea>
-        </CardContent>
-      </Card>
+            </CardContent>
+          </Card>
+        </>
+      )}
+
+      {activeSection === 'earnings' && (
+        <Card>
+          <CardHeader className="pb-3">
+            <CardTitle className="text-base flex items-center gap-2">
+              <TrendingUp className="h-4 w-4" />
+              Earnings History
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <ScrollArea className="h-64">
+              {earnings && earnings.length > 0 ? (
+                <div className="space-y-2">
+                  {earnings.map((earning: any) => (
+                    <div key={earning.id} className="flex items-center justify-between p-3 border rounded-lg">
+                      <div className="flex items-center gap-3">
+                        <ArrowUpRight className="h-4 w-4 text-green-600" />
+                        <div>
+                          <p className="text-sm font-medium">Job Payment</p>
+                          <p className="text-xs text-gray-500">{formatDate(earning.createdAt)}</p>
+                        </div>
+                      </div>
+                      <div className="text-right">
+                        <p className="text-sm font-semibold text-green-600">
+                          +{formatCurrency(earning.amount || 0)}
+                        </p>
+                        <Badge variant={earning.status === 'paid' ? 'default' : 'secondary'} className="text-xs">
+                          {earning.status}
+                        </Badge>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="text-center py-6 text-gray-500">
+                  <TrendingUp className="h-8 w-8 mx-auto mb-2 opacity-50" />
+                  <p className="text-sm">No earnings yet</p>
+                </div>
+              )}
+            </ScrollArea>
+          </CardContent>
+        </Card>
+      )}
+
+      {activeSection === 'payments' && (
+        <Card>
+          <CardHeader className="pb-3">
+            <CardTitle className="text-base flex items-center gap-2">
+              <ArrowDownLeft className="h-4 w-4" />
+              Payment History
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <ScrollArea className="h-64">
+              {payments && payments.length > 0 ? (
+                <div className="space-y-2">
+                  {payments.map((payment: any) => (
+                    <div key={payment.id} className="flex items-center justify-between p-3 border rounded-lg">
+                      <div className="flex items-center gap-3">
+                        <ArrowDownLeft className="h-4 w-4 text-red-600" />
+                        <div>
+                          <p className="text-sm font-medium">{payment.description || 'Withdrawal'}</p>
+                          <p className="text-xs text-gray-500">{formatDate(payment.createdAt)}</p>
+                        </div>
+                      </div>
+                      <div className="text-right">
+                        <p className="text-sm font-semibold text-red-600">
+                          -{formatCurrency(payment.amount || 0)}
+                        </p>
+                        <Badge variant={payment.status === 'completed' ? 'default' : 'secondary'} className="text-xs">
+                          {payment.status}
+                        </Badge>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="text-center py-6 text-gray-500">
+                  <ArrowDownLeft className="h-8 w-8 mx-auto mb-2 opacity-50" />
+                  <p className="text-sm">No payments yet</p>
+                </div>
+              )}
+            </ScrollArea>
+          </CardContent>
+        </Card>
+      )}
     </div>
   );
 };
