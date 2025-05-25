@@ -3,8 +3,8 @@ import { DatabaseStorage } from "./database-storage";
 import connectPg from "connect-pg-simple";
 import session from "express-session";
 import { pool, db } from "./db";
-import { eq, desc } from "drizzle-orm";
-import { supportTickets } from "@shared/schema";
+import { eq, desc, sql } from "drizzle-orm";
+import { supportTickets, supportMessages, users } from "@shared/schema";
 
 /**
  * This is a wrapper around DatabaseStorage that catches errors and logs them,
@@ -932,6 +932,77 @@ export class FixedDatabaseStorage implements IStorage {
       return updatedTicket;
     } catch (error) {
       console.error('Error updating support ticket:', error);
+      throw error;
+    }
+  }
+
+  // Support ticket messages methods for Ultrabug Prompt 2
+  async getSupportTicketMessages(ticketId: number) {
+    try {
+      const messages = await db.select({
+        id: supportMessages.id,
+        ticketId: supportMessages.ticketId,
+        senderId: supportMessages.senderId,
+        message: supportMessages.message,
+        isInternal: supportMessages.isInternal,
+        attachmentUrl: supportMessages.attachmentUrl,
+        createdAt: supportMessages.createdAt,
+        senderName: users.fullName,
+        senderType: sql<string>`CASE WHEN ${users.isAdmin} = true THEN 'admin' ELSE 'user' END`
+      })
+      .from(supportMessages)
+      .leftJoin(users, eq(supportMessages.senderId, users.id))
+      .where(eq(supportMessages.ticketId, ticketId))
+      .orderBy(supportMessages.createdAt);
+      
+      return messages;
+    } catch (error) {
+      console.error('Error fetching support ticket messages:', error);
+      return [];
+    }
+  }
+
+  async createSupportTicketMessage(messageData: any) {
+    try {
+      const [message] = await db.insert(supportMessages).values({
+        ticketId: messageData.ticketId,
+        senderId: messageData.senderId,
+        message: messageData.message,
+        isInternal: messageData.isInternal || false,
+        attachmentUrl: messageData.attachmentUrl || null
+      }).returning();
+      return message;
+    } catch (error) {
+      console.error('Error creating support ticket message:', error);
+      throw error;
+    }
+  }
+
+  async getSupportTicketById(ticketId: number) {
+    try {
+      const [ticket] = await db.select()
+        .from(supportTickets)
+        .where(eq(supportTickets.id, ticketId));
+      return ticket;
+    } catch (error) {
+      console.error('Error fetching support ticket by ID:', error);
+      return null;
+    }
+  }
+
+  async assignSupportTicket(ticketId: number, adminId: number) {
+    try {
+      const [updatedTicket] = await db.update(supportTickets)
+        .set({
+          assignedTo: adminId,
+          status: 'in_progress',
+          updatedAt: new Date()
+        })
+        .where(eq(supportTickets.id, ticketId))
+        .returning();
+      return updatedTicket;
+    } catch (error) {
+      console.error('Error assigning support ticket:', error);
       throw error;
     }
   }

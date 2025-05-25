@@ -396,6 +396,87 @@ export function registerAdminRoutes(app: Express) {
     }
   });
 
+  // Support ticket messaging endpoints for Ultrabug Prompt 2
+  app.get("/api/admin/support-tickets/:ticketId/messages", adminAuth, async (req, res) => {
+    try {
+      const ticketId = parseInt(req.params.ticketId);
+      const messages = await storage.getSupportTicketMessages(ticketId);
+      res.json(messages);
+    } catch (error) {
+      console.error('Admin ticket messages error:', error);
+      res.status(500).json({ message: "Failed to fetch ticket messages" });
+    }
+  });
+
+  app.post("/api/admin/support-tickets/:ticketId/messages", adminAuth, async (req, res) => {
+    try {
+      const ticketId = parseInt(req.params.ticketId);
+      const { message, isInternal, attachmentUrl } = req.body;
+
+      const messageData = {
+        ticketId,
+        senderId: req.user?.id,
+        message,
+        isInternal: isInternal || false,
+        attachmentUrl
+      };
+
+      const newMessage = await storage.createSupportTicketMessage(messageData);
+      
+      // Update ticket status if this is a response
+      if (!isInternal) {
+        await storage.updateSupportTicket(ticketId, {
+          status: 'in_progress'
+        });
+      }
+
+      res.json({
+        message: "Message sent successfully",
+        ticketMessage: newMessage
+      });
+    } catch (error) {
+      console.error('Admin ticket message creation error:', error);
+      res.status(500).json({ message: "Failed to send message" });
+    }
+  });
+
+  app.post("/api/admin/support-tickets/:ticketId/assign", adminAuth, async (req, res) => {
+    try {
+      const ticketId = parseInt(req.params.ticketId);
+      const { adminId } = req.body;
+
+      const updatedTicket = await storage.assignSupportTicket(ticketId, adminId || req.user?.id);
+      
+      if (!updatedTicket) {
+        return res.status(404).json({ message: "Support ticket not found" });
+      }
+
+      res.json({
+        message: "Ticket assigned successfully",
+        ticket: updatedTicket
+      });
+    } catch (error) {
+      console.error('Admin ticket assignment error:', error);
+      res.status(500).json({ message: "Failed to assign ticket" });
+    }
+  });
+
+  app.get("/api/admin/support-tickets/:ticketId", adminAuth, async (req, res) => {
+    try {
+      const ticketId = parseInt(req.params.ticketId);
+      const ticket = await storage.getSupportTicketById(ticketId);
+      
+      if (!ticket) {
+        return res.status(404).json({ message: "Support ticket not found" });
+      }
+
+      res.json(ticket);
+    } catch (error) {
+      console.error('Admin ticket fetch error:', error);
+      res.status(500).json({ message: "Failed to fetch ticket" });
+    }
+  });
+
   // Get earnings data
   app.get("/api/admin/earnings", adminAuth, async (req, res) => {
     try {
