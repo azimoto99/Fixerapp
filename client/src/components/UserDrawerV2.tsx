@@ -26,7 +26,6 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/comp
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import ProfileContentV2 from './drawer-contents/ProfileContentV2';
 import WalletContent from './drawer-contents/WalletContent';
-import PaymentsContentUnified from './drawer-contents/PaymentsContentUnified';
 import ReviewsContent from './drawer-contents/ReviewsContent';
 import SettingsContent from './drawer-contents/SettingsContent';
 import SupportContent from './drawer-contents/SupportContent';
@@ -158,8 +157,7 @@ const UserDrawerV2: React.FC<UserDrawerProps> = ({
         return <ProfileContentV2 user={user} onSignOut={handleLogout} />;
       case "wallet":
         return <WalletContent user={user} />;
-      case "payments":
-        return <PaymentsContentUnified />;
+
       case "reviews":
         return <ReviewsContent userId={user.id} />;
       case "settings":
@@ -345,26 +343,7 @@ const UserDrawerV2: React.FC<UserDrawerProps> = ({
                       </TooltipContent>
                     </Tooltip>
 
-                    {/* Payments & Billing section */}
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                        <button 
-                          onClick={() => handleTabChange("payments")}
-                          className={cn(
-                            "flex flex-col items-center justify-center w-14 h-14 rounded-lg transition-all duration-200",
-                            activeTab === "payments" 
-                              ? "bg-primary/10 text-primary shadow-sm" 
-                              : "hover:bg-primary/5 hover:shadow-sm text-foreground dark:text-foreground/90"
-                          )}
-                        >
-                          <CreditCard className="h-5 w-5 mb-1 stroke-[1.5px]" />
-                          <span className="text-xs font-medium">Payments</span>
-                        </button>
-                      </TooltipTrigger>
-                      <TooltipContent side="right">
-                        <p>Manage payment methods and transaction history</p>
-                      </TooltipContent>
-                    </Tooltip>
+
                     
                     {user.accountType === 'poster' && (
                       <Tooltip>
