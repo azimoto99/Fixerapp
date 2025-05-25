@@ -93,8 +93,11 @@ export default function AdminPanelV2() {
   const [selectedTab, setSelectedTab] = useState("overview");
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
   const [selectedJob, setSelectedJob] = useState<Job | null>(null);
+  const [selectedTicket, setSelectedTicket] = useState<SupportTicket | null>(null);
   const [isUserDialogOpen, setIsUserDialogOpen] = useState(false);
   const [isJobDialogOpen, setIsJobDialogOpen] = useState(false);
+  const [isTicketDialogOpen, setIsTicketDialogOpen] = useState(false);
+  const [ticketResponse, setTicketResponse] = useState("");
 
   // Comprehensive admin data fetching - only real platform data
   const { data: dashboardStats, isLoading: isDashboardLoading } = useQuery({
@@ -176,6 +179,43 @@ export default function AdminPanelV2() {
     onError: () => {
       toast({ title: "Failed to update ticket", variant: "destructive" });
     },
+  });
+
+  // Delete ticket mutation
+  const deleteTicketMutation = useMutation({
+    mutationFn: async (ticketId: number) => {
+      const response = await apiRequest("DELETE", `/api/admin/support-tickets/${ticketId}`);
+      if (!response.ok) throw new Error("Failed to delete ticket");
+      return response.json();
+    },
+    onSuccess: () => {
+      refetchSupport();
+      toast({ title: "Ticket deleted successfully" });
+    },
+    onError: () => {
+      toast({ title: "Failed to delete ticket", variant: "destructive" });
+    }
+  });
+
+  // Respond to ticket mutation
+  const respondToTicketMutation = useMutation({
+    mutationFn: async ({ ticketId, response }: { ticketId: number, response: string }) => {
+      const result = await apiRequest("POST", `/api/admin/support-tickets/${ticketId}/respond`, {
+        response,
+        status: "resolved"
+      });
+      if (!result.ok) throw new Error("Failed to send response");
+      return result.json();
+    },
+    onSuccess: () => {
+      refetchSupport();
+      setIsTicketDialogOpen(false);
+      setTicketResponse("");
+      toast({ title: "Response sent and ticket resolved" });
+    },
+    onError: () => {
+      toast({ title: "Failed to send response", variant: "destructive" });
+    }
   });
 
   const getStatusColor = (status: string) => {
@@ -491,24 +531,32 @@ export default function AdminPanelV2() {
                         <Button
                           size="sm"
                           variant="outline"
-                          onClick={() => updateTicketStatusMutation.mutate({ 
-                            ticketId: ticket.id, 
-                            status: "in_progress" 
-                          })}
-                          disabled={ticket.status === "resolved" || ticket.status === "closed"}
+                          onClick={() => {
+                            setSelectedTicket(ticket);
+                            setIsTicketDialogOpen(true);
+                          }}
                         >
-                          In Progress
+                          <Eye className="h-4 w-4 mr-1" />
+                          View & Respond
                         </Button>
                         <Button
                           size="sm"
+                          variant="outline"
                           onClick={() => updateTicketStatusMutation.mutate({ 
                             ticketId: ticket.id, 
-                            status: "resolved",
+                            status: ticket.status === "open" ? "in_progress" : "resolved",
                             resolution: "Issue resolved by admin"
                           })}
                           disabled={ticket.status === "resolved" || ticket.status === "closed"}
                         >
-                          <CheckCircle className="h-4 w-4" />
+                          {ticket.status === "open" ? "Start" : "Resolve"}
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="destructive"
+                          onClick={() => deleteTicketMutation.mutate(ticket.id)}
+                        >
+                          <Trash2 className="h-4 w-4" />
                         </Button>
                       </div>
                     </div>
