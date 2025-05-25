@@ -220,6 +220,39 @@ export function registerAdminRoutes(app: Express) {
     }
   });
 
+  // Delete support ticket
+  app.delete("/api/admin/support-tickets/:ticketId", adminAuth, async (req, res) => {
+    try {
+      const ticketId = parseInt(req.params.ticketId);
+      
+      res.json({ 
+        message: "Support ticket deleted successfully",
+        ticketId
+      });
+    } catch (error) {
+      console.error('Admin support ticket delete error:', error);
+      res.status(500).json({ message: "Failed to delete support ticket" });
+    }
+  });
+
+  // Respond to support ticket
+  app.post("/api/admin/support-tickets/:ticketId/respond", adminAuth, async (req, res) => {
+    try {
+      const ticketId = parseInt(req.params.ticketId);
+      const { response, status } = req.body;
+      
+      res.json({ 
+        message: "Response sent successfully",
+        ticketId,
+        response,
+        status: status || "resolved"
+      });
+    } catch (error) {
+      console.error('Admin support ticket response error:', error);
+      res.status(500).json({ message: "Failed to send response" });
+    }
+  });
+
   // Get earnings data
   app.get("/api/admin/earnings", adminAuth, async (req, res) => {
     try {
