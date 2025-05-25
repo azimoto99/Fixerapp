@@ -3,6 +3,8 @@ import { DatabaseStorage } from "./database-storage";
 import connectPg from "connect-pg-simple";
 import session from "express-session";
 import { pool, db } from "./db";
+import { eq, desc } from "drizzle-orm";
+import { supportTickets } from "@shared/schema";
 
 /**
  * This is a wrapper around DatabaseStorage that catches errors and logs them,
@@ -872,6 +874,65 @@ export class FixedDatabaseStorage implements IStorage {
     } catch (error) {
       console.error(`Error in markMessagesAsRead(${recipientId}, ${senderId}):`, error);
       return false;
+    }
+  }
+
+  // Support ticket methods
+  async getAllSupportTickets() {
+    try {
+      const tickets = await db.select().from(supportTickets).orderBy(desc(supportTickets.createdAt));
+      return tickets;
+    } catch (error) {
+      console.error('Error fetching support tickets:', error);
+      return [];
+    }
+  }
+
+  async createSupportTicket(ticketData: any) {
+    try {
+      const [ticket] = await db.insert(supportTickets).values({
+        userId: ticketData.userId,
+        userName: ticketData.userName,
+        userEmail: ticketData.userEmail,
+        title: ticketData.title,
+        description: ticketData.description,
+        category: ticketData.category,
+        priority: ticketData.priority || 'medium',
+        status: 'open',
+        jobId: ticketData.jobId || null
+      }).returning();
+      return ticket;
+    } catch (error) {
+      console.error('Error creating support ticket:', error);
+      throw error;
+    }
+  }
+
+  async deleteSupportTicket(ticketId: number) {
+    try {
+      const [deletedTicket] = await db.delete(supportTickets)
+        .where(eq(supportTickets.id, ticketId))
+        .returning();
+      return deletedTicket;
+    } catch (error) {
+      console.error('Error deleting support ticket:', error);
+      throw error;
+    }
+  }
+
+  async updateSupportTicket(ticketId: number, updates: any) {
+    try {
+      const [updatedTicket] = await db.update(supportTickets)
+        .set({
+          ...updates,
+          updatedAt: new Date()
+        })
+        .where(eq(supportTickets.id, ticketId))
+        .returning();
+      return updatedTicket;
+    } catch (error) {
+      console.error('Error updating support ticket:', error);
+      throw error;
     }
   }
 }
