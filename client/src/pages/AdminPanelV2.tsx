@@ -95,6 +95,8 @@ interface Payment {
 export default function AdminPanelV2() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  
+  // Enhanced state management for better UX
   const [selectedTab, setSelectedTab] = useState("overview");
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
   const [selectedJob, setSelectedJob] = useState<Job | null>(null);
@@ -103,22 +105,111 @@ export default function AdminPanelV2() {
   const [isJobDialogOpen, setIsJobDialogOpen] = useState(false);
   const [isTicketDialogOpen, setIsTicketDialogOpen] = useState(false);
   const [ticketResponse, setTicketResponse] = useState("");
+  
+  // Enhanced UI state for responsive design
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [searchTerm, setSearchTerm] = useState("");
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize] = useState(10);
+  const [sortBy, setSortBy] = useState("createdAt");
+  const [sortOrder, setSortOrder] = useState<"asc" | "desc">("desc");
+  const [filterStatus, setFilterStatus] = useState<string>("all");
+  
+  // Performance optimization - debounced search
+  const [debouncedSearch, setDebouncedSearch] = useState("");
+  
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSearch(searchTerm);
+    }, 300);
+    
+    return () => clearTimeout(timer);
+  }, [searchTerm]);
+  
+  // Reset pagination when search or filters change
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [debouncedSearch, filterStatus, selectedTab]);
 
-  // Comprehensive admin data fetching - only real platform data
-  const { data: dashboardStats, isLoading: isDashboardLoading } = useQuery({
+  // Enhanced data fetching with real-time updates and performance optimization
+  const { data: dashboardStats, isLoading: isDashboardLoading, error: dashboardError } = useQuery({
     queryKey: ["/api/admin/dashboard-stats"],
     refetchInterval: 30000, // Refresh every 30 seconds
+    staleTime: 10000, // Consider data stale after 10 seconds
+    retry: 3,
   });
 
-  const { data: users = [], isLoading: isUsersLoading, refetch: refetchUsers } = useQuery({
-    queryKey: ["/api/admin/users"],
+  // Optimized data fetching with pagination and filtering
+  const usersQueryKey = useMemo(() => [
+    "/api/admin/users",
+    { 
+      page: currentPage, 
+      pageSize, 
+      search: debouncedSearch, 
+      status: filterStatus, 
+      sortBy, 
+      sortOrder 
+    }
+  ], [currentPage, pageSize, debouncedSearch, filterStatus, sortBy, sortOrder]);
+
+  const { data: usersResponse, isLoading: isUsersLoading, refetch: refetchUsers } = useQuery({
+    queryKey: usersQueryKey,
+    queryFn: async () => {
+      const params = new URLSearchParams({
+        page: currentPage.toString(),
+        limit: pageSize.toString(),
+        search: debouncedSearch,
+        ...(filterStatus !== "all" && { status: filterStatus }),
+        sortBy,
+        sortOrder
+      });
+      
+      const response = await fetch(`/api/admin/users?${params}`);
+      if (!response.ok) throw new Error('Failed to fetch users');
+      return response.json();
+    },
     enabled: selectedTab === "users",
+    staleTime: 5000,
   });
 
-  const { data: jobs = [], isLoading: isJobsLoading, refetch: refetchJobs } = useQuery({
-    queryKey: ["/api/admin/jobs"],
+  // Enhanced jobs fetching with filtering
+  const jobsQueryKey = useMemo(() => [
+    "/api/admin/jobs-detailed",
+    { 
+      page: currentPage, 
+      pageSize, 
+      search: debouncedSearch, 
+      status: filterStatus, 
+      sortBy, 
+      sortOrder 
+    }
+  ], [currentPage, pageSize, debouncedSearch, filterStatus, sortBy, sortOrder]);
+
+  const { data: jobsResponse, isLoading: isJobsLoading, refetch: refetchJobs } = useQuery({
+    queryKey: jobsQueryKey,
+    queryFn: async () => {
+      const params = new URLSearchParams({
+        page: currentPage.toString(),
+        limit: pageSize.toString(),
+        search: debouncedSearch,
+        ...(filterStatus !== "all" && { status: filterStatus }),
+        sortBy,
+        sortOrder
+      });
+      
+      const response = await fetch(`/api/admin/jobs-detailed?${params}`);
+      if (!response.ok) throw new Error('Failed to fetch jobs');
+      return response.json();
+    },
     enabled: selectedTab === "jobs",
+    staleTime: 5000,
   });
+
+  // Extract paginated data
+  const users = usersResponse?.users || [];
+  const totalUsers = usersResponse?.total || 0;
+  const jobs = jobsResponse?.jobs || [];
+  const totalJobs = jobsResponse?.total || 0;
 
   const { data: supportTickets = [], isLoading: isSupportLoading, refetch: refetchSupport } = useQuery({
     queryKey: ["/api/admin/support-tickets"],
