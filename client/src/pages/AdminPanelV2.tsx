@@ -131,12 +131,26 @@ export default function AdminPanelV2() {
     setCurrentPage(1);
   }, [debouncedSearch, filterStatus, selectedTab]);
 
-  // Enhanced data fetching with real-time updates and performance optimization
+  // Enhanced data fetching with comprehensive analytics and real-time monitoring
   const { data: dashboardStats, isLoading: isDashboardLoading, error: dashboardError } = useQuery({
-    queryKey: ["/api/admin/dashboard-stats"],
+    queryKey: ["/api/admin/analytics/comprehensive"],
     refetchInterval: 30000, // Refresh every 30 seconds
     staleTime: 10000, // Consider data stale after 10 seconds
     retry: 3,
+  });
+
+  // Real-time system health monitoring
+  const { data: systemHealth, isLoading: isSystemLoading } = useQuery({
+    queryKey: ["/api/admin/system/health"],
+    refetchInterval: 15000, // Refresh every 15 seconds for real-time monitoring
+    staleTime: 5000,
+  });
+
+  // Performance metrics for advanced monitoring
+  const { data: performanceMetrics, isLoading: isPerformanceLoading } = useQuery({
+    queryKey: ["/api/admin/system/performance"],
+    refetchInterval: 20000, // Refresh every 20 seconds
+    staleTime: 8000,
   });
 
   // Optimized data fetching with pagination and filtering
@@ -221,7 +235,7 @@ export default function AdminPanelV2() {
     enabled: selectedTab === "financials",
   });
 
-  const { data: systemMetrics = [], isLoading: isSystemLoading } = useQuery({
+  const { data: systemMetrics = [], isLoading: isSystemMetricsLoading } = useQuery({
     queryKey: ["/api/admin/system-metrics"],
     enabled: selectedTab === "overview",
   });
