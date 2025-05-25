@@ -1006,4 +1006,155 @@ export class FixedDatabaseStorage implements IStorage {
       throw error;
     }
   }
+
+  // Enhanced user management methods for Ultrabug Prompt 3
+  async safeDeleteUser(userId: number) {
+    try {
+      // Begin transaction for safe deletion
+      const result = await db.transaction(async (tx) => {
+        // Get user info first
+        const [user] = await tx.select().from(users).where(eq(users.id, userId));
+        if (!user) {
+          throw new Error('User not found');
+        }
+
+        // Handle related records
+        // 1. Anonymize reviews instead of deleting
+        await tx.update(reviews).set({
+          reviewerName: 'Anonymous User',
+          reviewText: '[User account deleted]'
+        }).where(eq(reviews.reviewerId, userId));
+
+        // 2. Cancel active jobs posted by user
+        await tx.update(jobs).set({
+          status: 'cancelled'
+        }).where(eq(jobs.posterId, userId));
+
+        // 3. Cancel applications by user
+        await tx.update(applications).set({
+          status: 'cancelled'
+        }).where(eq(applications.workerId, userId));
+
+        // 4. Delete user's payments and earnings (keep for audit)
+        // Note: We keep financial records for legal compliance
+
+        // 5. Delete notifications
+        await tx.delete(notifications).where(eq(notifications.userId, userId));
+
+        // 6. Delete contacts
+        await tx.delete(contacts).where(eq(contacts.userId, userId));
+
+        // 7. Finally delete the user
+        const [deletedUser] = await tx.delete(users)
+          .where(eq(users.id, userId))
+          .returning();
+
+        return deletedUser;
+      });
+
+      return result;
+    } catch (error) {
+      console.error('Error safely deleting user:', error);
+      throw error;
+    }
+  }
+
+  async updateUserAccountType(userId: number, newAccountType: string) {
+    try {
+      const [updatedUser] = await db.update(users)
+        .set({
+          accountType: newAccountType,
+          updatedAt: new Date()
+        })
+        .where(eq(users.id, userId))
+        .returning();
+      return updatedUser;
+    } catch (error) {
+      console.error('Error updating user account type:', error);
+      throw error;
+    }
+  }
+
+  async updateUserVerificationStatus(userId: number, verificationData: any) {
+    try {
+      const updateData: any = {};
+      
+      if (verificationData.emailVerified !== undefined) {
+        updateData.emailVerified = verificationData.emailVerified;
+      }
+      if (verificationData.phoneVerified !== undefined) {
+        updateData.phoneVerified = verificationData.phoneVerified;
+      }
+      if (verificationData.identityVerified !== undefined) {
+        updateData.identityVerified = verificationData.identityVerified;
+      }
+      
+      updateData.updatedAt = new Date();
+
+      const [updatedUser] = await db.update(users)
+        .set(updateData)
+        .where(eq(users.id, userId))
+        .returning();
+      return updatedUser;
+    } catch (error) {
+      console.error('Error updating user verification status:', error);
+      throw error;
+    }
+  }
+
+  async toggleUserAdminStatus(userId: number, isAdmin: boolean, isSuperAdmin: boolean = false) {
+    try {
+      const [updatedUser] = await db.update(users)
+        .set({
+          isAdmin,
+          isSuperAdmin,
+          updatedAt: new Date()
+        })
+        .where(eq(users.id, userId))
+        .returning();
+      return updatedUser;
+    } catch (error) {
+      console.error('Error updating user admin status:', error);
+      throw error;
+    }
+  }
+
+  async bulkUpdateUsers(userIds: number[], updateData: any) {
+    try {
+      const results = [];
+      for (const userId of userIds) {
+        const [updatedUser] = await db.update(users)
+          .set({
+            ...updateData,
+            updatedAt: new Date()
+          })
+          .where(eq(users.id, userId))
+          .returning();
+        results.push(updatedUser);
+      }
+      return results;
+    } catch (error) {
+      console.error('Error bulk updating users:', error);
+      throw error;
+    }
+  }
+
+  async getUserStats() {
+    try {
+      const [totalUsers] = await db.select({ count: sql<number>`count(*)` }).from(users);
+      const [activeUsers] = await db.select({ count: sql<number>`count(*)` }).from(users).where(eq(users.isActive, true));
+      const [verifiedUsers] = await db.select({ count: sql<number>`count(*)` }).from(users).where(eq(users.emailVerified, true));
+      const [adminUsers] = await db.select({ count: sql<number>`count(*)` }).from(users).where(eq(users.isAdmin, true));
+
+      return {
+        total: totalUsers.count,
+        active: activeUsers.count,
+        verified: verifiedUsers.count,
+        admins: adminUsers.count
+      };
+    } catch (error) {
+      console.error('Error getting user stats:', error);
+      return { total: 0, active: 0, verified: 0, admins: 0 };
+    }
+  }
 }

@@ -1,22 +1,23 @@
 import type { Express } from "express";
 import { storage } from "./storage";
-import { refundService } from "./refund-service";
-import { auditService } from "./audit-service";
-import { securityMonitor } from "./security-monitor";
+import { 
+  enhancedAdminAuth, 
+  adminRateLimit, 
+  strictAdminRateLimit, 
+  adminSecurityHeaders, 
+  validateAdminInput, 
+  auditAdminAction 
+} from "./admin-security";
 
 export function registerAdminRoutes(app: Express) {
-  // Admin middleware - check if user is admin
-  const adminAuth = (req: any, res: any, next: any) => {
-    if (!req.isAuthenticated()) {
-      return res.status(401).json({ message: "Authentication required" });
-    }
-    
-    if (!req.user.isAdmin) {
-      return res.status(403).json({ message: "Admin privileges required" });
-    }
-    
-    next();
-  };
+  // Apply security headers to all admin routes
+  app.use('/api/admin/*', adminSecurityHeaders);
+  app.use('/api/admin/*', adminRateLimit);
+  app.use('/api/admin/*', validateAdminInput);
+
+  // Legacy admin auth for backward compatibility
+  const adminAuth = enhancedAdminAuth('admin');
+  const superAdminAuth = enhancedAdminAuth('super_admin');
 
   // Get admin statistics
   app.get("/api/admin/stats", adminAuth, async (req, res) => {
@@ -474,6 +475,166 @@ export function registerAdminRoutes(app: Express) {
     } catch (error) {
       console.error('Admin ticket fetch error:', error);
       res.status(500).json({ message: "Failed to fetch ticket" });
+    }
+  });
+
+  // Enhanced User Management Endpoints for Ultrabug Prompt 3
+  
+  // Safe user deletion with cascade handling
+  app.delete("/api/admin/users/:userId", 
+    strictAdminRateLimit, 
+    superAdminAuth, 
+    auditAdminAction('delete_user', 'user'),
+    async (req, res) => {
+      try {
+        const userId = parseInt(req.params.userId);
+        
+        if (!userId || userId === req.user?.id) {
+          return res.status(400).json({ message: "Cannot delete yourself or invalid user ID" });
+        }
+
+        const deletedUser = await storage.safeDeleteUser(userId);
+        
+        if (!deletedUser) {
+          return res.status(404).json({ message: "User not found" });
+        }
+
+        res.json({
+          message: "User safely deleted with all related data handled",
+          user: deletedUser
+        });
+      } catch (error) {
+        console.error('Safe user deletion error:', error);
+        res.status(500).json({ message: "Failed to safely delete user" });
+      }
+    }
+  );
+
+  // Update user account type
+  app.patch("/api/admin/users/:userId/account-type", 
+    adminAuth, 
+    auditAdminAction('update_account_type', 'user'),
+    async (req, res) => {
+      try {
+        const userId = parseInt(req.params.userId);
+        const { accountType } = req.body;
+
+        if (!['worker', 'poster', 'both'].includes(accountType)) {
+          return res.status(400).json({ message: "Invalid account type" });
+        }
+
+        const updatedUser = await storage.updateUserAccountType(userId, accountType);
+        
+        if (!updatedUser) {
+          return res.status(404).json({ message: "User not found" });
+        }
+
+        res.json({
+          message: "User account type updated successfully",
+          user: updatedUser
+        });
+      } catch (error) {
+        console.error('Account type update error:', error);
+        res.status(500).json({ message: "Failed to update account type" });
+      }
+    }
+  );
+
+  // Update user verification status
+  app.patch("/api/admin/users/:userId/verification", 
+    adminAuth, 
+    auditAdminAction('update_verification', 'user'),
+    async (req, res) => {
+      try {
+        const userId = parseInt(req.params.userId);
+        const verificationData = req.body;
+
+        const updatedUser = await storage.updateUserVerificationStatus(userId, verificationData);
+        
+        if (!updatedUser) {
+          return res.status(404).json({ message: "User not found" });
+        }
+
+        res.json({
+          message: "User verification status updated successfully",
+          user: updatedUser
+        });
+      } catch (error) {
+        console.error('Verification update error:', error);
+        res.status(500).json({ message: "Failed to update verification status" });
+      }
+    }
+  );
+
+  // Toggle user admin privileges
+  app.patch("/api/admin/users/:userId/admin-status", 
+    strictAdminRateLimit, 
+    superAdminAuth, 
+    auditAdminAction('update_admin_privileges', 'user'),
+    async (req, res) => {
+      try {
+        const userId = parseInt(req.params.userId);
+        const { isAdmin, isSuperAdmin = false } = req.body;
+
+        if (userId === req.user?.id && !isAdmin) {
+          return res.status(400).json({ message: "Cannot remove your own admin privileges" });
+        }
+
+        const updatedUser = await storage.toggleUserAdminStatus(userId, isAdmin, isSuperAdmin);
+        
+        if (!updatedUser) {
+          return res.status(404).json({ message: "User not found" });
+        }
+
+        res.json({
+          message: "User admin privileges updated successfully",
+          user: updatedUser
+        });
+      } catch (error) {
+        console.error('Admin status update error:', error);
+        res.status(500).json({ message: "Failed to update admin status" });
+      }
+    }
+  );
+
+  // Bulk user operations
+  app.patch("/api/admin/users/bulk-update", 
+    strictAdminRateLimit, 
+    adminAuth, 
+    auditAdminAction('bulk_user_update', 'users'),
+    async (req, res) => {
+      try {
+        const { userIds, updateData } = req.body;
+
+        if (!Array.isArray(userIds) || userIds.length === 0) {
+          return res.status(400).json({ message: "Invalid user IDs array" });
+        }
+
+        if (userIds.length > 50) {
+          return res.status(400).json({ message: "Bulk operations limited to 50 users at a time" });
+        }
+
+        const updatedUsers = await storage.bulkUpdateUsers(userIds, updateData);
+
+        res.json({
+          message: `Successfully updated ${updatedUsers.length} users`,
+          users: updatedUsers
+        });
+      } catch (error) {
+        console.error('Bulk user update error:', error);
+        res.status(500).json({ message: "Failed to bulk update users" });
+      }
+    }
+  );
+
+  // Get user statistics
+  app.get("/api/admin/user-stats", adminAuth, async (req, res) => {
+    try {
+      const stats = await storage.getUserStats();
+      res.json(stats);
+    } catch (error) {
+      console.error('User stats error:', error);
+      res.status(500).json({ message: "Failed to fetch user statistics" });
     }
   });
 

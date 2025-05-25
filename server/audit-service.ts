@@ -1,220 +1,130 @@
-import { storage } from './storage';
+import { db } from './db';
+import { sql } from 'drizzle-orm';
 
-// Financial Audit Trail Service for Plan Bravo Implementation
-export interface AuditEntry {
-  id: number;
-  timestamp: Date;
-  userId: number;
+interface AuditLogEntry {
+  adminId: number | null;
   action: string;
-  entityType: 'payment' | 'earning' | 'job' | 'user' | 'refund';
-  entityId: number;
-  previousValues?: any;
-  newValues?: any;
+  resourceType: string;
+  resourceId?: string | number | null;
+  details?: any;
+  success: boolean;
+  timestamp?: Date;
   ipAddress?: string;
   userAgent?: string;
-  amount?: number;
-  status: string;
-  metadata: any;
 }
 
-export class AuditService {
-  private static instance: AuditService;
-  private auditLog: AuditEntry[] = [];
-  private currentId = 1;
+class AuditService {
+  async logAdminAction(entry: AuditLogEntry) {
+    try {
+      // For now, we'll log to console and store in memory
+      // In production, this should go to a dedicated audit table
+      const auditEntry = {
+        ...entry,
+        timestamp: entry.timestamp || new Date(),
+        id: Date.now() + Math.random()
+      };
 
-  public static getInstance(): AuditService {
-    if (!AuditService.instance) {
-      AuditService.instance = new AuditService();
-    }
-    return AuditService.instance;
-  }
-
-  // Log financial transaction for audit trail
-  async logFinancialTransaction(params: {
-    userId: number;
-    action: string;
-    entityType: 'payment' | 'earning' | 'job' | 'refund';
-    entityId: number;
-    amount?: number;
-    previousValues?: any;
-    newValues?: any;
-    ipAddress?: string;
-    userAgent?: string;
-    metadata?: any;
-  }): Promise<void> {
-    const auditEntry: AuditEntry = {
-      id: this.currentId++,
-      timestamp: new Date(),
-      userId: params.userId,
-      action: params.action,
-      entityType: params.entityType,
-      entityId: params.entityId,
-      previousValues: params.previousValues,
-      newValues: params.newValues,
-      ipAddress: params.ipAddress,
-      userAgent: params.userAgent,
-      amount: params.amount,
-      status: 'recorded',
-      metadata: {
-        ...params.metadata,
-        platformFee: this.calculatePlatformFee(params.amount || 0),
-        timestamp: new Date().toISOString()
-      }
-    };
-
-    this.auditLog.push(auditEntry);
-    
-    console.log(`[AUDIT] ${auditEntry.action} - ${auditEntry.entityType} ${auditEntry.entityId} by user ${auditEntry.userId}`, {
-      amount: auditEntry.amount,
-      metadata: auditEntry.metadata
-    });
-  }
-
-  // Calculate platform fee based on Plan Bravo requirements
-  private calculatePlatformFee(amount: number): number {
-    if (amount >= 20) {
-      return amount * 0.10; // 10% fee on jobs $20+
-    } else if (amount >= 10) {
-      return 3; // $3 service fee on jobs $10-$19.99
-    }
-    return 0;
-  }
-
-  // Get audit trail for specific entity
-  async getAuditTrail(entityType: string, entityId: number): Promise<AuditEntry[]> {
-    return this.auditLog.filter(entry => 
-      entry.entityType === entityType && entry.entityId === entityId
-    ).sort((a, b) => b.timestamp.getTime() - a.timestamp.getTime());
-  }
-
-  // Get financial audit summary
-  async getFinancialAuditSummary(startDate?: Date, endDate?: Date): Promise<{
-    totalTransactions: number;
-    totalRevenue: number;
-    totalFees: number;
-    transactionsByType: Record<string, number>;
-    revenueByDay: Array<{ date: string; revenue: number; fees: number }>;
-  }> {
-    const filtered = this.auditLog.filter(entry => {
-      if (!startDate && !endDate) return true;
-      const entryDate = entry.timestamp;
-      return (!startDate || entryDate >= startDate) && (!endDate || entryDate <= endDate);
-    });
-
-    const totalTransactions = filtered.length;
-    const totalRevenue = filtered.reduce((sum, entry) => sum + (entry.amount || 0), 0);
-    const totalFees = filtered.reduce((sum, entry) => sum + (entry.metadata?.platformFee || 0), 0);
-
-    const transactionsByType = filtered.reduce((acc, entry) => {
-      acc[entry.action] = (acc[entry.action] || 0) + 1;
-      return acc;
-    }, {} as Record<string, number>);
-
-    // Group by day for revenue tracking
-    const revenueByDay = filtered.reduce((acc, entry) => {
-      const date = entry.timestamp.toISOString().split('T')[0];
-      const existing = acc.find(item => item.date === date);
+      console.log('[AUDIT]', JSON.stringify(auditEntry, null, 2));
       
-      if (existing) {
-        existing.revenue += entry.amount || 0;
-        existing.fees += entry.metadata?.platformFee || 0;
-      } else {
-        acc.push({
-          date,
-          revenue: entry.amount || 0,
-          fees: entry.metadata?.platformFee || 0
-        });
+      // Store in database audit table (if it exists)
+      try {
+        await db.execute(sql`
+          INSERT INTO audit_logs (admin_id, action, resource_type, resource_id, details, success, created_at, ip_address, user_agent)
+          VALUES (${entry.adminId}, ${entry.action}, ${entry.resourceType}, ${entry.resourceId}, ${JSON.stringify(entry.details)}, ${entry.success}, ${new Date()}, ${entry.ipAddress || ''}, ${entry.userAgent || ''})
+        `);
+      } catch (dbError) {
+        // If audit table doesn't exist, just log to console
+        console.log('[AUDIT] Database logging failed, using console only:', dbError);
+      }
+
+      return auditEntry;
+    } catch (error) {
+      console.error('Audit logging error:', error);
+      return null;
+    }
+  }
+
+  async getAuditLogs(filters?: {
+    adminId?: number;
+    action?: string;
+    resourceType?: string;
+    startDate?: Date;
+    endDate?: Date;
+    limit?: number;
+  }) {
+    try {
+      // Return audit logs from database if available
+      let query = `
+        SELECT * FROM audit_logs 
+        WHERE 1=1
+      `;
+      
+      const params: any[] = [];
+      
+      if (filters?.adminId) {
+        query += ` AND admin_id = $${params.length + 1}`;
+        params.push(filters.adminId);
       }
       
-      return acc;
-    }, [] as Array<{ date: string; revenue: number; fees: number }>);
-
-    return {
-      totalTransactions,
-      totalRevenue,
-      totalFees,
-      transactionsByType,
-      revenueByDay: revenueByDay.sort((a, b) => a.date.localeCompare(b.date))
-    };
-  }
-
-  // Get all audit entries for admin review
-  async getAllAuditEntries(limit: number = 100, offset: number = 0): Promise<{
-    entries: AuditEntry[];
-    total: number;
-  }> {
-    const sortedEntries = this.auditLog.sort((a, b) => b.timestamp.getTime() - a.timestamp.getTime());
-    
-    return {
-      entries: sortedEntries.slice(offset, offset + limit),
-      total: this.auditLog.length
-    };
-  }
-
-  // Validate financial data integrity
-  async validateFinancialIntegrity(): Promise<{
-    isValid: boolean;
-    discrepancies: Array<{
-      type: string;
-      description: string;
-      severity: 'low' | 'medium' | 'high';
-    }>;
-  }> {
-    const discrepancies = [];
-    
-    // Check for duplicate transactions
-    const transactionHashes = new Set();
-    for (const entry of this.auditLog) {
-      const hash = `${entry.entityType}-${entry.entityId}-${entry.amount}-${entry.timestamp.getTime()}`;
-      if (transactionHashes.has(hash)) {
-        discrepancies.push({
-          type: 'duplicate_transaction',
-          description: `Potential duplicate transaction detected for ${entry.entityType} ${entry.entityId}`,
-          severity: 'high' as const
-        });
+      if (filters?.action) {
+        query += ` AND action = $${params.length + 1}`;
+        params.push(filters.action);
       }
-      transactionHashes.add(hash);
-    }
-
-    // Check for unusual amounts
-    const averageAmount = this.auditLog.reduce((sum, entry) => sum + (entry.amount || 0), 0) / this.auditLog.length;
-    for (const entry of this.auditLog) {
-      if (entry.amount && entry.amount > averageAmount * 10) {
-        discrepancies.push({
-          type: 'unusual_amount',
-          description: `Unusually high transaction amount: $${entry.amount} for ${entry.entityType} ${entry.entityId}`,
-          severity: 'medium' as const
-        });
-      }
-    }
-
-    return {
-      isValid: discrepancies.length === 0,
-      discrepancies
-    };
-  }
-
-  // Export audit data for compliance
-  async exportAuditData(format: 'json' | 'csv' = 'json'): Promise<string> {
-    if (format === 'csv') {
-      const headers = ['ID', 'Timestamp', 'User ID', 'Action', 'Entity Type', 'Entity ID', 'Amount', 'Status', 'IP Address'];
-      const rows = this.auditLog.map(entry => [
-        entry.id,
-        entry.timestamp.toISOString(),
-        entry.userId,
-        entry.action,
-        entry.entityType,
-        entry.entityId,
-        entry.amount || 0,
-        entry.status,
-        entry.ipAddress || 'unknown'
-      ]);
       
-      return [headers, ...rows].map(row => row.join(',')).join('\n');
+      if (filters?.resourceType) {
+        query += ` AND resource_type = $${params.length + 1}`;
+        params.push(filters.resourceType);
+      }
+      
+      if (filters?.startDate) {
+        query += ` AND created_at >= $${params.length + 1}`;
+        params.push(filters.startDate);
+      }
+      
+      if (filters?.endDate) {
+        query += ` AND created_at <= $${params.length + 1}`;
+        params.push(filters.endDate);
+      }
+      
+      query += ` ORDER BY created_at DESC`;
+      
+      if (filters?.limit) {
+        query += ` LIMIT $${params.length + 1}`;
+        params.push(filters.limit);
+      }
+      
+      const result = await db.execute(sql.raw(query, params));
+      return result.rows || [];
+    } catch (error) {
+      console.error('Error fetching audit logs:', error);
+      return [];
     }
-    
-    return JSON.stringify(this.auditLog, null, 2);
+  }
+
+  async getAdminActionSummary(adminId: number, days: number = 30) {
+    try {
+      const startDate = new Date();
+      startDate.setDate(startDate.getDate() - days);
+      
+      const result = await db.execute(sql`
+        SELECT 
+          action,
+          COUNT(*) as count,
+          COUNT(CASE WHEN success = true THEN 1 END) as successful,
+          COUNT(CASE WHEN success = false THEN 1 END) as failed
+        FROM audit_logs 
+        WHERE admin_id = ${adminId} 
+        AND created_at >= ${startDate}
+        GROUP BY action
+        ORDER BY count DESC
+      `);
+      
+      return result.rows || [];
+    } catch (error) {
+      console.error('Error getting admin action summary:', error);
+      return [];
+    }
   }
 }
 
-export const auditService = AuditService.getInstance();
+export const auditService = new AuditService();
