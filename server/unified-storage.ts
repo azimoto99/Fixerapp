@@ -200,14 +200,14 @@ export class UnifiedStorage implements IStorage {
             )
           ) <= ${radiusMiles}`
         )
-        .orderBy(desc(jobs.createdAt));
+        .orderBy(desc(jobs.datePosted));
     }, [], `getJobsByLocation(${lat}, ${lng}, ${radiusMiles})`);
   }
 
   // APPLICATION OPERATIONS
   async getAllApplications(): Promise<Application[]> {
     return this.safeExecute(async () => {
-      return await db.select().from(applications).orderBy(desc(applications.createdAt));
+      return await db.select().from(applications).orderBy(desc(applications.dateApplied));
     }, [], 'getAllApplications');
   }
 
@@ -303,7 +303,7 @@ export class UnifiedStorage implements IStorage {
 
   async getAllEarnings(): Promise<Earning[]> {
     return this.safeExecute(async () => {
-      return await db.select().from(earnings).orderBy(desc(earnings.createdAt));
+      return await db.select().from(earnings).orderBy(desc(earnings.dateEarned));
     }, [], 'getAllEarnings');
   }
 
