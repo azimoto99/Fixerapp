@@ -96,34 +96,35 @@ export default function AdminPanelV2() {
   const [isUserDialogOpen, setIsUserDialogOpen] = useState(false);
   const [isJobDialogOpen, setIsJobDialogOpen] = useState(false);
 
-  // Fetch admin statistics
-  const { data: stats } = useQuery({
-    queryKey: ["/api/admin/stats"],
-    enabled: true,
+  // Comprehensive admin data fetching - only real platform data
+  const { data: dashboardStats, isLoading: isDashboardLoading } = useQuery({
+    queryKey: ["/api/admin/dashboard-stats"],
+    refetchInterval: 30000, // Refresh every 30 seconds
   });
 
-  // Fetch users
-  const { data: users = [] } = useQuery({
+  const { data: users = [], isLoading: isUsersLoading, refetch: refetchUsers } = useQuery({
     queryKey: ["/api/admin/users"],
     enabled: selectedTab === "users",
   });
 
-  // Fetch jobs
-  const { data: jobs = [] } = useQuery({
+  const { data: jobs = [], isLoading: isJobsLoading, refetch: refetchJobs } = useQuery({
     queryKey: ["/api/admin/jobs"],
     enabled: selectedTab === "jobs",
   });
 
-  // Fetch support tickets
-  const { data: tickets = [] } = useQuery({
+  const { data: supportTickets = [], isLoading: isSupportLoading, refetch: refetchSupport } = useQuery({
     queryKey: ["/api/admin/support-tickets"],
     enabled: selectedTab === "support",
   });
 
-  // Fetch payments
-  const { data: payments = [] } = useQuery({
-    queryKey: ["/api/admin/payments"],
+  const { data: transactions = [], isLoading: isTransactionsLoading } = useQuery({
+    queryKey: ["/api/admin/transactions"],
     enabled: selectedTab === "financials",
+  });
+
+  const { data: systemMetrics = [], isLoading: isSystemLoading } = useQuery({
+    queryKey: ["/api/admin/system-metrics"],
+    enabled: selectedTab === "overview",
   });
 
   // User management mutations
@@ -255,19 +256,19 @@ export default function AdminPanelV2() {
                   <Users className="h-4 w-4 text-blue-600" />
                 </CardHeader>
                 <CardContent>
-                  <div className="text-2xl font-bold text-gray-900">{stats?.totalUsers || 0}</div>
-                  <p className="text-xs text-gray-500">Active platform users</p>
+                  <div className="text-2xl font-bold text-gray-900">{dashboardStats?.totalUsers || 0}</div>
+                  <p className="text-xs text-gray-500">Registered users</p>
                 </CardContent>
               </Card>
 
               <Card className="bg-white shadow-lg border-0">
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium text-gray-600">Total Jobs</CardTitle>
+                  <CardTitle className="text-sm font-medium text-gray-600">Active Jobs</CardTitle>
                   <Briefcase className="h-4 w-4 text-green-600" />
                 </CardHeader>
                 <CardContent>
-                  <div className="text-2xl font-bold text-gray-900">{stats?.totalJobs || 0}</div>
-                  <p className="text-xs text-gray-500">Jobs on platform</p>
+                  <div className="text-2xl font-bold text-gray-900">{dashboardStats?.activeJobs || 0}</div>
+                  <p className="text-xs text-gray-500">Currently open jobs</p>
                 </CardContent>
               </Card>
 
@@ -277,19 +278,19 @@ export default function AdminPanelV2() {
                   <DollarSign className="h-4 w-4 text-emerald-600" />
                 </CardHeader>
                 <CardContent>
-                  <div className="text-2xl font-bold text-gray-900">${(stats?.platformFees || 0).toFixed(2)}</div>
-                  <p className="text-xs text-gray-500">Total platform fees</p>
+                  <div className="text-2xl font-bold text-gray-900">${(dashboardStats?.totalRevenue || 0).toFixed(2)}</div>
+                  <p className="text-xs text-gray-500">Total platform revenue</p>
                 </CardContent>
               </Card>
 
               <Card className="bg-white shadow-lg border-0">
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium text-gray-600">Active Jobs</CardTitle>
+                  <CardTitle className="text-sm font-medium text-gray-600">Support Tickets</CardTitle>
                   <Activity className="h-4 w-4 text-orange-600" />
                 </CardHeader>
                 <CardContent>
-                  <div className="text-2xl font-bold text-gray-900">{stats?.activeJobs || 0}</div>
-                  <p className="text-xs text-gray-500">Currently active</p>
+                  <div className="text-2xl font-bold text-gray-900">{dashboardStats?.pendingSupport || 0}</div>
+                  <p className="text-xs text-gray-500">Pending tickets</p>
                 </CardContent>
               </Card>
             </div>
@@ -464,7 +465,7 @@ export default function AdminPanelV2() {
               </CardHeader>
               <CardContent>
                 <div className="space-y-4">
-                  {tickets.map((ticket: SupportTicket) => (
+                  {supportTickets.map((ticket: SupportTicket) => (
                     <div key={ticket.id} className="flex items-center justify-between p-4 border rounded-lg bg-gray-50">
                       <div className="flex items-center gap-4">
                         <div className="w-12 h-12 bg-yellow-100 rounded-full flex items-center justify-center">
