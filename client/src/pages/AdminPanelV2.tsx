@@ -225,15 +225,19 @@ export default function AdminPanelV2() {
   const jobs = jobsResponse?.jobs || [];
   const totalJobs = jobsResponse?.total || 0;
 
-  const { data: supportTickets = [], isLoading: isSupportLoading, refetch: refetchSupport } = useQuery({
+  const { data: supportResponse, isLoading: isSupportLoading, refetch: refetchSupport } = useQuery({
     queryKey: ["/api/admin/analytics/support"],
     enabled: selectedTab === "support",
   });
 
-  const { data: transactions = [], isLoading: isTransactionsLoading } = useQuery({
+  const { data: financialResponse, isLoading: isTransactionsLoading } = useQuery({
     queryKey: ["/api/admin/analytics/financials"],
     enabled: selectedTab === "financials",
   });
+
+  // Extract data from analytics responses
+  const supportTickets = supportResponse?.tickets || [];
+  const transactions = financialResponse?.transactions || [];
 
   const { data: systemMetrics = [], isLoading: isSystemMetricsLoading } = useQuery({
     queryKey: ["/api/admin/system-metrics"],
