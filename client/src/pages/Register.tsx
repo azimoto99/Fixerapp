@@ -31,13 +31,18 @@ import { Checkbox } from '@/components/ui/checkbox';
 
 const formSchema = z.object({
   username: z.string().min(3, 'Username must be at least 3 characters'),
-  password: z.string().min(6, 'Password must be at least 6 characters'),
+  password: z.string()
+    .min(8, 'Password must be at least 8 characters')
+    .regex(/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)/, 'Password must contain at least one uppercase letter, one lowercase letter, and one number'),
   confirmPassword: z.string(),
   fullName: z.string().min(1, 'Full name is required'),
   email: z.string().email('Invalid email address'),
   phone: z.string().optional(),
   bio: z.string().optional(),
   skills: z.array(z.string()).optional().default([]),
+  accountType: z.enum(['worker', 'poster'], {
+    required_error: 'Please select an account type',
+  }),
 });
 
 type FormData = z.infer<typeof formSchema>;
@@ -67,18 +72,35 @@ export default function Register({ onModeChange }: RegisterProps) {
       phone: '',
       bio: '',
       skills: [],
+      accountType: 'worker' as const,
     },
   });
 
   async function onSubmit(data: FormData) {
-    // Remove confirmPassword as it's not part of our API schema
-    const { confirmPassword, ...userData } = data;
-    
-    registerMutation.mutate(userData, {
-      onSuccess: () => {
-        navigate('/');
-      }
-    });
+    try {
+      // Remove confirmPassword as it's not part of our API schema
+      const { confirmPassword, ...userData } = data;
+      
+      // Ensure all required fields are present for cross-browser compatibility
+      const submitData = {
+        ...userData,
+        phone: userData.phone || '', // Ensure phone is never undefined
+        bio: userData.bio || '', // Ensure bio is never undefined
+        skills: userData.skills || [], // Ensure skills is never undefined
+      };
+      
+      registerMutation.mutate(submitData, {
+        onSuccess: () => {
+          navigate('/');
+        },
+        onError: (error: any) => {
+          console.error('Registration error:', error);
+          // The error will be handled by the form's error display
+        }
+      });
+    } catch (error) {
+      console.error('Form submission error:', error);
+    }
   }
 
   return (
@@ -103,7 +125,40 @@ export default function Register({ onModeChange }: RegisterProps) {
         <CardContent>
           <Form {...form}>
             <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-
+              
+              <FormField
+                control={form.control}
+                name="accountType"
+                render={({ field }) => (
+                  <FormItem className="space-y-3">
+                    <FormLabel>Account Type</FormLabel>
+                    <FormDescription>
+                      Choose how you want to use Fixer
+                    </FormDescription>
+                    <FormControl>
+                      <RadioGroup
+                        onValueChange={field.onChange}
+                        defaultValue={field.value}
+                        className="flex flex-col space-y-2"
+                      >
+                        <div className="flex items-center space-x-3 space-y-0">
+                          <RadioGroupItem value="worker" id="worker" />
+                          <FormLabel htmlFor="worker" className="font-normal">
+                            Worker - I want to find and apply for jobs
+                          </FormLabel>
+                        </div>
+                        <div className="flex items-center space-x-3 space-y-0">
+                          <RadioGroupItem value="poster" id="poster" />
+                          <FormLabel htmlFor="poster" className="font-normal">
+                            Job Poster - I want to post jobs and hire workers
+                          </FormLabel>
+                        </div>
+                      </RadioGroup>
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
               
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <FormField
