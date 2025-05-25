@@ -1,0 +1,64 @@
+Gig Work App Module Consolidation Assessment
+Overview
+I need to consolidate multiple implementations of modules in my gig work app that were created by Replit, ensuring no functionality is lost in the process.
+Current Situation Analysis
+1. Module Inventory
+Please list each module that has multiple implementations:
+
+Module Name:
+Number of different implementations:
+File locations/paths:
+Brief description of what the module does:
+
+Repeat for each module
+2. Implementation Details
+For each module with multiple implementations, describe:
+Implementation A:
+
+File path/location:
+Key features it handles:
+Dependencies it uses:
+Unique functionality (what only this version does):
+Current status (working/broken/partial):
+
+Implementation B:
+
+File path/location:
+Key features it handles:
+Dependencies it uses:
+Unique functionality (what only this version does):
+Current status (working/broken/partial):
+
+Continue for additional implementations
+3. App Context
+
+Main app functionality: (e.g., job matching, payment processing, scheduling, user management)
+Current tech stack: (languages, frameworks, databases)
+Which implementation is currently live/in use?
+Are there any breaking changes between implementations?
+Any critical deadlines for this consolidation?
+
+4. Specific Concerns
+
+Data compatibility: Do different implementations use different data structures?
+API compatibility: Are there different endpoint structures or response formats?
+Configuration differences: Environment variables, settings files, etc.
+Testing coverage: Which implementations have tests?
+
+5. Success Criteria
+What does successful consolidation look like?
+
+All current functionality preserved: ☐
+Single source of truth for each module: ☐
+No duplicate code: ☐
+Improved maintainability: ☐
+Other specific goals:
+
+Next Steps Request
+Based on this assessment, I'm looking for:
+
+ A prioritized consolidation plan
+ Step-by-step merge strategy
+ Code review and refactoring recommendations
+ Testing strategy to ensure no functionality loss
+ Risk mitigation plan

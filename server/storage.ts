@@ -1017,4 +1017,6 @@ export class MemStorage implements IStorage {
 import { FixedDatabaseStorage } from './fixed-database-storage';
 
 // Use the enhanced database storage implementation with better session handling
-export const storage = new FixedDatabaseStorage();
+import { unifiedStorage } from "./unified-storage";
+
+export const storage = unifiedStorage;
