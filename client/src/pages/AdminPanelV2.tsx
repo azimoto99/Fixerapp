@@ -533,32 +533,39 @@ export default function AdminPanelV2() {
                 ) : transactions.length > 0 ? (
                   <div className="space-y-4">
                     {transactions.map((transaction: any) => (
-                    <div key={transaction.id} className="flex items-center justify-between p-4 border rounded-lg bg-gray-50">
-                      <div className="flex items-center gap-4">
-                        <div className="w-12 h-12 bg-emerald-100 rounded-full flex items-center justify-center">
-                          <CreditCard className="h-6 w-6 text-emerald-600" />
-                        </div>
-                        <div>
-                          <h3 className="font-semibold text-gray-900">${transaction.amount?.toFixed(2) || '0.00'}</h3>
-                          <p className="text-sm text-gray-500">{transaction.description || transaction.type || 'Transaction'}</p>
-                          <div className="flex gap-2 mt-1">
-                            <Badge className={`text-xs ${getStatusColor(transaction.status)} text-white`}>
-                              {transaction.status}
-                            </Badge>
-                            <Badge variant="outline" className="text-xs">
-                              {transaction.type}
-                            </Badge>
+                      <div key={transaction.id} className="flex items-center justify-between p-4 border rounded-lg bg-gray-50">
+                        <div className="flex items-center gap-4">
+                          <div className="w-12 h-12 bg-emerald-100 rounded-full flex items-center justify-center">
+                            <CreditCard className="h-6 w-6 text-emerald-600" />
+                          </div>
+                          <div>
+                            <h3 className="font-semibold text-gray-900">${transaction.amount?.toFixed(2) || '0.00'}</h3>
+                            <p className="text-sm text-gray-500">{transaction.description || transaction.type || 'Transaction'}</p>
+                            <div className="flex gap-2 mt-1">
+                              <Badge className={`text-xs ${getStatusColor(transaction.status)} text-white`}>
+                                {transaction.status}
+                              </Badge>
+                              <Badge variant="outline" className="text-xs">
+                                {transaction.type}
+                              </Badge>
+                            </div>
                           </div>
                         </div>
+                        <div className="text-right">
+                          <p className="text-sm text-gray-500">
+                            {new Date(transaction.createdAt || Date.now()).toLocaleDateString()}
+                          </p>
+                        </div>
                       </div>
-                      <div className="text-right">
-                        <p className="text-sm text-gray-500">
-                          {new Date(transaction.createdAt || Date.now()).toLocaleDateString()}
-                        </p>
-                      </div>
-                    </div>
-                  ))}
-                </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="text-center py-8">
+                    <CreditCard className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+                    <h3 className="font-medium text-gray-600">No Transactions Yet</h3>
+                    <p className="text-sm text-gray-500">Financial transactions will appear here when jobs are completed</p>
+                  </div>
+                )}
               </CardContent>
             </Card>
           </TabsContent>
