@@ -1,5 +1,8 @@
 import type { Express } from "express";
 import { storage } from "./storage";
+import { refundService } from "./refund-service";
+import { auditService } from "./audit-service";
+import { securityMonitor } from "./security-monitor";
 
 export function registerAdminRoutes(app: Express) {
   // Admin middleware - check if user is admin
@@ -262,6 +265,142 @@ export function registerAdminRoutes(app: Express) {
     } catch (error) {
       console.error('Admin analytics error:', error);
       res.status(500).json({ message: "Failed to fetch analytics" });
+    }
+  });
+
+  // Refund Management Routes for Plan Bravo Financial Management
+  app.get('/api/admin/refunds', adminAuth, async (req: any, res: any) => {
+    try {
+      const { status, limit, offset } = req.query;
+      const refunds = await refundService.getRefundRequests({
+        status: status as string,
+        limit: limit ? parseInt(limit) : undefined,
+        offset: offset ? parseInt(offset) : undefined
+      });
+      
+      res.json(refunds);
+    } catch (error) {
+      console.error('Admin refunds fetch error:', error);
+      res.status(500).json({ message: 'Failed to fetch refund requests' });
+    }
+  });
+
+  app.post('/api/admin/refunds/:id/process', adminAuth, async (req: any, res: any) => {
+    try {
+      const refundId = parseInt(req.params.id);
+      const { decision, adminNotes } = req.body;
+      
+      const result = await refundService.processRefundRequest({
+        refundId,
+        adminId: req.user.id,
+        decision,
+        adminNotes,
+        ipAddress: req.ip,
+        userAgent: req.get('User-Agent')
+      });
+      
+      res.json(result);
+    } catch (error) {
+      console.error('Refund processing error:', error);
+      res.status(500).json({ message: 'Failed to process refund request' });
+    }
+  });
+
+  app.get('/api/admin/refund-statistics', adminAuth, async (req: any, res: any) => {
+    try {
+      const stats = await refundService.getRefundStatistics();
+      res.json(stats);
+    } catch (error) {
+      console.error('Refund statistics error:', error);
+      res.status(500).json({ message: 'Failed to fetch refund statistics' });
+    }
+  });
+
+  // Financial Audit Trail Routes
+  app.get('/api/admin/audit-trail', adminAuth, async (req: any, res: any) => {
+    try {
+      const { limit, offset } = req.query;
+      const auditData = await auditService.getAllAuditEntries(
+        limit ? parseInt(limit) : 100,
+        offset ? parseInt(offset) : 0
+      );
+      
+      res.json(auditData);
+    } catch (error) {
+      console.error('Audit trail fetch error:', error);
+      res.status(500).json({ message: 'Failed to fetch audit trail' });
+    }
+  });
+
+  app.get('/api/admin/financial-integrity', adminAuth, async (req: any, res: any) => {
+    try {
+      const integrity = await auditService.validateFinancialIntegrity();
+      res.json(integrity);
+    } catch (error) {
+      console.error('Financial integrity check error:', error);
+      res.status(500).json({ message: 'Failed to validate financial integrity' });
+    }
+  });
+
+  app.get('/api/admin/audit-summary', adminAuth, async (req: any, res: any) => {
+    try {
+      const { startDate, endDate } = req.query;
+      const summary = await auditService.getFinancialAuditSummary(
+        startDate ? new Date(startDate as string) : undefined,
+        endDate ? new Date(endDate as string) : undefined
+      );
+      
+      res.json(summary);
+    } catch (error) {
+      console.error('Audit summary error:', error);
+      res.status(500).json({ message: 'Failed to generate audit summary' });
+    }
+  });
+
+  // Security Monitoring Routes for Plan Bravo
+  app.get('/api/admin/security-dashboard', adminAuth, async (req: any, res: any) => {
+    try {
+      const dashboard = await securityMonitor.getSecurityDashboard();
+      res.json(dashboard);
+    } catch (error) {
+      console.error('Security dashboard error:', error);
+      res.status(500).json({ message: 'Failed to fetch security dashboard' });
+    }
+  });
+
+  app.get('/api/admin/security-incidents', adminAuth, async (req: any, res: any) => {
+    try {
+      const { severity, type, status, limit, offset } = req.query;
+      const incidents = await securityMonitor.getSecurityIncidents({
+        severity: severity as string,
+        type: type as string,
+        status: status as string,
+        limit: limit ? parseInt(limit) : undefined,
+        offset: offset ? parseInt(offset) : undefined
+      });
+      
+      res.json(incidents);
+    } catch (error) {
+      console.error('Security incidents fetch error:', error);
+      res.status(500).json({ message: 'Failed to fetch security incidents' });
+    }
+  });
+
+  app.post('/api/admin/security-incidents/:id/resolve', adminAuth, async (req: any, res: any) => {
+    try {
+      const incidentId = parseInt(req.params.id);
+      const { notes } = req.body;
+      
+      const resolved = await securityMonitor.resolveIncident(incidentId, req.user.id, notes);
+      
+      if (resolved) {
+        res.json({ message: 'Security incident resolved successfully' });
+      } else {
+        res.status(404).json({ message: 'Security incident not found' });
+      }
+    } catch (error) {
+      console.error('Security incident resolution error:', error);
+      res.status(500).json({ message: 'Failed to resolve security incident' });
     }
   });
 }
