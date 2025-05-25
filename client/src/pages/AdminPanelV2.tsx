@@ -526,9 +526,14 @@ export default function AdminPanelV2() {
                 <CardDescription>Track payments, earnings, and platform revenue</CardDescription>
               </CardHeader>
               <CardContent>
-                <div className="space-y-4">
-                  {payments.map((payment: Payment) => (
-                    <div key={payment.id} className="flex items-center justify-between p-4 border rounded-lg bg-gray-50">
+                {isTransactionsLoading ? (
+                  <div className="flex justify-center py-8">
+                    <div className="animate-spin w-6 h-6 border-2 border-primary border-t-transparent rounded-full" />
+                  </div>
+                ) : transactions.length > 0 ? (
+                  <div className="space-y-4">
+                    {transactions.map((transaction: any) => (
+                    <div key={transaction.id} className="flex items-center justify-between p-4 border rounded-lg bg-gray-50">
                       <div className="flex items-center gap-4">
                         <div className="w-12 h-12 bg-emerald-100 rounded-full flex items-center justify-center">
                           <CreditCard className="h-6 w-6 text-emerald-600" />
