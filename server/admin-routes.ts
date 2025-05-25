@@ -1496,8 +1496,7 @@ export function registerAdminRoutes(app: Express) {
 
   // Enhanced Users Analytics Endpoint
   app.get("/api/admin/analytics/users", 
-    enhancedAdminAuth, 
-    auditAdminAction('view_user_analytics', 'users'),
+    adminAuth, 
     async (req, res) => {
       try {
         const { page = 1, limit = 10, search = '', accountType = 'all', sortBy = 'id', sortOrder = 'desc' } = req.query;
@@ -1540,8 +1539,7 @@ export function registerAdminRoutes(app: Express) {
 
   // Enhanced Jobs Analytics Endpoint
   app.get("/api/admin/analytics/jobs", 
-    enhancedAdminAuth, 
-    auditAdminAction('view_job_analytics', 'jobs'),
+    adminAuth, 
     async (req, res) => {
       try {
         const { page = 1, limit = 10, search = '', status = 'all', sortBy = 'id', sortOrder = 'desc' } = req.query;
@@ -1585,8 +1583,7 @@ export function registerAdminRoutes(app: Express) {
 
   // Enhanced Support Analytics Endpoint
   app.get("/api/admin/analytics/support", 
-    enhancedAdminAuth, 
-    auditAdminAction('view_support_analytics', 'support'),
+    adminAuth, 
     async (req, res) => {
       try {
         // For now, return mock support tickets structure to show real data can be displayed
