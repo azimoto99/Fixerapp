@@ -539,21 +539,21 @@ export default function AdminPanelV2() {
                           <CreditCard className="h-6 w-6 text-emerald-600" />
                         </div>
                         <div>
-                          <h3 className="font-semibold text-gray-900">${payment.amount.toFixed(2)}</h3>
-                          <p className="text-sm text-gray-500">{payment.description}</p>
+                          <h3 className="font-semibold text-gray-900">${transaction.amount?.toFixed(2) || '0.00'}</h3>
+                          <p className="text-sm text-gray-500">{transaction.description || transaction.type || 'Transaction'}</p>
                           <div className="flex gap-2 mt-1">
-                            <Badge className={`text-xs ${getStatusColor(payment.status)} text-white`}>
-                              {payment.status}
+                            <Badge className={`text-xs ${getStatusColor(transaction.status)} text-white`}>
+                              {transaction.status}
                             </Badge>
                             <Badge variant="outline" className="text-xs">
-                              {payment.type}
+                              {transaction.type}
                             </Badge>
                           </div>
                         </div>
                       </div>
                       <div className="text-right">
                         <p className="text-sm text-gray-500">
-                          {new Date(payment.createdAt).toLocaleDateString()}
+                          {new Date(transaction.createdAt || Date.now()).toLocaleDateString()}
                         </p>
                       </div>
                     </div>
