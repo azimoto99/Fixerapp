@@ -6,6 +6,7 @@ import { storage } from "./storage";
 import { isAdmin } from "./auth-helpers";
 import { createJobWithPaymentFirst, updateJobWithPaymentCheck } from './payment-first-job-posting';
 import { applySecurity, sanitizeInput, validateSqlInput, validatePasswordStrength, validateEmail, validatePhoneNumber, logSecurityEvent, securityConfig } from './security-config';
+import { sqlInjectionProtection, secureValidationSchemas, handleValidationErrors, sanitizeSqlInput, protectedDbQuery } from './sql-injection-protection';
 import { validators, sanitizeRequest, enhancedAdminAuth } from './secure-endpoints';
 import { registerAdminRoutes } from './admin-routes';
 import { body, param, query, validationResult } from 'express-validator';
@@ -214,6 +215,9 @@ async function isStripeAuthenticated(req: Request, res: Response, next: Function
 export async function registerRoutes(app: Express): Promise<Server> {
   // Apply comprehensive security middleware FIRST
   applySecurity(app);
+  
+  // Apply SQL injection protection globally
+  app.use(sqlInjectionProtection);
   
   // Security validation middleware
   const validateInput = (req: Request, res: Response, next: NextFunction) => {
