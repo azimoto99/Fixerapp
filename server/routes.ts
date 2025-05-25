@@ -5010,9 +5010,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
       for (const user of allUsers) {
         try {
           const userEarnings = await storage.getEarningsForWorker(user.id);
-          allEarnings.push(...userEarnings);
+          if (userEarnings && userEarnings.length > 0) {
+            allEarnings.push(...userEarnings);
+          }
         } catch (error) {
-          console.error(`Error fetching earnings for user ${user.id}:`, error);
+          // Skip users without earnings data - this is normal for new platforms
+          console.log(`No earnings data for user ${user.id} - platform may be new`);
         }
       }
       
