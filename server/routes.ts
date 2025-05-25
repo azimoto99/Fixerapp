@@ -5008,8 +5008,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const allEarnings = [];
       
       for (const user of allUsers) {
-        const userEarnings = await storage.getEarnings(user.id);
-        allEarnings.push(...userEarnings);
+        try {
+          const userEarnings = await storage.getEarningsForWorker(user.id);
+          allEarnings.push(...userEarnings);
+        } catch (error) {
+          console.error(`Error fetching earnings for user ${user.id}:`, error);
+        }
       }
       
       // Transform earnings into transaction format
