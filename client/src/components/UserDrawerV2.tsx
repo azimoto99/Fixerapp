@@ -23,7 +23,7 @@ import { Separator } from "@/components/ui/separator";
 import { Badge } from "@/components/ui/badge";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import ProfileContent from './drawer-contents/ProfileContent';
+import ProfileContentV2 from './drawer-contents/ProfileContentV2';
 import WalletContent from './drawer-contents/WalletContent';
 import ReviewsContent from './drawer-contents/ReviewsContent';
 import SettingsContent from './drawer-contents/SettingsContent';
@@ -153,7 +153,7 @@ const UserDrawerV2: React.FC<UserDrawerProps> = ({
   const renderTabContent = () => {
     switch (activeTab) {
       case "profile":
-        return <ProfileContent user={user} />;
+        return <ProfileContentV2 user={user} onSignOut={handleLogout} />;
       case "wallet":
         return <WalletContent user={user} />;
       case "reviews":
@@ -163,7 +163,7 @@ const UserDrawerV2: React.FC<UserDrawerProps> = ({
       case "support":
         return <SupportContent />;
       default:
-        return <ProfileContent user={user} />;
+        return <ProfileContentV2 user={user} onSignOut={handleLogout} />;
     }
   };
 

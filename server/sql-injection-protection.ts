@@ -232,7 +232,7 @@ export function handleValidationErrors(req: Request, res: Response, next: NextFu
     return res.status(400).json({
       message: 'Invalid input provided',
       errors: errors.array().map(error => ({
-        field: error.type === 'field' ? error.path : 'unknown',
+        field: error.param,
         message: error.msg
       }))
     });
