@@ -788,7 +788,7 @@ export default function AdminPanelV2() {
 
         {/* User Detail Dialog */}
         <Dialog open={isUserDialogOpen} onOpenChange={setIsUserDialogOpen}>
-          <DialogContent className="max-w-2xl" style={{ zIndex: 1070 }}>
+          <DialogContent className="max-w-2xl" style={{ zIndex: 1080 }} onClick={(e) => e.stopPropagation()}>
             <DialogHeader>
               <DialogTitle>User Details</DialogTitle>
             </DialogHeader>
@@ -831,7 +831,7 @@ export default function AdminPanelV2() {
 
         {/* Job Detail Dialog */}
         <Dialog open={isJobDialogOpen} onOpenChange={setIsJobDialogOpen}>
-          <DialogContent className="max-w-2xl">
+          <DialogContent className="max-w-2xl" style={{ zIndex: 1080 }} onClick={(e) => e.stopPropagation()}>
             <DialogHeader>
               <DialogTitle>Job Details</DialogTitle>
             </DialogHeader>
@@ -872,7 +872,7 @@ export default function AdminPanelV2() {
 
         {/* Support Ticket Dialog */}
         <Dialog open={isTicketDialogOpen} onOpenChange={setIsTicketDialogOpen}>
-          <DialogContent className="max-w-2xl" style={{ zIndex: 1070 }}>
+          <DialogContent className="max-w-2xl" style={{ zIndex: 1080 }} onClick={(e) => e.stopPropagation()}>
             <DialogHeader>
               <DialogTitle>Support Ticket Details</DialogTitle>
             </DialogHeader>
