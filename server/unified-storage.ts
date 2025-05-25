@@ -107,11 +107,19 @@ export class UnifiedStorage implements IStorage {
     }, null as any, 'createUser');
   }
 
-  async updateUser(id: number, userData: Partial<User>): Promise<User | null> {
+  async updateUser(id: number, userData: Partial<InsertUser> & { 
+    stripeConnectAccountId?: string, 
+    stripeConnectAccountStatus?: string,
+    stripeCustomerId?: string,
+    stripeTermsAccepted?: boolean,
+    stripeTermsAcceptedAt?: Date,
+    stripeRepresentativeName?: string,
+    stripeRepresentativeTitle?: string
+  }): Promise<User | undefined> {
     return this.safeExecute(async () => {
       const result = await db.update(users).set(userData).where(eq(users.id, id)).returning();
-      return result[0] || null;
-    }, null, `updateUser(${id})`);
+      return result[0] || undefined;
+    }, undefined, `updateUser(${id})`);
   }
 
   async deleteUser(id: number): Promise<boolean> {
@@ -521,34 +529,269 @@ export class UnifiedStorage implements IStorage {
     }, [], `getSupportTicketsByUserId(${userId})`);
   }
 
+  // INTERFACE COMPATIBILITY METHODS
+  async getJobs(filters?: any): Promise<Job[]> {
+    return this.getAllJobs(filters);
+  }
+
+  async getNotifications(userId: number, options?: { isRead?: boolean, limit?: number }): Promise<Notification[]> {
+    return this.getNotificationsByUserId(userId);
+  }
+
+  async getUserByUsernameAndType(username: string, accountType: string): Promise<User | undefined> {
+    return this.safeExecute(async () => {
+      const result = await db.select().from(users)
+        .where(and(eq(users.username, username), eq(users.accountType, accountType)));
+      return result[0] || undefined;
+    }, undefined, `getUserByUsernameAndType(${username}, ${accountType})`);
+  }
+
+  async uploadProfileImage(userId: number, imageData: string): Promise<User | undefined> {
+    return this.updateUser(userId, { avatarUrl: imageData });
+  }
+
+  async updateUserSkills(userId: number, skills: string[]): Promise<User | undefined> {
+    return this.updateUser(userId, { skills });
+  }
+
+  async verifyUserSkill(userId: number, skill: string, isVerified: boolean): Promise<User | undefined> {
+    const user = await this.getUser(userId);
+    if (!user) return undefined;
+    
+    const skillsVerified = { ...(user.skillsVerified || {}) };
+    skillsVerified[skill] = isVerified;
+    
+    return this.updateUser(userId, { skillsVerified });
+  }
+
+  async updateUserMetrics(userId: number, metrics: {
+    completedJobs?: number;
+    successRate?: number;
+    responseTime?: number;
+  }): Promise<User | undefined> {
+    return this.updateUser(userId, metrics);
+  }
+
+  async getUsersWithSkills(skills: string[]): Promise<User[]> {
+    return this.safeExecute(async () => {
+      const result = await db.select().from(users)
+        .where(sql`${users.skills} && ${skills}`);
+      return result;
+    }, [], `getUsersWithSkills(${skills})`);
+  }
+
+  async getJobsNearLocation(latitude: number, longitude: number, radiusMiles: number): Promise<Job[]> {
+    return this.getJobsByLocation(latitude, longitude, radiusMiles);
+  }
+
+  async getApplicationsForJob(jobId: number): Promise<Application[]> {
+    return this.getApplicationsByJobId(jobId);
+  }
+
+  async getApplicationsForWorker(workerId: number): Promise<Application[]> {
+    return this.getApplicationsByUserId(workerId);
+  }
+
+  async getPaymentByTransactionId(transactionId: string): Promise<Payment | undefined> {
+    return this.safeExecute(async () => {
+      const result = await db.select().from(payments).where(eq(payments.transactionId, transactionId));
+      return result[0] || undefined;
+    }, undefined, `getPaymentByTransactionId(${transactionId})`);
+  }
+
+  async getPaymentByJobId(jobId: number): Promise<Payment | undefined> {
+    return this.safeExecute(async () => {
+      const result = await db.select().from(payments).where(eq(payments.jobId, jobId));
+      return result[0] || undefined;
+    }, undefined, `getPaymentByJobId(${jobId})`);
+  }
+
+  async getPaymentsForUser(userId: number): Promise<Payment[]> {
+    return this.getPaymentsByUserId(userId);
+  }
+
+  async updatePaymentStatus(id: number, status: string, transactionId?: string): Promise<Payment | undefined> {
+    const updateData: any = { status };
+    if (transactionId) updateData.transactionId = transactionId;
+    return this.updatePayment(id, updateData);
+  }
+
+  async updateEarningStatus(id: number, status: string, datePaid?: Date): Promise<Earning | undefined> {
+    const updateData: any = { status };
+    if (datePaid) updateData.datePaid = datePaid;
+    return this.safeExecute(async () => {
+      const result = await db.update(earnings).set(updateData).where(eq(earnings.id, id)).returning();
+      return result[0] || undefined;
+    }, undefined, `updateEarningStatus(${id})`);
+  }
+
   // STUB METHODS FOR COMPATIBILITY
   async getAllReviews(): Promise<Review[]> { return []; }
-  async getReview(id: number): Promise<Review | null> { return null; }
+  async getReview(id: number): Promise<Review | undefined> { return undefined; }
   async createReview(reviewData: InsertReview): Promise<Review> { return null as any; }
-  async updateReview(id: number, reviewData: Partial<Review>): Promise<Review | null> { return null; }
+  async updateReview(id: number, reviewData: Partial<Review>): Promise<Review | undefined> { return undefined; }
   async deleteReview(id: number): Promise<boolean> { return true; }
-  async getReviewsByJobId(jobId: number): Promise<Review[]> { return []; }
-  async getReviewsByUserId(userId: number): Promise<Review[]> { return []; }
+  async getReviewsForJob(jobId: number): Promise<Review[]> { return []; }
+  async getReviewsForUser(userId: number): Promise<Review[]> { return []; }
 
+  // Additional interface methods for full compatibility
+  async getJobsForWorker(workerId: number, filter?: { status?: string }): Promise<Job[]> {
+    return this.safeExecute(async () => {
+      let query = db.select().from(jobs).where(eq(jobs.workerId, workerId));
+      if (filter?.status) {
+        query = query.where(eq(jobs.status, filter.status));
+      }
+      return await query;
+    }, [], `getJobsForWorker(${workerId})`);
+  }
+
+  async getJobsForPoster(posterId: number): Promise<Job[]> {
+    return this.getJobsByUserId(posterId);
+  }
+
+  async getUserById(id: number): Promise<User | undefined> {
+    return this.getUser(id);
+  }
+
+  async createMessage(messageData: any): Promise<any> {
+    return this.safeExecute(async () => {
+      const result = await db.insert(messages).values(messageData).returning();
+      return result[0];
+    }, null as any, 'createMessage');
+  }
+
+  async getMessageById(messageId: number): Promise<any> {
+    return this.safeExecute(async () => {
+      const result = await db.select().from(messages).where(eq(messages.id, messageId));
+      return result[0] || undefined;
+    }, undefined, `getMessageById(${messageId})`);
+  }
+
+  async getPendingMessages(userId: number): Promise<any[]> {
+    return this.safeExecute(async () => {
+      return await db.select().from(messages)
+        .where(and(eq(messages.recipientId, userId), eq(messages.isRead, false)));
+    }, [], `getPendingMessages(${userId})`);
+  }
+
+  async getMessagesForJob(jobId: number): Promise<any[]> {
+    return this.safeExecute(async () => {
+      return await db.select().from(messages).where(eq(messages.jobId, jobId));
+    }, [], `getMessagesForJob(${jobId})`);
+  }
+
+  async getConversation(userId1: number, userId2: number, jobId?: number): Promise<any[]> {
+    return this.safeExecute(async () => {
+      let query = db.select().from(messages)
+        .where(
+          or(
+            and(eq(messages.senderId, userId1), eq(messages.recipientId, userId2)),
+            and(eq(messages.senderId, userId2), eq(messages.recipientId, userId1))
+          )
+        );
+      
+      if (jobId) {
+        query = query.where(eq(messages.jobId, jobId));
+      }
+      
+      return await query.orderBy(asc(messages.createdAt));
+    }, [], `getConversation(${userId1}, ${userId2})`);
+  }
+
+  async getMessagesBetweenUsers(userId1: number, userId2: number): Promise<any[]> {
+    return this.getConversation(userId1, userId2);
+  }
+
+  async markMessagesAsRead(recipientId: number, senderId: number): Promise<boolean> {
+    return this.safeExecute(async () => {
+      await db.update(messages)
+        .set({ isRead: true })
+        .where(and(eq(messages.recipientId, recipientId), eq(messages.senderId, senderId)));
+      return true;
+    }, false, `markMessagesAsRead(${recipientId}, ${senderId})`);
+  }
+
+  async markMessageAsRead(messageId: number, userId: number): Promise<any> {
+    return this.safeExecute(async () => {
+      const result = await db.update(messages)
+        .set({ isRead: true })
+        .where(and(eq(messages.id, messageId), eq(messages.recipientId, userId)))
+        .returning();
+      return result[0] || undefined;
+    }, undefined, `markMessageAsRead(${messageId})`);
+  }
+
+  async searchUsers(query: string, excludeUserId?: number): Promise<User[]> {
+    return this.safeExecute(async () => {
+      let dbQuery = db.select().from(users)
+        .where(
+          or(
+            like(users.username, `%${query}%`),
+            like(users.fullName, `%${query}%`),
+            like(users.email, `%${query}%`)
+          )
+        );
+      
+      if (excludeUserId) {
+        dbQuery = dbQuery.where(notLike(users.id, excludeUserId));
+      }
+      
+      return await dbQuery;
+    }, [], `searchUsers(${query})`);
+  }
+
+  async getUserContacts(userId: number): Promise<any[]> {
+    return this.safeExecute(async () => {
+      return await db.select().from(contacts).where(eq(contacts.userId, userId));
+    }, [], `getUserContacts(${userId})`);
+  }
+
+  async addUserContact(userId: number, contactId: number): Promise<any> {
+    return this.safeExecute(async () => {
+      const result = await db.insert(contacts).values({ userId, contactId }).returning();
+      return result[0];
+    }, null as any, `addUserContact(${userId}, ${contactId})`);
+  }
+
+  async removeUserContact(userId: number, contactId: number): Promise<boolean> {
+    return this.safeExecute(async () => {
+      await db.delete(contacts).where(and(eq(contacts.userId, userId), eq(contacts.contactId, contactId)));
+      return true;
+    }, false, `removeUserContact(${userId}, ${contactId})`);
+  }
+
+  async notifyNearbyWorkers(jobId: number, radiusMiles: number): Promise<number> {
+    return this.safeExecute(async () => {
+      // Implementation would send notifications to nearby workers
+      return 0; // Return count of notifications sent
+    }, 0, `notifyNearbyWorkers(${jobId}, ${radiusMiles})`);
+  }
+
+  // STUB METHODS FOR REMAINING COMPATIBILITY
   async getAllTasks(): Promise<Task[]> { return []; }
-  async getTask(id: number): Promise<Task | null> { return null; }
+  async getTask(id: number): Promise<Task | undefined> { return undefined; }
   async createTask(taskData: InsertTask): Promise<Task> { return null as any; }
-  async updateTask(id: number, taskData: Partial<Task>): Promise<Task | null> { return null; }
+  async updateTask(id: number, taskData: Partial<Task>): Promise<Task | undefined> { return undefined; }
   async deleteTask(id: number): Promise<boolean> { return true; }
-  async getTasksByJobId(jobId: number): Promise<Task[]> { return []; }
+  async getTasksForJob(jobId: number): Promise<Task[]> { return []; }
+  async completeTask(id: number, completedBy: number): Promise<Task | undefined> { return undefined; }
+  async reorderTasks(jobId: number, taskIds: number[]): Promise<Task[]> { return []; }
 
   async getAllBadges(): Promise<Badge[]> { return []; }
-  async getBadge(id: number): Promise<Badge | null> { return null; }
+  async getBadge(id: number): Promise<Badge | undefined> { return undefined; }
   async createBadge(badgeData: InsertBadge): Promise<Badge> { return null as any; }
-  async updateBadge(id: number, badgeData: Partial<Badge>): Promise<Badge | null> { return null; }
+  async updateBadge(id: number, badgeData: Partial<Badge>): Promise<Badge | undefined> { return undefined; }
   async deleteBadge(id: number): Promise<boolean> { return true; }
+  async getBadgesByCategory(category: string): Promise<Badge[]> { return []; }
 
   async getAllUserBadges(): Promise<UserBadge[]> { return []; }
-  async getUserBadge(id: number): Promise<UserBadge | null> { return null; }
+  async getUserBadge(id: number): Promise<UserBadge | undefined> { return undefined; }
   async createUserBadge(userBadgeData: InsertUserBadge): Promise<UserBadge> { return null as any; }
-  async updateUserBadge(id: number, userBadgeData: Partial<UserBadge>): Promise<UserBadge | null> { return null; }
+  async updateUserBadge(id: number, userBadgeData: Partial<UserBadge>): Promise<UserBadge | undefined> { return undefined; }
   async deleteUserBadge(id: number): Promise<boolean> { return true; }
-  async getUserBadgesByUserId(userId: number): Promise<UserBadge[]> { return []; }
+  async getUserBadges(userId: number): Promise<UserBadge[]> { return []; }
+  async awardBadge(userBadge: InsertUserBadge): Promise<UserBadge> { return null as any; }
+  async revokeBadge(userId: number, badgeId: number): Promise<boolean> { return true; }
 }
 
 // Create and export a single instance
