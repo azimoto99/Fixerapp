@@ -35,7 +35,7 @@ import ContextualTips from "@/components/onboarding/ContextualTips";
 import { SimpleToastProvider } from "@/hooks/use-simple-toast";
 import { MessagingDrawer } from "@/components/MessagingDrawer";
 import ExpoConnectGuide from "@/components/ExpoConnectGuide";
-import JobCardFix from "@/components/JobCardFix";
+import JobCard from "@/components/JobCard";
 import { useState, useEffect } from "react";
 
 // Redirect component for old routes
