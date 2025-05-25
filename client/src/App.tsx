@@ -9,7 +9,7 @@ import Home from "@/pages/Home";
 import PostJob from "@/pages/PostJob";
 // Using JobDetailPage as the primary job details component
 import JobDetailPage from "@/pages/job-detail-page";
-import EarningsPage from "@/pages/EarningsPage";
+
 import AuthPage from "@/pages/auth-page";
 import NotFound from "@/pages/not-found";
 import TransactionHistory from "@/pages/TransactionHistory";
@@ -77,7 +77,7 @@ function RouterWithAuth() {
       <ProtectedRoute path="/post-job" component={PostJob} />
       <ProtectedRoute path="/jobs/post" component={PostJob} />
       <ProtectedRoute path="/job/:id" component={JobDetailPage} />
-      <ProtectedRoute path="/earnings" component={EarningsPage} />
+
       <ProtectedRoute path="/transactions" component={TransactionHistory} />
       <ProtectedRoute path="/checkout/:amount/:jobId" component={Checkout} />
       <ProtectedRoute path="/payment-success" component={PaymentSuccess} />

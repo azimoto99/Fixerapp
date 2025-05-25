@@ -8,7 +8,7 @@ import { Separator } from '@/components/ui/separator';
 import { CreditCard, Wallet, Settings, ArrowLeft } from 'lucide-react';
 import Header from '@/components/Header';
 import PaymentMethodsManager from '@/components/payments/PaymentMethodsManager';
-import StripeConnectSetup from '@/components/stripe/StripeConnectSetup';
+import StripeConnectSetupV2 from '@/components/stripe/StripeConnectSetupV2';
 import StripeTester from '@/components/payments/StripeTester';
 import { Link } from 'wouter';
 
@@ -104,7 +104,20 @@ const PaymentSettings: React.FC = () => {
                   }
                 </p>
                 
-                <StripeConnectSetup />
+                <StripeConnectSetupV2 
+                  onComplete={() => {
+                    toast({
+                      title: "Stripe Connect Setup Complete",
+                      description: "Your payment account is now set up and ready to use.",
+                    });
+                  }}
+                  onCancel={() => {
+                    toast({
+                      title: "Setup Cancelled",
+                      description: "You can complete your Stripe Connect setup later.",
+                    });
+                  }}
+                />
               </div>
             </div>
           </TabsContent>
