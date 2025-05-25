@@ -144,7 +144,7 @@ export class UnifiedStorage implements IStorage {
         query = query.where(like(jobs.location, `%${filters.location}%`));
       }
       
-      return await query.orderBy(desc(jobs.createdAt));
+      return await query.orderBy(desc(jobs.datePosted));
     }, [], 'getAllJobs');
   }
 
@@ -182,7 +182,7 @@ export class UnifiedStorage implements IStorage {
 
   async getJobsByUserId(userId: number): Promise<Job[]> {
     return this.safeExecute(async () => {
-      return await db.select().from(jobs).where(eq(jobs.posterId, userId)).orderBy(desc(jobs.createdAt));
+      return await db.select().from(jobs).where(eq(jobs.posterId, userId)).orderBy(desc(jobs.datePosted));
     }, [], `getJobsByUserId(${userId})`);
   }
 
