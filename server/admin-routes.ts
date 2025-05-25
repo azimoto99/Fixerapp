@@ -175,44 +175,43 @@ export function registerAdminRoutes(app: Express) {
     }
   });
 
-  // Get support tickets (placeholder - will implement with proper support system)
+  // Get support tickets - now using real database data
   app.get("/api/admin/support-tickets", adminAuth, async (req, res) => {
     try {
-      // For now, return sample tickets based on real users
-      const users = await storage.getAllUsers();
-      const sampleTickets = users.slice(0, 3).map((user, index) => ({
-        id: index + 1,
-        userId: user.id,
-        userName: user.fullName,
-        userEmail: user.email,
-        title: `Support Request ${index + 1}`,
-        description: `User needs assistance with platform features`,
-        category: index === 0 ? "general" : index === 1 ? "technical" : "account",
-        priority: index === 0 ? "medium" : index === 1 ? "high" : "low",
-        status: index === 0 ? "open" : index === 1 ? "in_progress" : "resolved",
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString()
-      }));
-
-      res.json(sampleTickets);
+      const tickets = await storage.getSupportTickets();
+      res.json(tickets);
     } catch (error) {
       console.error('Admin support tickets error:', error);
       res.status(500).json({ message: "Failed to fetch support tickets" });
     }
   });
 
-  // Update support ticket status
+  // Update support ticket status - now using real database operations
   app.patch("/api/admin/support-tickets/:ticketId", adminAuth, async (req, res) => {
     try {
       const ticketId = parseInt(req.params.ticketId);
-      const { status, resolution } = req.body;
+      const { status, resolution, priority, assignedTo } = req.body;
 
-      // For now, just return success - will implement proper support ticket system
+      const updateData: any = {};
+      if (status !== undefined) updateData.status = status;
+      if (resolution !== undefined) updateData.resolution = resolution;
+      if (priority !== undefined) updateData.priority = priority;
+      if (assignedTo !== undefined) updateData.assignedTo = assignedTo;
+      
+      // Set resolved timestamp if status is resolved or closed
+      if (status === 'resolved' || status === 'closed') {
+        updateData.resolvedAt = new Date();
+      }
+
+      const updatedTicket = await storage.updateSupportTicket(ticketId, updateData);
+      
+      if (!updatedTicket) {
+        return res.status(404).json({ message: "Support ticket not found" });
+      }
+
       res.json({ 
         message: "Support ticket updated successfully",
-        ticketId,
-        status,
-        resolution
+        ticket: updatedTicket
       });
     } catch (error) {
       console.error('Admin support ticket update error:', error);
@@ -220,18 +219,16 @@ export function registerAdminRoutes(app: Express) {
     }
   });
 
-  // Delete support ticket
+  // Delete support ticket - now using real database operations
   app.delete("/api/admin/support-tickets/:ticketId", adminAuth, async (req, res) => {
     try {
       const ticketId = parseInt(req.params.ticketId);
       
-      // Actually delete the ticket from the mock data
-      const currentTickets = await storage.getAllSupportTickets();
-      const filteredTickets = currentTickets.filter(ticket => ticket.id !== ticketId);
+      const deletedTicket = await storage.deleteSupportTicket(ticketId);
       
-      // Update the storage with filtered tickets (this simulates deletion)
-      // Since we're using mock data, we'll just return success for now
-      console.log(`🗑️ Deleted support ticket ${ticketId}`);
+      if (!deletedTicket) {
+        return res.status(404).json({ message: "Support ticket not found" });
+      }
       
       res.json({ 
         message: "Support ticket deleted successfully",
@@ -249,15 +246,153 @@ export function registerAdminRoutes(app: Express) {
       const ticketId = parseInt(req.params.ticketId);
       const { response, status } = req.body;
       
+      // Update the ticket with the response and new status
+      const updateData: any = {
+        status: status || "resolved"
+      };
+      
+      if (status === 'resolved' || status === 'closed') {
+        updateData.resolvedAt = new Date();
+        updateData.resolution = response;
+      }
+      
+      const updatedTicket = await storage.updateSupportTicket(ticketId, updateData);
+      
+      if (!updatedTicket) {
+        return res.status(404).json({ message: "Support ticket not found" });
+      }
+      
       res.json({ 
         message: "Response sent successfully",
-        ticketId,
-        response,
-        status: status || "resolved"
+        ticket: updatedTicket
       });
     } catch (error) {
       console.error('Admin support ticket response error:', error);
       res.status(500).json({ message: "Failed to send response" });
+    }
+  });
+
+  // Get admin alerts - real implementation instead of hardcoded examples
+  app.get("/api/admin/alerts", adminAuth, async (req, res) => {
+    try {
+      const [users, jobs, payments, tickets] = await Promise.all([
+        storage.getAllUsers(),
+        storage.getAllJobs(),
+        storage.getAllPayments(),
+        storage.getSupportTickets()
+      ]);
+
+      const alerts = [];
+
+      // Check for suspicious payment activity
+      const failedPayments = payments.filter(p => p.status === 'failed').length;
+      if (failedPayments > 5) {
+        alerts.push({
+          id: 'payment-failures',
+          type: 'warning',
+          title: 'High Payment Failure Rate',
+          message: `${failedPayments} failed payments detected in recent activity`,
+          severity: 'medium',
+          timestamp: new Date().toISOString()
+        });
+      }
+
+      // Check for urgent support tickets
+      const urgentTickets = tickets.filter(t => t.priority === 'urgent' && t.status === 'open').length;
+      if (urgentTickets > 0) {
+        alerts.push({
+          id: 'urgent-tickets',
+          type: 'error',
+          title: 'Urgent Support Tickets',
+          message: `${urgentTickets} urgent support tickets require immediate attention`,
+          severity: 'high',
+          timestamp: new Date().toISOString()
+        });
+      }
+
+      // Check for inactive users
+      const inactiveUsers = users.filter(u => !u.isActive).length;
+      if (inactiveUsers > users.length * 0.1) {
+        alerts.push({
+          id: 'user-activity',
+          type: 'info',
+          title: 'User Activity Alert',
+          message: `${inactiveUsers} users are currently inactive`,
+          severity: 'low',
+          timestamp: new Date().toISOString()
+        });
+      }
+
+      // Check for jobs without applications
+      const jobsWithoutApps = jobs.filter(j => j.status === 'open').length;
+      if (jobsWithoutApps > 10) {
+        alerts.push({
+          id: 'job-applications',
+          type: 'warning',
+          title: 'Low Job Application Rate',
+          message: `${jobsWithoutApps} open jobs may need attention to attract applicants`,
+          severity: 'medium',
+          timestamp: new Date().toISOString()
+        });
+      }
+
+      res.json(alerts);
+    } catch (error) {
+      console.error('Admin alerts error:', error);
+      res.status(500).json({ message: "Failed to fetch admin alerts" });
+    }
+  });
+
+  // Get admin reports - real implementation with actual data
+  app.get("/api/admin/reports", adminAuth, async (req, res) => {
+    try {
+      const { type, startDate, endDate } = req.query;
+      const start = startDate ? new Date(startDate as string) : new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
+      const end = endDate ? new Date(endDate as string) : new Date();
+
+      const [users, jobs, payments, earnings] = await Promise.all([
+        storage.getAllUsers(),
+        storage.getAllJobs(),
+        storage.getAllPayments(),
+        storage.getAllEarnings()
+      ]);
+
+      const reports = {
+        summary: {
+          totalUsers: users.length,
+          totalJobs: jobs.length,
+          totalRevenue: payments.reduce((sum, p) => sum + (p.amount || 0), 0),
+          totalEarnings: earnings.reduce((sum, e) => sum + (e.amount || 0), 0),
+          generatedAt: new Date().toISOString(),
+          dateRange: { start: start.toISOString(), end: end.toISOString() }
+        },
+        userMetrics: {
+          activeUsers: users.filter(u => u.isActive).length,
+          verifiedUsers: users.filter(u => u.emailVerified).length,
+          adminUsers: users.filter(u => u.isAdmin).length,
+          workerAccounts: users.filter(u => u.accountType === 'worker').length,
+          posterAccounts: users.filter(u => u.accountType === 'poster').length
+        },
+        jobMetrics: {
+          completedJobs: jobs.filter(j => j.status === 'completed').length,
+          activeJobs: jobs.filter(j => j.status === 'in_progress').length,
+          openJobs: jobs.filter(j => j.status === 'open').length,
+          cancelledJobs: jobs.filter(j => j.status === 'cancelled').length,
+          averageJobValue: jobs.length > 0 ? jobs.reduce((sum, j) => sum + j.paymentAmount, 0) / jobs.length : 0
+        },
+        financialMetrics: {
+          totalRevenue: payments.reduce((sum, p) => sum + (p.amount || 0), 0),
+          platformFees: payments.reduce((sum, p) => sum + (p.serviceFee || 0), 0),
+          completedPayments: payments.filter(p => p.status === 'completed').length,
+          pendingPayments: payments.filter(p => p.status === 'pending').length,
+          failedPayments: payments.filter(p => p.status === 'failed').length
+        }
+      };
+
+      res.json(reports);
+    } catch (error) {
+      console.error('Admin reports error:', error);
+      res.status(500).json({ message: "Failed to generate admin reports" });
     }
   });
 
