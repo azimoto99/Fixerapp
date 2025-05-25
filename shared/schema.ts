@@ -414,10 +414,69 @@ export const contactRequests = pgTable("contact_requests", {
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
 });
 
+// Support tickets table
+export const supportTickets = pgTable("support_tickets", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id").notNull().references(() => users.id),
+  userName: text("user_name").notNull(),
+  userEmail: text("user_email").notNull(),
+  title: text("title").notNull(),
+  description: text("description").notNull(),
+  category: text("category").notNull(), // "technical", "billing", "general", "dispute"
+  priority: text("priority").notNull().default("medium"), // "low", "medium", "high", "urgent"
+  status: text("status").notNull().default("open"), // "open", "in_progress", "resolved", "closed"
+  jobId: integer("job_id").references(() => jobs.id), // Optional job reference
+  assignedTo: integer("assigned_to").references(() => users.id), // Admin user assigned to ticket
+  resolution: text("resolution"), // Final resolution description
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+  resolvedAt: timestamp("resolved_at"), // When the ticket was resolved
+});
+
+// Support ticket messages
+export const supportMessages = pgTable("support_messages", {
+  id: serial("id").primaryKey(),
+  ticketId: integer("ticket_id").notNull().references(() => supportTickets.id),
+  senderId: integer("sender_id").notNull().references(() => users.id),
+  message: text("message").notNull(),
+  isInternal: boolean("is_internal").notNull().default(false), // Admin-only messages
+  attachmentUrl: text("attachment_url"), // Optional file attachment
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+});
+
+// Disputes table for payment/job disputes
+export const disputes = pgTable("disputes", {
+  id: serial("id").primaryKey(),
+  jobId: integer("job_id").notNull().references(() => jobs.id),
+  raisedBy: integer("raised_by").notNull().references(() => users.id),
+  against: integer("against").notNull().references(() => users.id),
+  reason: text("reason").notNull(),
+  description: text("description").notNull(),
+  evidence: jsonb("evidence"), // Files, screenshots, etc.
+  status: text("status").notNull().default("open"), // "open", "investigating", "resolved", "closed"
+  amount: doublePrecision("amount"), // Disputed amount if applicable
+  resolution: text("resolution"), // Final resolution
+  resolvedBy: integer("resolved_by").references(() => users.id), // Admin who resolved
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  resolvedAt: timestamp("resolved_at"),
+});
+
 export const insertContactRequestSchema = createInsertSchema(contactRequests);
+export const insertSupportTicketSchema = createInsertSchema(supportTickets);
+export const insertSupportMessageSchema = createInsertSchema(supportMessages);
+export const insertDisputeSchema = createInsertSchema(disputes);
 
 export type ContactRequest = typeof contactRequests.$inferSelect;
 export type InsertContactRequest = z.infer<typeof insertContactRequestSchema>;
+
+export type SupportTicket = typeof supportTickets.$inferSelect;
+export type InsertSupportTicket = z.infer<typeof insertSupportTicketSchema>;
+
+export type SupportMessage = typeof supportMessages.$inferSelect;
+export type InsertSupportMessage = z.infer<typeof insertSupportMessageSchema>;
+
+export type Dispute = typeof disputes.$inferSelect;
+export type InsertDispute = z.infer<typeof insertDisputeSchema>;
 
 // Refunds tracking
 export const refunds = pgTable("refunds", {
