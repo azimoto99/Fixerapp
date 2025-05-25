@@ -10,6 +10,7 @@ import {
 } from "./admin-security";
 import { financialService } from "./financial-service";
 import { contentModerationService } from "./content-moderation";
+import { analyticsService } from "./analytics-service";
 
 export function registerAdminRoutes(app: Express) {
   // Apply security headers to all admin routes
@@ -1401,4 +1402,143 @@ export function registerAdminRoutes(app: Express) {
       res.status(500).json({ message: 'Failed to resolve security incident' });
     }
   });
+
+  // ================================
+  // ULTRABUG PROMPT 7: ADVANCED ANALYTICS & REPORTING
+  // ================================
+
+  // Comprehensive Analytics Dashboard
+  app.get("/api/admin/analytics/comprehensive", 
+    adminAuth, 
+    auditAdminAction('view_comprehensive_analytics', 'analytics'),
+    async (req, res) => {
+      try {
+        const { startDate, endDate } = req.query;
+        const start = startDate ? new Date(startDate as string) : undefined;
+        const end = endDate ? new Date(endDate as string) : undefined;
+
+        const analytics = await analyticsService.getComprehensiveAnalytics(start, end);
+        res.json({
+          ...analytics,
+          period: { startDate: start, endDate: end },
+          generatedAt: new Date()
+        });
+      } catch (error) {
+        console.error('Comprehensive analytics error:', error);
+        res.status(500).json({ message: "Failed to fetch comprehensive analytics" });
+      }
+    }
+  );
+
+  // Time Series Data for Charts
+  app.get("/api/admin/analytics/time-series/:metric", 
+    adminAuth, 
+    auditAdminAction('view_time_series_analytics', 'analytics'),
+    async (req, res) => {
+      try {
+        const { metric } = req.params;
+        const { startDate, endDate } = req.query;
+        
+        if (!startDate || !endDate) {
+          return res.status(400).json({ message: "Start and end dates are required" });
+        }
+
+        const start = new Date(startDate as string);
+        const end = new Date(endDate as string);
+
+        const timeSeriesData = await analyticsService.getTimeSeriesData(metric, start, end);
+        res.json({
+          metric,
+          data: timeSeriesData,
+          period: { startDate: start, endDate: end }
+        });
+      } catch (error) {
+        console.error('Time series analytics error:', error);
+        res.status(500).json({ message: "Failed to fetch time series data" });
+      }
+    }
+  );
+
+  // Generate Custom Reports
+  app.post("/api/admin/analytics/reports/generate", 
+    adminAuth, 
+    auditAdminAction('generate_analytics_report', 'report'),
+    async (req, res) => {
+      try {
+        const { type, format, startDate, endDate } = req.body;
+        
+        const start = startDate ? new Date(startDate) : undefined;
+        const end = endDate ? new Date(endDate) : undefined;
+
+        const report = await analyticsService.generateReport(type, format, start, end);
+        
+        if (format === 'csv') {
+          res.setHeader('Content-Type', 'text/csv');
+          res.setHeader('Content-Disposition', `attachment; filename="analytics-report-${Date.now()}.csv"`);
+          res.send(report);
+        } else {
+          res.json(report);
+        }
+      } catch (error) {
+        console.error('Report generation error:', error);
+        res.status(500).json({ message: "Failed to generate report" });
+      }
+    }
+  );
+
+  // Real-time Analytics Dashboard Stats
+  app.get("/api/admin/analytics/real-time", 
+    adminAuth, 
+    auditAdminAction('view_realtime_analytics', 'analytics'),
+    async (req, res) => {
+      try {
+        const now = new Date();
+        const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+        
+        const analytics = await analyticsService.getComprehensiveAnalytics(today, now);
+        
+        res.json({
+          ...analytics,
+          timestamp: now,
+          isRealTime: true
+        });
+      } catch (error) {
+        console.error('Real-time analytics error:', error);
+        res.status(500).json({ message: "Failed to fetch real-time analytics" });
+      }
+    }
+  );
+
+  // Export Analytics Data
+  app.get("/api/admin/analytics/export/:format", 
+    adminAuth, 
+    auditAdminAction('export_analytics_data', 'export'),
+    async (req, res) => {
+      try {
+        const { format } = req.params;
+        const { startDate, endDate, type = 'detailed' } = req.query;
+        
+        const start = startDate ? new Date(startDate as string) : undefined;
+        const end = endDate ? new Date(endDate as string) : undefined;
+
+        const exportData = await analyticsService.generateReport(type as string, format, start, end);
+        
+        const timestamp = new Date().toISOString().split('T')[0];
+        const filename = `fixer-analytics-${type}-${timestamp}.${format}`;
+        
+        if (format === 'csv') {
+          res.setHeader('Content-Type', 'text/csv');
+          res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+          res.send(exportData);
+        } else {
+          res.setHeader('Content-Type', 'application/json');
+          res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+          res.json(exportData);
+        }
+      } catch (error) {
+        console.error('Analytics export error:', error);
+        res.status(500).json({ message: "Failed to export analytics data" });
+      }
+    }
+  );
 }
