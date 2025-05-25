@@ -6214,6 +6214,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Mount the API router to ensure all API routes are accessible
+  app.use('/api', apiRouter);
+
   // Register admin routes
   registerAdminRoutes(app);
 
