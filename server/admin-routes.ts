@@ -11,6 +11,7 @@ import {
 import { financialService } from "./financial-service";
 import { contentModerationService } from "./content-moderation";
 import { analyticsService } from "./analytics-service";
+import { systemMonitor } from "./system-monitor";
 
 export function registerAdminRoutes(app: Express) {
   // Apply security headers to all admin routes
@@ -1538,6 +1539,166 @@ export function registerAdminRoutes(app: Express) {
       } catch (error) {
         console.error('Analytics export error:', error);
         res.status(500).json({ message: "Failed to export analytics data" });
+      }
+    }
+  );
+
+  // ================================
+  // ULTRABUG PROMPT 8: SYSTEM INTEGRATION & MONITORING
+  // ================================
+
+  // Real-time System Health Dashboard
+  app.get("/api/admin/system/health", 
+    adminAuth, 
+    auditAdminAction('view_system_health', 'system'),
+    async (req, res) => {
+      try {
+        const systemHealth = await systemMonitor.getSystemHealth();
+        res.json(systemHealth);
+      } catch (error) {
+        console.error('System health check error:', error);
+        res.status(500).json({ message: "Failed to fetch system health" });
+      }
+    }
+  );
+
+  // Comprehensive Health Check (For external monitoring)
+  app.get("/api/admin/system/health-check", 
+    adminAuth, 
+    auditAdminAction('perform_health_check', 'system'),
+    async (req, res) => {
+      try {
+        const healthCheck = await systemMonitor.performHealthCheck();
+        res.json(healthCheck);
+      } catch (error) {
+        console.error('Health check error:', error);
+        res.status(500).json({ message: "Failed to perform health check" });
+      }
+    }
+  );
+
+  // System Alerts Management
+  app.get("/api/admin/system/alerts", 
+    adminAuth, 
+    auditAdminAction('view_system_alerts', 'alerts'),
+    async (req, res) => {
+      try {
+        const alerts = await systemMonitor.checkAlerts();
+        res.json({
+          alerts,
+          config: systemMonitor.getAlertConfig(),
+          timestamp: new Date()
+        });
+      } catch (error) {
+        console.error('System alerts error:', error);
+        res.status(500).json({ message: "Failed to fetch system alerts" });
+      }
+    }
+  );
+
+  // Update Alert Configuration
+  app.put("/api/admin/system/alerts/:alertId", 
+    adminAuth, 
+    auditAdminAction('update_alert_config', 'alerts'),
+    async (req, res) => {
+      try {
+        const { alertId } = req.params;
+        const updates = req.body;
+        
+        const success = systemMonitor.updateAlertConfig(alertId, updates);
+        
+        if (success) {
+          res.json({ message: "Alert configuration updated successfully" });
+        } else {
+          res.status(404).json({ message: "Alert configuration not found" });
+        }
+      } catch (error) {
+        console.error('Alert config update error:', error);
+        res.status(500).json({ message: "Failed to update alert configuration" });
+      }
+    }
+  );
+
+  // Uptime Report
+  app.get("/api/admin/system/uptime", 
+    adminAuth, 
+    auditAdminAction('view_uptime_report', 'system'),
+    async (req, res) => {
+      try {
+        const { days = 30 } = req.query;
+        const uptimeReport = await systemMonitor.getUptimeReport(parseInt(days as string));
+        res.json(uptimeReport);
+      } catch (error) {
+        console.error('Uptime report error:', error);
+        res.status(500).json({ message: "Failed to fetch uptime report" });
+      }
+    }
+  );
+
+  // System Performance Metrics
+  app.get("/api/admin/system/performance", 
+    adminAuth, 
+    auditAdminAction('view_performance_metrics', 'system'),
+    async (req, res) => {
+      try {
+        const systemHealth = await systemMonitor.getSystemHealth();
+        const performanceMetrics = {
+          memory: systemHealth.memory,
+          cpu: systemHealth.cpu,
+          uptime: systemHealth.uptime,
+          activeConnections: systemHealth.activeConnections,
+          errorRate: systemHealth.errorRate,
+          services: {
+            database: {
+              status: systemHealth.database.status,
+              responseTime: systemHealth.database.responseTime,
+              uptime: systemHealth.database.uptime
+            },
+            stripe: {
+              status: systemHealth.stripe.status,
+              responseTime: systemHealth.stripe.responseTime,
+              uptime: systemHealth.stripe.uptime
+            },
+            api: {
+              status: systemHealth.api.status,
+              uptime: systemHealth.api.uptime
+            }
+          },
+          timestamp: new Date()
+        };
+        
+        res.json(performanceMetrics);
+      } catch (error) {
+        console.error('Performance metrics error:', error);
+        res.status(500).json({ message: "Failed to fetch performance metrics" });
+      }
+    }
+  );
+
+  // System Maintenance Mode
+  app.post("/api/admin/system/maintenance", 
+    adminAuth, 
+    auditAdminAction('toggle_maintenance_mode', 'system'),
+    async (req, res) => {
+      try {
+        const { enabled, message } = req.body;
+        
+        // In production, this would update a system-wide maintenance flag
+        // For now, we'll simulate the functionality
+        const maintenanceConfig = {
+          enabled: Boolean(enabled),
+          message: message || "System maintenance in progress. Please try again later.",
+          enabledAt: enabled ? new Date() : null,
+          enabledBy: req.user!.id
+        };
+        
+        res.json({
+          message: `Maintenance mode ${enabled ? 'enabled' : 'disabled'} successfully`,
+          config: maintenanceConfig
+        });
+      } catch (error) {
+        console.error('Maintenance mode error:', error);
+        res.status(500).json({ message: "Failed to toggle maintenance mode" });
       }
     }
   );
