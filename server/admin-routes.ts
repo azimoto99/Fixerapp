@@ -8,6 +8,7 @@ import {
   validateAdminInput, 
   auditAdminAction 
 } from "./admin-security";
+import { financialService } from "./financial-service";
 
 export function registerAdminRoutes(app: Express) {
   // Apply security headers to all admin routes
@@ -637,6 +638,236 @@ export function registerAdminRoutes(app: Express) {
       res.status(500).json({ message: "Failed to fetch user statistics" });
     }
   });
+
+  // Enhanced Financial Management Endpoints for Ultrabug Prompt 4
+
+  // Get comprehensive financial metrics
+  app.get("/api/admin/financial-metrics", 
+    adminAuth, 
+    auditAdminAction('view_financial_metrics', 'financial_data'),
+    async (req, res) => {
+      try {
+        const { startDate, endDate } = req.query;
+        const start = startDate ? new Date(startDate as string) : undefined;
+        const end = endDate ? new Date(endDate as string) : undefined;
+
+        const metrics = await financialService.getFinancialMetrics(start, end);
+        res.json({
+          metrics,
+          period: { startDate: start, endDate: end },
+          generatedAt: new Date()
+        });
+      } catch (error) {
+        console.error('Financial metrics error:', error);
+        res.status(500).json({ message: "Failed to fetch financial metrics" });
+      }
+    }
+  );
+
+  // Get detailed transaction history with filtering
+  app.get("/api/admin/transaction-history", 
+    adminAuth, 
+    auditAdminAction('view_transaction_history', 'financial_data'),
+    async (req, res) => {
+      try {
+        const filters = {
+          startDate: req.query.startDate ? new Date(req.query.startDate as string) : undefined,
+          endDate: req.query.endDate ? new Date(req.query.endDate as string) : undefined,
+          status: req.query.status as string,
+          type: req.query.type as string,
+          userId: req.query.userId ? parseInt(req.query.userId as string) : undefined,
+          jobId: req.query.jobId ? parseInt(req.query.jobId as string) : undefined,
+          limit: req.query.limit ? parseInt(req.query.limit as string) : 50,
+          offset: req.query.offset ? parseInt(req.query.offset as string) : 0
+        };
+
+        const result = await financialService.getTransactionHistory(filters);
+        res.json(result);
+      } catch (error) {
+        console.error('Transaction history error:', error);
+        res.status(500).json({ message: "Failed to fetch transaction history" });
+      }
+    }
+  );
+
+  // Process refund through Stripe
+  app.post("/api/admin/payments/:paymentId/refund", 
+    strictAdminRateLimit, 
+    adminAuth, 
+    auditAdminAction('process_refund', 'payment'),
+    async (req, res) => {
+      try {
+        const paymentId = parseInt(req.params.paymentId);
+        const { amount, reason } = req.body;
+
+        const result = await financialService.processRefund(paymentId, amount, reason);
+        res.json(result);
+      } catch (error) {
+        console.error('Refund processing error:', error);
+        res.status(500).json({ 
+          message: "Failed to process refund", 
+          error: error.message 
+        });
+      }
+    }
+  );
+
+  // Process worker payout
+  app.post("/api/admin/earnings/:earningId/payout", 
+    strictAdminRateLimit, 
+    adminAuth, 
+    auditAdminAction('process_payout', 'earning'),
+    async (req, res) => {
+      try {
+        const earningId = parseInt(req.params.earningId);
+        const result = await financialService.processPayout(earningId);
+        res.json(result);
+      } catch (error) {
+        console.error('Payout processing error:', error);
+        res.status(500).json({ 
+          message: "Failed to process payout", 
+          error: error.message 
+        });
+      }
+    }
+  );
+
+  // Get Stripe transaction details
+  app.get("/api/admin/stripe/transaction/:transactionId", 
+    adminAuth, 
+    auditAdminAction('view_stripe_transaction', 'stripe_data'),
+    async (req, res) => {
+      try {
+        const transactionId = req.params.transactionId;
+        const details = await financialService.getStripeTransactionDetails(transactionId);
+        res.json(details);
+      } catch (error) {
+        console.error('Stripe transaction details error:', error);
+        res.status(500).json({ 
+          message: "Failed to fetch Stripe transaction details", 
+          error: error.message 
+        });
+      }
+    }
+  );
+
+  // Reconcile platform vs Stripe data
+  app.post("/api/admin/financial/reconcile", 
+    strictAdminRateLimit, 
+    adminAuth, 
+    auditAdminAction('reconcile_financial_data', 'financial_data'),
+    async (req, res) => {
+      try {
+        const { startDate, endDate } = req.body;
+        
+        if (!startDate || !endDate) {
+          return res.status(400).json({ message: "Start date and end date are required" });
+        }
+
+        const result = await financialService.reconcileData(
+          new Date(startDate), 
+          new Date(endDate)
+        );
+        res.json(result);
+      } catch (error) {
+        console.error('Data reconciliation error:', error);
+        res.status(500).json({ 
+          message: "Failed to reconcile financial data", 
+          error: error.message 
+        });
+      }
+    }
+  );
+
+  // Get platform fee breakdown
+  app.get("/api/admin/platform-fees", 
+    adminAuth, 
+    auditAdminAction('view_platform_fees', 'financial_data'),
+    async (req, res) => {
+      try {
+        const { startDate, endDate } = req.query;
+        const start = startDate ? new Date(startDate as string) : new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
+        const end = endDate ? new Date(endDate as string) : new Date();
+
+        const payments = await storage.getAllPayments();
+        const filteredPayments = payments.filter(p => {
+          const paymentDate = p.createdAt || new Date();
+          return paymentDate >= start && paymentDate <= end && p.status === 'completed';
+        });
+
+        const platformFeesBreakdown = {
+          totalFees: filteredPayments.reduce((sum, p) => sum + (p.serviceFee || 0), 0),
+          averageFeePerTransaction: filteredPayments.length > 0 
+            ? filteredPayments.reduce((sum, p) => sum + (p.serviceFee || 0), 0) / filteredPayments.length 
+            : 0,
+          feesByJobCategory: {},
+          feesByMonth: {},
+          transactionCount: filteredPayments.length
+        };
+
+        res.json({
+          ...platformFeesBreakdown,
+          period: { startDate: start, endDate: end }
+        });
+      } catch (error) {
+        console.error('Platform fees error:', error);
+        res.status(500).json({ message: "Failed to fetch platform fees data" });
+      }
+    }
+  );
+
+  // Get payout management data
+  app.get("/api/admin/payouts", 
+    adminAuth, 
+    auditAdminAction('view_payouts', 'financial_data'),
+    async (req, res) => {
+      try {
+        const { status, workerId, startDate, endDate } = req.query;
+        
+        const earnings = await storage.getAllEarnings();
+        let filteredEarnings = earnings;
+
+        if (status) {
+          filteredEarnings = filteredEarnings.filter(e => e.status === status);
+        }
+        
+        if (workerId) {
+          filteredEarnings = filteredEarnings.filter(e => e.workerId === parseInt(workerId as string));
+        }
+
+        if (startDate) {
+          const start = new Date(startDate as string);
+          filteredEarnings = filteredEarnings.filter(e => 
+            e.dateEarned && e.dateEarned >= start
+          );
+        }
+
+        if (endDate) {
+          const end = new Date(endDate as string);
+          filteredEarnings = filteredEarnings.filter(e => 
+            e.dateEarned && e.dateEarned <= end
+          );
+        }
+
+        const payoutSummary = {
+          pendingPayouts: filteredEarnings.filter(e => e.status === 'pending').length,
+          pendingAmount: filteredEarnings
+            .filter(e => e.status === 'pending')
+            .reduce((sum, e) => sum + (e.netAmount || 0), 0),
+          completedPayouts: filteredEarnings.filter(e => e.status === 'paid').length,
+          completedAmount: filteredEarnings
+            .filter(e => e.status === 'paid')
+            .reduce((sum, e) => sum + (e.netAmount || 0), 0),
+          earnings: filteredEarnings
+        };
+
+        res.json(payoutSummary);
+      } catch (error) {
+        console.error('Payouts data error:', error);
+        res.status(500).json({ message: "Failed to fetch payouts data" });
+      }
+    }
+  );
 
   // Get earnings data
   app.get("/api/admin/earnings", adminAuth, async (req, res) => {
