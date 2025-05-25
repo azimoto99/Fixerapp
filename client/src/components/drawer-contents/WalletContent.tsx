@@ -41,7 +41,8 @@ interface Transaction {
 
 const WalletContent: React.FC<WalletContentProps> = ({ user }) => {
   const [showBalance, setShowBalance] = useState(true);
-  const [filterType, setFilterType] = useState<'all' | 'earnings' | 'withdrawals'>('all');
+  const [filterType, setFilterType] = useState<'all' | 'earnings' | 'withdrawals' | 'payments'>('all');
+  const [activeSection, setActiveSection] = useState<'overview' | 'earnings' | 'payments'>('overview');
   const { toast } = useToast();
 
   // Fetch earnings data
