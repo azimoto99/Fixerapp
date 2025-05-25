@@ -1408,6 +1408,92 @@ export function registerAdminRoutes(app: Express) {
   // ULTRABUG PROMPT 7: ADVANCED ANALYTICS & REPORTING
   // ================================
 
+  // Comprehensive Analytics Dashboard - The Missing Endpoint!
+  app.get("/api/admin/analytics/comprehensive", 
+    adminAuth, 
+    auditAdminAction('view_comprehensive_analytics', 'analytics'),
+    async (req, res) => {
+      try {
+        const [users, jobs, payments, earnings] = await Promise.all([
+          storage.getAllUsers(),
+          storage.getAllJobs(),
+          storage.getAllPayments(),
+          storage.getAllEarnings()
+        ]);
+
+        // Calculate user growth metrics
+        const now = new Date();
+        const lastMonth = new Date(now.getFullYear(), now.getMonth() - 1, now.getDate());
+        const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+        
+        const newUsersToday = users.filter(user => {
+          const createdAt = new Date(user.createdAt || user.id);
+          return createdAt >= today;
+        }).length;
+
+        const usersLastMonth = users.filter(user => {
+          const createdAt = new Date(user.createdAt || user.id);
+          return createdAt >= lastMonth;
+        }).length;
+
+        const growthRate = usersLastMonth > 0 ? ((users.length - usersLastMonth) / usersLastMonth) * 100 : 0;
+
+        // Calculate job metrics
+        const activeJobs = jobs.filter(job => job.status === 'open' || job.status === 'in_progress').length;
+        const completedJobs = jobs.filter(job => job.status === 'completed').length;
+        const completionRate = jobs.length > 0 ? (completedJobs / jobs.length) * 100 : 0;
+
+        // Calculate financial metrics
+        const monthlyRevenue = payments
+          .filter(payment => {
+            const createdAt = new Date(payment.createdAt || payment.id);
+            return createdAt >= lastMonth && payment.status === 'completed';
+          })
+          .reduce((sum, payment) => sum + (payment.amount || 0), 0);
+
+        const totalRevenue = payments
+          .filter(payment => payment.status === 'completed')
+          .reduce((sum, payment) => sum + (payment.amount || 0), 0);
+
+        const previousMonthRevenue = payments
+          .filter(payment => {
+            const createdAt = new Date(payment.createdAt || payment.id);
+            const previousMonth = new Date(lastMonth.getFullYear(), lastMonth.getMonth() - 1, lastMonth.getDate());
+            return createdAt >= previousMonth && createdAt < lastMonth && payment.status === 'completed';
+          })
+          .reduce((sum, payment) => sum + (payment.amount || 0), 0);
+
+        const revenueGrowth = previousMonthRevenue > 0 ? 
+          ((monthlyRevenue - previousMonthRevenue) / previousMonthRevenue) * 100 : 0;
+
+        const comprehensiveAnalytics = {
+          userGrowth: {
+            totalUsers: users.length,
+            newUsersToday,
+            growthRate: Number(growthRate.toFixed(2))
+          },
+          jobMetrics: {
+            activeJobs,
+            totalJobs: jobs.length,
+            completedJobs,
+            completionRate: Number(completionRate.toFixed(1))
+          },
+          financialMetrics: {
+            monthlyRevenue: Number(monthlyRevenue.toFixed(2)),
+            totalRevenue: Number(totalRevenue.toFixed(2)),
+            revenueGrowth: Number(revenueGrowth.toFixed(2))
+          },
+          timestamp: new Date()
+        };
+
+        res.json(comprehensiveAnalytics);
+      } catch (error) {
+        console.error('Comprehensive analytics error:', error);
+        res.status(500).json({ message: "Failed to fetch comprehensive analytics" });
+      }
+    }
+  );
+
   // Comprehensive Analytics Dashboard
   app.get("/api/admin/analytics/comprehensive", 
     adminAuth, 
