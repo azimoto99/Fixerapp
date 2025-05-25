@@ -1496,7 +1496,7 @@ export function registerAdminRoutes(app: Express) {
 
   // Enhanced Users Analytics Endpoint
   app.get("/api/admin/analytics/users", 
-    adminAuth, 
+    enhancedAdminAuth, 
     auditAdminAction('view_user_analytics', 'users'),
     async (req, res) => {
       try {
@@ -1540,7 +1540,7 @@ export function registerAdminRoutes(app: Express) {
 
   // Enhanced Jobs Analytics Endpoint
   app.get("/api/admin/analytics/jobs", 
-    adminAuth, 
+    enhancedAdminAuth, 
     auditAdminAction('view_job_analytics', 'jobs'),
     async (req, res) => {
       try {
@@ -1585,7 +1585,7 @@ export function registerAdminRoutes(app: Express) {
 
   // Enhanced Support Analytics Endpoint
   app.get("/api/admin/analytics/support", 
-    adminAuth, 
+    enhancedAdminAuth, 
     auditAdminAction('view_support_analytics', 'support'),
     async (req, res) => {
       try {
@@ -1636,7 +1636,7 @@ export function registerAdminRoutes(app: Express) {
 
   // Enhanced Financial Analytics Endpoint
   app.get("/api/admin/analytics/financials", 
-    adminAuth, 
+    enhancedAdminAuth, 
     auditAdminAction('view_financial_analytics', 'financials'),
     async (req, res) => {
       try {
