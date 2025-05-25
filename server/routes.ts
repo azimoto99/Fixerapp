@@ -2500,7 +2500,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // General earnings endpoint for current user
   apiRouter.get("/earnings", isAuthenticated, async (req: Request, res: Response) => {
     try {
-      const earnings = await storage.getEarningsByUserId(req.user.id);
+      // Handle both standard and backup authentication
+      let userId = req.user?.id;
+      if (!userId && (req as any).usingBackupAuth) {
+        userId = (req as any).backupUserId;
+      }
+      
+      if (!userId) {
+        return res.status(401).json({ message: 'User ID not found in session' });
+      }
+      
+      const earnings = await storage.getEarningsByUserId(userId);
       res.json(earnings);
     } catch (error) {
       console.error('Error fetching earnings:', error);
@@ -2511,7 +2521,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // General payments endpoint for current user  
   apiRouter.get("/payments", isAuthenticated, async (req: Request, res: Response) => {
     try {
-      const payments = await storage.getPaymentsByUserId(req.user.id);
+      // Handle both standard and backup authentication
+      let userId = req.user?.id;
+      if (!userId && (req as any).usingBackupAuth) {
+        userId = (req as any).backupUserId;
+      }
+      
+      if (!userId) {
+        return res.status(401).json({ message: 'User ID not found in session' });
+      }
+      
+      const payments = await storage.getPaymentsByUserId(userId);
       res.json(payments);
     } catch (error) {
       console.error('Error fetching payments:', error);
