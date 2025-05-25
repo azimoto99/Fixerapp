@@ -158,6 +158,13 @@ export interface IStorage {
   getMessagesBetweenUsers(userId1: number, userId2: number): Promise<Message[]>;
   markMessagesAsRead(recipientId: number, senderId: number): Promise<boolean>;
   markMessageAsRead(messageId: number, userId: number): Promise<Message | undefined>;
+
+  // Admin operations
+  getAllJobs(): Promise<Job[]>;
+  getAllPayments(): Promise<Payment[]>;
+  getAllEarnings(): Promise<Earning[]>;
+  getUserById(id: number): Promise<User | undefined>;
+  deleteUser(id: number): Promise<boolean>;
   createMessage(message: InsertMessage): Promise<Message>;
   getMessageById(messageId: number): Promise<Message | undefined>;
   getPendingMessages(userId: number): Promise<Message[]>;

@@ -7,6 +7,7 @@ import { isAdmin } from "./auth-helpers";
 import { createJobWithPaymentFirst, updateJobWithPaymentCheck } from './payment-first-job-posting';
 import { applySecurity, sanitizeInput, validateSqlInput, validatePasswordStrength, validateEmail, validatePhoneNumber, logSecurityEvent, securityConfig } from './security-config';
 import { validators, sanitizeRequest, enhancedAdminAuth } from './secure-endpoints';
+import { registerAdminRoutes } from './admin-routes';
 import { body, param, query, validationResult } from 'express-validator';
 import xss from 'xss';
 import { z } from "zod";
@@ -6113,6 +6114,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.status(500).json({ message: 'Failed to generate report' });
     }
   });
+
+  // Register admin routes
+  registerAdminRoutes(app);
 
   return httpServer;
 }

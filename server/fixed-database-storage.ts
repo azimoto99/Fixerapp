@@ -701,6 +701,78 @@ export class FixedDatabaseStorage implements IStorage {
       console.warn(`notifyNearbyWorkers not implemented in storage, returning 0`);
       return 0;
     } catch (error) {
+      console.error(`Error in notifyNearbyWorkers(${jobId}):`, error);
+      return 0;
+    }
+  }
+
+  // Admin operations
+  async getAllJobs() {
+    try {
+      return await this.storage.getJobs();
+    } catch (error) {
+      console.error("Error in getAllJobs:", error);
+      return [];
+    }
+  }
+
+  async getAllPayments() {
+    try {
+      // Get all payments using database query
+      const result = await this.db.select().from(require('@shared/schema').payments);
+      return result;
+    } catch (error) {
+      console.error("Error in getAllPayments:", error);
+      return [];
+    }
+  }
+
+  async getAllEarnings() {
+    try {
+      // Get all earnings using database query
+      const result = await this.db.select().from(require('@shared/schema').earnings);
+      return result;
+    } catch (error) {
+      console.error("Error in getAllEarnings:", error);
+      return [];
+    }
+  }
+
+  async getUserById(id: number) {
+    try {
+      return await this.storage.getUser(id);
+    } catch (error) {
+      console.error(`Error in getUserById(${id}):`, error);
+      return undefined;
+    }
+  }
+
+  async deleteUser(id: number) {
+    try {
+      // Delete user from database
+      const { users } = require('@shared/schema');
+      const result = await this.db.delete(users).where(require('drizzle-orm').eq(users.id, id));
+      return result.rowCount > 0;
+    } catch (error) {
+      console.error(`Error in deleteUser(${id}):`, error);
+      return false;
+    }
+  }
+
+  async getJobById(id: number) {
+    try {
+      return await this.storage.getJob(id);
+    } catch (error) {
+      console.error(`Error in getJobById(${id}):`, error);
+      return undefined;
+    }
+  }
+
+  async notifyNearbyWorkers(jobId: number, radiusMiles: number): Promise<number> {
+    try {
+      console.warn(`notifyNearbyWorkers not implemented in storage, returning 0`);
+      return 0;
+    } catch (error) {
       console.error(`Error in notifyNearbyWorkers(${jobId}, ${radiusMiles}):`, error);
       return 0;
     }
