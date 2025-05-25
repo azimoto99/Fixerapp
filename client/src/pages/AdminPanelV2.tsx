@@ -295,6 +295,21 @@ export default function AdminPanelV2() {
     },
   });
 
+  // Add ticket response mutation
+  const addTicketResponseMutation = useMutation({
+    mutationFn: async ({ ticketId, message }: { ticketId: number; message: string }) => 
+      apiRequest("POST", `/api/admin/support-tickets/${ticketId}/responses`, { message }),
+    onSuccess: () => {
+      toast({ title: "Response sent successfully" });
+      setTicketResponse("");
+      setIsTicketDialogOpen(false);
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/analytics/support"] });
+    },
+    onError: () => {
+      toast({ title: "Failed to send response", variant: "destructive" });
+    },
+  });
+
   // Delete ticket mutation
   const deleteTicketMutation = useMutation({
     mutationFn: async (ticketId: number) => {
@@ -848,6 +863,113 @@ export default function AdminPanelV2() {
                     <p className="text-sm text-gray-900">
                       {new Date(selectedJob.datePosted).toLocaleDateString()}
                     </p>
+                  </div>
+                </div>
+              </div>
+            )}
+          </DialogContent>
+        </Dialog>
+
+        {/* Support Ticket Dialog */}
+        <Dialog open={isTicketDialogOpen} onOpenChange={setIsTicketDialogOpen}>
+          <DialogContent className="max-w-2xl" style={{ zIndex: 1070 }}>
+            <DialogHeader>
+              <DialogTitle>Support Ticket Details</DialogTitle>
+            </DialogHeader>
+            {selectedTicket && (
+              <div className="space-y-6">
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="text-sm font-medium text-gray-700">User</label>
+                    <p className="text-sm text-gray-900">{selectedTicket.userName || `User ${selectedTicket.userId}`}</p>
+                  </div>
+                  <div>
+                    <label className="text-sm font-medium text-gray-700">Category</label>
+                    <p className="text-sm text-gray-900">{selectedTicket.category}</p>
+                  </div>
+                  <div>
+                    <label className="text-sm font-medium text-gray-700">Priority</label>
+                    <Badge className={`${getPriorityColor(selectedTicket.priority)} text-white`}>
+                      {selectedTicket.priority}
+                    </Badge>
+                  </div>
+                  <div>
+                    <label className="text-sm font-medium text-gray-700">Status</label>
+                    <Badge className={`${getStatusColor(selectedTicket.status)} text-white`}>
+                      {selectedTicket.status}
+                    </Badge>
+                  </div>
+                  <div className="col-span-2">
+                    <label className="text-sm font-medium text-gray-700">Issue Description</label>
+                    <p className="text-sm text-gray-900 mt-1 p-3 bg-gray-50 rounded-md">
+                      {selectedTicket.description}
+                    </p>
+                  </div>
+                  <div>
+                    <label className="text-sm font-medium text-gray-700">Created</label>
+                    <p className="text-sm text-gray-900">
+                      {new Date(selectedTicket.createdAt).toLocaleString()}
+                    </p>
+                  </div>
+                </div>
+
+                <div className="space-y-4">
+                  <div>
+                    <label className="text-sm font-medium text-gray-700">Admin Response</label>
+                    <Textarea
+                      value={ticketResponse}
+                      onChange={(e) => setTicketResponse(e.target.value)}
+                      placeholder="Type your response to the user..."
+                      className="mt-2"
+                      rows={4}
+                    />
+                  </div>
+                  
+                  <div className="flex gap-3 justify-end">
+                    <Button
+                      variant="outline"
+                      onClick={() => setIsTicketDialogOpen(false)}
+                    >
+                      Cancel
+                    </Button>
+                    <Button
+                      onClick={() => {
+                        if (ticketResponse.trim()) {
+                          addTicketResponseMutation.mutate({
+                            ticketId: selectedTicket.id,
+                            message: ticketResponse.trim()
+                          });
+                        }
+                      }}
+                      disabled={!ticketResponse.trim() || addTicketResponseMutation.isPending}
+                    >
+                      {addTicketResponseMutation.isPending ? (
+                        <>
+                          <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                          Sending...
+                        </>
+                      ) : (
+                        'Send Response'
+                      )}
+                    </Button>
+                    <Button
+                      variant="secondary"
+                      onClick={() => updateTicketStatusMutation.mutate({ 
+                        ticketId: selectedTicket.id, 
+                        status: "resolved",
+                        resolution: ticketResponse.trim() || "Issue resolved by admin"
+                      })}
+                      disabled={updateTicketStatusMutation.isPending}
+                    >
+                      {updateTicketStatusMutation.isPending ? (
+                        <>
+                          <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                          Resolving...
+                        </>
+                      ) : (
+                        'Mark as Resolved'
+                      )}
+                    </Button>
                   </div>
                 </div>
               </div>
