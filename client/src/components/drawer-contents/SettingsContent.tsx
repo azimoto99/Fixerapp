@@ -105,10 +105,14 @@ const SettingsContent: React.FC<SettingsContentProps> = ({ user }) => {
         onValueChange={setActiveTab}
         className="space-y-4"
       >
-        <TabsList className="grid grid-cols-5 w-full">
+        <TabsList className="grid grid-cols-6 w-full">
           <TabsTrigger value="profile" className="text-xs">
             <UserIcon className="h-4 w-4 mr-1" />
             Profile
+          </TabsTrigger>
+          <TabsTrigger value="account" className="text-xs">
+            <Shield className="h-4 w-4 mr-1" />
+            Account
           </TabsTrigger>
           <TabsTrigger value="notifications" className="text-xs">
             <Bell className="h-4 w-4 mr-1" />
