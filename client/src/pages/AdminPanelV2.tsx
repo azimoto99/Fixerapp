@@ -178,7 +178,7 @@ export default function AdminPanelV2() {
         sortOrder
       });
       
-      const response = await fetch(`/api/admin/users?${params}`);
+      const response = await fetch(`/api/admin/analytics/users?${params}`);
       if (!response.ok) throw new Error('Failed to fetch users');
       return response.json();
     },
@@ -211,7 +211,7 @@ export default function AdminPanelV2() {
         sortOrder
       });
       
-      const response = await fetch(`/api/admin/jobs-detailed?${params}`);
+      const response = await fetch(`/api/admin/analytics/jobs?${params}`);
       if (!response.ok) throw new Error('Failed to fetch jobs');
       return response.json();
     },
@@ -226,12 +226,12 @@ export default function AdminPanelV2() {
   const totalJobs = jobsResponse?.total || 0;
 
   const { data: supportTickets = [], isLoading: isSupportLoading, refetch: refetchSupport } = useQuery({
-    queryKey: ["/api/admin/support-tickets"],
+    queryKey: ["/api/admin/analytics/support"],
     enabled: selectedTab === "support",
   });
 
   const { data: transactions = [], isLoading: isTransactionsLoading } = useQuery({
-    queryKey: ["/api/admin/transactions"],
+    queryKey: ["/api/admin/analytics/financials"],
     enabled: selectedTab === "financials",
   });
 
