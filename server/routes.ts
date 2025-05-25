@@ -2497,6 +2497,28 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // General earnings endpoint for current user
+  apiRouter.get("/earnings", isAuthenticated, async (req: Request, res: Response) => {
+    try {
+      const earnings = await storage.getEarningsByUserId(req.user.id);
+      res.json(earnings);
+    } catch (error) {
+      console.error('Error fetching earnings:', error);
+      res.status(500).json({ message: 'Failed to fetch earnings' });
+    }
+  });
+
+  // General payments endpoint for current user  
+  apiRouter.get("/payments", isAuthenticated, async (req: Request, res: Response) => {
+    try {
+      const payments = await storage.getPaymentsByUserId(req.user.id);
+      res.json(payments);
+    } catch (error) {
+      console.error('Error fetching payments:', error);
+      res.status(500).json({ message: 'Failed to fetch payments' });
+    }
+  });
+
   // Payment endpoints
   apiRouter.get("/payments/user/:userId", isAuthenticated, async (req: Request, res: Response) => {
     try {
