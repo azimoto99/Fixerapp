@@ -252,8 +252,11 @@ export default function AdminPanelV2() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 p-6">
-      <div className="max-w-7xl mx-auto">
+    <div 
+      className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 p-6"
+      style={{ zIndex: 1000, position: 'relative' }}
+    >
+      <div className="max-w-7xl mx-auto" style={{ zIndex: 1010, position: 'relative' }}>
         {/* Header */}
         <div className="mb-8">
           <h1 className="text-4xl font-bold text-gray-900 mb-2 flex items-center gap-3">
@@ -264,7 +267,7 @@ export default function AdminPanelV2() {
         </div>
 
         <Tabs value={selectedTab} onValueChange={setSelectedTab} className="space-y-6">
-          <TabsList className="grid w-full grid-cols-5 bg-white shadow-sm border">
+          <TabsList className="grid w-full grid-cols-5 bg-white shadow-sm border" style={{ zIndex: 1120, position: 'relative' }}>
             <TabsTrigger value="overview" className="flex items-center gap-2">
               <BarChart3 className="h-4 w-4" />
               Overview
@@ -621,7 +624,7 @@ export default function AdminPanelV2() {
 
         {/* User Detail Dialog */}
         <Dialog open={isUserDialogOpen} onOpenChange={setIsUserDialogOpen}>
-          <DialogContent className="max-w-2xl">
+          <DialogContent className="max-w-2xl" style={{ zIndex: 1070 }}>
             <DialogHeader>
               <DialogTitle>User Details</DialogTitle>
             </DialogHeader>
