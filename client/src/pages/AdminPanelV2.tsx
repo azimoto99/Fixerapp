@@ -580,7 +580,9 @@ export default function AdminPanelV2() {
                         <Button
                           size="sm"
                           variant="outline"
-                          onClick={() => {
+                          onClick={(e) => {
+                            e.preventDefault();
+                            e.stopPropagation();
                             setSelectedUser(user);
                             setIsUserDialogOpen(true);
                           }}

@@ -1,0 +1,161 @@
+# Fixer Platform Cleanup & Optimization Prompt
+
+**Prompt for Replit Agent:**
+
+```
+I need you to clean up and optimize the folder and file structure of my Fixer gig economy platform while retaining 100% of current functionality. The codebase has accumulated technical debt with duplicate files, unused components, and poor organization.
+
+## Current Platform Overview
+Fixer is a full-stack gig economy platform with:
+- React/TypeScript frontend with mobile PWA support
+- Node.js/Express backend with PostgreSQL/Drizzle ORM
+- Real-time features (WebSocket messaging, live notifications)
+- Payment processing (Stripe integration with escrow)
+- Location-based job matching (Mapbox integration)
+- Admin panel for platform management
+- Mobile app support (Capacitor + Expo)
+
+## Current Structure Issues
+Based on documentation, the platform has:
+- 4000+ line routes.ts file that needs breaking up
+- Multiple implementations of similar features
+- Duplicate components and utilities
+- Unused configuration files
+- Mixed mobile build configurations
+- Scattered API endpoints
+
+## Cleanup Requirements
+
+### 1. Backend Restructuring
+**Current problematic files:**
+- `server/routes.ts` (4000+ lines - break into logical modules)
+- Mixed API files in different locations
+- Duplicate authentication logic
+
+**Required cleanup:**
+- Break routes.ts into logical modules:
+  - `server/routes/auth.ts` (authentication routes)
+  - `server/routes/users.ts` (user management)
+  - `server/routes/jobs.ts` (job posting/management)
+  - `server/routes/payments.ts` (payment processing)
+  - `server/routes/admin.ts` (admin panel routes)
+  - `server/routes/messaging.ts` (real-time messaging)
+- Consolidate all API files into `server/api/` directory
+- Remove duplicate authentication implementations
+- Create proper middleware organization in `server/middleware/`
+
+### 2. Frontend Component Cleanup
+**Required organization:**
+- Consolidate duplicate UI components
+- Remove unused React components
+- Organize components by feature:
+  - `client/src/components/auth/` (authentication)
+  - `client/src/components/jobs/` (job-related components)
+  - `client/src/components/payments/` (payment components)
+  - `client/src/components/admin/` (admin panel components)
+  - `client/src/components/messaging/` (chat/messaging)
+  - `client/src/components/shared/` (reusable UI components)
+- Clean up duplicate utility functions in `client/src/lib/`
+
+### 3. Configuration File Cleanup
+**Current issues:**
+- Multiple mobile build configurations
+- Duplicate TypeScript configs
+- Unused build scripts
+
+**Required cleanup:**
+- Keep only necessary config files:
+  - `package.json` (main dependencies)
+  - `tsconfig.json` (single TypeScript config)
+  - `tailwind.config.ts` (CSS framework)
+  - `drizzle.config.ts` (database ORM)
+  - `expo-config.js` (Expo mobile configuration)
+- Remove Capacitor-related files: `capacitor.config.ts` and related dependencies
+- Remove duplicate/unused build scripts (keep Expo-related ones)
+- Consolidate environment configuration
+
+### 4. Database & Schema Organization
+**Required cleanup:**
+- Ensure `shared/schema.ts` is the single source of truth for database schema
+- Remove any duplicate type definitions
+- Consolidate database operations in `server/storage.ts`
+- Remove unused migration files
+
+### 5. Mobile Build Cleanup
+**Current confusion:**
+- Both Capacitor and Expo configurations present
+- Multiple build scripts for Android
+
+**Decision needed:**
+- **Keep Expo configuration** (user confirmed Expo usage)
+- Remove Capacitor-specific files and configurations
+- Keep Expo build scripts and configuration: `expo-config.js`
+- Remove Capacitor build script: `build-android.sh` (unless needed for backup)
+- Remove development-only mobile scripts not related to Expo
+
+## Cleanup Tasks
+
+### Phase 1: Backend Cleanup
+1. Break up the massive `server/routes.ts` into logical modules
+2. Consolidate all API files into organized `server/api/` structure
+3. Remove duplicate authentication implementations
+4. Create proper middleware organization
+5. Clean up unused server files
+
+### Phase 2: Frontend Cleanup
+1. Remove duplicate React components
+2. Organize components by feature area
+3. Consolidate utility functions
+4. Remove unused pages/components
+5. Clean up CSS/styling files
+
+### Phase 3: Configuration Cleanup
+1. Remove duplicate config files
+2. Keep Expo build strategy and remove Capacitor configurations
+3. Clean up package.json dependencies (remove Capacitor deps)
+4. Keep Expo build scripts, remove Capacitor build scripts
+5. Consolidate environment variables
+
+### Phase 4: Testing & Validation
+1. Ensure all current functionality still works after cleanup
+2. Test all major features:
+   - User authentication and profiles
+   - Job posting and application flow
+   - Payment processing (Stripe integration)
+   - Real-time messaging
+   - Location-based job matching
+   - Admin panel functionality
+   - Mobile PWA features
+3. Verify build processes still work
+4. Test deployment process
+
+## Critical Requirements
+- **RETAIN 100% FUNCTIONALITY** - No features should be lost
+- Maintain all current integrations (Stripe, Mapbox, WebSockets)
+- Keep all database functionality intact
+- Preserve Expo mobile app capabilities
+- Maintain admin panel features
+- Keep all authentication and security features
+
+## Expected Outcome
+After cleanup, the platform should have:
+- Clean, organized folder structure
+- No duplicate code or components
+- Single source of truth for configurations
+- Maintainable codebase with logical organization
+- Same functionality but better performance and maintainability
+- Clear separation of concerns
+- Easier debugging and future development
+
+## Files to Definitely Keep (Core Functionality)
+- `client/src/App.tsx` (main React app)
+- `client/src/pages/Home.tsx` (primary UI)
+- `server/auth.ts` (authentication logic)
+- `server/storage.ts` (database operations)
+- `shared/schema.ts` (database schema)
+- `server/api/stripe-*.ts` (payment processing)
+- All security and SQL injection protection files
+- Core database migration files
+
+Please perform this cleanup systematically, testing functionality at each phase to ensure nothing breaks. Focus on creating a production-ready, maintainable codebase structure.
+```
