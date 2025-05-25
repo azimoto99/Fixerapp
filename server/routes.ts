@@ -4542,6 +4542,52 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Get user's support tickets
+  app.get('/api/support/tickets', async (req: Request, res: Response) => {
+    if (!req.isAuthenticated()) {
+      return res.sendStatus(401);
+    }
+
+    try {
+      const userTickets = await storage.getAllSupportTickets();
+      const filteredTickets = userTickets.filter(ticket => ticket.userId === req.user!.id);
+      res.json(filteredTickets);
+    } catch (error) {
+      console.error('Error fetching user support tickets:', error);
+      res.status(500).json({ message: 'Failed to fetch support tickets' });
+    }
+  });
+
+  // Create support ticket
+  app.post('/api/support/tickets', async (req: Request, res: Response) => {
+    if (!req.isAuthenticated()) {
+      return res.sendStatus(401);
+    }
+
+    try {
+      const { category, subject, description, priority, jobId } = req.body;
+      
+      const ticketData = {
+        userId: req.user!.id,
+        userName: req.user!.fullName || req.user!.username,
+        userEmail: req.user!.email || '',
+        title: subject,
+        description,
+        category,
+        priority: priority || 'medium',
+        status: 'open',
+        jobId: jobId ? parseInt(jobId) : null,
+        createdAt: new Date().toISOString()
+      };
+      
+      const ticket = await storage.createSupportTicket(ticketData);
+      res.json(ticket);
+    } catch (error) {
+      console.error('Error creating support ticket:', error);
+      res.status(500).json({ message: 'Failed to create support ticket' });
+    }
+  });
+
   // Get user's jobs for dispute forms
   app.get('/api/jobs/user', async (req: Request, res: Response) => {
     if (!req.isAuthenticated()) {
