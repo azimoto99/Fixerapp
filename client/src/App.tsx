@@ -138,8 +138,7 @@ function AuthenticatedContent() {
       {user && <ContextualTips />}
       {/* ExpoConnectGuide button removed from UI - use ./expo-connect.sh in console instead */}
       {/* Messaging drawer is now handled in Home.tsx */}
-      {/* JobCardFix ensures job details card appears on top of other UI elements */}
-      {user && <JobCard />}
+      {/* Job details are now handled within the Home component when jobs are selected */}
       <Toaster />
     </>
   );
