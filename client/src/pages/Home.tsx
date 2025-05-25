@@ -318,7 +318,26 @@ export default function Home() {
   const queryClient = useQueryClient();
   
   // Get jobs posted by this user (if any) - use the proper useJobs hook with poster filter
-  const { jobs: postedJobs } = useJobs({ poster: true });
+  // Enhanced with real-time updates for posted jobs drawer
+  const { jobs: postedJobs, isLoading: postedJobsLoading } = useJobs({ poster: true });
+  
+  // Add real-time polling for posted jobs when drawer is open
+  const { data: realtimePostedJobs } = useQuery({
+    queryKey: ['/api/jobs', 'poster-realtime', user?.id],
+    queryFn: async () => {
+      if (!user) return [];
+      const response = await fetch(`/api/jobs?posterId=${user.id}`);
+      if (!response.ok) return [];
+      return response.json();
+    },
+    enabled: showPostedJobs && !!user, // Only fetch when drawer is open and user exists
+    refetchInterval: showPostedJobs ? 3000 : false, // Poll every 3 seconds when drawer is open
+    refetchOnWindowFocus: true,
+    refetchOnMount: true,
+  });
+  
+  // Use realtime data when available, fallback to regular hook data
+  const finalPostedJobs = showPostedJobs && realtimePostedJobs ? realtimePostedJobs : postedJobs;
   
   const togglePostedJobs = () => {
     setShowPostedJobs(!showPostedJobs);
@@ -335,7 +354,7 @@ export default function Home() {
         onRoleChange={setSelectedRole}
         onTogglePostedJobs={togglePostedJobs}
         onToggleMessaging={toggleMessaging}
-        postedJobsCount={postedJobs?.length || 0}
+        postedJobsCount={finalPostedJobs?.length || 0}
       />
 
       <main className="flex-1 container max-w-7xl mx-auto px-2 sm:px-4">
@@ -439,13 +458,13 @@ export default function Home() {
           </div>
           
           <div className="overflow-y-auto h-full pb-32 pt-0">
-            {!postedJobs ? (
+            {!finalPostedJobs ? (
               <div className="flex justify-center items-center h-32">
                 <div className="h-6 w-6 text-primary animate-spin">⟳</div>
               </div>
-            ) : postedJobs.length > 0 ? (
+            ) : finalPostedJobs.length > 0 ? (
               <div className="p-4 space-y-4">
-                {postedJobs.map(job => (
+                {finalPostedJobs.map(job => (
                   <div key={job.id} className="bg-card/80 backdrop-blur-sm rounded-xl border border-border/40 p-4 hover:shadow-lg hover:bg-card/95 transition-all duration-200">
                     {/* Header with title and status */}
                     <div className="flex items-start justify-between mb-3">
