@@ -9,3 +9,4 @@ vite.config.ts.*
 /ios
 android/
 ios/
+.env
