@@ -9,23 +9,27 @@ const { execSync } = require('child_process');
 
 console.log('==== Fixer App Deployment Verification ====\n');
 
-// Check environment variables
-console.log('Checking required environment variables...');
-const requiredVars = [
-  'DATABASE_URL',
+// Verify deployment configuration
+const requiredEnvVars = [
+  'NODE_ENV',
+  'PORT',
   'STRIPE_SECRET_KEY',
   'VITE_STRIPE_PUBLIC_KEY',
-  'NODE_ENV'
+  'STRIPE_WEBHOOK_SECRET',
+  'SESSION_SECRET'
 ];
 
-const missingVars = requiredVars.filter(name => !process.env[name]);
+// Check if all required environment variables are set
+const missingVars = requiredEnvVars.filter(varName => !process.env[varName]);
+
 if (missingVars.length > 0) {
-  console.error('❌ Missing required environment variables:');
-  missingVars.forEach(name => console.error(`  - ${name}`));
+  console.error('Error: Missing required environment variables:');
+  missingVars.forEach(varName => console.error(`- ${varName}`));
   process.exit(1);
-} else {
-  console.log('✅ All required environment variables are set\n');
 }
+
+console.log('All required environment variables are set.');
+console.log('Deployment configuration verified successfully.');
 
 // Check database connection
 console.log('Checking database connection...');
