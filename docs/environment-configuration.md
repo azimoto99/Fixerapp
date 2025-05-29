@@ -1,217 +1,75 @@
-# The Job - Environment Configuration Guide
+# Environment Configuration Guide
 
-This document explains how to configure the environment for The Job application, including all required environment variables, secrets, and third-party service integrations.
+## Overview
+This guide explains how to configure environment variables for the Fixer App.
 
 ## Required Environment Variables
 
-### Core Application Settings
-
-| Variable | Description | Example Value |
-|----------|-------------|---------------|
-| `NODE_ENV` | Application environment | `development`, `production`, `test` |
-| `PORT` | Port for the application to run on | `5000` |
-| `SESSION_SECRET` | Secret for session cookie encryption | Random string (keep secure) |
-
-### Supabase Configuration
-
-These variables are used for Supabase connection:
-
-| Variable | Description | Where to Get |
-|----------|-------------|--------------|
-| `SUPABASE_URL` | Your Supabase project URL | Supabase Dashboard > Settings > API |
-| `SUPABASE_ANON_KEY` | Supabase anonymous key | Supabase Dashboard > Settings > API |
-| `SUPABASE_DATABASE_URL` | Direct database connection string | Supabase Dashboard > Settings > Database |
-
-To set up Supabase:
-
-1. Create a [Supabase account](https://supabase.com) if you don't have one
-2. Create a new project
-3. Go to Project Settings > API to get your project URL and anon key
-4. Go to Project Settings > Database to get your database connection string
-5. Add these values to your environment variables
+### Server Configuration
+- `NODE_ENV`: Set to 'development' or 'production'
+- `PORT`: The port number for the server (default: 5000)
 
 ### Database Configuration
+- `DATABASE_URL`: Your database connection string
 
-These variables are used for PostgreSQL database connection:
+### Stripe Configuration
+- `STRIPE_SECRET_KEY`: Your Stripe secret key
+- `VITE_STRIPE_PUBLIC_KEY`: Your Stripe publishable key
+- `STRIPE_WEBHOOK_SECRET`: Your Stripe webhook signing secret
 
-| Variable | Description | Example Value |
-|----------|-------------|---------------|
-| `DATABASE_URL` | Full connection string for PostgreSQL | `postgresql://user:password@localhost:5432/dbname` |
-| `PGHOST` | PostgreSQL host | `localhost` |
-| `PGPORT` | PostgreSQL port | `5432` |
-| `PGUSER` | PostgreSQL username | `postgres` |
-| `PGPASSWORD` | PostgreSQL password | (keep secure) |
-| `PGDATABASE` | PostgreSQL database name | `the_job_db` |
+### Session Configuration
+- `SESSION_SECRET`: A secure random string for session encryption
 
-### Authentication
+### Google OAuth Configuration
+- `GOOGLE_OAUTH_CLIENT_ID`: Your Google OAuth client ID
+- `GOOGLE_OAUTH_CLIENT_SECRET`: Your Google OAuth client secret
 
-#### Google OAuth
+### OpenAI Configuration
+- `OPENAI_API_KEY`: Your OpenAI API key
 
-| Variable | Description | Where to Get |
-|----------|-------------|--------------|
-| `GOOGLE_CLIENT_ID` | Google OAuth Client ID | Google Cloud Console |
-| `GOOGLE_CLIENT_SECRET` | Google OAuth Client Secret | Google Cloud Console |
+## Security Best Practices
 
-To set up Google OAuth:
+1. **Never commit sensitive information to version control**
+   - Keep all secrets in `.env` files
+   - Use `.env.example` as a template
+   - Add `.env` to `.gitignore`
 
-1. Go to the [Google Cloud Console](https://console.cloud.google.com/)
-2. Create a new project or select an existing one
-3. Navigate to "APIs & Services" > "Credentials"
-4. Click "Create Credentials" > "OAuth client ID"
-5. Select "Web application" as the application type
-6. Add authorized JavaScript origins (your app's URL)
-7. Add authorized redirect URIs (e.g., `https://your-domain.com/auth/google/callback`)
-8. Copy the Client ID and Client Secret into your environment variables
+2. **Key Management**
+   - Use test keys for development
+   - Use live keys for production
+   - Rotate keys regularly
+   - Use different keys for different environments
 
-### Payment Processing (Stripe)
+3. **Environment Separation**
+   - Maintain separate configurations for development and production
+   - Use different database instances
+   - Use different API keys
 
-| Variable | Description | Where to Get |
-|----------|-------------|--------------|
-| `STRIPE_SECRET_KEY` | Stripe Secret Key | Stripe Dashboard |
-| `VITE_STRIPE_PUBLIC_KEY` | Stripe Publishable Key (client-side) | Stripe Dashboard |
+4. **Access Control**
+   - Limit access to production credentials
+   - Use secure storage for secrets
+   - Implement proper authentication
 
-To set up Stripe:
+## Setting Up Development Environment
 
-1. Create a [Stripe account](https://stripe.com/) if you don't have one
-2. Navigate to the Developers > API keys section in the Stripe Dashboard
-3. Retrieve your API keys
-   - Use test keys for development (`sk_test_...` and `pk_test_...`)
-   - Use live keys for production (`sk_live_...` and `pk_live_...`)
-4. Set up webhook endpoints (for payment notifications):
-   - Create a webhook endpoint in the Stripe Dashboard pointing to `https://your-domain.com/webhook/stripe`
-   - Configure events to listen for (e.g., `payment_intent.succeeded`, `payment_intent.payment_failed`)
+1. Copy `.env.example` to `.env`
+2. Fill in the required values
+3. Use test API keys for development
+4. Never commit the `.env` file
 
-### Firebase (Optional)
+## Setting Up Production Environment
 
-If using Firebase for additional features:
-
-| Variable | Description | Where to Get |
-|----------|-------------|--------------|
-| `VITE_FIREBASE_API_KEY` | Firebase API Key | Firebase Console |
-| `VITE_FIREBASE_PROJECT_ID` | Firebase Project ID | Firebase Console |
-| `VITE_FIREBASE_APP_ID` | Firebase App ID | Firebase Console |
-
-## Development Environment Setup
-
-### Using Environment Files
-
-Create a `.env` file in the root directory with your environment variables:
-
-```
-NODE_ENV=development
-PORT=5000
-SESSION_SECRET=your_session_secret_here
-
-# Database
-DATABASE_URL=postgresql://postgres:password@localhost:5432/the_job_db
-PGHOST=localhost
-PGPORT=5432
-PGUSER=postgres
-PGPASSWORD=password
-PGDATABASE=the_job_db
-
-# Authentication
-GOOGLE_CLIENT_ID=your_google_client_id
-GOOGLE_CLIENT_SECRET=your_google_client_secret
-
-# Stripe
-STRIPE_SECRET_KEY=sk_test_your_key_here
-VITE_STRIPE_PUBLIC_KEY=pk_test_your_key_here
-```
-
-### Using Replit Secrets
-
-When deploying on Replit, add the environment variables as Secrets:
-
-1. Go to the "Secrets" tab in your Repl
-2. Add each environment variable as a key-value pair
-3. The application will automatically access these values at runtime
-
-## Production Environment Setup
-
-### Security Considerations
-
-1. Always use strong, unique values for secrets
-2. Never commit secrets to version control
-3. Rotate secrets regularly
-4. Use HTTPS in production
-5. Apply the principle of least privilege for database users
-
-### Deploying to Production
-
-When deploying to production:
-
-1. Use production-grade database credentials
-2. Switch to live Stripe API keys
-3. Update OAuth redirect URIs to production URLs
-4. Set `NODE_ENV=production`
-5. Configure proper CORS settings if needed
-
-## Database Setup
-
-### Creating the Database
-
-1. Install PostgreSQL on your system
-2. Create a new database:
-   ```sql
-   CREATE DATABASE the_job_db;
-   ```
-3. Set up database credentials and update environment variables
-
-### Running Migrations
-
-The application uses Drizzle ORM for database schema management:
-
-1. Ensure your database connection variables are set
-2. Run the database push command to update the schema:
-   ```
-   npm run db:push
-   ```
+1. Create a new `.env` file on the production server
+2. Use production API keys
+3. Set `NODE_ENV=production`
+4. Configure secure session settings
+5. Set up proper logging
 
 ## Troubleshooting
 
-### Common Issues
-
-1. **Database Connection Failures**
-   - Check if PostgreSQL is running
-   - Verify credentials are correct
-   - Ensure database exists
-   - Check network connectivity and firewall settings
-
-2. **Authentication Problems**
-   - Verify OAuth credentials and redirect URIs
-   - Check session configuration
-   - Clear browser cookies if testing
-
-3. **Payment Processing Issues**
-   - Confirm Stripe API keys are correct
-   - Use Stripe dashboard logs to debug webhook issues
-   - Test with Stripe's testing card numbers
-
-### Logging
-
-Enable detailed logging in development:
-
-```
-NODE_ENV=development
-DEBUG=the-job:*
-```
-
-## Maintenance
-
-### Backup Procedures
-
-1. Regularly back up the database:
-   ```bash
-   pg_dump -U postgres the_job_db > backup_$(date +%Y%m%d).sql
-   ```
-
-2. Store backups securely and off-site
-
-### Monitoring
-
-Monitor application health with:
-- Server logs
-- Database performance metrics
-- Stripe dashboard for payment issues
-- Application error tracking
+If you encounter issues:
+1. Verify all required variables are set
+2. Check for typos in variable names
+3. Ensure proper permissions
+4. Validate API keys are active
+5. Check environment-specific settings
