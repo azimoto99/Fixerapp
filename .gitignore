@@ -45,14 +45,3 @@ Thumbs.db
 android/
 ios/
 
-# Server
-server/public
-
-# Vite
-vite.config.ts.*
-
-# Temporary files
-*.log
-*.tmp
-*.temp
-.cache
