@@ -34,11 +34,11 @@ const ContextualTips: React.FC = () => {
   const allTips: TipDefinition[] = [
     // Home page map tips
     {
-      id: 'map-introduction',
-      title: 'Find Jobs Near You',
-      content: 'The map shows available jobs in your area. Click on any marker to see job details.',
-      targetSelector: '.leaflet-container',
-      position: 'top',
+      id: 'map-view',
+      title: 'Map View',
+      content: 'Use the map to find jobs in your area.',
+      targetSelector: '.mapboxgl-canvas',
+      position: 'bottom',
       character: 'pointing',
       highlight: true,
       condition: () => location === '/' && !hasUserCompletedAction('viewed-job-details'),
@@ -46,10 +46,10 @@ const ContextualTips: React.FC = () => {
       delay: 2000
     },
     {
-      id: 'map-view-toggle',
-      title: 'Try Different Map Views',
-      content: 'Switch between standard markers and heat map to see where jobs are concentrated.',
-      targetSelector: '.leaflet-control-container .leaflet-top .leaflet-control',
+      id: 'map-controls',
+      title: 'Map Controls',
+      content: 'Use these controls to zoom and pan the map.',
+      targetSelector: '.mapboxgl-control-container',
       position: 'right',
       character: 'excited',
       highlight: true,
@@ -57,6 +57,18 @@ const ContextualTips: React.FC = () => {
       condition: () => location === '/' && hasUserCompletedAction('viewed-job-details'),
       priority: 20,
       delay: 3000
+    },
+    {
+      id: 'map-search',
+      title: 'Search Area',
+      content: 'Search for jobs in a specific area.',
+      targetSelector: '.mapboxgl-ctrl-geocoder',
+      position: 'top',
+      character: 'pointing',
+      highlight: true,
+      condition: () => location === '/' && !hasUserCompletedAction('viewed-job-details'),
+      priority: 30,
+      delay: 4000
     },
     
     // Stripe Connect tips
@@ -69,7 +81,7 @@ const ContextualTips: React.FC = () => {
       character: 'thinking',
       highlight: true,
       condition: () => location.includes('/profile') && user?.accountType === 'worker',
-      priority: 30
+      priority: 40
     },
     
     // User profile tips
@@ -81,7 +93,7 @@ const ContextualTips: React.FC = () => {
       position: 'right',
       character: 'happy',
       condition: () => location.includes('/profile') && user?.skills?.length === 0,
-      priority: 40
+      priority: 50
     },
     
     // User drawer tips
@@ -94,8 +106,8 @@ const ContextualTips: React.FC = () => {
       character: 'pointing',
       highlight: true,
       condition: () => !hasUserCompletedAction('opened-user-drawer'),
-      priority: 5,
-      delay: 4000
+      priority: 60,
+      delay: 5000
     }
   ];
   

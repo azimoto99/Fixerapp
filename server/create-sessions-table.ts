@@ -2,7 +2,12 @@
  * This script ensures the sessions table exists with the proper structure
  * Run this before starting the application
  */
-import { pool } from './db';
+
+import pkg from 'pg';
+const { Pool } = pkg;
+import { config } from 'dotenv';
+config();
+const pool = new Pool({ connectionString: process.env.SUPABASE_DATABASE_URL });
 
 async function createSessionsTable() {
   try {
@@ -18,7 +23,7 @@ async function createSessionsTable() {
     `;
     
     const result = await pool.query(checkTable);
-    const tableExists = result.rows[0].exists;
+    const tableExists = result[0].exists;
     
     if (tableExists) {
       console.log('Sessions table already exists');

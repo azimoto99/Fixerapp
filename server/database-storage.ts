@@ -16,7 +16,11 @@ import {
 } from '@shared/schema';
 import connectPg from "connect-pg-simple";
 import session from "express-session";
-import { pool } from './db';
+import pkg from 'pg';
+const { Pool } = pkg;
+import { config } from 'dotenv';
+config();
+const pool = new Pool({ connectionString: process.env.SUPABASE_DATABASE_URL });
 
 // Define a set of vibrant colors for job markers
 const JOB_MARKER_COLORS = [
@@ -46,7 +50,7 @@ export class DatabaseStorage implements IStorage {
   constructor() {
     // Initialize session store with better configuration
     this.sessionStore = new PostgresSessionStore({ 
-      pool,
+      pool: pool,
       // Always ensure the table exists
       createTableIfMissing: true,
       // Set proper pruning interval (every 24 hours)

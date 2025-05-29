@@ -12,6 +12,24 @@ This document explains how to configure the environment for The Job application,
 | `PORT` | Port for the application to run on | `5000` |
 | `SESSION_SECRET` | Secret for session cookie encryption | Random string (keep secure) |
 
+### Supabase Configuration
+
+These variables are used for Supabase connection:
+
+| Variable | Description | Where to Get |
+|----------|-------------|--------------|
+| `SUPABASE_URL` | Your Supabase project URL | Supabase Dashboard > Settings > API |
+| `SUPABASE_ANON_KEY` | Supabase anonymous key | Supabase Dashboard > Settings > API |
+| `SUPABASE_DATABASE_URL` | Direct database connection string | Supabase Dashboard > Settings > Database |
+
+To set up Supabase:
+
+1. Create a [Supabase account](https://supabase.com) if you don't have one
+2. Create a new project
+3. Go to Project Settings > API to get your project URL and anon key
+4. Go to Project Settings > Database to get your database connection string
+5. Add these values to your environment variables
+
 ### Database Configuration
 
 These variables are used for PostgreSQL database connection:

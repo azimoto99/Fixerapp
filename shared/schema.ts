@@ -1,4 +1,5 @@
 import { pgTable, text, serial, integer, boolean, doublePrecision, timestamp, varchar, jsonb, uniqueIndex, date } from "drizzle-orm/pg-core";
+import { sql } from "drizzle-orm";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
@@ -13,7 +14,7 @@ export const users = pgTable("users", {
   bio: text("bio"),
   avatarUrl: text("avatar_url"),
   accountType: text("account_type").notNull().default("worker"), // "worker", "poster", or "pending"
-  skills: text("skills").array(), // Array of skill names for workers
+  skills: text("skills").array().notNull().default(sql`'{}'::text[]`), // Array of skill names for workers
   rating: doublePrecision("rating"), // Average rating from completed jobs
   isActive: boolean("is_active").notNull().default(true),
   isAdmin: boolean("is_admin").notNull().default(false), // Admin privileges
@@ -83,7 +84,7 @@ export const jobs = pgTable("jobs", {
   longitude: doublePrecision("longitude").notNull(),
   datePosted: timestamp("date_posted").defaultNow(),
   dateNeeded: timestamp("date_needed").notNull(),
-  requiredSkills: text("required_skills").array(), // Skills needed for the job
+  requiredSkills: text("required_skills").array().notNull().default(sql`'{}'::text[]`), // Skills needed for the job
   equipmentProvided: boolean("equipment_provided").notNull().default(false),
   autoAccept: boolean("auto_accept").notNull().default(false), // Auto accept applications
   startTime: timestamp("start_time"), // When work actually began
@@ -223,6 +224,17 @@ export const contacts = pgTable("contacts", {
   notes: text("notes"), // Optional notes about the contact
 });
 
+// Contact requests table for messaging system
+export const contactRequests = pgTable("contact_requests", {
+  id: serial("id").primaryKey(),
+  senderId: integer("sender_id").notNull().references(() => users.id),
+  receiverId: integer("receiver_id").notNull().references(() => users.id),
+  status: text("status").notNull().default("pending"), // "pending", "accepted", "rejected"
+  message: text("message"), // Optional message with the request
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+});
+
 // Messages table for job-specific real-time chat
 export const messages = pgTable("messages", {
   id: serial("id").primaryKey(),
@@ -240,121 +252,202 @@ export const messages = pgTable("messages", {
   editedAt: timestamp("edited_at"), // When the message was last edited
 });
 
-
-
 // Insert schemas
-export const insertUserSchema = createInsertSchema(users).omit({
-  id: true,
-  rating: true,
-  lastActive: true,
+export const insertUserSchema = createInsertSchema(users).pick({
+  username: true,
+  password: true,
+  fullName: true,
+  email: true,
+  phone: true,
+  bio: true,
+  avatarUrl: true,
+  accountType: true,
+  skills: true,
+  isActive: true,
+  isAdmin: true,
+  latitude: true,
+  longitude: true,
+  location: true,
+  googleId: true,
+  facebookId: true,
+  stripeCustomerId: true,
+  stripeConnectAccountId: true,
+  stripeConnectAccountStatus: true,
+  stripeTermsAccepted: true,
+  stripeTermsAcceptedAt: true,
+  stripeRepresentativeName: true,
+  stripeRepresentativeTitle: true,
+  stripeRepresentativeRequirementsComplete: true,
+  stripeBankingDetailsComplete: true,
+  contactPreferences: true,
+  availability: true,
+  emailVerified: true,
+  phoneVerified: true,
+  identityVerified: true,
+  verificationToken: true,
+  verificationTokenExpiry: true,
+  phoneVerificationCode: true,
+  phoneVerificationExpiry: true,
 });
 
-export const insertJobSchema = createInsertSchema(jobs).omit({
-  id: true,
-  datePosted: true,
+export const insertJobSchema = createInsertSchema(jobs).pick({
+  title: true,
+  description: true,
+  category: true,
+  posterId: true,
+  status: true,
+  paymentType: true,
+  paymentAmount: true,
+  location: true,
+  latitude: true,
+  longitude: true,
+  dateNeeded: true,
+  requiredSkills: true,
+  equipmentProvided: true,
+  autoAccept: true,
+  startTime: true,
+  clockInTime: true,
+  completionTime: true,
+  shiftStartTime: true,
+  shiftEndTime: true,
+  workerTrackingEnabled: true,
+  verifyLocationToStart: true,
+  markerColor: true,
+});
+
+export const insertApplicationSchema = createInsertSchema(applications).pick({
+  jobId: true,
   workerId: true,
+  message: true,
+  hourlyRate: true,
+  expectedDuration: true,
+  coverLetter: true,
+});
+
+export const insertReviewSchema = createInsertSchema(reviews).pick({
+  jobId: true,
+  reviewerId: true,
+  revieweeId: true,
+  rating: true,
+  comment: true,
+});
+
+export const insertTaskSchema = createInsertSchema(tasks).pick({
+  jobId: true,
+  description: true,
+  position: true,
+  isOptional: true,
+  dueTime: true,
+  estimatedDuration: true,
+  location: true,
+  latitude: true,
+  longitude: true,
+  bonusAmount: true,
+  notes: true,
+});
+
+export const insertEarningSchema = createInsertSchema(earnings).pick({
+  workerId: true,
+  jobId: true,
+  amount: true,
   serviceFee: true,
-  totalAmount: true,
-  autoAccept: true, // Will be explicitly set in the form
-}).extend({
-  paymentAmount: z.number().min(5, "Minimum payment amount is $5"),
-  // Accept string dates but don't transform them - we'll handle this in the API
-  dateNeeded: z.string(),
-  autoAccept: z.boolean().default(false),
+  netAmount: true,
+  description: true,
 });
 
-export const insertApplicationSchema = createInsertSchema(applications).omit({
-  id: true,
-  dateApplied: true,
+export const insertPaymentSchema = createInsertSchema(payments).pick({
+  userId: true,
+  workerId: true,
+  amount: true,
+  serviceFee: true,
+  type: true,
   status: true,
-}).extend({
-  hourlyRate: z.number().optional(),
-  expectedDuration: z.string().optional(),
-  coverLetter: z.string().optional(),
+  paymentMethod: true,
+  transactionId: true,
+  stripePaymentIntentId: true,
+  stripeCustomerId: true,
+  stripeConnectAccountId: true,
+  jobId: true,
+  description: true,
 });
 
-export const insertReviewSchema = createInsertSchema(reviews).omit({
-  id: true,
-  dateReviewed: true,
+export const insertBadgeSchema = createInsertSchema(badges).pick({
+  name: true,
+  description: true,
+  iconUrl: true,
+  category: true,
+  requirements: true,
+  tier: true,
 });
 
-export const insertTaskSchema = createInsertSchema(tasks).omit({
-  id: true,
-  isCompleted: true,
-  completedAt: true,
-  completedBy: true,
-});
-
-export const insertEarningSchema = createInsertSchema(earnings).omit({
-  id: true,
-  dateEarned: true,
-  datePaid: true,
-  status: true,
-  paymentId: true, // Optional relation to payment
-  metadata: true, // Optional additional data
-});
-
-export const insertPaymentSchema = createInsertSchema(payments).omit({
-  id: true,
-  createdAt: true,
-  completedAt: true, // Set when payment completes
-  metadata: true, // Optional additional data
-});
-
-export const insertBadgeSchema = createInsertSchema(badges).omit({
-  id: true,
-  createdAt: true,
-});
-
-export const insertUserBadgeSchema = createInsertSchema(userBadges).omit({
-  id: true,
+export const insertUserBadgeSchema = createInsertSchema(userBadges).pick({
+  userId: true,
+  badgeId: true,
   earnedAt: true,
+  metadata: true,
 });
 
-export const insertNotificationSchema = createInsertSchema(notifications).omit({
-  id: true,
+export const insertNotificationSchema = createInsertSchema(notifications).pick({
+  userId: true,
+  title: true,
+  message: true,
+  type: true,
+  sourceId: true,
+  sourceType: true,
+  metadata: true,
+});
+
+export const insertContactSchema = createInsertSchema(contacts).pick({
+  userId: true,
+  contactId: true,
+  status: true,
+  notes: true,
+});
+
+export const insertMessageSchema = createInsertSchema(messages).pick({
+  jobId: true,
+  senderId: true,
+  recipientId: true,
+  content: true,
+  messageType: true,
   isRead: true,
-  createdAt: true,
-});
-
-export const insertContactSchema = createInsertSchema(contacts).omit({
-  id: true,
-  createdAt: true,
-});
-
-export const insertMessageSchema = createInsertSchema(messages).omit({
-  id: true,
   sentAt: true,
   readAt: true,
-  isRead: true,
+  attachmentUrl: true,
+  attachmentType: true,
+  isEdited: true,
+  editedAt: true,
 });
 
-
+export const insertContactRequestSchema = createInsertSchema(contactRequests).pick({
+  senderId: true,
+  receiverId: true,
+  status: true,
+  message: true,
+});
 
 // Types
 export type User = typeof users.$inferSelect & {
-  requiresProfileCompletion?: boolean | null; // Virtual field, not in DB
-  needsAccountType?: boolean | null; // Virtual field, not in DB
-  skillsVerified?: Record<string, boolean>; // Virtual field, not in DB
-  completedJobs?: number; // Virtual field, not in DB
-  successRate?: number; // Virtual field, not in DB
-  responseTime?: number; // Virtual field, not in DB
-  badgeIds?: string[]; // Virtual field, not in DB
-  requiresStripeTerms?: boolean; // Virtual field to check if user needs to accept Stripe TOS
-  requiresStripeRepresentative?: boolean; // Virtual field to check if user needs to provide representative info
-  requiresStripeBankingDetails?: boolean; // Virtual field to check if user needs to provide banking details
-  profileCompletionPercentage?: number; // Virtual field showing profile completion status
-  stripeConnectId?: string; // For compatibility with existing code (using stripeConnectAccountId internally)
+  requiresProfileCompletion?: boolean | null;
+  needsAccountType?: boolean | null;
+  skillsVerified?: Record<string, boolean>;
+  completedJobs?: number;
+  successRate?: number;
+  responseTime?: number;
+  badgeIds?: string[];
+  requiresStripeTerms?: boolean;
+  requiresStripeRepresentative?: boolean;
+  requiresStripeBankingDetails?: boolean;
+  profileCompletionPercentage?: number;
+  stripeConnectId?: string;
 };
 
-// Contact preferences type for better TypeScript support
 export type ContactPreferences = {
   email: boolean;
   sms: boolean;
   push: boolean;
 };
 
-// Availability type for better TypeScript support
 export type Availability = {
   weekdays: boolean[];
   weekend: boolean[];
@@ -363,14 +456,14 @@ export type Availability = {
 };
 
 export type InsertUser = z.infer<typeof insertUserSchema> & {
-  requiresProfileCompletion?: boolean | null; // Virtual field, not in DB
-  needsAccountType?: boolean | null; // Virtual field, not in DB
-  skillsVerified?: Record<string, boolean>; // Virtual field, not in DB
-  requiresStripeTerms?: boolean; // Virtual field for Stripe TOS
-  requiresStripeRepresentative?: boolean; // Virtual field for Stripe representative
-  requiresStripeBankingDetails?: boolean; // Virtual field for Stripe banking details
-  contactPreferences?: ContactPreferences; // Optional contact preferences
-  availability?: Availability; // Optional availability settings
+  requiresProfileCompletion?: boolean | null;
+  needsAccountType?: boolean | null;
+  skillsVerified?: Record<string, boolean>;
+  requiresStripeTerms?: boolean;
+  requiresStripeRepresentative?: boolean;
+  requiresStripeBankingDetails?: boolean;
+  contactPreferences?: ContactPreferences;
+  availability?: Availability;
 };
 
 export type Job = typeof jobs.$inferSelect;
@@ -403,16 +496,8 @@ export type InsertNotification = z.infer<typeof insertNotificationSchema>;
 export type Message = typeof messages.$inferSelect;
 export type InsertMessage = z.infer<typeof insertMessageSchema>;
 
-// Contact requests table for messaging system
-export const contactRequests = pgTable("contact_requests", {
-  id: serial("id").primaryKey(),
-  senderId: integer("sender_id").notNull().references(() => users.id),
-  receiverId: integer("receiver_id").notNull().references(() => users.id),
-  status: text("status").notNull().default("pending"), // "pending", "accepted", "rejected"
-  message: text("message"), // Optional message with the request
-  createdAt: timestamp("created_at").notNull().defaultNow(),
-  updatedAt: timestamp("updated_at").notNull().defaultNow(),
-});
+export type ContactRequest = typeof contactRequests.$inferSelect;
+export type InsertContactRequest = z.infer<typeof insertContactRequestSchema>;
 
 // Support tickets table
 export const supportTickets = pgTable("support_tickets", {
@@ -461,13 +546,9 @@ export const disputes = pgTable("disputes", {
   resolvedAt: timestamp("resolved_at"),
 });
 
-export const insertContactRequestSchema = createInsertSchema(contactRequests);
 export const insertSupportTicketSchema = createInsertSchema(supportTickets);
 export const insertSupportMessageSchema = createInsertSchema(supportMessages);
 export const insertDisputeSchema = createInsertSchema(disputes);
-
-export type ContactRequest = typeof contactRequests.$inferSelect;
-export type InsertContactRequest = z.infer<typeof insertContactRequestSchema>;
 
 export type SupportTicket = typeof supportTickets.$inferSelect;
 export type InsertSupportTicket = z.infer<typeof insertSupportTicketSchema>;
@@ -491,9 +572,6 @@ export const refunds = pgTable("refunds", {
   status: varchar("status", { length: 20 }).notNull().default("pending"),
   processedAt: timestamp("processed_at").notNull().defaultNow(),
 });
-
-
-
 
 // Categories enum for job types
 export const JOB_CATEGORIES = [
@@ -566,7 +644,7 @@ export const adminUsers = pgTable("admin_users", {
   id: serial("id").primaryKey(),
   userId: integer("user_id").references(() => users.id).notNull(), // Link to regular user
   role: text("role").notNull().default("admin"), // "super_admin", "admin", "moderator", "support"
-  permissions: text("permissions").array().default([]), // Array of permission strings
+  permissions: text("permissions").array().notNull().default(sql`'{}'::text[]`), // Array of permission strings
   isActive: boolean("is_active").notNull().default(true),
   lastLogin: timestamp("last_login"),
   createdAt: timestamp("created_at").defaultNow(),
@@ -660,39 +738,81 @@ export const platformSettings = pgTable("platform_settings", {
 });
 
 // Admin schemas
-export const insertAdminUserSchema = createInsertSchema(adminUsers).omit({
-  id: true,
-  createdAt: true
+export const insertAdminUserSchema = createInsertSchema(adminUsers).pick({
+  userId: true,
+  role: true,
+  permissions: true,
+  isActive: true,
+  lastLogin: true,
+  createdBy: true
 });
 
-export const insertAdminAuditLogSchema = createInsertSchema(adminAuditLog).omit({
-  id: true,
-  timestamp: true
+export const insertAdminAuditLogSchema = createInsertSchema(adminAuditLog).pick({
+  adminId: true,
+  action: true,
+  targetType: true,
+  targetId: true,
+  details: true,
+  ipAddress: true,
+  userAgent: true,
 });
 
-export const insertPlatformAnalyticsSchema = createInsertSchema(platformAnalytics).omit({
-  id: true,
-  createdAt: true
+export const insertPlatformAnalyticsSchema = createInsertSchema(platformAnalytics).pick({
+  date: true,
+  totalUsers: true,
+  newUsers: true,
+  activeUsers: true,
+  totalJobs: true,
+  jobsPosted: true,
+  jobsCompleted: true,
+  totalRevenue: true,
+  platformFees: true,
+  payouts: true,
+  completionRate: true,
+  averageJobValue: true,
 });
 
-export const insertUserStrikeSchema = createInsertSchema(userStrikes).omit({
-  id: true,
-  createdAt: true
+export const insertUserStrikeSchema = createInsertSchema(userStrikes).pick({
+  userId: true,
+  adminId: true,
+  type: true,
+  reason: true,
+  details: true,
+  jobId: true,
+  isActive: true,
+  expiresAt: true,
 });
 
-export const insertUserReportSchema = createInsertSchema(userReports).omit({
-  id: true,
-  createdAt: true
+export const insertUserReportSchema = createInsertSchema(userReports).pick({
+  reporterId: true,
+  reportedUserId: true,
+  jobId: true,
+  category: true,
+  description: true,
+  priority: true,
+  status: true,
+  assignedTo: true,
+  resolution: true,
+  resolvedAt: true,
 });
 
-export const insertSystemAlertSchema = createInsertSchema(systemAlerts).omit({
-  id: true,
-  createdAt: true
+export const insertSystemAlertSchema = createInsertSchema(systemAlerts).pick({
+  type: true,
+  severity: true,
+  title: true,
+  description: true,
+  details: true,
+  isResolved: true,
+  resolvedBy: true,
+  resolvedAt: true,
 });
 
-export const insertPlatformSettingsSchema = createInsertSchema(platformSettings).omit({
-  id: true,
-  updatedAt: true
+export const insertPlatformSettingsSchema = createInsertSchema(platformSettings).pick({
+  key: true,
+  value: true,
+  description: true,
+  category: true,
+  updatedBy: true,
 });
 
 // Admin types

@@ -28,7 +28,7 @@
     "moduleResolution": "bundler",
     "baseUrl": ".",
     "types": [
-      "node",
+      "@types/node",
       "vite/client"
     ],
     "paths": {
@@ -39,6 +39,5 @@
         "./shared/*"
       ]
     }
-  },
-  "extends": "expo/tsconfig.base"
+  }
 }

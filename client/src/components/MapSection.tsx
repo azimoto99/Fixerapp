@@ -43,7 +43,7 @@ const MapSection: React.FC<MapSectionProps> = ({ jobs, selectedJob, onSelectJob,
     setIsUserDrawerOpen(isOpen);
   }, []);
   const [showStripeConnectRequired, setShowStripeConnectRequired] = useState(false);
-  // Map view is handled differently in Mapbox vs Leaflet
+  // Map view is handled by Mapbox
   const [mapView, setMapView] = useState<'standard' | 'heatmap'>('standard');
   
   // Update map style when view changes
