@@ -459,14 +459,6 @@ if (!position) {
           <div className="absolute inset-0 bg-primary/20 rounded-full animate-ping"></div>
           <div className="relative flex items-center justify-center w-16 h-16 bg-primary/10 rounded-full">
             <Loader2 className="h-8 w-8 animate-spin text-primary" />
-        .animate-pulse-marker {
-          animation: pulse-marker 2s infinite;
-        }
-        /* Smooth transition for panel */
-        .job-detail-panel {
-          transition: transform 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
-        }
-      `}</style>
       {/* Stripe Connect Required Modal */}
       {showStripeConnectRequired && (
         <StripeConnectRequired
