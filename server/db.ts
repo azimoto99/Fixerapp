@@ -53,6 +53,9 @@ const client = postgres(connectionString, {
 // Export the database instance
 export const db = drizzle(client, { schema });
 
+// Re-export the client for other modules that need it
+export { client };
+
 // Add connection error handling
 client.on('error', (err) => {
   console.error('Database connection error:', err);
