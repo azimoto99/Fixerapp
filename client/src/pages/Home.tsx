@@ -60,7 +60,7 @@ const WorkerDashboard = () => {
   // When in worker view, we want to show all available jobs EXCEPT our own
   // This ensures workers see jobs from other users on the map
   const { jobs, isLoading } = useJobs({
-    nearbyOnly: true,
+    nearbyOnly: searchParams.searchMode === 'location',
     radiusMiles: 5,
     poster: false // Never filter by poster in worker view to ensure jobs appear on map
   }, searchParams);
@@ -464,7 +464,7 @@ export default function Home() {
               </div>
             ) : finalPostedJobs.length > 0 ? (
               <div className="p-4 space-y-4">
-                {finalPostedJobs.map(job => (
+                {finalPostedJobs.map((job: Job) => (
                   <div key={job.id} className="bg-card/80 backdrop-blur-sm rounded-xl border border-border/40 p-4 hover:shadow-lg hover:bg-card/95 transition-all duration-200">
                     {/* Header with title and status */}
                     <div className="flex items-start justify-between mb-3">

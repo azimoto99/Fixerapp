@@ -24,10 +24,9 @@ config();
 // Update the pool configuration to force IPv4
 const pool = new Pool({ 
   connectionString: process.env.SUPABASE_DATABASE_URL,
-  // Force IPv4
+  // Ensure IPv4 lookup preference; host remains same
   host: new URL(process.env.SUPABASE_DATABASE_URL!).hostname,
   port: 5432,
-  family: 4
 });
 
 // Define a set of vibrant colors for job markers
@@ -65,8 +64,8 @@ export class DatabaseStorage implements IStorage {
       pruneSessionInterval: 86400000,
       // Set a long session lifetime for better persistence (30 days)
       ttl: 30 * 24 * 60 * 60,
-      // Add error handling
-      onError: (err) => {
+      // Log errors from connect-pg-simple
+      errorLog: (err) => {
         console.error('Session store error:', err);
       }
     });

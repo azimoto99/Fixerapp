@@ -264,21 +264,19 @@ const MapSection: React.FC<MapSectionProps> = ({ jobs, selectedJob, onSelectJob,
       markerColor?: string; // Added support for custom marker colors
     }[] = [];
     
-    // First add ALL jobs with coordinates to ensure every job has a pin on the map
-    if (allJobsWithCoordinates && allJobsWithCoordinates.length > 0) {
-      console.log('Processing ALL jobs for markers:', allJobsWithCoordinates.length, 'jobs');
-      
-      // Filter jobs with valid coordinates and create markers
-      const jobsWithCoordinates = allJobsWithCoordinates.filter(job => job.latitude && job.longitude);
+    // Decide which job list to use: the filtered list (jobs prop) or all jobs with coordinates
+    const sourceJobs = (jobs && jobs.length > 0) ? jobs : (allJobsWithCoordinates || []);
+
+    if (sourceJobs && sourceJobs.length > 0) {
+      // Only keep jobs that have coordinates
+      const jobsWithCoordinates = sourceJobs.filter(job => job.latitude && job.longitude);
       
       jobsWithCoordinates.forEach(job => {
         // Check if this is a highlighted job
         const isHighlighted = job.id === highlightedJobId;
         
-        // Check if this job is already in the filtered jobs list
-        const isInFilteredList = jobs.some(j => j.id === job.id);
-        
-        console.log('Creating marker for job:', job.id, job.title, job.latitude, job.longitude);
+        // Log creation for debugging
+        // console.log('Creating marker for job:', job.id, job.title, job.latitude, job.longitude);
         
         // Force number conversion and ensure coordinates are valid numbers
         const lat = typeof job.latitude === 'string' ? parseFloat(job.latitude) : job.latitude;
@@ -290,12 +288,10 @@ const MapSection: React.FC<MapSectionProps> = ({ jobs, selectedJob, onSelectJob,
           title: job.title,
           description: `$${job.paymentAmount?.toFixed(2)} - ${job.paymentType}`,
           onClick: () => handleMarkerClick(job),
-          isHighlighted: true, // Highlight all job markers for better visibility
+          isHighlighted: isHighlighted,
           markerColor: job.markerColor || '#f59e0b', // Use the job's marker color or default to amber
         });
       });
-      
-      console.log('Created job markers:', markers.length);
     }
     
     // Add user location marker

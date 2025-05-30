@@ -1,6 +1,18 @@
 import path from 'path';
+import { fileURLToPath } from 'url';
 import { config } from 'dotenv';
 import fs from 'fs';
+import dns from 'node:dns';
+
+// Create __dirname for ES module scope
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
+
+// Prefer IPv4 when resolving hostnames to avoid IPv6 connection issues
+try {
+  dns.setDefaultResultOrder('ipv4first');
+} catch (err) {
+  // Node < 17 may not support this; ignore error
+}
 
 // Determine the environment - don't override if already set
 const isProduction = process.env.NODE_ENV === 'production';

@@ -10,10 +10,9 @@ config();
 // Create a pool with IPv4 forcing
 const pool = new Pool({
   connectionString: process.env.SUPABASE_DATABASE_URL,
-  // Force IPv4
+  // Ensure IPv4 lookup preference
   host: new URL(process.env.SUPABASE_DATABASE_URL!).hostname,
   port: 5432,
-  family: 4
 });
 
 async function createSessionsTable() {
@@ -37,4 +36,4 @@ async function createSessionsTable() {
   }
 }
 
-createSessionsTable().catch(console.error);
+export default createSessionsTable;

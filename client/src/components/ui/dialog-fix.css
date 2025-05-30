@@ -244,3 +244,22 @@ div[role="dialog"] {
 form * {
   pointer-events: auto !important;
 }
+
+/* Radix UI portal root fix – ensure all portal content floats above drawers/dialogs */
+[data-radix-portal] {
+  position: fixed !important;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  z-index: var(--z-index-emergency) !important;
+  pointer-events: none;
+}
+[data-radix-portal] > * {
+  pointer-events: auto;
+}
+
+/* Ensure select dropdown content inside portal gets the highest priority */
+[data-radix-portal] [data-radix-select-content] {
+  z-index: var(--z-index-emergency) !important;
+}

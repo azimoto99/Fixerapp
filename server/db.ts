@@ -44,15 +44,9 @@ const client = postgres(connectionString, {
   connection: {
     application_name: 'fixer-app',
   },
-  // Force IPv4
+  // Explicitly set host to ensure IPv4 lookup (dns ipv4first)
   host: new URL(connectionString).hostname,
   port: 5432,
-  family: 4, // Force IPv4
-  // Add error handling through the connection options
-  onerror: (err) => {
-    console.error('Database connection error:', err);
-    // The client will automatically attempt to reconnect
-  }
 });
 
 // Export the database instance
