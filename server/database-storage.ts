@@ -21,13 +21,15 @@ const { Pool } = pkg;
 import { config } from 'dotenv';
 config();
 
-// Update the pool configuration to force IPv4
+// Parse connection URL to force IPv4
+const dbUrl = new URL(process.env.SUPABASE_DATABASE_URL!);
 const pool = new Pool({ 
-  connectionString: process.env.SUPABASE_DATABASE_URL,
-  // Ensure IPv4 lookup preference; host remains same
-  host: new URL(process.env.SUPABASE_DATABASE_URL!).hostname,
-  port: 5432,
-  family: 4 as 4
+  host: dbUrl.hostname,
+  port: parseInt(dbUrl.port) || 5432,
+  database: dbUrl.pathname.slice(1),
+  user: dbUrl.username,
+  password: dbUrl.password,
+  ssl: { rejectUnauthorized: false }
 });
 
 // Define a set of vibrant colors for job markers
