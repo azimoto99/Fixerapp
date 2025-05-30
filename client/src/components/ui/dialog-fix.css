@@ -41,3 +41,206 @@ div[role="dialog"] {
 #portal-root > * {
   pointer-events: auto;
 }
+
+/* Z-index hierarchy for all dialogs and drawers */
+
+/* Base z-index values */
+:root {
+  /* Base layers */
+  --z-index-blur: 100;
+  --z-index-content: 200;
+  --z-index-header: 300;
+  
+  /* Drawer layers */
+  --z-index-drawer: 1000;
+  --z-index-drawer-backdrop: 900;
+  --z-index-user-drawer: 1100;
+  --z-index-user-drawer-backdrop: 1000;
+  
+  /* Dialog layers */
+  --z-index-dialog: 2000;
+  --z-index-dialog-backdrop: 1900;
+  --z-index-support-dialog: 2100;
+  --z-index-support-dialog-backdrop: 2000;
+  
+  /* Dropdown layers */
+  --z-index-dropdown: 3000;
+  --z-index-post-job-dropdown: 3100;
+  --z-index-support-dropdown: 3200;
+  
+  /* Modal layers */
+  --z-index-modal: 4000;
+  --z-index-modal-backdrop: 3900;
+  
+  /* Toast and notification layers */
+  --z-index-toast: 5000;
+  --z-index-loading: 6000;
+  
+  /* Critical system layers */
+  --z-index-debug: 9000;
+  --z-index-emergency: 9999;
+}
+
+/* Blur overlay */
+.fixed.inset-0.bg-background\/80.backdrop-blur-sm {
+  z-index: var(--z-index-blur) !important;
+}
+
+/* Drawer components */
+.drawer-backdrop {
+  z-index: var(--z-index-drawer-backdrop) !important;
+}
+
+.drawer {
+  z-index: var(--z-index-drawer) !important;
+}
+
+/* User drawer specific */
+.user-drawer-backdrop {
+  z-index: var(--z-index-user-drawer-backdrop) !important;
+}
+
+.user-drawer {
+  z-index: var(--z-index-user-drawer) !important;
+}
+
+/* Post Job Drawer specific */
+[data-radix-drawer-content][class*="PostJobDrawer"] {
+  z-index: var(--z-index-drawer) !important;
+}
+
+/* Post Job Drawer dropdowns */
+[data-radix-drawer-content][class*="PostJobDrawer"] [data-radix-popper-content-wrapper],
+[data-radix-drawer-content][class*="PostJobDrawer"] [data-radix-select-content],
+[data-radix-drawer-content][class*="PostJobDrawer"] [data-radix-select-portal] {
+  z-index: var(--z-index-post-job-dropdown) !important;
+}
+
+/* Dialog components */
+.dialog-backdrop {
+  z-index: var(--z-index-dialog-backdrop) !important;
+  pointer-events: auto !important;
+}
+
+.dialog-content {
+  z-index: var(--z-index-dialog) !important;
+  pointer-events: auto !important;
+}
+
+/* Support dialog specific fixes */
+.support-dialog {
+  z-index: var(--z-index-support-dialog) !important;
+  pointer-events: auto !important;
+}
+
+.support-dialog * {
+  pointer-events: auto !important;
+}
+
+.support-dialog form {
+  pointer-events: auto !important;
+}
+
+.support-dialog input,
+.support-dialog textarea,
+.support-dialog select {
+  pointer-events: auto !important;
+}
+
+/* Support dialog dropdowns */
+.support-dialog [data-radix-popper-content-wrapper],
+.support-dialog [data-radix-select-content],
+.support-dialog [data-radix-select-portal] {
+  z-index: var(--z-index-support-dropdown) !important;
+}
+
+/* Regular dropdown menus */
+[data-radix-popper-content-wrapper] {
+  z-index: var(--z-index-dropdown) !important;
+}
+
+/* Select component fixes */
+.select-content {
+  z-index: var(--z-index-dropdown) !important;
+  pointer-events: auto !important;
+}
+
+.select-trigger {
+  pointer-events: auto !important;
+}
+
+/* Ensure select content appears above drawer */
+[data-radix-select-content] {
+  z-index: var(--z-index-dropdown) !important;
+}
+
+/* Ensure select portal content appears above drawer */
+[data-radix-select-portal] {
+  z-index: var(--z-index-dropdown) !important;
+}
+
+/* Ensure select content is rendered in portal */
+[data-radix-select-content] {
+  position: relative;
+  z-index: var(--z-index-dropdown) !important;
+}
+
+/* Ensure select content is rendered above drawer */
+[data-radix-select-content][data-state="open"] {
+  z-index: var(--z-index-dropdown) !important;
+}
+
+/* Job category and required skills specific fixes */
+[data-radix-select-content][data-radix-popper-content-wrapper] {
+  z-index: var(--z-index-dropdown) !important;
+}
+
+[data-radix-select-content][data-radix-popper-content-wrapper][data-state="open"] {
+  z-index: var(--z-index-dropdown) !important;
+}
+
+/* Ensure select content is rendered in portal and above drawer */
+[data-radix-select-content][data-radix-popper-content-wrapper] {
+  position: relative;
+  z-index: var(--z-index-dropdown) !important;
+}
+
+/* Toast notifications */
+[data-radix-toast-viewport] {
+  z-index: var(--z-index-toast) !important;
+}
+
+/* Modal dialogs */
+[role="dialog"] {
+  z-index: var(--z-index-modal) !important;
+}
+
+/* Ensure portal content is properly layered */
+#portal-root {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  pointer-events: none;
+  z-index: var(--z-index-modal);
+}
+
+#portal-root > * {
+  pointer-events: auto;
+}
+
+/* Prevent click-through on overlays */
+[data-state="open"] {
+  pointer-events: auto !important;
+}
+
+/* Ensure proper stacking context */
+.fixed {
+  isolation: isolate;
+}
+
+/* Ensure form elements are clickable */
+form * {
+  pointer-events: auto !important;
+}

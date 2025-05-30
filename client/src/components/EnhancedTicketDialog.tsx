@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
@@ -8,7 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
 import { TicketAttachments } from '@/components/TicketAttachments';
-import { Clock, User, AlertCircle, CheckCircle, XCircle, MessageSquare, Mail } from 'lucide-react';
+import { Clock, User, AlertCircle, CheckCircle, XCircle, MessageSquare, Mail, X } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 
 interface TicketMessage {
@@ -88,6 +88,18 @@ export function EnhancedTicketDialog({
   const [sending, setSending] = useState(false);
   const [updating, setUpdating] = useState(false);
   const { toast } = useToast();
+
+  // Prevent body scrolling when modal is open
+  useEffect(() => {
+    if (open) {
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = 'unset';
+    }
+    return () => {
+      document.body.style.overflow = 'unset';
+    };
+  }, [open]);
 
   if (!ticket) return null;
 
@@ -169,192 +181,208 @@ export function EnhancedTicketDialog({
   };
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
-        <DialogHeader>
-          <DialogTitle className="flex items-center gap-2">
-            Support Ticket #{ticket.ticketNumber}
-            {getStatusIcon(ticket.status)}
-          </DialogTitle>
-          <DialogDescription>{ticket.subject}</DialogDescription>
-        </DialogHeader>
-
-        <div className="grid gap-6">
-          {/* Ticket Info Header */}
-          <Card>
-            <CardHeader className="pb-3">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-4">
-                  <Badge className={getPriorityColor(ticket.priority)}>
-                    {ticket.priority.toUpperCase()}
-                  </Badge>
-                  <Badge className={getStatusColor(ticket.status)}>
-                    {ticket.status.replace('_', ' ').toUpperCase()}
-                  </Badge>
-                  <Badge variant="outline">{ticket.category}</Badge>
-                </div>
-                <div className="text-sm text-muted-foreground">
-                  Created {formatDate(ticket.createdAt)}
-                </div>
-              </div>
-            </CardHeader>
-            <CardContent>
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <Label className="text-sm font-medium">User</Label>
-                  <p className="text-sm text-muted-foreground flex items-center gap-2">
-                    <User className="h-4 w-4" />
-                    {ticket.userName || `User ${ticket.userId}`}
-                  </p>
-                </div>
-                <div>
-                  <Label className="text-sm font-medium">Last Updated</Label>
-                  <p className="text-sm text-muted-foreground">
-                    {formatDate(ticket.updatedAt)}
-                  </p>
-                </div>
-              </div>
-              
-              <Separator className="my-4" />
-              
+    <>
+      {open && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center">
+          {/* Backdrop */}
+          <div 
+            className="fixed inset-0 bg-black/50 backdrop-blur-sm"
+            onClick={() => {}} // Prevent closing on backdrop click
+          />
+          
+          {/* Modal */}
+          <div className="relative z-50 w-full max-w-4xl max-h-[90vh] overflow-y-auto bg-background rounded-lg shadow-lg m-4">
+            {/* Header */}
+            <div className="flex items-center justify-between p-6 border-b">
               <div>
-                <Label className="text-sm font-medium">Description</Label>
-                <p className="text-sm text-muted-foreground mt-1">{ticket.description}</p>
+                <h2 className="text-lg font-semibold flex items-center gap-2">
+                  Support Ticket #{ticket.ticketNumber}
+                  {getStatusIcon(ticket.status)}
+                </h2>
+                <p className="text-sm text-muted-foreground">{ticket.subject}</p>
               </div>
-            </CardContent>
-          </Card>
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => onOpenChange(false)}
+                className="h-8 w-8"
+              >
+                <X className="h-4 w-4" />
+              </Button>
+            </div>
 
-          {/* Admin Controls */}
-          {isAdmin && (
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-base">Admin Controls</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label>Priority</Label>
-                    <Select value={priority} onValueChange={(value) => {
-                      setPriority(value);
-                      handleTicketUpdate({ priority: value });
-                    }}>
-                      <SelectTrigger>
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="low">Low</SelectItem>
-                        <SelectItem value="medium">Medium</SelectItem>
-                        <SelectItem value="high">High</SelectItem>
-                        <SelectItem value="urgent">Urgent</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <div className="space-y-2">
-                    <Label>Status</Label>
-                    <Select value={status} onValueChange={(value) => {
-                      setStatus(value);
-                      handleTicketUpdate({ status: value });
-                    }}>
-                      <SelectTrigger>
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="open">Open</SelectItem>
-                        <SelectItem value="in_progress">In Progress</SelectItem>
-                        <SelectItem value="resolved">Resolved</SelectItem>
-                        <SelectItem value="closed">Closed</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                </div>
-                {(priority !== ticket.priority || status !== ticket.status) && (
-                  <Button 
-                    onClick={handleUpdateTicket} 
-                    disabled={updating}
-                    className="mt-4"
-                  >
-                    {updating ? 'Updating...' : 'Update Ticket'}
-                  </Button>
-                )}
-              </CardContent>
-            </Card>
-          )}
-
-          {/* Messages */}
-          {ticket.messages && ticket.messages.length > 0 && (
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-base flex items-center gap-2">
-                  <MessageSquare className="h-4 w-4" />
-                  Messages ({ticket.messages.length})
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4 max-h-96 overflow-y-auto">
-                {ticket.messages.map((message) => (
-                  <div key={message.id} className="border rounded-lg p-4 space-y-2">
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-2">
-                        <Badge variant={message.senderType === 'admin' ? 'default' : 'secondary'}>
-                          {message.senderType === 'admin' ? 'Admin' : 'User'}
-                        </Badge>
-                        <span className="font-medium">{message.senderName}</span>
-                      </div>
-                      <span className="text-sm text-muted-foreground">
-                        {formatDate(message.createdAt)}
-                      </span>
+            {/* Content */}
+            <div className="p-6 space-y-6">
+              {/* Ticket Info Header */}
+              <Card>
+                <CardHeader className="pb-3">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-4">
+                      <Badge className={getPriorityColor(ticket.priority)}>
+                        {ticket.priority.toUpperCase()}
+                      </Badge>
+                      <Badge className={getStatusColor(ticket.status)}>
+                        {ticket.status.replace('_', ' ').toUpperCase()}
+                      </Badge>
+                      <Badge variant="outline">{ticket.category}</Badge>
                     </div>
-                    <p className="text-sm">{message.message}</p>
-                    {message.attachments && message.attachments.length > 0 && (
-                      <TicketAttachments 
-                        attachments={message.attachments}
-                        readonly={true}
-                      />
-                    )}
+                    <div className="text-sm text-muted-foreground">
+                      Created {formatDate(ticket.createdAt)}
+                    </div>
                   </div>
-                ))}
-              </CardContent>
-            </Card>
-          )}
+                </CardHeader>
+                <CardContent>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <Label className="text-sm font-medium">User</Label>
+                      <p className="text-sm text-muted-foreground flex items-center gap-2">
+                        <User className="h-4 w-4" />
+                        {ticket.userName || `User ${ticket.userId}`}
+                      </p>
+                    </div>
+                    <div>
+                      <Label className="text-sm font-medium">Last Updated</Label>
+                      <p className="text-sm text-muted-foreground">
+                        {formatDate(ticket.updatedAt)}
+                      </p>
+                    </div>
+                  </div>
+                  
+                  <Separator className="my-4" />
+                  
+                  <div>
+                    <Label className="text-sm font-medium">Description</Label>
+                    <p className="text-sm text-muted-foreground mt-1">{ticket.description}</p>
+                  </div>
+                </CardContent>
+              </Card>
 
-          {/* Add Message */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-base">Add Message</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="space-y-2">
-                <Label>Message</Label>
-                <Textarea
-                  value={newMessage}
-                  onChange={(e) => setNewMessage(e.target.value)}
-                  placeholder="Type your message here..."
-                  className="min-h-[100px]"
-                />
-              </div>
-              
-              <TicketAttachments
-                ticketId={ticket.id}
-                onAttachmentUpload={async (file) => {
-                  // Handle file upload for new messages
-                  console.log('File upload for message:', file);
-                }}
-              />
-            </CardContent>
-          </Card>
+              {/* Admin Controls */}
+              {isAdmin && (
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="text-base">Admin Controls</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="space-y-2">
+                        <Label>Priority</Label>
+                        <Select value={priority} onValueChange={setPriority}>
+                          <SelectTrigger>
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="low">Low</SelectItem>
+                            <SelectItem value="medium">Medium</SelectItem>
+                            <SelectItem value="high">High</SelectItem>
+                            <SelectItem value="urgent">Urgent</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <div className="space-y-2">
+                        <Label>Status</Label>
+                        <Select value={status} onValueChange={setStatus}>
+                          <SelectTrigger>
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="open">Open</SelectItem>
+                            <SelectItem value="in_progress">In Progress</SelectItem>
+                            <SelectItem value="resolved">Resolved</SelectItem>
+                            <SelectItem value="closed">Closed</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <div className="space-y-2">
+                        <Label>Category</Label>
+                        <Select 
+                          value={ticket.category} 
+                          onValueChange={(value) => {
+                            onTicketUpdate(ticket.id, { category: value });
+                          }}
+                        >
+                          <SelectTrigger>
+                            <SelectValue placeholder="Select a category" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="general">General</SelectItem>
+                            <SelectItem value="technical">Technical</SelectItem>
+                            <SelectItem value="billing">Billing</SelectItem>
+                            <SelectItem value="account">Account</SelectItem>
+                            <SelectItem value="other">Other</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    </div>
+                    
+                    <Button 
+                      onClick={handleUpdateTicket} 
+                      disabled={updating}
+                      className="mt-4"
+                    >
+                      {updating ? 'Updating...' : 'Update Ticket'}
+                    </Button>
+                  </CardContent>
+                </Card>
+              )}
+
+              {/* Messages */}
+              {ticket.messages && ticket.messages.length > 0 && (
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="text-base flex items-center gap-2">
+                      <MessageSquare className="h-4 w-4" />
+                      Messages ({ticket.messages.length})
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <TicketMessagesDisplay messages={ticket.messages} ticket={ticket} />
+                  </CardContent>
+                </Card>
+              )}
+
+              {/* Add Message */}
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-base">Add Message</CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="space-y-2">
+                    <Label>Message</Label>
+                    <Textarea
+                      value={newMessage}
+                      onChange={(e) => setNewMessage(e.target.value)}
+                      placeholder="Type your message here..."
+                      className="min-h-[100px]"
+                    />
+                  </div>
+                  
+                  <TicketAttachments
+                    ticketId={ticket.id}
+                    onAttachmentUpload={async (file) => {
+                      // Handle file upload for new messages
+                      console.log('File upload for message:', file);
+                    }}
+                  />
+                </CardContent>
+              </Card>
+            </div>
+
+            {/* Footer */}
+            <div className="flex justify-end gap-2 p-6 border-t">
+              <Button variant="outline" onClick={() => onOpenChange(false)}>
+                Close
+              </Button>
+              <Button 
+                onClick={handleSendMessage} 
+                disabled={!newMessage.trim() || sending}
+              >
+                {sending ? 'Sending...' : 'Send Message'}
+              </Button>
+            </div>
+          </div>
         </div>
-
-        <DialogFooter className="gap-2">
-          <Button variant="outline" onClick={() => onOpenChange(false)}>
-            Close
-          </Button>
-          <Button 
-            onClick={handleSendMessage} 
-            disabled={!newMessage.trim() || sending}
-          >
-            {sending ? 'Sending...' : 'Send Message'}
-          </Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
+      )}
+    </>
   );
 }
