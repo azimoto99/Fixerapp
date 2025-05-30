@@ -416,45 +416,7 @@ const MapSection: React.FC<MapSectionProps> = ({ jobs, selectedJob, onSelectJob,
           onMapClick={handleMapClick}
           style={{ width: '100%', height: '100%' }}
           interactive={true}
-        />
-      {/* Stripe Connect Required Modal */}
-      {showStripeConnectRequired && (
-        <StripeConnectRequired
-          onComplete={() => {
-            setShowStripeConnectRequired(false);
-            // After setup, try to apply again after a small delay
-            setTimeout(() => {
-              handleApply();
-            }, 500);
-          }}
-          onSkip={() => setShowStripeConnectRequired(false)}
-        />
-      )}
-        
 
-        
-        {position && (
-          <MapboxMap
-            latitude={
-              focusMapCoordinates 
-              ? focusMapCoordinates.latitude 
-              : (allJobsWithCoordinates?.length > 0 && allJobsWithCoordinates[0].latitude) 
-                ? allJobsWithCoordinates[0].latitude 
-                : position.latitude
-            }
-            longitude={
-              focusMapCoordinates 
-              ? focusMapCoordinates.longitude 
-              : (allJobsWithCoordinates?.length > 0 && allJobsWithCoordinates[0].longitude) 
-                ? allJobsWithCoordinates[0].longitude 
-                : position.longitude
-            }
-            zoom={focusMapCoordinates ? 18 : 10}
-            markers={jobMarkers}
-            onMapClick={handleMapClick}
-            style={{ width: '100%', height: '100%' }}
-            interactive={true}
-          />
         )}
         
         {/* Removed duplicate fallback location notice - already shown in top control panel */}
