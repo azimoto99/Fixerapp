@@ -344,84 +344,78 @@ const MapSection: React.FC<MapSectionProps> = ({ jobs, selectedJob, onSelectJob,
       });
     }
     
-
-
-const jobMarkers = useMemo(() => {
-  // Create a typed array to avoid TypeScript errors
-  const markers: {
-    latitude: number;
-    longitude: number;
-    title: string;
-    description: string;
-    onClick: () => void;
-    isHighlighted?: boolean;
-    markerColor?: string; // Added support for custom marker colors
-  }[] = [];
-
-  // Decide which job list to use: the filtered list (jobs prop) or all jobs with coordinates
-  const sourceJobs = (jobs && jobs.length > 0) ? jobs : (allJobsWithCoordinates || []);
-
-  if (sourceJobs && sourceJobs.length > 0) {
-    // Only keep jobs that have coordinates
-    const jobsWithCoordinates = sourceJobs.filter(job => job.latitude && job.longitude);
-
-    jobsWithCoordinates.forEach(job => {
-      // Check if this is a highlighted job
-      const isHighlighted = job.id === highlightedJobId;
-
-      // Log creation for debugging
-      // console.log('Creating marker for job:', job.id, job.title, job.latitude, job.longitude);
-
-      // Force number conversion and ensure coordinates are valid numbers
-      const lat = typeof job.latitude === 'string' ? parseFloat(job.latitude) : job.latitude;
-      const lng = typeof job.longitude === 'string' ? parseFloat(job.longitude) : job.longitude;
-
+    // If we have focus coordinates from "Show on Map", add a special highlighted marker
+    if (focusMapCoordinates) {
+      console.log('Adding special marker for focused job at:', focusMapCoordinates);
       markers.push({
-        latitude: lat,
-        longitude: lng,
-        title: job.title,
-        description: `$${job.paymentAmount?.toFixed(2)} - ${job.paymentType}`,
-        onClick: () => handleMarkerClick(job),
-        isHighlighted: isHighlighted,
-        markerColor: job.markerColor || '#f59e0b', // Use the job's marker color or default to amber
+        latitude: focusMapCoordinates.latitude,
+        longitude: focusMapCoordinates.longitude,
+        title: 'Job Location',
+        description: 'Selected Job Position',
+        onClick: () => {},
+        isHighlighted: true
       });
-    });
+    }
+    
+    return markers;
+  }, [jobs, allJobsWithCoordinates, handleMarkerClick, position, focusMapCoordinates, highlightedJobId]);
+
+  // If no user location yet, show loading
+  if (!position) {
+    return (
+      <div className="md:col-span-2 bg-background/50 border border-border shadow-md rounded-lg flex items-center justify-center h-80">
+        <div className="text-center p-6 bg-card/80 rounded-xl border border-border shadow-sm max-w-sm">
+          <div className="relative mx-auto mb-5 w-16 h-16">
+            <div className="absolute inset-0 bg-primary/20 rounded-full animate-ping"></div>
+            <div className="relative flex items-center justify-center w-16 h-16 bg-primary/10 rounded-full">
+              <Loader2 className="h-8 w-8 animate-spin text-primary" />
+            </div>
+          </div>
+          <h2 className="text-lg font-bold text-foreground">Loading...</h2>
+        </div>
+      </div>
+    );
   }
 
-  // Add user location marker
-  if (position) {
-    console.log('Creating user location marker');
-    markers.push({
-      latitude: position.latitude,
-      longitude: position.longitude,
-      title: 'Current Location',
-      description: 'You are here',
-      onClick: () => {}
-    });
+  // Stripe Connect Required Modal
+  if (showStripeConnectRequired) {
+    return (
+      <StripeConnectRequired
+        onComplete={() => {
+          setShowStripeConnectRequired(false);
+          // After setup, try to apply again after a small delay
+          setTimeout(() => {
+            handleApply();
+          }, 500);
+        }}
+        onSkip={() => setShowStripeConnectRequired(false)}
+      />
+    );
   }
 
-  // If we have focus coordinates from "Show on Map", add a special highlighted marker
-  if (focusMapCoordinates) {
-    console.log('Adding special marker for focused job at:', focusMapCoordinates);
-    markers.push({
-      latitude: focusMapCoordinates.latitude,
-      longitude: focusMapCoordinates.longitude,
-      title: 'Job Location',
-      description: 'Selected Job Position',
-      onClick: () => {},
-      isHighlighted: true
-    });
-  }
-
-  return markers;
-}, [jobs, allJobsWithCoordinates, handleMarkerClick, position, focusMapCoordinates, highlightedJobId]);
-
-// If no user location yet, show loading
-if (!position) {
   return (
-    <div className="md:col-span-2 bg-background/50 border border-border shadow-md rounded-lg flex items-center justify-center h-80">
-      <div className="text-center p-6 bg-card/80 rounded-xl border border-border shadow-sm max-w-sm">
-        <div className="relative mx-auto mb-5 w-16 h-16">
+    <div className="md:col-span-2 h-full">
+      {position && (
+        <MapboxMap
+          latitude={
+            focusMapCoordinates 
+            ? focusMapCoordinates.latitude 
+            : (allJobsWithCoordinates?.length > 0 && allJobsWithCoordinates[0].latitude) 
+              ? allJobsWithCoordinates[0].latitude 
+              : position.latitude
+          }
+          longitude={
+            focusMapCoordinates 
+            ? focusMapCoordinates.longitude 
+            : (allJobsWithCoordinates?.length > 0 && allJobsWithCoordinates[0].longitude) 
+              ? allJobsWithCoordinates[0].longitude 
+              : position.longitude
+          }
+          zoom={focusMapCoordinates ? 18 : 10}
+          markers={jobMarkers}
+          onMapClick={handleMapClick}
+          style={{ width: '100%', height: '100%' }}
+          interactive={true}
           <div className="absolute inset-0 bg-primary/20 rounded-full animate-ping"></div>
           <div className="relative flex items-center justify-center w-16 h-16 bg-primary/10 rounded-full">
             <Loader2 className="h-8 w-8 animate-spin text-primary" />
