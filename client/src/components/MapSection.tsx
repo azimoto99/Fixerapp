@@ -311,16 +311,18 @@ const MapSection: React.FC<MapSectionProps> = ({ jobs, selectedJob, onSelectJob,
       
       jobsWithCoordinates.forEach(job => {
         // Check if this is a highlighted job
-    }
-    
-    toast({
-      title: "Application Failed",
-      description: "There was an error submitting your application. Please try again.",
-      variant: "destructive"
-    });
-  } finally {
-    setIsApplying(false);
-        isHighlighted: true
+        const isHighlighted = job.id === highlightedJobId;
+        
+        // Add marker for each job
+        markers.push({
+          latitude: job.latitude,
+          longitude: job.longitude,
+          title: job.title,
+          description: `$${job.paymentAmount?.toFixed(2)} - ${job.paymentType}`,
+          onClick: () => handleMarkerClick(job),
+          isHighlighted,
+          markerColor: isHighlighted ? '#3b82f6' : '#f59e0b'
+        });
       });
     }
     
