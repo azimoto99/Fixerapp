@@ -255,11 +255,7 @@ export default function SupportContent() {
             <CardDescription className="mb-4">
               Get help with account issues, platform features, or general questions
             </CardDescription>
-            <Dialog open={isCreateTicketOpen} onOpenChange={(open) => {
-              // Only allow closing via the X button or form submission
-              if (!open) return;
-              setIsCreateTicketOpen(open);
-            }}>
+            <Dialog open={isCreateTicketOpen} onOpenChange={setIsCreateTicketOpen}>
               <DialogTrigger asChild>
                 <Button className="w-full" onClick={() => setIsCreateTicketOpen(true)}>Create Support Ticket</Button>
               </DialogTrigger>
@@ -281,27 +277,50 @@ export default function SupportContent() {
                       Describe your issue and we'll help you resolve it quickly.
                     </DialogDescription>
                   </DialogHeader>
+                  
                   <div className="grid gap-4 py-4">
                     <div className="space-y-2">
                       <Label htmlFor="category">Category</Label>
-                      <Select name="category" required>
+                      <Select name="category" defaultValue="general">
                         <SelectTrigger>
-                          <SelectValue placeholder="Select category" />
+                          <SelectValue placeholder="Select a category" />
                         </SelectTrigger>
                         <SelectContent>
-                          <SelectItem value="ACCOUNT_ISSUE">Account Issue</SelectItem>
-                          <SelectItem value="TECHNICAL_SUPPORT">Technical Support</SelectItem>
-                          <SelectItem value="BILLING_QUESTION">Billing Question</SelectItem>
-                          <SelectItem value="FEATURE_REQUEST">Feature Request</SelectItem>
-                          <SelectItem value="OTHER">Other</SelectItem>
+                          <SelectItem value="general">General</SelectItem>
+                          <SelectItem value="technical">Technical</SelectItem>
+                          <SelectItem value="billing">Billing</SelectItem>
+                          <SelectItem value="account">Account</SelectItem>
+                          <SelectItem value="other">Other</SelectItem>
                         </SelectContent>
                       </Select>
                     </div>
+                    
+                    <div className="space-y-2">
+                      <Label htmlFor="subject">Subject</Label>
+                      <Input 
+                        id="subject" 
+                        name="subject" 
+                        placeholder="Brief description of your issue"
+                        onClick={(e) => e.stopPropagation()}
+                      />
+                    </div>
+                    
+                    <div className="space-y-2">
+                      <Label htmlFor="description">Description</Label>
+                      <Textarea 
+                        id="description" 
+                        name="description" 
+                        placeholder="Detailed description of your issue"
+                        className="min-h-[100px]"
+                        onClick={(e) => e.stopPropagation()}
+                      />
+                    </div>
+                    
                     <div className="space-y-2">
                       <Label htmlFor="priority">Priority</Label>
                       <Select name="priority" defaultValue="medium">
                         <SelectTrigger>
-                          <SelectValue />
+                          <SelectValue placeholder="Select priority" />
                         </SelectTrigger>
                         <SelectContent>
                           <SelectItem value="low">Low</SelectItem>
@@ -311,20 +330,8 @@ export default function SupportContent() {
                         </SelectContent>
                       </Select>
                     </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="subject">Subject</Label>
-                      <Input name="subject" placeholder="Brief description of your issue" required />
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="description">Description</Label>
-                      <Textarea 
-                        name="description" 
-                        placeholder="Please provide detailed information about your issue"
-                        rows={4}
-                        required 
-                      />
-                    </div>
                   </div>
+                  
                   <DialogFooter className="flex gap-2">
                     <Button type="button" variant="outline" onClick={() => setIsCreateTicketOpen(false)}>
                       Cancel

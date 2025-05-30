@@ -524,12 +524,12 @@ export class DatabaseStorage implements IStorage {
   
   // Helper function to calculate distance between two points
   private calculateDistance(lat1: number, lon1: number, lat2: number, lon2: number): number {
-    const R = 3958.8; // Earth's radius in miles
-    const dLat = (lat2 - lat1) * Math.PI / 180;
-    const dLon = (lon2 - lon1) * Math.PI / 180;
-    const a = 
+    const R = 6371; // Earth's radius in kilometers
+    const dLat = this.toRad(lat2 - lat1);
+    const dLon = this.toRad(lon2 - lon1);
+    const a =
       Math.sin(dLat / 2) * Math.sin(dLat / 2) +
-      Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * 
+      Math.cos(this.toRad(lat1)) * Math.cos(this.toRad(lat2)) *
       Math.sin(dLon / 2) * Math.sin(dLon / 2);
     const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
     return R * c;
@@ -999,160 +999,51 @@ export class DatabaseStorage implements IStorage {
     return notificationCount;
   }
   
-  // Helper function to calculate distance between two points using Haversine formula
-  private calculateDistance(lat1: number, lon1: number, lat2: number, lon2: number): number {
-    const R = 3958.8; // Earth's radius in miles
-    const dLat = (lat2 - lat1) * Math.PI / 180;
-    const dLon = (lon2 - lon1) * Math.PI / 180;
-    const a = 
-      Math.sin(dLat / 2) * Math.sin(dLat / 2) +
-      Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * 
-      Math.sin(dLon / 2) * Math.sin(dLon / 2);
-    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-    return R * c;
-  }
-
   // === MESSAGING METHODS ===
   
-  async createMessage(message: any): Promise<any> {
-    const [newMessage] = await this.db.insert(messages).values(message).returning();
-    return newMessage;
-  }
-
-  async getMessagesForJob(jobId: number): Promise<any[]> {
-    const jobMessages = await this.db
-      .select()
-      .from(messages)
-      .leftJoin(users, eq(messages.senderId, users.id))
-      .where(eq(messages.jobId, jobId))
-      .orderBy(messages.sentAt);
-    
-    return jobMessages.map(({ messages: msg, users: sender }) => ({
-      ...msg,
-      sender: sender ? {
-        id: sender.id,
-        username: sender.username,
-        avatarUrl: sender.avatarUrl
-      } : null
-    }));
-  }
-
-  async getConversation(userId1: number, userId2: number): Promise<any[]> {
-    const conversation = await this.db
-      .select()
-      .from(messages)
-      .leftJoin(users, eq(messages.senderId, users.id))
-      .where(
-        or(
-          and(eq(messages.senderId, userId1), eq(messages.recipientId, userId2)),
-          and(eq(messages.senderId, userId2), eq(messages.recipientId, userId1))
-        )
-      )
-      .orderBy(messages.sentAt);
-    
-    return conversation.map(({ messages: msg, users: sender }) => ({
-      ...msg,
-      sender: sender ? {
-        id: sender.id,
-        username: sender.username,
-        avatarUrl: sender.avatarUrl
-      } : null
-    }));
-  }
-
-  async markMessageAsRead(messageId: number, userId: number): Promise<any> {
-    const [updatedMessage] = await this.db
-      .update(messages)
-      .set({ 
-        isRead: true, 
-        readAt: new Date() 
-      })
-      .where(
-        and(
-          eq(messages.id, messageId),
-          eq(messages.recipientId, userId)
-        )
-      )
-      .returning();
-    
-    return updatedMessage;
-  }
-
-  // Enhanced messaging methods for real-time chat
-  async getMessageById(messageId: number): Promise<Message | undefined> {
-    const [message] = await this.db
-      .select()
-      .from(messages)
-      .where(eq(messages.id, messageId))
-      .limit(1);
-    
-    return message;
-  }
-
-  async getPendingMessages(userId: number): Promise<Message[]> {
-    const pendingMessages = await this.db
-      .select()
-      .from(messages)
-      .where(
-        and(
-          eq(messages.recipientId, userId),
-          eq(messages.isRead, false)
-        )
-      )
-      .orderBy(asc(messages.createdAt));
-    
-    return pendingMessages;
-  }
-
   async getMessagesForJob(jobId: number): Promise<Message[]> {
-    const jobMessages = await this.db
-      .select()
-      .from(messages)
-      .where(eq(messages.jobId, jobId))
-      .orderBy(asc(messages.createdAt));
-    
-    return jobMessages;
+    const messages = await this.db.query.messages.findMany({
+      where: eq(messages.jobId, jobId),
+      orderBy: desc(messages.createdAt),
+    });
+    return messages;
   }
 
   async getConversation(userId1: number, userId2: number, jobId?: number): Promise<Message[]> {
-    let query = this.db
-      .select()
-      .from(messages)
-      .where(
-        or(
-          and(eq(messages.senderId, userId1), eq(messages.recipientId, userId2)),
-          and(eq(messages.senderId, userId2), eq(messages.recipientId, userId1))
+    const query = jobId
+      ? and(
+          eq(messages.jobId, jobId),
+          or(
+            and(eq(messages.senderId, userId1), eq(messages.receiverId, userId2)),
+            and(eq(messages.senderId, userId2), eq(messages.receiverId, userId1))
+          )
         )
-      );
+      : or(
+          and(eq(messages.senderId, userId1), eq(messages.receiverId, userId2)),
+          and(eq(messages.senderId, userId2), eq(messages.receiverId, userId1))
+        );
 
-    if (jobId) {
-      query = query.where(eq(messages.jobId, jobId));
-    }
-
-    const conversation = await query.orderBy(asc(messages.createdAt));
-    return conversation;
+    const messages = await this.db.query.messages.findMany({
+      where: query,
+      orderBy: desc(messages.createdAt),
+    });
+    return messages;
   }
 
-  async createMessage(message: any): Promise<Message> {
+  async createMessage(message: MessageInput): Promise<Message> {
     const [newMessage] = await this.db.insert(messages).values(message).returning();
     return newMessage;
   }
 
-  async markMessageAsRead(messageId: number, userId: number): Promise<Message | undefined> {
-    const [updatedMessage] = await this.db
+  async markMessageAsRead(messageId: number, userId: number): Promise<void> {
+    await this.db
       .update(messages)
-      .set({ 
-        isRead: true, 
-        readAt: new Date() 
-      })
+      .set({ read: true })
       .where(
         and(
           eq(messages.id, messageId),
-          eq(messages.recipientId, userId)
+          eq(messages.receiverId, userId)
         )
-      )
-      .returning();
-    
-    return updatedMessage;
+      );
   }
 }

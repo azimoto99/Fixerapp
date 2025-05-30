@@ -1,62 +1,45 @@
 import express, { type Express } from "express";
 import fs from "fs";
 import path from "path";
-import { createServer as createViteServer, createLogger } from "vite";
+import { createServer } from "vite";
 import { type Server } from "http";
 import { nanoid } from "nanoid";
 
-const viteLogger = createLogger();
-
-export function log(message: string, source = "express") {
-  const formattedTime = new Date().toLocaleTimeString("en-US", {
-    hour: "numeric",
-    minute: "2-digit",
-    second: "2-digit",
-    hour12: true,
-  });
-
-  console.log(`${formattedTime} [${source}] ${message}`);
-}
+export const log = console.log;
 
 export async function setupVite(app: Express, server: Server) {
-  const serverOptions = {
-    middlewareMode: true,
-    hmr: { server },
-    allowedHosts: true,
-  };
-
-  // Use inline Vite config instead of importing from vite.config.ts
-  // This avoids the top-level await issue
-  const vite = await createViteServer({
-    configFile: false,
-    customLogger: {
-      ...viteLogger,
-      error: (msg, options) => {
-        viteLogger.error(msg, options);
-        process.exit(1);
-      },
+  const vite = await createServer({
+    server: {
+      middlewareMode: true,
+      hmr: {
+        server,
+        protocol: 'ws',
+        host: 'localhost',
+        port: 5000,
+        clientPort: 5000
+      }
     },
-    plugins: [
-      // Default plugins will be added by Vite automatically
-    ],
+    appType: 'custom',
+    root: path.resolve(process.cwd(), "client"),
     resolve: {
       alias: {
-        "@": path.resolve(process.cwd(), "client", "src"),
-        "@shared": path.resolve(process.cwd(), "shared"),
-        "@assets": path.resolve(process.cwd(), "attached_assets"),
-      },
-    },
-    root: path.resolve(process.cwd(), "client"),
-    build: {
-      outDir: path.resolve(process.cwd(), "dist/public"),
-      emptyOutDir: true,
-    },
-    server: serverOptions,
-    appType: "custom",
+        '@': path.resolve(process.cwd(), 'client/src'),
+        '@shared': path.resolve(process.cwd(), 'shared'),
+        '@assets': path.resolve(process.cwd(), 'attached_assets'),
+      }
+    }
   });
 
+  // Use Vite's middleware first
   app.use(vite.middlewares);
+
+  // Then handle any remaining requests
   app.use("*", async (req, res, next) => {
+    // Skip if the request has already been handled by Vite
+    if (res.headersSent) {
+      return next();
+    }
+
     const url = req.originalUrl;
 
     try {
@@ -90,10 +73,15 @@ export function serveStatic(app: Express) {
     );
   }
 
+  // Serve static files
   app.use(express.static(distPath));
 
-  // fall through to index.html if the file doesn't exist
-  app.use("*", (_req, res) => {
+  // Handle any remaining requests
+  app.use("*", (req, res, next) => {
+    // Skip if the request has already been handled
+    if (res.headersSent) {
+      return next();
+    }
     res.sendFile(path.resolve(distPath, "index.html"));
   });
 }

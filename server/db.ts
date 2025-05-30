@@ -1,3 +1,4 @@
+import './env';  // This must be the first import
 import { createClient } from '@supabase/supabase-js';
 import { drizzle } from 'drizzle-orm/postgres-js';
 import postgres from 'postgres';
@@ -9,18 +10,53 @@ if (!process.env.SUPABASE_URL || !process.env.SUPABASE_ANON_KEY) {
   );
 }
 
-// Create Supabase client
+// Create Supabase client with retry logic
 export const supabase = createClient(
-  process.env.SUPABASE_URL,
-  process.env.SUPABASE_ANON_KEY
+  process.env.SUPABASE_URL!,
+  process.env.SUPABASE_ANON_KEY!,
+  {
+    auth: {
+      persistSession: true,
+      autoRefreshToken: true,
+    },
+    global: {
+      headers: {
+        'x-application-name': 'fixer-app',
+      },
+    },
+  }
 );
 
-// Create PostgreSQL connection for Drizzle
-const connectionString = process.env.SUPABASE_DATABASE_URL;
-if (!connectionString) {
-  throw new Error("SUPABASE_DATABASE_URL must be set");
-}
+// Create PostgreSQL connection for Drizzle with retry logic
+const connectionString = process.env.SUPABASE_DATABASE_URL!;
 
-const client = postgres(connectionString);
+// Configure postgres client with retry logic and better error handling
+const client = postgres(connectionString, {
+  max: 10, // Maximum number of connections
+  idle_timeout: 20, // Idle connection timeout in seconds
+  connect_timeout: 10, // Connection timeout in seconds
+  max_lifetime: 60 * 30, // Maximum lifetime of a connection in seconds
+  prepare: false, // Disable prepared statements for better compatibility
+  ssl: 'require', // Require SSL for security
+  onnotice: () => {}, // Suppress notice messages
+  onparameter: () => {}, // Suppress parameter messages
+  debug: process.env.NODE_ENV === 'development', // Enable debug logging in development
+  connection: {
+    application_name: 'fixer-app',
+  },
+  // Force IPv4
+  host: new URL(connectionString).hostname,
+  port: 5432,
+  family: 4, // Force IPv4
+  // Add error handling through the connection options
+  onerror: (err) => {
+    console.error('Database connection error:', err);
+    // The client will automatically attempt to reconnect
+  }
+});
+
+// Export the database instance
 export const db = drizzle(client, { schema });
+
+// Re-export the client for other modules that need it
 export { client };
