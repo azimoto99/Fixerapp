@@ -416,9 +416,7 @@ const MapSection: React.FC<MapSectionProps> = ({ jobs, selectedJob, onSelectJob,
           onMapClick={handleMapClick}
           style={{ width: '100%', height: '100%' }}
           interactive={true}
-          <div className="absolute inset-0 bg-primary/20 rounded-full animate-ping"></div>
-          <div className="relative flex items-center justify-center w-16 h-16 bg-primary/10 rounded-full">
-            <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        />
       {/* Stripe Connect Required Modal */}
       {showStripeConnectRequired && (
         <StripeConnectRequired
