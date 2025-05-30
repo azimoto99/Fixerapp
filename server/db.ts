@@ -48,6 +48,11 @@ const client = postgres(connectionString, {
   host: new URL(connectionString).hostname,
   port: 5432,
   family: 4, // Force IPv4
+  // Add error handling through the connection options
+  onerror: (err) => {
+    console.error('Database connection error:', err);
+    // The client will automatically attempt to reconnect
+  }
 });
 
 // Export the database instance
@@ -55,15 +60,3 @@ export const db = drizzle(client, { schema });
 
 // Re-export the client for other modules that need it
 export { client };
-
-// Add connection error handling
-client.on('error', (err) => {
-  console.error('Database connection error:', err);
-  // Attempt to reconnect
-  setTimeout(() => {
-    console.log('Attempting to reconnect to database...');
-    client.end().then(() => {
-      // The client will automatically attempt to reconnect
-    }).catch(console.error);
-  }, 5000); // Wait 5 seconds before attempting to reconnect
-});
