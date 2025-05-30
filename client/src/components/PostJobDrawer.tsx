@@ -65,6 +65,16 @@ interface PostJobDrawerProps {
 }
 
 export default function PostJobDrawer({ isOpen, onOpenChange }: PostJobDrawerProps) {
+  React.useEffect(() => {
+    if (isOpen) {
+      document.body.setAttribute('data-post-job-drawer-open', 'true');
+    } else {
+      document.body.removeAttribute('data-post-job-drawer-open');
+    }
+    return () => {
+      document.body.removeAttribute('data-post-job-drawer-open');
+    };
+  }, [isOpen]);
   const { user } = useAuth();
   const { toast } = useToast();
   const [_, navigate] = useLocation();
@@ -454,9 +464,7 @@ export default function PostJobDrawer({ isOpen, onOpenChange }: PostJobDrawerPro
           <div className="flex-1 overflow-y-auto p-4 pb-16">
             <Form {...form}>
               <form id="post-job-form" onSubmit={form.handleSubmit(onSubmit)} className="space-y-4 relative">
-                <FormField
-                  control={form.control}
-                  name="title"
+                // ...
                   render={({ field }) => (
                     <FormItem>
                       <FormLabel>Job Title</FormLabel>
