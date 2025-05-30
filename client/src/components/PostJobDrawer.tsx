@@ -458,72 +458,59 @@ export default function PostJobDrawer({ isOpen, onOpenChange }: PostJobDrawerPro
           <DrawerHeader className="border-b border-border">
             <DrawerTitle>Post a New Job</DrawerTitle>
             <DrawerDescription>
-              Fill out the details for your job posting.
-            </DrawerDescription>
-          </DrawerHeader>
-          <div className="flex-1 overflow-y-auto p-4 pb-16">
-            <Form {...form}>
-              <form id="post-job-form" onSubmit={form.handleSubmit(onSubmit)} className="space-y-4 relative">
-                // ...
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Job Title</FormLabel>
-                      <FormControl>
-                        <Input 
-                          placeholder="e.g. Lawn Mowing" 
-                          onChange={(e) => {
-                            // Auto-capitalize first letter of each word
-                            const value = e.target.value.replace(/\b\w/g, (char) => char.toUpperCase());
-                            field.onChange(value);
-                          }}
-                          onBlur={(e) => {
-                            // Final trim and formatting on blur
-                            const value = e.target.value.trim();
-                            // Ensure first letter is capitalized and limit to 100 chars
-                            const formattedValue = value.charAt(0).toUpperCase() + value.slice(1, 100);
-                            field.onChange(formattedValue);
-                          }}
-                          value={field.value}
-                        />
-                      </FormControl>
-                      <FormMessage />
-                      <FormDescription>
-                        {field.value?.length || 0}/100 characters
-                      </FormDescription>
-                    </FormItem>
-                  )}
-                />
                 
-                <FormField
-                  control={form.control}
-                  name="description"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Description</FormLabel>
-                      <FormControl>
-                        <Textarea 
-                          placeholder="Describe the job in detail..." 
-                          className="min-h-[100px]"
-                          onChange={(e) => {
-                            // Allow regular typing with spaces
-                            const value = e.target.value;
-                            field.onChange(value);
-                          }}
-                          onBlur={(e) => {
-                            // Final trim on blur
-                            const cleanValue = e.target.value.trim();
-                            field.onChange(cleanValue);
-                          }}
-                          value={field.value}
-                        />
-                      </FormControl>
-                      <FormMessage />
-                      <FormDescription>
-                        {field.value?.length || 0}/5000 characters
-                      </FormDescription>
-                    </FormItem>
-                  )}
-                />
+              <FormField control={form.control} name="description">
+                {({ field }) => (
+                  <FormItem>
+                    <FormLabel>Description</FormLabel>
+                    <FormControl>
+                      <Textarea 
+                        placeholder="Describe the job in detail..." 
+                        className="min-h-[100px]"
+                        onChange={(e) => {
+                          // Allow regular typing with spaces
+                          const value = e.target.value;
+                          field.onChange(value);
+                        }}
+                        onBlur={(e) => {
+                          // Final trim on blur
+                          const cleanValue = e.target.value.trim();
+                          field.onChange(cleanValue);
+                        }}
+                        value={field.value}
+                      />
+                    </FormControl>
+                    <FormMessage />
+                    <FormDescription>
+                      {field.value?.length || 0}/1000 characters
+                    </FormDescription>
+                  </FormItem>
+                )}
+              </FormField>
+      <FormControl>
+        <Textarea 
+          placeholder="Describe the job in detail..." 
+          className="min-h-[100px]"
+          onChange={(e) => {
+            // Allow regular typing with spaces
+            const value = e.target.value;
+            field.onChange(value);
+          }}
+          onBlur={(e) => {
+            // Final trim on blur
+            const cleanValue = e.target.value.trim();
+            field.onChange(cleanValue);
+          }}
+          value={field.value}
+        />
+      </FormControl>
+      <FormMessage />
+      <FormDescription>
+        {field.value?.length || 0}/1000 characters
+      </FormDescription>
+    </FormItem>
+  )}
+</FormField>
                 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <FormField
