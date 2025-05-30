@@ -416,6 +416,8 @@ const MapSection: React.FC<MapSectionProps> = ({ jobs, selectedJob, onSelectJob,
           onMapClick={handleMapClick}
           style={{ width: '100%', height: '100%' }}
           interactive={true}
+        />
+      )}
 
         )}
         
