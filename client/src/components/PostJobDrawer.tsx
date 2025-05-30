@@ -1,4 +1,5 @@
-import React, { useState } from 'react';
+import * as React from 'react';
+import { useState, useEffect } from 'react';
 import { useLocation } from 'wouter';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -65,7 +66,14 @@ interface PostJobDrawerProps {
 }
 
 export default function PostJobDrawer({ isOpen, onOpenChange }: PostJobDrawerProps) {
-  React.useEffect(() => {
+  const [isMounted, setIsMounted] = React.useState(false);
+  
+  useEffect(() => {
+    setIsMounted(true);
+    return () => setIsMounted(false);
+  }, []);
+  
+  useEffect(() => {
     if (isOpen) {
       document.body.setAttribute('data-post-job-drawer-open', 'true');
     } else {
@@ -863,3 +871,6 @@ export default function PostJobDrawer({ isOpen, onOpenChange }: PostJobDrawerPro
     </>
   );
 }
+
+// Add proper display name for debugging
+PostJobDrawer.displayName = 'PostJobDrawer';
