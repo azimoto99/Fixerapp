@@ -362,24 +362,7 @@ const MapSection: React.FC<MapSectionProps> = ({ jobs, selectedJob, onSelectJob,
     }
     
 
-// Track previous selected job to avoid reopening the panel on same job
-const [previousSelectedJobId, setPreviousSelectedJobId] = useState<number | null>(null);
 
-useEffect(() => {
-  // Only show job detail if there's a selected job
-  if (selectedJob) {
-    // Check if this is a new job selection (different from previous)
-    if (previousSelectedJobId !== selectedJob.id) {
-      setShowJobDetail(true);
-      setPreviousSelectedJobId(selectedJob.id);
-    }
-  } else {
-    // No job selected
-    setPreviousSelectedJobId(null);
-  }
-}, [selectedJob, previousSelectedJobId]);
-
-// Create markers for Mapbox map
 const jobMarkers = useMemo(() => {
   // Create a typed array to avoid TypeScript errors
   const markers: {
