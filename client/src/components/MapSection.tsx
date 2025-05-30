@@ -346,7 +346,7 @@ const MapSection: React.FC<MapSectionProps> = ({ jobs, selectedJob, onSelectJob,
   }
 
   return (
-    <div className="w-full h-full">
+    <div className="w-full h-[60vh] md:h-[calc(100vh-64px)] md:min-h-screen">
       {/* Stripe Connect Required Modal */}
       {showStripeConnectRequired && (
         <StripeConnectRequired
@@ -355,18 +355,6 @@ const MapSection: React.FC<MapSectionProps> = ({ jobs, selectedJob, onSelectJob,
             // After setup, try to apply again after a small delay
             setTimeout(() => {
               handleApply();
-            }, 500);
-          }}
-          onSkip={() => setShowStripeConnectRequired(false)}
-        />
-      )}
-      <div className="relative h-screen max-h-[calc(100vh-64px)] overflow-hidden">
-        <style>{`
-          /* Animation for markers */
-          @keyframes bounce-in {
-            0% { transform: scale(0.8); opacity: 0; }
-            60% { transform: scale(1.1); }
-            100% { transform: scale(1); opacity: 1; }
           }
           
           @keyframes pulse-marker {
