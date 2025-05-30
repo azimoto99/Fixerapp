@@ -533,7 +533,7 @@ const MapSection: React.FC<MapSectionProps> = ({ jobs, selectedJob, onSelectJob,
         )}
       </div>
     </div>
-  );
+  ));
 };
 
 export default MapSection;
