@@ -311,48 +311,15 @@ const MapSection: React.FC<MapSectionProps> = ({ jobs, selectedJob, onSelectJob,
       
       jobsWithCoordinates.forEach(job => {
         // Check if this is a highlighted job
-        const isHighlighted = job.id === highlightedJobId;
-        
-        // Log creation for debugging
-        // console.log('Creating marker for job:', job.id, job.title, job.latitude, job.longitude);
-        
-        // Force number conversion and ensure coordinates are valid numbers
-        const lat = typeof job.latitude === 'string' ? parseFloat(job.latitude) : job.latitude;
-        const lng = typeof job.longitude === 'string' ? parseFloat(job.longitude) : job.longitude;
-        
-        markers.push({
-          latitude: lat,
-          longitude: lng,
-          title: job.title,
-          description: `$${job.paymentAmount?.toFixed(2)} - ${job.paymentType}`,
-          onClick: () => handleMarkerClick(job),
-          isHighlighted: isHighlighted,
-          markerColor: job.markerColor || '#f59e0b', // Use the job's marker color or default to amber
-        });
-      });
     }
     
-    // Add user location marker
-    if (position) {
-      console.log('Creating user location marker');
-      markers.push({
-        latitude: position.latitude,
-        longitude: position.longitude,
-        title: 'Current Location',
-        description: 'You are here',
-        onClick: () => {}
-      });
-    }
-    
-    // If we have focus coordinates from "Show on Map", add a special highlighted marker
-    if (focusMapCoordinates) {
-      console.log('Adding special marker for focused job at:', focusMapCoordinates);
-      markers.push({
-        latitude: focusMapCoordinates.latitude,
-        longitude: focusMapCoordinates.longitude,
-        title: 'Job Location',
-        description: 'Selected Job Position',
-        onClick: () => {},
+    toast({
+      title: "Application Failed",
+      description: "There was an error submitting your application. Please try again.",
+      variant: "destructive"
+    });
+  } finally {
+    setIsApplying(false);
         isHighlighted: true
       });
     }
