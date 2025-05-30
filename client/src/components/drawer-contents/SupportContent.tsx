@@ -255,7 +255,17 @@ export default function SupportContent() {
             <CardDescription className="mb-4">
               Get help with account issues, platform features, or general questions
             </CardDescription>
-            <Dialog open={isCreateTicketOpen} onOpenChange={setIsCreateTicketOpen}>
+            <Dialog
+  open={isCreateTicketOpen}
+  onOpenChange={(open) => {
+    setIsCreateTicketOpen(open);
+    if (open) {
+      document.body.setAttribute('data-support-dialog-open', 'true');
+    } else {
+      document.body.removeAttribute('data-support-dialog-open');
+    }
+  }}
+>
               <DialogTrigger asChild>
                 <Button className="w-full" onClick={() => setIsCreateTicketOpen(true)}>Create Support Ticket</Button>
               </DialogTrigger>
@@ -357,7 +367,17 @@ export default function SupportContent() {
             <CardDescription className="mb-4">
               Report problems with jobs, payments, or user behavior
             </CardDescription>
-            <Dialog open={isCreateDisputeOpen} onOpenChange={setIsCreateDisputeOpen}>
+            <Dialog
+  open={isCreateDisputeOpen}
+  onOpenChange={(open) => {
+    setIsCreateDisputeOpen(open);
+    if (open) {
+      document.body.setAttribute('data-support-dialog-open', 'true');
+    } else {
+      document.body.removeAttribute('data-support-dialog-open');
+    }
+  }}
+>
               <DialogTrigger asChild>
                 <Button variant="outline" className="w-full" onClick={() => setIsCreateDisputeOpen(true)}>File Dispute</Button>
               </DialogTrigger>
@@ -465,14 +485,24 @@ export default function SupportContent() {
             <CardDescription className="mb-4">
               Issues with payments, refunds, or billing questions
             </CardDescription>
-            <Dialog open={isRefundRequestOpen} onOpenChange={setIsRefundRequestOpen}>
+            <Dialog
+  open={isRefundRequestOpen}
+  onOpenChange={(open) => {
+    setIsRefundRequestOpen(open);
+    if (open) {
+      document.body.setAttribute('data-support-dialog-open', 'true');
+    } else {
+      document.body.removeAttribute('data-support-dialog-open');
+    }
+  }}
+>
               <DialogTrigger asChild>
                 <Button variant="outline" className="w-full" onClick={() => setIsRefundRequestOpen(true)}>Request Refund</Button>
               </DialogTrigger>
               <DialogContent 
-                className="sm:max-w-[425px] support-dialog" 
-                onPointerDownOutside={(e) => e.preventDefault()}
-                onInteractOutside={(e) => e.preventDefault()}
+                className="sm:max-w-[425px] support-dialog"
+                onOpenAutoFocus={() => document.body.setAttribute('data-support-dialog-open', 'true')}
+                onCloseAutoFocus={() => document.body.removeAttribute('data-support-dialog-open')}
               >
                 <form onSubmit={(e) => {
                   e.preventDefault();

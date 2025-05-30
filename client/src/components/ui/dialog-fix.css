@@ -116,6 +116,19 @@ div[role="dialog"] {
   z-index: var(--z-index-post-job-dropdown) !important;
 }
 
+/* Global override for popper/select content when Post Job Drawer is open (for portals) */
+body[data-post-job-drawer-open="true"] [data-radix-popper-content-wrapper],
+body[data-post-job-drawer-open="true"] [data-radix-select-content],
+body[data-post-job-drawer-open="true"] [data-radix-select-portal] {
+  z-index: var(--z-index-post-job-dropdown) !important;
+}
+
+body[data-support-dialog-open="true"] [data-radix-popper-content-wrapper],
+body[data-support-dialog-open="true"] [data-radix-select-content],
+body[data-support-dialog-open="true"] [data-radix-select-portal] {
+  z-index: var(--z-index-support-dropdown) !important;
+}
+
 /* Dialog components */
 .dialog-backdrop {
   z-index: var(--z-index-modal-backdrop) !important;
