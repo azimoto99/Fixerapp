@@ -7,7 +7,7 @@ const accessToken = import.meta.env.VITE_MAPBOX_ACCESS_TOKEN;
 if (accessToken) {
   mapboxgl.accessToken = accessToken;
 } else {
-  console.error('Mapbox access token is missing!');
+  console.error('Mapbox access token is missing! Map features will not work.');
 }
 
 interface MapboxMapProps {
@@ -47,6 +47,12 @@ export default function MapboxMap({
   // Initialize the map
   useEffect(() => {
     if (!mapContainer.current) return;
+    
+    // Don't initialize map if no access token
+    if (!accessToken) {
+      console.warn('Mapbox map will not be initialized - missing access token');
+      return;
+    }
     
     map.current = new mapboxgl.Map({
       container: mapContainer.current,
@@ -198,10 +204,12 @@ export default function MapboxMap({
         }
         
         // Add to map and track for cleanup
-        mapboxMarker.addTo(map.current);
-        mapMarkers.current.push(mapboxMarker);
-        
-        console.log(`Marker successfully added at [${marker.longitude}, ${marker.latitude}] for: ${marker.title}`);
+        if (map.current) {
+          mapboxMarker.addTo(map.current);
+          mapMarkers.current.push(mapboxMarker);
+          
+          console.log(`Marker successfully added at [${marker.longitude}, ${marker.latitude}] for: ${marker.title}`);
+        }
       } catch (error) {
         console.error(`Failed to add marker at [${marker.longitude}, ${marker.latitude}]`, error);
       }
