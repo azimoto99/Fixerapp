@@ -6,11 +6,16 @@ import fs from 'fs';
 const isProduction = process.env.NODE_ENV === 'production';
 
 // Load environment variables from .env file
-const envPath = path.resolve(process.cwd(), '.env');
+// Look for .env in both the server directory and project root
+const serverEnvPath = path.resolve(__dirname, '.env');
+const rootEnvPath = path.resolve(process.cwd(), '.env');
+const envPath = fs.existsSync(serverEnvPath) ? serverEnvPath : rootEnvPath;
 const envExists = fs.existsSync(envPath);
 
 if (!envExists && !isProduction) {
   console.error('Error: .env file not found in development mode');
+  console.error('Looked in:', serverEnvPath);
+  console.error('And:', rootEnvPath);
   process.exit(1);
 }
 

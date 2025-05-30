@@ -3,53 +3,38 @@
  * Run this before starting the application
  */
 
-import { client } from './db';
+import { Pool } from 'pg';
 import { config } from 'dotenv';
 config();
 
-if (!process.env.SUPABASE_DATABASE_URL) {
-  throw new Error('SUPABASE_DATABASE_URL must be set in your environment');
-}
+// Create a pool with IPv4 forcing
+const pool = new Pool({
+  connectionString: process.env.SUPABASE_DATABASE_URL,
+  // Force IPv4
+  host: new URL(process.env.SUPABASE_DATABASE_URL!).hostname,
+  port: 5432,
+  family: 4
+});
 
 async function createSessionsTable() {
   try {
-    console.log('Checking and creating sessions table if needed...');
-    
-    // First check if the table exists
-    const checkTable = `
-      SELECT EXISTS (
-        SELECT FROM information_schema.tables 
-        WHERE table_schema = 'public'
-        AND table_name = 'sessions'
-      );
-    `;
-    
-    const result = await client.unsafe(checkTable);
-    const tableExists = result[0].exists;
-    
-    if (tableExists) {
-      console.log('Sessions table already exists');
-      return;
-    }
-    
-    // Create the sessions table with proper structure for connect-pg-simple
-    const createTable = `
-      CREATE TABLE IF NOT EXISTS "sessions" (
+    // Create the sessions table if it doesn't exist
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS "session" (
         "sid" varchar NOT NULL COLLATE "default",
         "sess" json NOT NULL,
         "expire" timestamp(6) NOT NULL,
-        CONSTRAINT "sessions_pkey" PRIMARY KEY ("sid")
+        CONSTRAINT "session_pkey" PRIMARY KEY ("sid")
       );
-      CREATE INDEX IF NOT EXISTS "IDX_sessions_expire" ON "sessions" ("expire");
-    `;
-    
-    await client.unsafe(createTable);
-    console.log('Sessions table created successfully');
+      CREATE INDEX IF NOT EXISTS "IDX_session_expire" ON "session" ("expire");
+    `);
+    console.log('Sessions table created or already exists');
   } catch (error) {
     console.error('Error creating sessions table:', error);
-    throw error; // Re-throw to handle it in the main application
+    throw error;
+  } finally {
+    await pool.end();
   }
 }
 
-// Export the function for use in other files
-export default createSessionsTable;
+createSessionsTable().catch(console.error);

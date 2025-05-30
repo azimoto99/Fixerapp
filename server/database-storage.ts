@@ -20,7 +20,15 @@ import pkg from 'pg';
 const { Pool } = pkg;
 import { config } from 'dotenv';
 config();
-const pool = new Pool({ connectionString: process.env.SUPABASE_DATABASE_URL });
+
+// Update the pool configuration to force IPv4
+const pool = new Pool({ 
+  connectionString: process.env.SUPABASE_DATABASE_URL,
+  // Force IPv4
+  host: new URL(process.env.SUPABASE_DATABASE_URL!).hostname,
+  port: 5432,
+  family: 4
+});
 
 // Define a set of vibrant colors for job markers
 const JOB_MARKER_COLORS = [
@@ -56,7 +64,11 @@ export class DatabaseStorage implements IStorage {
       // Set proper pruning interval (every 24 hours)
       pruneSessionInterval: 86400000,
       // Set a long session lifetime for better persistence (30 days)
-      ttl: 30 * 24 * 60 * 60
+      ttl: 30 * 24 * 60 * 60,
+      // Add error handling
+      onError: (err) => {
+        console.error('Session store error:', err);
+      }
     });
   }
   
