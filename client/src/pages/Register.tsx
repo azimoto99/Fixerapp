@@ -4,7 +4,7 @@ import { z } from 'zod';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useAuth } from '@/hooks/use-auth';
 import { SKILLS } from '@shared/schema';
-import logoImg from '@/assets/logo.png';
+import logoImg from '@/assets/logo.svg';
 
 import {
   Card,
