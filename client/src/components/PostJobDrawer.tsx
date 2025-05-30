@@ -860,4 +860,6 @@ export default function PostJobDrawer({ isOpen, onOpenChange }: PostJobDrawerPro
           </div>
         </DrawerContent>
       </Drawer>
-    </>);
+    </>
+  );
+}
