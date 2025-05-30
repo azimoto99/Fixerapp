@@ -49,7 +49,7 @@ export default function AuthPage() {
       <div className="hidden lg:flex lg:w-1/2 bg-gradient-to-br from-primary/30 to-primary flex-col items-center justify-center text-white p-12 dark:from-primary/20 dark:to-primary/80">
         <div className="max-w-md">
           <div className="flex items-center mb-6">
-            <img src="/logo.svg" alt="Fixer" className="h-12 mr-3" />
+            <img src="/assets/logo-with-text-original.png" alt="Fixer" className="h-12 mr-3" />
             <h1 className="text-4xl font-bold">Welcome to Fixer</h1>
           </div>
           <p className="text-xl mb-8">
