@@ -532,8 +532,6 @@ const MapSection: React.FC<MapSectionProps> = ({ jobs, selectedJob, onSelectJob,
           </div>
         )}
       </div>
-      
-      {/* New Job Details Card */}
 
     </div>
   );
