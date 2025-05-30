@@ -13,6 +13,7 @@ const pool = new Pool({
   // Ensure IPv4 lookup preference
   host: new URL(process.env.SUPABASE_DATABASE_URL!).hostname,
   port: 5432,
+  family: 4 as 4
 });
 
 async function createSessionsTable() {
