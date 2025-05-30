@@ -235,7 +235,7 @@
     bottom: 1rem;
     left: 1rem;
     right: 1rem;
-    z-index: 40;
+    z-index: 40; /* Base layer for sticky headers/footers */
   }
   
   /* Mobile utility classes */

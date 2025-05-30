@@ -2,23 +2,23 @@
 
 /* Increase z-index of the dialog overlay */
 .fixed.inset-0[role="dialog"] {
-  z-index: 9990 !important;
+  z-index: 2497 !important;
 }
 
 /* Increase z-index of the dialog content */
 div[role="dialog"] > div[role="document"] {
-  z-index: 9999 !important;
+  z-index: 2500 !important;
   position: relative;
 }
 
 /* Make backdrop high priority but still behind dialog */
 div[data-state="open"][data-portal] {
-  z-index: 9980 !important;
+  z-index: 2495 !important;
 }
 
 /* Ensure dialog content is always above backdrop */
 .fixed.inset-0.bg-background\/80.backdrop-blur-sm {
-  z-index: 9950 !important;
+  z-index: 2487 !important;
 }
 
 /* Prevent click-through */
@@ -33,7 +33,7 @@ div[role="dialog"] {
   left: 0;
   width: 100%;
   height: 100%;
-  z-index: 9999;
+  z-index: 2500;
   pointer-events: none;
 }
 
@@ -47,43 +47,43 @@ div[role="dialog"] {
 /* Base z-index values */
 :root {
   /* Base layers */
-  --z-index-blur: 100;
-  --z-index-content: 200;
-  --z-index-header: 300;
+  --z-index-blur: 50;
+  --z-index-content: 100;
+  --z-index-header: 150;
   
   /* Drawer layers */
-  --z-index-drawer: 1000;
-  --z-index-drawer-backdrop: 900;
-  --z-index-user-drawer: 1100;
-  --z-index-user-drawer-backdrop: 1000;
+  --z-index-drawer: 250;
+  --z-index-drawer-backdrop: 200;
+  --z-index-user-drawer: 275;
+  --z-index-user-drawer-backdrop: 250;
   
   /* Dialog layers */
-  --z-index-dialog: 2000;
-  --z-index-dialog-backdrop: 1900;
-  --z-index-support-dialog: 2100;
-  --z-index-support-dialog-backdrop: 2000;
+  --z-index-dialog: 500;
+  --z-index-dialog-backdrop: 400;
+  --z-index-support-dialog: 525;
+  --z-index-support-dialog-backdrop: 500;
   
   /* Dropdown layers */
-  --z-index-dropdown: 3000;
-  --z-index-post-job-dropdown: 3100;
-  --z-index-support-dropdown: 3200;
+  --z-index-dropdown: 750;
+  --z-index-post-job-dropdown: 775;
+  --z-index-support-dropdown: 800;
   
   /* Modal layers */
-  --z-index-modal: 4000;
-  --z-index-modal-backdrop: 3900;
+  --z-index-modal: 1000;
+  --z-index-modal-backdrop: 950;
   
   /* Toast and notification layers */
-  --z-index-toast: 5000;
-  --z-index-loading: 6000;
+  --z-index-toast: 1250;
+  --z-index-loading: 1500;
   
   /* Critical system layers */
-  --z-index-debug: 9000;
-  --z-index-emergency: 9999;
+  --z-index-debug: 2500;
+  --z-index-emergency: 2500;
 }
 
 /* Blur overlay */
 .fixed.inset-0.bg-background\/80.backdrop-blur-sm {
-  z-index: var(--z-index-blur) !important;
+  z-index: var(--z-index-debug) !important;
 }
 
 /* Drawer components */
@@ -118,12 +118,12 @@ div[role="dialog"] {
 
 /* Dialog components */
 .dialog-backdrop {
-  z-index: var(--z-index-dialog-backdrop) !important;
+  z-index: var(--z-index-modal-backdrop) !important;
   pointer-events: auto !important;
 }
 
 .dialog-content {
-  z-index: var(--z-index-dialog) !important;
+  z-index: var(--z-index-loading) !important;
   pointer-events: auto !important;
 }
 

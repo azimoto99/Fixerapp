@@ -357,11 +357,7 @@ export default function SupportContent() {
             <CardDescription className="mb-4">
               Report problems with jobs, payments, or user behavior
             </CardDescription>
-            <Dialog open={isCreateDisputeOpen} onOpenChange={(open) => {
-              // Only allow closing via manual action
-              if (!open) return;
-              setIsCreateDisputeOpen(open);
-            }}>
+            <Dialog open={isCreateDisputeOpen} onOpenChange={setIsCreateDisputeOpen}>
               <DialogTrigger asChild>
                 <Button variant="outline" className="w-full" onClick={() => setIsCreateDisputeOpen(true)}>File Dispute</Button>
               </DialogTrigger>
