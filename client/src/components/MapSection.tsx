@@ -419,8 +419,6 @@ const MapSection: React.FC<MapSectionProps> = ({ jobs, selectedJob, onSelectJob,
         />
       )}
 
-        )}
-        
         {/* Removed duplicate fallback location notice - already shown in top control panel */}
         
 
