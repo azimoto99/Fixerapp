@@ -14,23 +14,12 @@ import {
   UserBadge, InsertUserBadge,
   Notification, InsertNotification
 } from '@shared/schema';
-import connectPg from "connect-pg-simple";
 import session from "express-session";
-import pkg from 'pg';
-const { Pool } = pkg;
 import { config } from 'dotenv';
 config();
 
-// Parse connection URL to force IPv4
-const dbUrl = new URL(process.env.SUPABASE_DATABASE_URL!);
-const pool = new Pool({ 
-  host: dbUrl.hostname,
-  port: parseInt(dbUrl.port) || 5432,
-  database: dbUrl.pathname.slice(1),
-  user: dbUrl.username,
-  password: dbUrl.password,
-  ssl: { rejectUnauthorized: false }
-});
+// Use in-memory session store for now to avoid IPv6 issues
+// const PostgresSessionStore = connectPg(session);
 
 // Define a set of vibrant colors for job markers
 const JOB_MARKER_COLORS = [
@@ -52,26 +41,12 @@ function getRandomMarkerColor(): string {
   return JOB_MARKER_COLORS[randomIndex];
 }
 
-const PostgresSessionStore = connectPg(session);
-
 export class DatabaseStorage implements IStorage {
   sessionStore: session.Store;
 
   constructor() {
-    // Initialize session store with better configuration
-    this.sessionStore = new PostgresSessionStore({ 
-      pool: pool,
-      // Always ensure the table exists
-      createTableIfMissing: true,
-      // Set proper pruning interval (every 24 hours)
-      pruneSessionInterval: 86400000,
-      // Set a long session lifetime for better persistence (30 days)
-      ttl: 30 * 24 * 60 * 60,
-      // Log errors from connect-pg-simple
-      errorLog: (err) => {
-        console.error('Session store error:', err);
-      }
-    });
+    // Use default memory store instead of PostgreSQL to avoid connection issues
+    this.sessionStore = new session.MemoryStore();
   }
   
   // User operations

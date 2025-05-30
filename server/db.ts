@@ -30,23 +30,28 @@ export const supabase = createClient(
 // Create PostgreSQL connection for Drizzle with retry logic
 const connectionString = process.env.SUPABASE_DATABASE_URL!;
 
-// Configure postgres client with retry logic and better error handling
-const client = postgres(connectionString, {
-  max: 10, // Maximum number of connections
-  idle_timeout: 20, // Idle connection timeout in seconds
-  connect_timeout: 10, // Connection timeout in seconds
-  max_lifetime: 60 * 30, // Maximum lifetime of a connection in seconds
-  prepare: false, // Disable prepared statements for better compatibility
-  ssl: 'require', // Require SSL for security
-  onnotice: () => {}, // Suppress notice messages
-  onparameter: () => {}, // Suppress parameter messages
-  debug: process.env.NODE_ENV === 'development', // Enable debug logging in development
+// IMPORTANT: Use Supabase's connection pooler URL (port 6543) instead of direct connection (port 5432)
+// to avoid IPv6 issues. The pooler URL looks like:
+// postgresql://postgres.xxxx:password@aws-0-us-west-1.pooler.supabase.com:6543/postgres
+// Make sure your SUPABASE_DATABASE_URL uses the pooler endpoint
+
+// Parse connection URL
+const dbUrl = new URL(connectionString);
+
+// Configure postgres client with parsed parameters
+const client = postgres({
+  host: dbUrl.hostname,
+  port: parseInt(dbUrl.port) || 5432,
+  database: dbUrl.pathname.slice(1),
+  username: dbUrl.username,
+  password: dbUrl.password,
+  ssl: 'require',
+  max: 10,
+  idle_timeout: 20,
+  connect_timeout: 10,
   connection: {
     application_name: 'fixer-app',
-  },
-  // Explicitly set host to ensure IPv4 lookup (dns ipv4first)
-  host: new URL(connectionString).hostname,
-  port: 5432,
+  }
 });
 
 // Export the database instance
