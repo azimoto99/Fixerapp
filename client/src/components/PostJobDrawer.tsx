@@ -533,7 +533,7 @@ export default function PostJobDrawer({ isOpen, onOpenChange }: PostJobDrawerPro
                               <SelectValue placeholder="Select a category" />
                             </SelectTrigger>
                           </FormControl>
-                          <SelectContent>
+                          <SelectContent position="popper" sideOffset={4}>
                             {JOB_CATEGORIES.map((category) => (
                               <SelectItem key={category} value={category}>
                                 {category}
@@ -565,7 +565,7 @@ export default function PostJobDrawer({ isOpen, onOpenChange }: PostJobDrawerPro
                               <SelectValue placeholder="Select skills" />
                             </SelectTrigger>
                           </FormControl>
-                          <SelectContent>
+                          <SelectContent position="popper" sideOffset={4}>
                             {SKILLS.filter(skill => !field.value?.includes(skill)).map((skill) => (
                               <SelectItem key={skill} value={skill}>
                                 {skill}

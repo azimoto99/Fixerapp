@@ -1,3 +1,4 @@
+import './env';  // This must be the first import
 import { createClient } from '@supabase/supabase-js';
 import { drizzle } from 'drizzle-orm/postgres-js';
 import postgres from 'postgres';
@@ -11,16 +12,12 @@ if (!process.env.SUPABASE_URL || !process.env.SUPABASE_ANON_KEY) {
 
 // Create Supabase client
 export const supabase = createClient(
-  process.env.SUPABASE_URL,
-  process.env.SUPABASE_ANON_KEY
+  process.env.SUPABASE_URL!,
+  process.env.SUPABASE_ANON_KEY!
 );
 
 // Create PostgreSQL connection for Drizzle
-const connectionString = process.env.SUPABASE_DATABASE_URL;
-if (!connectionString) {
-  throw new Error("SUPABASE_DATABASE_URL must be set");
-}
-
+const connectionString = process.env.SUPABASE_DATABASE_URL!;
 const client = postgres(connectionString);
 export const db = drizzle(client, { schema });
 export { client };

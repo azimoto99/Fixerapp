@@ -3,11 +3,13 @@
  * Run this before starting the application
  */
 
-import pkg from 'pg';
-const { Pool } = pkg;
+import { client } from './db';
 import { config } from 'dotenv';
 config();
-const pool = new Pool({ connectionString: process.env.SUPABASE_DATABASE_URL });
+
+if (!process.env.SUPABASE_DATABASE_URL) {
+  throw new Error('SUPABASE_DATABASE_URL must be set in your environment');
+}
 
 async function createSessionsTable() {
   try {
@@ -22,7 +24,7 @@ async function createSessionsTable() {
       );
     `;
     
-    const result = await pool.query(checkTable);
+    const result = await client.unsafe(checkTable);
     const tableExists = result[0].exists;
     
     if (tableExists) {
@@ -41,15 +43,13 @@ async function createSessionsTable() {
       CREATE INDEX IF NOT EXISTS "IDX_sessions_expire" ON "sessions" ("expire");
     `;
     
-    await pool.query(createTable);
+    await client.unsafe(createTable);
     console.log('Sessions table created successfully');
   } catch (error) {
     console.error('Error creating sessions table:', error);
+    throw error; // Re-throw to handle it in the main application
   }
 }
-
-// Execute the function
-createSessionsTable().catch(console.error);
 
 // Export the function for use in other files
 export default createSessionsTable;
