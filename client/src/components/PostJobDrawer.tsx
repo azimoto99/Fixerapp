@@ -455,63 +455,51 @@ export default function PostJobDrawer({ isOpen, onOpenChange }: PostJobDrawerPro
       
       <Drawer open={isOpen} onOpenChange={onOpenChange}>
         <DrawerContent className="max-h-[90vh] flex flex-col">
-          <DrawerHeader className="border-b border-border">
+          <DrawerHeader>
             <DrawerTitle>Post a New Job</DrawerTitle>
             <DrawerDescription>
-                
-              <FormField control={form.control} name="description">
-                {({ field }) => (
-                  <FormItem>
-                    <FormLabel>Description</FormLabel>
-                    <FormControl>
-                      <Textarea 
-                        placeholder="Describe the job in detail..." 
-                        className="min-h-[100px]"
-                        onChange={(e) => {
-                          // Allow regular typing with spaces
-                          const value = e.target.value;
-                          field.onChange(value);
-                        }}
-                        onBlur={(e) => {
-                          // Final trim on blur
-                          const cleanValue = e.target.value.trim();
-                          field.onChange(cleanValue);
-                        }}
-                        value={field.value}
-                      />
-                    </FormControl>
-                    <FormMessage />
-                    <FormDescription>
-                      {field.value?.length || 0}/1000 characters
-                    </FormDescription>
-                  </FormItem>
-                )}
-              </FormField>
-      <FormControl>
-        <Textarea 
-          placeholder="Describe the job in detail..." 
-          className="min-h-[100px]"
-          onChange={(e) => {
-            // Allow regular typing with spaces
-            const value = e.target.value;
-            field.onChange(value);
-          }}
-          onBlur={(e) => {
-            // Final trim on blur
-            const cleanValue = e.target.value.trim();
-            field.onChange(cleanValue);
-          }}
-          value={field.value}
-        />
-      </FormControl>
-      <FormMessage />
-      <FormDescription>
-        {field.value?.length || 0}/1000 characters
-      </FormDescription>
-    </FormItem>
-  )}
-</FormField>
-                
+              Fill out the form below to post your job and find the right person for the task.
+            </DrawerDescription>
+          </DrawerHeader>
+          
+          <div className="overflow-y-auto p-4">
+            <Form {...form}>
+              <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+                <FormField
+                  control={form.control}
+                  name="title"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Job Title</FormLabel>
+                      <FormControl>
+                        <Input placeholder="e.g., Need help moving furniture" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
+                  name="description"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Description</FormLabel>
+                      <FormControl>
+                        <Textarea 
+                          placeholder="Describe the job in detail..." 
+                          className="min-h-[100px]"
+                          {...field}
+                        />
+                      </FormControl>
+                      <FormMessage />
+                      <FormDescription>
+                        {field.value?.length || 0}/1000 characters
+                      </FormDescription>
+                    </FormItem>
+                  )}
+                />
+
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <FormField
                     control={form.control}
@@ -519,10 +507,7 @@ export default function PostJobDrawer({ isOpen, onOpenChange }: PostJobDrawerPro
                     render={({ field }) => (
                       <FormItem>
                         <FormLabel>Category</FormLabel>
-                        <Select 
-                          onValueChange={field.onChange} 
-                          defaultValue={field.value}
-                        >
+                        <Select onValueChange={field.onChange} defaultValue={field.value}>
                           <FormControl>
                             <SelectTrigger>
                               <SelectValue placeholder="Select a category" />
@@ -540,7 +525,7 @@ export default function PostJobDrawer({ isOpen, onOpenChange }: PostJobDrawerPro
                       </FormItem>
                     )}
                   />
-                  
+
                   <FormField
                     control={form.control}
                     name="requiredSkills"
@@ -590,7 +575,7 @@ export default function PostJobDrawer({ isOpen, onOpenChange }: PostJobDrawerPro
                     )}
                   />
                 </div>
-                
+
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <FormField
                     control={form.control}
@@ -635,11 +620,9 @@ export default function PostJobDrawer({ isOpen, onOpenChange }: PostJobDrawerPro
                               className="pl-9"
                               placeholder="0.00"
                               onChange={(e) => {
-                                // Format to 2 decimal places and parse to number
                                 const value = e.target.value;
                                 const numValue = parseFloat(value);
                                 if (!isNaN(numValue)) {
-                                  // Only update if it's a valid number
                                   field.onChange(numValue);
                                 } else {
                                   field.onChange(0);
@@ -647,7 +630,6 @@ export default function PostJobDrawer({ isOpen, onOpenChange }: PostJobDrawerPro
                               }}
                               value={field.value === 0 ? '' : field.value}
                               onBlur={(e) => {
-                                // On blur, format to 2 decimal places for display
                                 const value = parseFloat(e.target.value);
                                 if (!isNaN(value)) {
                                   field.onChange(parseFloat(value.toFixed(2)));
@@ -667,7 +649,7 @@ export default function PostJobDrawer({ isOpen, onOpenChange }: PostJobDrawerPro
                     )}
                   />
                 </div>
-                
+
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <FormField
                     control={form.control}
@@ -678,21 +660,13 @@ export default function PostJobDrawer({ isOpen, onOpenChange }: PostJobDrawerPro
                         <FormControl>
                           <LocationInput
                             value={field.value}
-                            onChange={(value) => {
-                              field.onChange(value);
-                            }}
+                            onChange={(value) => field.onChange(value)}
                             onCoordinatesChange={(latitude, longitude, formattedAddress) => {
-                              // Update the location field with the formatted address
                               field.onChange(formattedAddress);
-                              
-                              // Format to exactly 6 decimal places
                               const formattedLat = Number(latitude.toFixed(6));
                               const formattedLng = Number(longitude.toFixed(6));
-                              
-                              // Update the form with the geocoded coordinates
                               form.setValue('latitude', formattedLat);
                               form.setValue('longitude', formattedLng);
-                              console.log(`Location geocoded: ${formattedAddress} => [${formattedLat}, ${formattedLng}]`);
                             }}
                             placeholder="Enter job address, city, or coordinates"
                             className="w-full"
@@ -720,20 +694,16 @@ export default function PostJobDrawer({ isOpen, onOpenChange }: PostJobDrawerPro
                               className="pl-9"
                               min={new Date().toISOString().split('T')[0]}
                               onChange={(e) => {
-                                // Make sure we have a valid date
                                 const inputDate = e.target.value;
                                 if (inputDate) {
                                   try {
-                                    // Ensure date is properly formatted as ISO string (YYYY-MM-DD)
                                     const date = new Date(inputDate);
                                     const formattedDate = date.toISOString().split('T')[0];
                                     field.onChange(formattedDate);
                                   } catch (error) {
-                                    // If date is invalid, keep the current value
                                     console.error("Invalid date format:", error);
                                   }
                                 } else {
-                                  // Default to tomorrow if empty
                                   const tomorrow = new Date();
                                   tomorrow.setDate(tomorrow.getDate() + 1);
                                   field.onChange(tomorrow.toISOString().split('T')[0]);
@@ -751,7 +721,7 @@ export default function PostJobDrawer({ isOpen, onOpenChange }: PostJobDrawerPro
                     )}
                   />
                 </div>
-                
+
                 {form.watch('paymentType') === 'hourly' && (
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
                     <FormField
@@ -803,7 +773,7 @@ export default function PostJobDrawer({ isOpen, onOpenChange }: PostJobDrawerPro
                     />
                   </div>
                 )}
-                
+
                 <FormField
                   control={form.control}
                   name="equipmentProvided"
@@ -826,7 +796,7 @@ export default function PostJobDrawer({ isOpen, onOpenChange }: PostJobDrawerPro
                     </FormItem>
                   )}
                 />
-                
+
                 <FormField
                   control={form.control}
                   name="autoAcceptApplicants"
@@ -858,7 +828,6 @@ export default function PostJobDrawer({ isOpen, onOpenChange }: PostJobDrawerPro
                     </span>
                   </div>
                   
-                  {/* Task Editor */}
                   <div className="mb-4">
                     <TaskEditor
                       tasks={tasks}
@@ -867,27 +836,28 @@ export default function PostJobDrawer({ isOpen, onOpenChange }: PostJobDrawerPro
                     />
                   </div>
                 </div>
+
+                <div className="flex justify-end space-x-4">
+                  <DrawerClose asChild>
+                    <Button 
+                      type="button" 
+                      variant="outline" 
+                      className="border-border hover:bg-accent hover:text-accent-foreground"
+                    >
+                      Cancel
+                    </Button>
+                  </DrawerClose>
+                  <Button 
+                    type="submit" 
+                    className="bg-primary text-primary-foreground hover:bg-primary/90"
+                    disabled={isSubmitting}
+                  >
+                    {isSubmitting ? 'Posting...' : 'Post Job'}
+                  </Button>
+                </div>
               </form>
             </Form>
           </div>
-          
-          <DrawerFooter className="border-t border-border">
-            <Button 
-              type="submit"
-              form="post-job-form"
-              className="bg-primary text-primary-foreground hover:bg-primary/90" 
-              disabled={isSubmitting}
-            >
-              {isSubmitting ? 'Posting...' : 'Post Job'}
-            </Button>
-            <DrawerClose asChild>
-              <Button variant="outline" className="border-border hover:bg-accent hover:text-accent-foreground">
-                Cancel
-              </Button>
-            </DrawerClose>
-          </DrawerFooter>
         </DrawerContent>
       </Drawer>
-    </>
-  );
-}
+    </>);
