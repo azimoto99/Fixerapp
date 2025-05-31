@@ -1,238 +1,418 @@
-import React, { useRef, useEffect, useState } from 'react';
+import { useEffect, useRef, useState, FC, useCallback } from 'react';
 import mapboxgl from 'mapbox-gl';
 import 'mapbox-gl/dist/mapbox-gl.css';
 
-// Set the access token from environment variable
-const accessToken = import.meta.env.VITE_MAPBOX_ACCESS_TOKEN;
-if (accessToken) {
-  mapboxgl.accessToken = accessToken;
-} else {
-  console.error('Mapbox access token is missing! Map features will not work.');
+// Extend the window type to include our custom properties
+declare global {
+  interface Window {
+    __ENV?: {
+      [key: string]: string;
+    };
+  }
+}
+
+// Extend the Mapbox Marker type to include our custom cleanup function
+interface CustomMapboxMarker extends mapboxgl.Marker {
+  _cleanup?: () => void;
+}
+
+// Helper function to safely get environment variables
+const getEnv = (key: string, defaultValue: string = ''): string => {
+  if (typeof window !== 'undefined' && (window as any).__ENV?.[key]) {
+    return String((window as any).__ENV[key]);
+  }
+  
+  if (typeof process !== 'undefined' && process?.env?.[key]) {
+    return String(process.env[key]);
+  }
+  
+  if (import.meta.env?.[key]) {
+    return String(import.meta.env[key]);
+  }
+  
+  return defaultValue;
+};
+
+// Helper function to validate Mapbox token format
+const isValidMapboxToken = (token: string | null): boolean => {
+  if (!token) return false;
+  // Basic validation - Mapbox tokens typically start with 'pk.'
+  return token.startsWith('pk.') && token.length > 30;
+};
+
+// Custom hook to fetch and manage the Mapbox token
+const useMapboxToken = () => {
+  const [token, setToken] = useState<string | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    const fetchToken = async () => {
+      try {
+        const response = await fetch('/api/mapbox/token');
+        if (!response.ok) {
+          throw new Error(`HTTP error! Status: ${response.status}`);
+        }
+        const data = await response.json();
+        
+        if (!data || typeof data !== 'object' || !('token' in data)) {
+          throw new Error('Invalid response format from server');
+        }
+        
+        const tokenValue = String(data.token);
+        if (!tokenValue) {
+          throw new Error('Empty token received from server');
+        }
+        
+        setToken(tokenValue);
+        mapboxgl.accessToken = tokenValue;
+        setError(null);
+      } catch (err) {
+        const errorMessage = err instanceof Error ? err.message : 'An unknown error occurred';
+        console.error('Error fetching Mapbox token:', errorMessage);
+        setError(`Failed to load map configuration: ${errorMessage}`);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchToken();
+    
+    // Cleanup function
+    return () => {
+      // Reset the access token when component unmounts
+      mapboxgl.accessToken = '';
+    };
+  }, []);
+
+  return { 
+    token, 
+    isLoading, 
+    error,
+    hasValidToken: token ? isValidMapboxToken(token) : false
+  };
+};
+
+
+
+interface Marker {
+  id: string;
+  latitude: number;
+  longitude: number;
+  title?: string;
+  description?: string;
+  color?: string;
+  isHighlighted?: boolean;
+  markerColor?: string;
+  onClick?: () => void;
 }
 
 interface MapboxMapProps {
   latitude?: number;
   longitude?: number;
   zoom?: number;
-  markers?: Array<{
-    latitude: number;
-    longitude: number;
-    title?: string;
-    description?: string;
-    onClick?: () => void;
-    isHighlighted?: boolean; // Add flag to highlight special markers
-    markerColor?: string; // Custom color for job markers
-  }>;
-  onMapClick?: (lngLat: { lng: number; lat: number }) => void;
+  markers?: Marker[];
+  onMarkerClick?: (markerId: string) => void;
+  onMapClick?: (e: mapboxgl.MapMouseEvent) => void;
+  onMapMove?: (e: mapboxgl.MapboxEvent<MouseEvent | TouchEvent | WheelEvent | undefined> & mapboxgl.EventData) => void;
   interactive?: boolean;
   style?: React.CSSProperties;
   className?: string;
+  containerStyle?: React.CSSProperties;
 }
 
-export default function MapboxMap({
-  latitude = 40.7128,
-  longitude = -74.0060,
-  zoom = 12,
+const MapboxMap: FC<MapboxMapProps> = ({
   markers = [],
+  latitude,
+  longitude,
+  zoom = 12,
+  onMarkerClick,
   onMapClick,
+  onMapMove,
   interactive = true,
   style = { width: '100%', height: '400px' },
   className = ''
-}: MapboxMapProps) {
-  const mapContainer = useRef<HTMLDivElement>(null);
-  const map = useRef<mapboxgl.Map | null>(null);
+}) => {
+  const { token, isLoading, error, hasValidToken: isValidToken } = useMapboxToken();
+  const [mapError, setMapError] = useState<string | null>(null);
+  const mapInstance = useRef<mapboxgl.Map | null>(null);
   const [mapLoaded, setMapLoaded] = useState(false);
-  const mapMarkers = useRef<mapboxgl.Marker[]>([]);
+  const mapContainer = useRef<HTMLDivElement>(null);
+  const markersRef = useRef<{ [key: string]: CustomMapboxMarker }>({});
   
-  // Initialize the map
+  // Initialize map when token is available and container is ready
   useEffect(() => {
-    if (!mapContainer.current) return;
-    
-    // Don't initialize map if no access token
-    if (!accessToken) {
-      console.warn('Mapbox map will not be initialized - missing access token');
+    if (!mapContainer.current || !token || !isValidToken) {
       return;
     }
-    
-    map.current = new mapboxgl.Map({
-      container: mapContainer.current,
-      style: 'mapbox://styles/mapbox/traffic-night-v2', // Using traffic-night style to show live traffic
-      center: [longitude, latitude],
-      zoom: zoom,
-      interactive: interactive
-    });
-    
-    // Add event handler for map load
-    map.current.on('load', () => {
-      setMapLoaded(true);
-      
-      try {
-        // We need to get all layer ids first to find the road layers
-        const layers = map.current?.getStyle().layers || [];
-        
-        // Apply green styling to any layer that contains 'road' in its id
-        layers.forEach(layer => {
-          const layerId = layer.id;
-          
-          if (layerId.toLowerCase().includes('road') && layer.type === 'line') {
-            console.log('Styling road layer:', layerId);
-            
-            // Different shades of green based on road type
-            let color = '#a5d6a7'; // Default light green
-            
-            if (layerId.includes('highway') || layerId.includes('major')) {
-              color = '#4caf50'; // Darker green for highways/major roads
-            } else if (layerId.includes('primary') || layerId.includes('trunk')) {
-              color = '#66bb6a'; // Medium green for primary roads
-            } else if (layerId.includes('secondary') || layerId.includes('tertiary')) {
-              color = '#81c784'; // Slightly darker for secondary/tertiary roads
-            }
-            
-            map.current?.setPaintProperty(layerId, 'line-color', color);
-          }
-        });
-      } catch (error) {
-        console.warn('Could not set custom road colors:', error);
-      }
-    });
-    
-    if (onMapClick) {
-      map.current.on('click', (e) => {
-        onMapClick(e.lngLat);
+
+    // Set initial center from props or default to San Francisco
+    const initialLng = typeof longitude === 'number' ? longitude : -122.4372;
+    const initialLat = typeof latitude === 'number' ? latitude : 37.758;
+    const initialZoom = typeof zoom === 'number' ? zoom : 12;
+
+    // Only initialize the map if we don't have an instance yet
+    if (mapInstance.current) return;
+
+    try {
+      // Initialize map
+      const newMapInstance = new mapboxgl.Map({
+        container: mapContainer.current,
+        style: 'mapbox://styles/mapbox/streets-v12',
+        center: [initialLng, initialLat],
+        zoom: initialZoom,
+        interactive,
       });
+
+      // Add navigation control
+      newMapInstance.addControl(new mapboxgl.NavigationControl(), 'top-right');
+
+      // Handle map load
+      newMapInstance.once('load', () => {
+        setMapLoaded(true);
+      });
+
+      // Handle map click
+      const handleMapClick = (e: mapboxgl.MapMouseEvent) => {
+        if (onMapClick) onMapClick(e);
+      };
+
+      // Handle map move
+      const handleMapMove = (e: mapboxgl.MapboxEvent<MouseEvent | TouchEvent | WheelEvent | undefined> & mapboxgl.EventData) => {
+        if (onMapMove) onMapMove(e);
+      };
+
+      // Add event listeners
+      newMapInstance.on('click', handleMapClick);
+      newMapInstance.on('move', handleMapMove);
+
+      // Store map instance
+      mapInstance.current = newMapInstance;
+
+      // Cleanup on unmount
+      return () => {
+        if (newMapInstance) {
+          // Remove event listeners
+          newMapInstance.off('click', handleMapClick);
+          newMapInstance.off('move', handleMapMove);
+          
+          // Remove the map instance
+          newMapInstance.remove();
+        }
+      };
+    } catch (err) {
+      console.error('Error initializing map:', err);
+      setMapError('Failed to initialize map. Please try again later.');
     }
-    
-    // Clean up on unmount
-    return () => {
-      if (map.current) {
-        map.current.remove();
-        map.current = null;
-      }
-    };
-  }, [longitude, latitude, zoom, interactive]);
+  }, [token, latitude, longitude, zoom, interactive, onMapClick, onMapMove, isValidToken]);
 
   // Add markers when they change or map is loaded
   useEffect(() => {
-    if (!mapLoaded || !map.current) return;
-    
-    // Remove existing markers
-    mapMarkers.current.forEach(marker => marker.remove());
-    mapMarkers.current = [];
-    
-    // Debug: log all marker coordinates
-    console.log('Adding markers to map:', markers.map(m => ({
-      lng: m.longitude,
-      lat: m.latitude,
-      title: m.title
-    })));
-    
-    // Add new markers
-    markers.forEach(marker => {
-      if (!marker.latitude || !marker.longitude) return;
-      
-      // Create a DOM element for the marker
-      const el = document.createElement('div');
-      
-      // Style based on marker type
-      if (marker.title === 'Current Location') {
-        el.innerHTML = `📍`;
-        el.style.backgroundColor = '#3b82f6'; // Blue
-      } else {
-        // Extract job payment amount from the description if available
-        const paymentMatch = marker.description?.match(/\$(\d+)/);
-        const paymentAmount = paymentMatch ? paymentMatch[1] : '';
-        
-        if (paymentAmount) {
-          el.innerHTML = `$${paymentAmount}`;
-          // Make the marker bigger to fit the payment amount
-          el.style.width = '40px';
-          el.style.height = '40px';
-          el.style.fontSize = '14px';
-        } else {
-          el.innerHTML = `$`;
-        }
-        
-        // Use the marker's custom color if available, otherwise default to amber/gold
-        el.style.backgroundColor = marker.markerColor || '#f59e0b';
-      }
-      
-      // Apply styles to marker element
-      el.style.width = '30px';
-      el.style.height = '30px';
-      el.style.borderRadius = '50%';
-      el.style.border = '2px solid white';
-      el.style.boxShadow = '0 2px 4px rgba(0,0,0,0.5)';
-      el.style.display = 'flex';
-      el.style.alignItems = 'center';
-      el.style.justifyContent = 'center';
-      el.style.color = 'white';
-      el.style.fontWeight = 'bold';
-      el.style.fontSize = '16px';
-      el.style.cursor = 'pointer';
-      
-      // Create popup if there's a title or description
-      let popup: mapboxgl.Popup | undefined;
-      if (marker.title || marker.description) {
-        popup = new mapboxgl.Popup({ 
-          offset: 25,
-          closeButton: false 
-        }).setHTML(`
-          <div style="padding: 8px; cursor: pointer;">
-            <h3 style="margin: 0 0 5px; font-size: 15px; font-weight: 600; color: #111;">${marker.title || ''}</h3>
-            <p style="margin: 0; font-size: 13px; color: #10b981; font-weight: 500;">${marker.description || ''}</p>
-          </div>
-        `);
-      }
-      
-      // Create the Mapbox marker
-      try {
-        const mapboxMarker = new mapboxgl.Marker({
-          element: el,
-          anchor: 'center'
-        }).setLngLat([marker.longitude, marker.latitude]);
-        
-        // Add popup if available
-        if (popup) {
-          mapboxMarker.setPopup(popup);
-        }
-        
-        // Add click handler
-        if (marker.onClick) {
-          el.addEventListener('click', () => {
-            marker.onClick!();
-          });
-        }
-        
-        // Add to map and track for cleanup
-        if (map.current) {
-          mapboxMarker.addTo(map.current);
-          mapMarkers.current.push(mapboxMarker);
-          
-          console.log(`Marker successfully added at [${marker.longitude}, ${marker.latitude}] for: ${marker.title}`);
-        }
-      } catch (error) {
-        console.error(`Failed to add marker at [${marker.longitude}, ${marker.latitude}]`, error);
-      }
-    });
-  }, [markers, mapLoaded]);
-  
-  // Update map center when latitude/longitude props change
-  useEffect(() => {
-    if (map.current && mapLoaded) {
-      map.current.flyTo({
-        center: [longitude, latitude],
-        zoom: zoom,
-        essential: true,
-        duration: 1500
-      });
-    }
-  }, [latitude, longitude, zoom, mapLoaded]);
+    if (!mapLoaded || !mapInstance.current) return;
 
+    const updateMarkers = () => {
+      try {
+        // Type guard for markers array
+        if (!Array.isArray(markers)) {
+          console.warn('Markers prop must be an array');
+          return;
+        }
+
+        // Remove old markers that are no longer in the props
+        Object.entries(markersRef.current).forEach(([id, marker]) => {
+          if (!markers.some(m => m.id === id)) {
+            if (marker._cleanup) marker._cleanup();
+            marker.remove();
+            delete markersRef.current[id];
+          }
+        });
+
+        // Add or update markers
+        markers.forEach((marker) => {
+          if (!marker.id) {
+            console.warn('Marker is missing required id property');
+            return;
+          }
+
+
+          // Update existing marker
+          if (markersRef.current[marker.id]) {
+            markersRef.current[marker.id]
+              .setLngLat([marker.longitude, marker.latitude])
+              .setPopup(
+                new mapboxgl.Popup({ offset: 25 })
+                  .setHTML(`<h3>${marker.title || 'Location'}</h3>`)
+              );
+            return;
+          }
+
+          // Create new marker
+          const el = document.createElement('div');
+          el.className = 'map-marker';
+          el.style.width = marker.isHighlighted ? '32px' : '24px';
+          el.style.height = marker.isHighlighted ? '32px' : '24px';
+          el.style.background = marker.markerColor || marker.color || '#3b82f6';
+          el.style.borderRadius = '50%';
+          el.style.border = '2px solid white';
+          el.style.cursor = 'pointer';
+          el.style.transition = 'all 0.2s ease';
+          el.style.boxShadow = marker.isHighlighted 
+            ? '0 0 0 3px rgba(59, 130, 246, 0.5)' 
+            : '0 2px 4px rgba(0,0,0,0.1)';
+
+          // Add click handler to marker
+          const handleMarkerClick = (e: Event) => {
+            e.stopPropagation();
+            if (marker.onClick) marker.onClick();
+            if (onMarkerClick) onMarkerClick(marker.id);
+          };
+
+          el.addEventListener('click', handleMarkerClick);
+
+          // Create and store marker
+          const markerInstance = new mapboxgl.Marker({
+            element: el,
+            anchor: 'bottom',
+            offset: [0, marker.isHighlighted ? -16 : -12]
+          })
+            .setLngLat([marker.longitude, marker.latitude])
+            .setPopup(
+              new mapboxgl.Popup({ offset: 25 })
+                .setHTML(`<h3>${marker.title || 'Location'}</h3>`)
+            )
+            .addTo(mapInstance.current);
+
+          // Store cleanup function for the event listener
+          const cleanup = () => {
+            el.removeEventListener('click', handleMarkerClick);
+          };
+
+          // Store marker with cleanup function
+          const customMarker = markerInstance as CustomMapboxMarker;
+          customMarker._cleanup = cleanup;
+          markersRef.current[marker.id] = customMarker;
+        });
+      } catch (err) {
+        console.error('Error updating markers:', err);
+      }
+    };
+
+    updateMarkers();
+
+    // Cleanup function to remove all markers and their event listeners
+    return () => {
+      Object.values(markersRef.current).forEach(marker => {
+        if (marker._cleanup) {
+          marker._cleanup();
+        }
+        marker.remove();
+      });
+      markersRef.current = {};
+    };
+  }, [markers, mapLoaded, onMarkerClick]);
+
+  // Update map center when props change
+  useEffect(() => {
+    if (!mapInstance.current || !mapLoaded) return;
+
+    try {
+      const currentCenter = mapInstance.current.getCenter();
+      const targetLng = longitude ?? currentCenter.lng;
+      const targetLat = latitude ?? currentCenter.lat;
+      const currentZoom = mapInstance.current.getZoom();
+      const targetZoom = zoom ?? currentZoom;
+
+      // Only update if we need to
+      if (
+        targetLng !== currentCenter.lng ||
+        targetLat !== currentCenter.lat ||
+        targetZoom !== currentZoom
+      ) {
+        mapInstance.current.flyTo({
+          center: [targetLng, targetLat],
+          zoom: targetZoom,
+          essential: true,
+          duration: 1000
+        });
+      }
+    } catch (err) {
+      console.error('Error updating map center:', err);
+    }
+  }, [longitude, latitude, zoom, mapInstance, mapLoaded]);
+
+  // Set up cleanup on unmount
+  useEffect(() => {
+    return () => {
+      if (mapInstance.current) {
+        // Clean up all markers and their event listeners
+        Object.values(markersRef.current).forEach(marker => {
+          if (marker._cleanup) {
+            marker._cleanup();
+          }
+          marker.remove();
+        });
+        markersRef.current = {};
+        
+        // Remove map instance
+        mapInstance.current.remove();
+        mapInstance.current = null;
+      }
+    };
+  }, []);
+
+  // Render loading state
+  if (isLoading) {
+    return (
+      <div className={`flex items-center justify-center ${className}`} style={style}>
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500"></div>
+        <span className="ml-2">Loading map...</span>
+      </div>
+    );
+  }
+
+  // Render error state
+  if (error || !token || !isValidToken) {
+    return (
+      <div 
+        className={`bg-red-50 border-l-4 border-red-400 p-4 rounded ${className}`}
+        style={style}
+      >
+        <div className="flex">
+          <div className="flex-shrink-0">
+            <svg className="h-5 w-5 text-red-400" viewBox="0 0 20 20" fill="currentColor">
+              <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
+            </svg>
+          </div>
+          <div className="ml-3">
+            <h3 className="text-sm font-medium text-red-800">Map Error</h3>
+            <div className="mt-2 text-sm text-red-700">
+              <p>{error || 'Failed to load map configuration. Please try again later.'}</p>
+              {process.env.NODE_ENV === 'development' && (
+                <div className="mt-2 p-2 bg-red-100 rounded text-xs">
+                  <p>Token: {token ? 'Present' : 'Missing'}</p>
+                  <p>Error: {error || 'None'}</p>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Render the map container
   return (
-    <div 
-      ref={mapContainer} 
-      className={`mapbox-map ${className}`} 
-      style={style}
+    <div
+      ref={mapContainer}
+      className={`map-container ${className}`}
+      style={{
+        width: '100%',
+        height: '400px',
+        ...style
+      }}
+      data-testid="mapbox-container"
     />
   );
 }
+
+export default MapboxMap;
