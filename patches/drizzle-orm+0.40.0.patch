@@ -1,0 +1,11 @@
+*** Begin Patch
+*** Update File: node_modules/drizzle-orm/sql/functions/index.js
+diff --git a/node_modules/drizzle-orm/sql/functions/index.js b/node_modules/drizzle-orm/sql/functions/index.js
+index e69de29..abc1234 100644
+--- a/node_modules/drizzle-orm/sql/functions/index.js
++++ b/node_modules/drizzle-orm/sql/functions/index.js
+@@
+ export * from "./arithmetic.js";
+-//# sourceMappingURL=index.js.map
++
+*** End Patch

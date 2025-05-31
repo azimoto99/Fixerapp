@@ -40,6 +40,8 @@ export default defineConfig(async ({ mode }) => {
     build: {
       outDir: path.resolve(process.cwd(), "dist/public"),
       emptyOutDir: true,
+      assetsDir: 'assets',
+      sourcemap: true,
     },
     // Define environment variables that should be exposed to the client
     define: {
@@ -53,6 +55,7 @@ export default defineConfig(async ({ mode }) => {
     envPrefix: ['VITE_'],
     // Server configuration
     server: {
+      host: '0.0.0.0',
       port: 5000,
       strictPort: true,
       hmr: {
@@ -60,6 +63,9 @@ export default defineConfig(async ({ mode }) => {
         host: 'localhost',
         port: 5000,
         clientPort: 5000
+      },
+      watch: {
+        usePolling: true
       }
     }
   };
