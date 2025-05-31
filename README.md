@@ -20,15 +20,33 @@ Fixer is a cutting-edge gig economy platform that revolutionizes job matching, c
 
 ## Technology Stack
 
-- **Frontend**: React Native with Expo, TypeScript, and Tailwind CSS
-- **Backend**: Node.js with Express
-- **Database**: Neon PostgreSQL with Drizzle ORM
-- **Authentication**: Passport.js with local strategy
-- **Maps**: Mapbox GL JS for interactive maps with traffic data
-- **Payments**: Stripe Connect API for full payment lifecycle
-- **State Management**: TanStack Query (React Query)
-- **Real-time Updates**: WebSockets for notifications
-- **UI Components**: Shadcn/UI components
+### Frontend
+*   **Framework/Library**: React
+*   **Language**: TypeScript
+*   **Build Tool**: Vite
+*   **Styling**: Tailwind CSS, Radix UI components, `index.css` for global styles.
+*   **State Management**: TanStack Query (React Query) (based on dependencies), potentially context API/custom hooks.
+
+### Backend
+*   **Framework**: Node.js with Express.js
+*   **Language**: TypeScript (`tsx` for development, `esbuild` for production builds)
+*   **API Style**: RESTful API
+
+### Database & Supabase Integration
+*   **Primary Database**: PostgreSQL hosted on Supabase.
+*   **ORM/Query Builder**: Drizzle ORM is used for backend database queries and schema management. The main data access logic is in `server/unified-storage.ts` which uses Drizzle.
+*   **Schema Definition**: Database schema is defined in `shared/schema.ts` and utilized by Drizzle.
+*   **Supabase JS Client**: The `@supabase/supabase-js` client is initialized in `server/db.ts`. It is likely used for Supabase-specific services such as:
+    *   Authentication (Supabase Auth)
+    *   Real-time features (Supabase Realtime)
+    *   File Storage (Supabase Storage buckets)
+*   **Session Management**: Express sessions are stored in the Supabase PostgreSQL database using `connect-pg-simple`, configured to use the Supabase connection pooler (port 6543).
+
+### Mobile
+*   **Framework**: Capacitor is integrated for building native Android (and potentially iOS) applications from the web codebase.
+
+### Shared Code
+*   The `shared/` directory, particularly `shared/schema.ts`, contains code (like Drizzle schema definitions and types) used by both the frontend and backend.
 
 ## Documentation
 
@@ -102,36 +120,37 @@ The resulting APK will be available at `./fixer-app.apk` for installation on And
 
 ## Development
 
-- The frontend is built with Vite and React
-- The backend uses Express
-- Database interactions use Drizzle ORM
-- The project uses a monorepo structure with shared types
+*   **Frontend**: Built with Vite and React (TypeScript, Tailwind CSS).
+*   **Backend**: Node.js with Express (TypeScript).
+*   **Database**: Interactions via Drizzle ORM connected to Supabase PostgreSQL.
+*   **Shared Code**: Types and schema are shared between frontend and backend via the `shared/` directory.
+*   **Development Server**: `npm run dev` starts Vite for the frontend and `tsx` for the backend.
+*   **Production Build**: `npm run build` uses Vite for frontend and `esbuild` for backend.
 
 ### Project Structure
 
-```
-├── client/            # Frontend code
-│   ├── src/
-│   │   ├── components/  # React components
-│   │   ├── hooks/       # Custom React hooks
-│   │   ├── lib/         # Utility functions
-│   │   ├── pages/       # Page components
-│   │   └── types/       # TypeScript type definitions
-├── server/            # Backend code
-│   ├── api/           # API module endpoints
-│   ├── types/         # Server-specific types
-│   ├── routes.ts      # API routes
-│   ├── storage.ts     # Data storage interface
-│   ├── auth.ts        # Authentication logic
-│   ├── db.ts          # Database connection
-│   └── database-storage.ts # Database implementation
-├── shared/            # Shared code between frontend and backend
-│   └── schema.ts      # Database schema and shared types
-├── public/            # Static assets
-├── migrations/        # Database migrations
-├── scripts/           # Utility scripts
-└── docs/              # Documentation
-```
+Key directories and files:
+
+*   **`client/src/`**: Frontend (React, TypeScript, Vite)
+    *   `main.tsx`: Application entry point.
+    *   `App.tsx`: Main React application component.
+    *   `pages/`: Page-level components.
+    *   `components/`: Reusable UI components.
+    *   `hooks/`: Custom React hooks.
+    *   `lib/`: Utility functions, API service calls.
+*   **`server/`**: Backend (Node.js, Express, TypeScript)
+    *   `index.ts`: Main server entry point.
+    *   `routes.ts`: Primary API routes.
+    *   `api/`: Specific API route handlers.
+    *   `db.ts`: Initializes Drizzle ORM (for Supabase PostgreSQL) and Supabase JS client.
+    *   `storage.ts`: Defines the `IStorage` interface.
+    *   `unified-storage.ts`: Implements `IStorage` using Drizzle ORM.
+    *   `auth.ts`: Authentication logic.
+*   **`shared/`**: Code shared between frontend and backend.
+    *   `schema.ts`: Drizzle ORM schema definitions and shared types.
+*   **`public/`**: Static assets served by Vite.
+*   **`docs/`**: Detailed documentation and guides.
+*   `package.json`, `vite.config.ts`, `tailwind.config.ts`, `capacitor.config.ts`, `drizzle.config.ts`: Key configuration files.
 
 ## Contributing
 
