@@ -43,11 +43,14 @@ export default defineConfig(async ({ mode }) => {
     },
     // Define environment variables that should be exposed to the client
     define: {
+      'import.meta.env.VITE_STRIPE_PUBLIC_KEY': JSON.stringify(env.VITE_STRIPE_PUBLIC_KEY),
+      'import.meta.env.VITE_MAPBOX_ACCESS_TOKEN': JSON.stringify(env.VITE_MAPBOX_ACCESS_TOKEN),
       'process.env': {
         VITE_STRIPE_PUBLIC_KEY: JSON.stringify(env.VITE_STRIPE_PUBLIC_KEY),
         VITE_MAPBOX_ACCESS_TOKEN: JSON.stringify(env.VITE_MAPBOX_ACCESS_TOKEN),
       }
     },
+    envPrefix: ['VITE_'],
     // Server configuration
     server: {
       port: 5000,

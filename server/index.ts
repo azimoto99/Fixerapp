@@ -7,6 +7,7 @@ dns.setDefaultResultOrder('ipv4first');
 import express, { type Request, Response, NextFunction } from "express";
 import { registerRoutes } from "./routes";
 import { setupVite, serveStatic, log } from "./vite";
+import mapboxRouter from "./api/mapbox-router";
 // Import seed script to create initial data
 import "./seed";
 
@@ -55,6 +56,9 @@ app.use((req, res, next) => {
 
 // Serve uploaded avatars statically
 app.use('/avatars', express.static('public/avatars'));
+
+// Mapbox API routes
+app.use('/api', mapboxRouter);
 
 app.use((req, res, next) => {
   const start = Date.now();

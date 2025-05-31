@@ -86,17 +86,61 @@ const MapSection: React.FC<MapSectionProps> = ({ jobs, selectedJob, onSelectJob,
     };
     
     window.addEventListener('center-map-on-job', handleCenterMapOnJob as EventListener);
-    
     return () => {
       window.removeEventListener('center-map-on-job', handleCenterMapOnJob as EventListener);
     };
   }, []);
+
+  // Early return for loading state
+  if (!userLocation && !searchCoordinates) {
+    return (
+      <div className="md:col-span-2 bg-background/50 border border-border shadow-md rounded-lg flex items-center justify-center h-80">
+        <div className="text-center p-6 bg-card/80 rounded-xl border border-border shadow-sm max-w-sm">
+          <div className="relative mx-auto mb-5 w-16 h-16">
+            <div className="absolute inset-0 bg-primary/20 rounded-full animate-ping"></div>
+            <div className="relative flex items-center justify-center w-16 h-16 bg-primary/10 rounded-full">
+              <Loader2 className="h-8 w-8 animate-spin text-primary" />
+            </div>
+          </div>
+          <h3 className="text-foreground font-medium mb-2">Finding your location...</h3>
+          <p className="text-muted-foreground text-sm">Please allow location access for the best experience</p>
+          {locationError && (
+            <div className="mt-4 p-3 bg-destructive/10 border border-destructive/20 rounded-lg text-sm text-destructive">
+              {locationError}
+            </div>
+          )}
+        </div>
+      </div>
+    );
+  }
+
   const { user } = useAuth();
   const { toast } = useToast();
-  
+
+  // Early return for not logged in
+  if (!user) {
+    toast({
+      title: "Login Required",
+      description: "Please login to apply for this job",
+      variant: "destructive"
+    });
+    return null;
+  }
+
+  // Early return for not a worker
+  if (user.accountType !== 'worker') {
+    toast({
+      title: "Worker Account Required",
+      description: "You need a worker account to apply for jobs",
+      variant: "destructive"
+    });
+    return null;
+  }
+
+  // --- Main logic and hooks follow ---
+
   // Use search coordinates if provided, otherwise fall back to user location
   const position = useMemo(() => {
-    // Prioritize search coordinates over geolocation
     if (searchCoordinates) {
       return {
         latitude: searchCoordinates.latitude,
@@ -110,17 +154,27 @@ const MapSection: React.FC<MapSectionProps> = ({ jobs, selectedJob, onSelectJob,
         }
       : null;
   }, [searchCoordinates, userLocation]);
-  
-  // Handle selecting a job when a map marker is clicked
+
+  // Track previous selected job to avoid reopening the panel on same job
+  const [previousSelectedJobId, setPreviousSelectedJobId] = useState<number | null>(null);
+
+  useEffect(() => {
+    if (selectedJob) {
+      if (previousSelectedJobId !== selectedJob.id) {
+        setShowJobDetail(true);
+        setPreviousSelectedJobId(selectedJob.id);
+      }
+    } else {
+      setPreviousSelectedJobId(null);
+    }
+  }, [selectedJob, previousSelectedJobId]);
+
   const handleMarkerClick = (job: Job) => {
-    // Directly open the job details card without showing the intermediate panel
     if (job.id) {
-      // Trigger the JobDetailsCard directly via event
       window.dispatchEvent(new CustomEvent('open-job-details', { 
         detail: { jobId: job.id }
       }));
     } else {
-      // For jobs without ID, fall back to the old behavior
       if (onSelectJob) {
         onSelectJob(job);
         setSelectedJobId(0);
@@ -128,6 +182,7 @@ const MapSection: React.FC<MapSectionProps> = ({ jobs, selectedJob, onSelectJob,
       }
     }
   };
+
   
   // Handle map click to close panels
   // Memoize expensive calculations and event handlers for better performance
@@ -234,24 +289,7 @@ const MapSection: React.FC<MapSectionProps> = ({ jobs, selectedJob, onSelectJob,
     }
   };
 
-  // Track previous selected job to avoid reopening the panel on same job
-  const [previousSelectedJobId, setPreviousSelectedJobId] = useState<number | null>(null);
-  
-  useEffect(() => {
-    // Only show job detail if there's a selected job
-    if (selectedJob) {
-      // Check if this is a new job selection (different from previous)
-      if (previousSelectedJobId !== selectedJob.id) {
-        setShowJobDetail(true);
-        setPreviousSelectedJobId(selectedJob.id);
-      }
-    } else {
-      // No job selected
-      setPreviousSelectedJobId(null);
-    }
-  }, [selectedJob, previousSelectedJobId]);
-  
-  // Create markers for Mapbox map
+
   const jobMarkers = useMemo(() => {
     // Create a typed array to avoid TypeScript errors
     const markers: {
@@ -275,53 +313,22 @@ const MapSection: React.FC<MapSectionProps> = ({ jobs, selectedJob, onSelectJob,
         // Check if this is a highlighted job
         const isHighlighted = job.id === highlightedJobId;
         
-        // Log creation for debugging
-        // console.log('Creating marker for job:', job.id, job.title, job.latitude, job.longitude);
-        
-        // Force number conversion and ensure coordinates are valid numbers
-        const lat = typeof job.latitude === 'string' ? parseFloat(job.latitude) : job.latitude;
-        const lng = typeof job.longitude === 'string' ? parseFloat(job.longitude) : job.longitude;
-        
+        // Add marker for each job
         markers.push({
-          latitude: lat,
-          longitude: lng,
+          latitude: job.latitude,
+          longitude: job.longitude,
           title: job.title,
           description: `$${job.paymentAmount?.toFixed(2)} - ${job.paymentType}`,
           onClick: () => handleMarkerClick(job),
-          isHighlighted: isHighlighted,
-          markerColor: job.markerColor || '#f59e0b', // Use the job's marker color or default to amber
+          isHighlighted,
+          markerColor: isHighlighted ? '#3b82f6' : '#f59e0b'
         });
-      });
-    }
-    
-    // Add user location marker
-    if (position) {
-      console.log('Creating user location marker');
-      markers.push({
-        latitude: position.latitude,
-        longitude: position.longitude,
-        title: 'Current Location',
-        description: 'You are here',
-        onClick: () => {}
-      });
-    }
-    
-    // If we have focus coordinates from "Show on Map", add a special highlighted marker
-    if (focusMapCoordinates) {
-      console.log('Adding special marker for focused job at:', focusMapCoordinates);
-      markers.push({
-        latitude: focusMapCoordinates.latitude,
-        longitude: focusMapCoordinates.longitude,
-        title: 'Job Location',
-        description: 'Selected Job Position',
-        onClick: () => {},
-        isHighlighted: true
       });
     }
     
     return markers;
   }, [jobs, allJobsWithCoordinates, handleMarkerClick, position, focusMapCoordinates, highlightedJobId]);
-  
+
   // If no user location yet, show loading
   if (!position) {
     return (
@@ -333,88 +340,54 @@ const MapSection: React.FC<MapSectionProps> = ({ jobs, selectedJob, onSelectJob,
               <Loader2 className="h-8 w-8 animate-spin text-primary" />
             </div>
           </div>
-          <h3 className="text-foreground font-medium mb-2">Finding your location...</h3>
-          <p className="text-muted-foreground text-sm">Please allow location access for the best experience</p>
-          {locationError && (
-            <div className="mt-4 p-3 bg-destructive/10 border border-destructive/20 rounded-lg text-sm text-destructive">
-              {locationError}
-            </div>
-          )}
+          <h2 className="text-lg font-bold text-foreground">Loading...</h2>
         </div>
       </div>
     );
   }
 
+  // Stripe Connect Required Modal
+  if (showStripeConnectRequired) {
+    return (
+      <StripeConnectRequired
+        onComplete={() => {
+          setShowStripeConnectRequired(false);
+          // After setup, try to apply again after a small delay
+          setTimeout(() => {
+            handleApply();
+          }, 500);
+        }}
+        onSkip={() => setShowStripeConnectRequired(false)}
+      />
+    );
+  }
+
   return (
-    <div className="w-full h-full">
-      {/* Stripe Connect Required Modal */}
-      {showStripeConnectRequired && (
-        <StripeConnectRequired
-          onComplete={() => {
-            setShowStripeConnectRequired(false);
-            // After setup, try to apply again after a small delay
-            setTimeout(() => {
-              handleApply();
-            }, 500);
-          }}
-          onSkip={() => setShowStripeConnectRequired(false)}
+    <div className="md:col-span-2 h-full">
+      {position && (
+        <MapboxMap
+          latitude={
+            focusMapCoordinates 
+            ? focusMapCoordinates.latitude 
+            : (allJobsWithCoordinates?.length > 0 && allJobsWithCoordinates[0].latitude) 
+              ? allJobsWithCoordinates[0].latitude 
+              : position.latitude
+          }
+          longitude={
+            focusMapCoordinates 
+            ? focusMapCoordinates.longitude 
+            : (allJobsWithCoordinates?.length > 0 && allJobsWithCoordinates[0].longitude) 
+              ? allJobsWithCoordinates[0].longitude 
+              : position.longitude
+          }
+          zoom={focusMapCoordinates ? 18 : 10}
+          markers={jobMarkers}
+          onMapClick={handleMapClick}
+          style={{ width: '100%', height: '100%' }}
+          interactive={true}
         />
       )}
-      <div className="relative h-screen max-h-[calc(100vh-64px)] overflow-hidden">
-        <style>{`
-          /* Animation for markers */
-          @keyframes bounce-in {
-            0% { transform: scale(0.8); opacity: 0; }
-            60% { transform: scale(1.1); }
-            100% { transform: scale(1); opacity: 1; }
-          }
-          
-          @keyframes pulse-marker {
-            0% { transform: scale(1); opacity: 0.8; }
-            50% { transform: scale(1.3); opacity: 0.3; }
-            100% { transform: scale(1.6); opacity: 0; }
-          }
-          
-          .animate-bounce-in {
-            animation: bounce-in 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
-          }
-          
-          .animate-pulse-marker {
-            animation: pulse-marker 2s infinite;
-          }
-          
-          /* Smooth transition for panel */
-          .job-detail-panel {
-            transition: transform 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
-          }
-        `}</style>
-        
 
-        
-        {position && (
-          <MapboxMap
-            latitude={
-              focusMapCoordinates 
-              ? focusMapCoordinates.latitude 
-              : (allJobsWithCoordinates?.length > 0 && allJobsWithCoordinates[0].latitude) 
-                ? allJobsWithCoordinates[0].latitude 
-                : position.latitude
-            }
-            longitude={
-              focusMapCoordinates 
-              ? focusMapCoordinates.longitude 
-              : (allJobsWithCoordinates?.length > 0 && allJobsWithCoordinates[0].longitude) 
-                ? allJobsWithCoordinates[0].longitude 
-                : position.longitude
-            }
-            zoom={focusMapCoordinates ? 18 : 10}
-            markers={jobMarkers}
-            onMapClick={handleMapClick}
-            style={{ width: '100%', height: '100%' }}
-            interactive={true}
-          />
-        )}
-        
         {/* Removed duplicate fallback location notice - already shown in top control panel */}
         
 
@@ -528,10 +501,6 @@ const MapSection: React.FC<MapSectionProps> = ({ jobs, selectedJob, onSelectJob,
           </div>
         )}
       </div>
-      
-      {/* New Job Details Card */}
-
-    </div>
   );
 };
 
