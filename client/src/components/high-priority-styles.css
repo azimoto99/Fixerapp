@@ -1,6 +1,6 @@
 /* High priority styles to ensure elements appear on top */
 .job-details-overlay {
-  z-index: 9800 !important;
+  z-index: var(--z-index-debug) !important;
   position: fixed;
   bottom: 0;
   left: 0;

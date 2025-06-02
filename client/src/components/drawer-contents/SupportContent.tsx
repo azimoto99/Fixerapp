@@ -269,7 +269,6 @@ export default function SupportContent() {
                   e.preventDefault();
                   e.stopPropagation();
                   handleCreateTicket(new FormData(e.currentTarget));
-                  setIsCreateTicketOpen(false);
                 }}>
                   <DialogHeader>
                     <DialogTitle>Create Support Ticket</DialogTitle>

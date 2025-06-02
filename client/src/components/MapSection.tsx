@@ -346,7 +346,7 @@ const MapSection: React.FC<MapSectionProps> = ({ jobs, selectedJob, onSelectJob,
   }
 
   return (
-    <div className="w-full h-full">
+    <div className="w-full h-full full-bleed">
       {/* Stripe Connect Required Modal */}
       {showStripeConnectRequired && (
         <StripeConnectRequired

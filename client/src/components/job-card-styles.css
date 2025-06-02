@@ -1,6 +1,6 @@
 /* Custom styles for job card to ensure it appears on top */
 .job-card {
-  z-index: var(--z-job-card) !important;
+  z-index: var(--z-index-emergency) !important;
 }
 
 .job-card-container {
@@ -8,7 +8,7 @@
   bottom: 0;
   left: 0;
   right: 0;
-  z-index: var(--z-job-card) !important;
+  z-index: var(--z-index-emergency) !important;
   padding: 1rem;
   display: flex;
   justify-content: center;

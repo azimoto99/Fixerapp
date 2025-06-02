@@ -156,7 +156,7 @@ div[role="dialog"] {
 
 /* Regular dropdown menus */
 [data-radix-popper-content-wrapper] {
-  z-index: var(--z-index-dropdown) !important;
+  z-index: var(--z-index-emergency) !important;
 }
 
 /* Select component fixes */
@@ -222,12 +222,15 @@ div[role="dialog"] {
   left: 0;
   right: 0;
   bottom: 0;
-  pointer-events: none;
   z-index: var(--z-index-modal);
 }
 
-#portal-root > * {
-  pointer-events: auto;
+#portal-root > .dialog-backdrop {
+  pointer-events: auto !important;
+}
+
+#portal-root > *:not(.dialog-backdrop) {
+  pointer-events: auto !important;
 }
 
 /* Prevent click-through on overlays */
