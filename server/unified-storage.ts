@@ -42,7 +42,6 @@ function getRandomMarkerColor(): string {
 export class UnifiedStorage implements IStorage {
   public sessionStore: session.Store;
   public db = db; // Expose database connection for admin queries
-
   constructor() {
     const PostgresStore = connectPg(session);
     
@@ -52,17 +51,76 @@ export class UnifiedStorage implements IStorage {
       createTableIfMissing: true,
       pruneSessionInterval: 60 * 15, // 15 minutes
       errorLog: console.error,
-      ttl: 30 * 24 * 60 * 60 // 30 days
+      ttl: 30 * 24 * 60 * 60, // 30 days
+      // Enhanced configuration for better resilience
+      disableTouch: false, // Ensure session expiry is updated on access
+      touchAfter: 24 * 3600, // Only update expiry if 24h have passed
+      retries: 3, // Number of retries for failed operations
+      reconnectDelay: 1000 * 5, // 5 seconds delay between retries
+      // Handle session store errors
+      onError: (error) => {
+        console.error('Session store error:', error);
+        // Implement your error reporting/monitoring here
+      }
     });
     
-    console.log("Unified PostgreSQL storage and session store initialized");
+    // Add event listeners for important session store events
+    this.sessionStore.on('connect', () => {
+      console.log("Session store connected successfully");
+    });
+    
+    this.sessionStore.on('disconnect', () => {
+      console.warn("Session store disconnected - will attempt to reconnect");
+    });
+    
+    console.log("Unified PostgreSQL storage and session store initialized with enhanced resilience");
   }
 
-  // Enhanced error wrapper for all database operations
+  private retryAttempts = 0;
+  private maxRetries = 5;
+  private isReconnecting = false;
+
+  private async handleDatabaseError(error: any, operationName: string) {
+    console.error(`Database error in ${operationName}:`, error);
+
+    if (this.isReconnecting) {
+      console.log("Already attempting to reconnect...");
+      return;
+    }
+
+    // Check if error is connection-related
+    if (error.code === 'ECONNRESET' || error.code === 'PROTOCOL_CONNECTION_LOST' || error.code === 'ETIMEDOUT') {
+      this.isReconnecting = true;
+      while (this.retryAttempts < this.maxRetries) {
+        try {
+          console.log(`Attempting database reconnection (attempt ${this.retryAttempts + 1}/${this.maxRetries})...`);
+          // Wait before retry with exponential backoff
+          await new Promise(resolve => setTimeout(resolve, Math.pow(2, this.retryAttempts) * 1000));
+          
+          // Test connection
+          await db.select({ test: sql`1` }).execute();
+          
+          console.log("Database connection restored successfully");
+          this.retryAttempts = 0;
+          this.isReconnecting = false;
+          return;
+        } catch (reconnectError) {
+          this.retryAttempts++;
+          console.error(`Reconnection attempt ${this.retryAttempts} failed:`, reconnectError);
+        }
+      }
+      
+      this.isReconnecting = false;
+      console.error("Max reconnection attempts reached, database may be down");
+    }
+  }
+
+  // Enhanced error wrapper for all database operations with connection handling
   private async safeExecute<T>(operation: () => Promise<T>, fallback: T, operationName: string): Promise<T> {
     try {
       return await operation();
     } catch (error) {
+      await this.handleDatabaseError(error, operationName);
       console.error(`Error in ${operationName}:`, error);
       return fallback;
     }

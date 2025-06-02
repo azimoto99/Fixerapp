@@ -106,7 +106,7 @@ const locationParamsSchema = z.object({
 });
 
 // Check if user is authenticated middleware - with backup authentication
-function isAuthenticated(req: Request, res: Response, next: Function) {
+async function isAuthenticated(req: Request, res: Response, next: Function) {
   // First, ensure session is properly loaded
   if (!req.session) {
     console.error("No session object found on request");
@@ -116,15 +116,31 @@ function isAuthenticated(req: Request, res: Response, next: Function) {
   // Enhanced session/cookie check
   const hasCookieExpired = req.session.cookie && req.session.cookie.maxAge <= 0;
   
-  // Method 1: Standard Passport authentication
+  // Method 1: Standard Passport authentication with extra validation
   if (req.isAuthenticated() && req.user && !hasCookieExpired) {
-    console.log(`User authenticated via Passport: ${req.user.id} (${req.user.username})`);
-    return next();
+    try {
+      // Verify user still exists and is active
+      const currentUser = await storage.getUser(req.user.id);
+      if (!currentUser || !currentUser.isActive) {
+        req.logout((err) => {
+          console.error("Error during logout:", err);
+        });
+        return res.status(401).json({ message: "User account no longer active" });
+      }
+      
+      // Refresh session to prevent premature expiration
+      req.session.touch();
+      console.log(`User authenticated via Passport: ${req.user.id} (${req.user.username})`);
+      return next();
+    } catch (error) {
+      console.error("Error validating authenticated user:", error);
+      return res.status(500).json({ message: "Error validating authentication" });
+    }
   }
   
   // Method 2: Backup authentication via userId stored in session
   if (req.session.userId && !hasCookieExpired) {
-    console.log(`User authenticated via backup userId: ${req.session.userId}`);
+    console.log(`Attempting authentication via backup userId: ${req.session.userId}`);
     
     // Set flags for routes that need to know we're using backup auth
     (req as any).usingBackupAuth = true;
@@ -172,8 +188,21 @@ async function isStripeAuthenticated(req: Request, res: Response, next: Function
   
   // Standard passport authentication - fast path
   if (req.isAuthenticated() && req.user) {
-    console.log(`Stripe route: User authenticated via Passport: ${req.user.id}`);
-    return next();
+    // Validate that the user still exists and is active
+    try {
+      const user = await storage.getUser(req.user.id);
+      if (!user || !user.isActive) {
+        req.logout((err) => {
+          console.error("Error during logout:", err);
+        });
+        return res.status(401).json({ message: "User account no longer active" });
+      }
+      console.log(`Stripe route: User authenticated via Passport: ${req.user.id}`);
+      return next();
+    } catch (error) {
+      console.error("Error validating user:", error);
+      return res.status(500).json({ message: "Error validating authentication" });
+    }
   }
   
   // If we have a userId in the session, try to restore the session
@@ -182,7 +211,7 @@ async function isStripeAuthenticated(req: Request, res: Response, next: Function
     console.log(`Stripe route: Attempting to restore session from userId: ${userId}`);
     
     try {
-      // Get the user from the database
+      // Get the user from the database with additional validation
       const user = await storage.getUser(userId);
       
       if (!user) {
