@@ -27,35 +27,26 @@ export const supabase = createClient(
   }
 );
 
-// Create PostgreSQL connection for Drizzle with retry logic
-const connectionString = process.env.SUPABASE_DATABASE_URL!;
-
-// IMPORTANT: Use Supabase's connection pooler URL (port 6543) instead of direct connection (port 5432)
-// to avoid IPv6 issues. The pooler URL looks like:
-// postgresql://postgres.xxxx:password@aws-0-us-west-1.pooler.supabase.com:6543/postgres
-// Make sure your SUPABASE_DATABASE_URL uses the pooler endpoint
-
-// Parse connection URL
-const dbUrl = new URL(connectionString);
-
-// Configure postgres client with parsed parameters
-const client = postgres({
-  host: dbUrl.hostname,
-  port: parseInt(dbUrl.port) || 5432,
-  database: dbUrl.pathname.slice(1),
-  username: dbUrl.username,
-  password: dbUrl.password,
-  ssl: 'require',
-  max: 10,
-  idle_timeout: 20,
-  connect_timeout: 10,
-  connection: {
-    application_name: 'fixer-app',
-  }
-});
-
-// Export the database instance
-export const db = drizzle(client, { schema });
-
-// Re-export the client for other modules that need it
-export { client };
+// Only create a Postgres client if SUPABASE_DATABASE_URL is set
+let db = undefined;
+let client = undefined;
+if (process.env.SUPABASE_DATABASE_URL) {
+  const connectionString = process.env.SUPABASE_DATABASE_URL;
+  const dbUrl = new URL(connectionString);
+  client = postgres({
+    host: dbUrl.hostname,
+    port: parseInt(dbUrl.port) || 5432,
+    database: dbUrl.pathname.slice(1),
+    username: dbUrl.username,
+    password: dbUrl.password,
+    ssl: 'require',
+    max: 10,
+    idle_timeout: 20,
+    connect_timeout: 10,
+    connection: {
+      application_name: 'fixer-app',
+    }
+  });
+  db = drizzle(client, { schema });
+}
+export { db, client };

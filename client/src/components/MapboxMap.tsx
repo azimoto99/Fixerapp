@@ -3,12 +3,8 @@ import mapboxgl from 'mapbox-gl';
 import 'mapbox-gl/dist/mapbox-gl.css';
 
 // Set the access token from environment variable
-const accessToken = import.meta.env.VITE_MAPBOX_ACCESS_TOKEN;
-if (accessToken) {
-  mapboxgl.accessToken = accessToken;
-} else {
-  console.error('Mapbox access token is missing! Map features will not work.');
-}
+mapboxgl.accessToken = process.env.VITE_MAPBOX_ACCESS_TOKEN;
+
 
 interface MapboxMapProps {
   latitude?: number;
@@ -48,18 +44,13 @@ export default function MapboxMap({
   useEffect(() => {
     if (!mapContainer.current) return;
     
-    // Don't initialize map if no access token
-    if (!accessToken) {
-      console.warn('Mapbox map will not be initialized - missing access token');
-      return;
-    }
-    
+    // Initialize map
     map.current = new mapboxgl.Map({
       container: mapContainer.current,
-      style: 'mapbox://styles/mapbox/traffic-night-v2', // Using traffic-night style to show live traffic
+      style: 'mapbox://styles/mapbox/streets-v11',
       center: [longitude, latitude],
       zoom: zoom,
-      interactive: interactive
+      interactive: interactive,
     });
     
     // Add event handler for map load
