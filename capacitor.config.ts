@@ -20,17 +20,18 @@ const config: CapacitorConfig = {
   ios: {
     backgroundColor: '#000000',
     overrideUserAgent: 'Fixer-App-iOS'
-  },
-  plugins: {
+  },  plugins: {
     SplashScreen: {
       launchShowDuration: 1500,
       launchAutoHide: true,
       backgroundColor: "#000000",
+      androidSplashResourceName: "splash",
       androidScaleType: "CENTER_CROP",
       showSpinner: true,
       androidSpinnerStyle: "large",
       iosSpinnerStyle: "large",
-      spinnerColor: "#68D391",
+      spinnerColor: "#68D391",      androidIcon: "./fixer.png",
+      splash: "./fixer.png",
       splashFullScreen: true,
       splashImmersive: true
     }

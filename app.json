@@ -1,0 +1,48 @@
+{
+  "expo": {
+    "name": "Fixer",
+    "slug": "fixer",
+    "owner": "azimoto9",
+    "version": "1.0.0",
+    "orientation": "portrait",    "icon": "./fixer.png",
+    "userInterfaceStyle": "automatic",
+    "splash": {
+      "image": "./fixer.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#000000"
+    },
+    "assetBundlePatterns": [
+      "**/*"
+    ],
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.fixer"
+    },
+    "android": {      "adaptiveIcon": {
+        "foregroundImage": "./fixer.png",
+        "backgroundColor": "#000000"
+      },
+      "package": "com.fixer",
+      "permissions": [
+        "ACCESS_COARSE_LOCATION",
+        "ACCESS_FINE_LOCATION"
+      ]
+    },
+    "web": {      "favicon": "./fixer.png"
+    },
+    "scheme": "fixerapp",
+    "extra": {
+      "eas": {
+        "projectId": "c2dd5237-478c-4d38-b4c7-74054caed1f2"
+      }
+    },
+    "primaryColor": "#68D391",    "notification": {
+      "icon": "./fixer.png",
+      "color": "#000000",
+      "androidMode": "default"
+    },
+    "runtimeVersion": {
+      "policy": "sdkVersion"
+    }
+  }
+}

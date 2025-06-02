@@ -71,7 +71,7 @@ echo "Step 3: Updating Android configuration..."
 if [ ! -f "android/app/src/main/res/mipmap-xxxhdpi/ic_launcher.png" ]; then
   echo "Creating app icon resources..."
   mkdir -p android/app/src/main/res/mipmap-xxxhdpi
-  cp public/fixer-pin-logo.svg android/app/src/main/res/drawable/app_icon.xml
+  cp public/fixer.png android/app/src/main/res/drawable/app_icon.xml
 fi
 
 # Check if we can build the APK

@@ -15,13 +15,24 @@ const extraNodeModules = {
   '@assets': path.resolve(__dirname, 'assets'),
 };
 
+const svgConfig = {
+  transformer: {
+    babelTransformerPath: require.resolve('react-native-svg-transformer'),
+    assetPlugins: ['expo-asset/tools/hashAssetFiles'],
+  },
+  resolver: {
+    assetExts: defaultConfig.resolver.assetExts.filter(ext => ext !== 'svg'),
+    sourceExts: [...defaultConfig.resolver.sourceExts, 'svg'],
+  },
+};
+
 module.exports = {
   ...defaultConfig,
+  ...svgConfig,
   resolver: {
     ...defaultConfig.resolver,
-    assetExts: [
-      ...defaultConfig.resolver.assetExts,
-      'png', 'jpg', 'jpeg', 'gif', 'webp', 'svg',
+    assetExts: [      ...defaultConfig.resolver.assetExts.filter(ext => ext !== 'svg'),
+      'png', 'jpg', 'jpeg', 'gif', 'webp',
       'mp3', 'wav', 'ogg', 'mp4', 'mov',
       'ttf', 'otf', 'xml', 'pdf', 'json'
     ],

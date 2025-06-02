@@ -1,6 +1,6 @@
 # Fixer - Gig Economy Platform
 
-![Fixer Logo](./logo.png)
+![Fixer Logo](./fixer.png)
 
 ## Overview
 

@@ -43,11 +43,12 @@ export default function MapboxMap({
   // Initialize the map
   useEffect(() => {
     if (!mapContainer.current) return;
-    
-    // Initialize map
+      // Initialize map
     map.current = new mapboxgl.Map({
       container: mapContainer.current,
-      style: 'mapbox://styles/mapbox/streets-v11',
+      style: document.documentElement.classList.contains('dark') 
+        ? 'mapbox://styles/mapbox/navigation-night-v1'  // Dark theme style
+        : 'mapbox://styles/mapbox/streets-v12', // Light theme style
       center: [longitude, latitude],
       zoom: zoom,
       interactive: interactive,
@@ -86,7 +87,23 @@ export default function MapboxMap({
         console.warn('Could not set custom road colors:', error);
       }
     });
-    
+      // Theme change observer
+    const darkModeObserver = new MutationObserver((mutations) => {
+      mutations.forEach((mutation) => {
+        if (mutation.attributeName === 'class' && map.current) {
+          const isDark = document.documentElement.classList.contains('dark');
+          map.current.setStyle(
+            isDark ? 'mapbox://styles/mapbox/navigation-night-v1' : 'mapbox://styles/mapbox/streets-v12'
+          );
+        }
+      });
+    });
+
+    darkModeObserver.observe(document.documentElement, {
+      attributes: true,
+      attributeFilter: ['class']
+    });
+
     if (onMapClick) {
       map.current.on('click', (e) => {
         onMapClick(e.lngLat);
@@ -123,11 +140,11 @@ export default function MapboxMap({
       
       // Create a DOM element for the marker
       const el = document.createElement('div');
-      
-      // Style based on marker type
+        // Style based on marker type
+      const isDark = document.documentElement.classList.contains('dark');
       if (marker.title === 'Current Location') {
         el.innerHTML = `📍`;
-        el.style.backgroundColor = '#3b82f6'; // Blue
+        el.style.backgroundColor = isDark ? '#60a5fa' : '#3b82f6'; // Lighter blue in dark mode
       } else {
         // Extract job payment amount from the description if available
         const paymentMatch = marker.description?.match(/\$(\d+)/);
@@ -144,7 +161,14 @@ export default function MapboxMap({
         }
         
         // Use the marker's custom color if available, otherwise default to amber/gold
-        el.style.backgroundColor = marker.markerColor || '#f59e0b';
+        // Adjust color for dark mode
+        const defaultColor = isDark ? '#fbbf24' : '#f59e0b';
+        el.style.backgroundColor = marker.markerColor || defaultColor;
+      }
+      
+      // Add dark mode specific class
+      if (isDark) {
+        el.classList.add('dark-marker');
       }
       
       // Apply styles to marker element
@@ -163,13 +187,14 @@ export default function MapboxMap({
       
       // Create popup if there's a title or description
       let popup: mapboxgl.Popup | undefined;
-      if (marker.title || marker.description) {
+      if (marker.title || marker.description) {        const isDark = document.documentElement.classList.contains('dark');
         popup = new mapboxgl.Popup({ 
           offset: 25,
-          closeButton: false 
+          closeButton: false,
+          className: isDark ? 'dark-popup' : 'light-popup'
         }).setHTML(`
           <div style="padding: 8px; cursor: pointer;">
-            <h3 style="margin: 0 0 5px; font-size: 15px; font-weight: 600; color: #111;">${marker.title || ''}</h3>
+            <h3 style="margin: 0 0 5px; font-size: 15px; font-weight: 600; color: ${isDark ? '#fff' : '#111'};">${marker.title || ''}</h3>
             <p style="margin: 0; font-size: 13px; color: #10b981; font-weight: 500;">${marker.description || ''}</p>
           </div>
         `);
