@@ -207,7 +207,13 @@ div[role="dialog"] {
 
 /* Toast notifications */
 [data-radix-toast-viewport] {
-  z-index: var(--z-index-toast) !important;
+  z-index: var(--z-index-emergency) !important;
+  position: fixed !important;
+  pointer-events: none !important;
+}
+
+[data-radix-toast-viewport] > * {
+  pointer-events: auto !important;
 }
 
 /* Modal dialogs */

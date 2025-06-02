@@ -54,55 +54,68 @@ export function useGeolocation(): GeolocationHook {
           }
         }, 3000) : undefined;
 
-      navigator.geolocation.getCurrentPosition(
-        (position) => {
-          if (timeoutId) clearTimeout(timeoutId);
-          
-          const location = {
-            latitude: position.coords.latitude,
-            longitude: position.coords.longitude
-          };
-          setUserLocation(location);
-          setIsUsingFallback(false);
-          resolve(location);
-        },
-        (error) => {
-          if (timeoutId) clearTimeout(timeoutId);
-          
-          let errorMessage;
-          switch (error.code) {
-            case error.PERMISSION_DENIED:
-              errorMessage = 'Please enable location services to see jobs near you';
-              break;
-            case error.POSITION_UNAVAILABLE:
-              errorMessage = 'Location information is unavailable';
-              break;
-            case error.TIMEOUT:
-              errorMessage = 'The request to get user location timed out';
-              break;
-            default:
-              errorMessage = 'An unknown error occurred while retrieving location';
-              break;
+      // First try with low accuracy for faster response on mobile
+      const tryGetLocation = (highAccuracy: boolean) => {
+        navigator.geolocation.getCurrentPosition(
+          (position) => {
+            if (timeoutId) clearTimeout(timeoutId);
+            
+            const location = {
+              latitude: position.coords.latitude,
+              longitude: position.coords.longitude
+            };
+            setUserLocation(location);
+            setIsUsingFallback(false);
+            resolve(location);
+          },
+          (error) => {
+            // If low accuracy fails, try high accuracy
+            if (!highAccuracy) {
+              console.log('Low accuracy location failed, trying high accuracy...');
+              tryGetLocation(true);
+              return;
+            }
+            
+            if (timeoutId) clearTimeout(timeoutId);
+            
+            let errorMessage;
+            switch (error.code) {
+              case error.PERMISSION_DENIED:
+                errorMessage = 'Please enable location services to see jobs near you';
+                break;
+              case error.POSITION_UNAVAILABLE:
+                errorMessage = 'Location information is unavailable';
+                break;
+              case error.TIMEOUT:
+                errorMessage = 'The request to get user location timed out';
+                break;
+              default:
+                errorMessage = 'An unknown error occurred while retrieving location';
+                break;
+            }
+            setLocationError(errorMessage);
+            
+            // Use fallback location in development or on timeout
+            if (import.meta.env.DEV || error.code === error.TIMEOUT) {
+              console.log('Using fallback location');
+              setUserLocation(DEFAULT_LOCATION);
+              setIsUsingFallback(true);
+              resolve(DEFAULT_LOCATION);
+              return;
+            }
+            
+            resolve(null);
+          },
+          {
+            enableHighAccuracy: highAccuracy,
+            timeout: highAccuracy ? 5000 : 3000, // Shorter timeout for mobile
+            maximumAge: 300000 // Accept cached location up to 5 minutes old
           }
-          setLocationError(errorMessage);
-          
-          // Use fallback location in development
-          if (import.meta.env.DEV) {
-            console.log('Using fallback location for development (error)');
-            setUserLocation(DEFAULT_LOCATION);
-            setIsUsingFallback(true);
-            resolve(DEFAULT_LOCATION);
-            return;
-          }
-          
-          resolve(null);
-        },
-        {
-          enableHighAccuracy: true,
-          timeout: 10000,
-          maximumAge: 0
-        }
-      );
+        );
+      };
+      
+      // Start with low accuracy for faster response
+      tryGetLocation(false);
     });
   };
 

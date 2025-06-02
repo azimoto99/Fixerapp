@@ -8,6 +8,7 @@ import { Separator } from "@/components/ui/separator";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { useToast } from '@/hooks/use-toast';
 import { apiRequest } from '@/lib/queryClient';
+import StripeConnectSetupV2 from '@/components/stripe/StripeConnectSetupV2';
 import { 
   Wallet, 
   TrendingUp, 
@@ -22,7 +23,8 @@ import {
   Eye,
   EyeOff,
   CreditCard,
-  Plus
+  Plus,
+  AlertCircle
 } from 'lucide-react';
 
 interface WalletContentProps {
@@ -42,7 +44,7 @@ interface Transaction {
 const WalletContent: React.FC<WalletContentProps> = ({ user }) => {
   const [showBalance, setShowBalance] = useState(true);
   const [filterType, setFilterType] = useState<'all' | 'earnings' | 'withdrawals' | 'payments'>('all');
-  const [activeSection, setActiveSection] = useState<'overview' | 'earnings' | 'payments'>('overview');
+  const [activeSection, setActiveSection] = useState<'overview' | 'earnings' | 'payments' | 'stripe-connect'>('overview');
   const { toast } = useToast();
 
   // Fetch earnings data
@@ -61,6 +63,12 @@ const WalletContent: React.FC<WalletContentProps> = ({ user }) => {
   const { data: paymentMethods, isLoading: paymentMethodsLoading } = useQuery({
     queryKey: ['/api/stripe/payment-methods'],
     enabled: !!user,
+  });
+
+  // Fetch Stripe Connect account status
+  const { data: stripeConnectStatus, isLoading: stripeConnectLoading } = useQuery({
+    queryKey: ['/api/stripe/connect/account-status'],
+    enabled: !!user && user.accountType === 'worker',
   });
 
   // Calculate wallet metrics
@@ -118,6 +126,17 @@ const WalletContent: React.FC<WalletContentProps> = ({ user }) => {
   });
 
   const handleWithdraw = async () => {
+    // Check if user has Stripe Connect account first
+    if (user.accountType === 'worker' && (!stripeConnectStatus || !stripeConnectStatus.exists)) {
+      toast({
+        title: "Payment Account Required",
+        description: "Please set up your Stripe Connect account first to withdraw funds.",
+        variant: "destructive",
+      });
+      setActiveSection('stripe-connect');
+      return;
+    }
+
     if (availableBalance <= 0) {
       toast({
         title: "No funds available",
@@ -134,7 +153,7 @@ const WalletContent: React.FC<WalletContentProps> = ({ user }) => {
       
       toast({
         title: "Withdrawal initiated",
-        description: `$${availableBalance.toFixed(2)} withdrawal has been processed.`,
+        description: `${availableBalance.toFixed(2)} withdrawal has been processed.`,
       });
     } catch (error) {
       toast({
@@ -222,8 +241,42 @@ const WalletContent: React.FC<WalletContentProps> = ({ user }) => {
           >
             Payments
           </Button>
+          {user.accountType === 'worker' && (
+            <Button
+              variant={activeSection === 'stripe-connect' ? 'default' : 'ghost'}
+              size="sm"
+              onClick={() => setActiveSection('stripe-connect')}
+              className="text-xs px-3"
+            >
+              Connect
+            </Button>
+          )}
         </div>
       </div>
+
+      {/* Stripe Connect Warning if not set up */}
+      {user.accountType === 'worker' && stripeConnectStatus && !stripeConnectStatus.exists && (
+        <Card className="bg-amber-50 dark:bg-amber-900/20 border-amber-200 dark:border-amber-800">
+          <CardContent className="p-4">
+            <div className="flex items-start gap-3">
+              <AlertCircle className="h-5 w-5 text-amber-600 mt-0.5" />
+              <div className="flex-1">
+                <h4 className="font-medium text-amber-900 dark:text-amber-100">Payment Account Required</h4>
+                <p className="text-sm text-amber-700 dark:text-amber-300 mt-1">
+                  You need to set up your Stripe Connect account to receive payments. 
+                </p>
+                <Button 
+                  size="sm" 
+                  className="mt-3"
+                  onClick={() => setActiveSection('stripe-connect')}
+                >
+                  Set Up Now
+                </Button>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Balance Section */}
       <Card className="bg-gradient-to-br from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20 border-blue-200 dark:border-blue-800">
@@ -257,12 +310,14 @@ const WalletContent: React.FC<WalletContentProps> = ({ user }) => {
             
             <Button 
               onClick={handleWithdraw}
-              disabled={availableBalance <= 0}
+              disabled={availableBalance <= 0 || (user.accountType === 'worker' && (!stripeConnectStatus || !stripeConnectStatus.exists))}
               className="w-full mt-4"
               size="sm"
             >
               <Download className="h-4 w-4 mr-2" />
-              Withdraw Funds
+              {user.accountType === 'worker' && (!stripeConnectStatus || !stripeConnectStatus.exists) 
+                ? 'Set Up Account First' 
+                : 'Withdraw Funds'}
             </Button>
           </div>
         </CardContent>
@@ -301,6 +356,61 @@ const WalletContent: React.FC<WalletContentProps> = ({ user }) => {
               </div>
             </CardContent>
           </Card>
+
+          {/* Stripe Connect Status for Workers */}
+          {user.accountType === 'worker' && (
+            <Card>
+              <CardHeader className="pb-3">
+                <CardTitle className="text-base flex items-center gap-2">
+                  <CreditCard className="h-4 w-4" />
+                  Payment Account Status
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                {stripeConnectLoading ? (
+                  <div className="text-center py-6 text-gray-500">
+                    <div className="animate-spin h-8 w-8 border-2 border-primary border-t-transparent rounded-full mx-auto mb-2"></div>
+                    <p className="text-sm">Checking account status...</p>
+                  </div>
+                ) : stripeConnectStatus && stripeConnectStatus.exists ? (
+                  <div className="flex items-center justify-between p-3 border rounded-lg bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-800">
+                    <div className="flex items-center gap-3">
+                      <div className="h-8 w-8 rounded-full bg-green-100 dark:bg-green-800 flex items-center justify-center">
+                        <CreditCard className="h-4 w-4 text-green-600 dark:text-green-400" />
+                      </div>
+                      <div>
+                        <p className="text-sm font-medium text-green-900 dark:text-green-100">Stripe Connect Active</p>
+                        <p className="text-xs text-green-700 dark:text-green-300">
+                          {stripeConnectStatus.account?.charges_enabled 
+                            ? 'Ready to receive payments' 
+                            : 'Account verification pending'}
+                        </p>
+                      </div>
+                    </div>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => setActiveSection('stripe-connect')}
+                    >
+                      Manage
+                    </Button>
+                  </div>
+                ) : (
+                  <div className="text-center py-6">
+                    <AlertCircle className="h-8 w-8 mx-auto mb-2 text-amber-500" />
+                    <p className="text-sm font-medium mb-2">No Payment Account</p>
+                    <p className="text-xs text-gray-500 mb-4">Set up Stripe Connect to receive payments</p>
+                    <Button
+                      size="sm"
+                      onClick={() => setActiveSection('stripe-connect')}
+                    >
+                      Set Up Now
+                    </Button>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          )}
 
           {/* Payment Methods */}
           <Card>
@@ -418,6 +528,23 @@ const WalletContent: React.FC<WalletContentProps> = ({ user }) => {
                 </div>
               )}
             </ScrollArea>
+          </CardContent>
+        </Card>
+      )}
+
+      {activeSection === 'stripe-connect' && user.accountType === 'worker' && (
+        <Card>
+          <CardHeader className="pb-3">
+            <CardTitle className="text-base flex items-center gap-2">
+              <CreditCard className="h-4 w-4" />
+              Stripe Connect Setup
+            </CardTitle>
+            <CardDescription>
+              Set up your payment account to receive earnings
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <StripeConnectSetupV2 compact={true} />
           </CardContent>
         </Card>
       )}

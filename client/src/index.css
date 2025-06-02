@@ -434,6 +434,12 @@ body, html {
     margin-right: -50vw;
   }
   
+  /* Force toast visibility */
+  [data-radix-toast-viewport] {
+    z-index: 999999 !important;
+    position: fixed !important;
+  }
+  
   /* Hide scrollbar for Chrome, Safari and Opera */
   .no-scrollbar::-webkit-scrollbar {
     display: none;

@@ -244,7 +244,7 @@ const StripeTester: React.FC = () => {
         )}
       </CardContent>
       
-      <CardFooter>
+      <CardFooter className="flex flex-col gap-2">
         <Button 
           onClick={testStripeIntegration}
           disabled={isLoading}
@@ -259,6 +259,49 @@ const StripeTester: React.FC = () => {
             'Test Stripe Integration'
           )}
         </Button>
+        
+        {/* Toast Test Buttons */}
+        <div className="w-full pt-4 border-t">
+          <p className="text-sm text-muted-foreground mb-2">Toast Test Buttons:</p>
+          <div className="grid grid-cols-3 gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => {
+                toast({
+                  title: "Success Toast",
+                  description: "This is a success message",
+                });
+              }}
+            >
+              Success
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => {
+                toast({
+                  title: "Error Toast",
+                  description: "This is an error message",
+                  variant: "destructive",
+                });
+              }}
+            >
+              Error
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => {
+                toast({
+                  description: "Simple toast message",
+                });
+              }}
+            >
+              Simple
+            </Button>
+          </div>
+        </div>
       </CardFooter>
     </Card>
   );

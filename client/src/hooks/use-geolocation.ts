@@ -29,30 +29,48 @@ export function useGeolocation() {
     const updateLocation = () => {
       setState(prev => ({ ...prev, isLoading: true }));
       
-      navigator.geolocation.getCurrentPosition(
-        (position) => {
-          setState({
-            userLocation: {
-              latitude: position.coords.latitude,
-              longitude: position.coords.longitude,
-            },
-            error: null,
-            isLoading: false,
-          });
-        },
-        (error) => {
-          setState({
-            userLocation: null,
-            error: error.message,
-            isLoading: false,
-          });
-        },
-        {
-          enableHighAccuracy: true,
-          timeout: 10000,
-          maximumAge: 60000 // 1 minute cache
-        }
-      );
+      // Try low accuracy first for faster response
+      const tryGetLocation = (highAccuracy: boolean) => {
+        navigator.geolocation.getCurrentPosition(
+          (position) => {
+            setState({
+              userLocation: {
+                latitude: position.coords.latitude,
+                longitude: position.coords.longitude,
+              },
+              error: null,
+              isLoading: false,
+            });
+          },
+          (error) => {
+            // If low accuracy fails, try high accuracy
+            if (!highAccuracy && error.code !== error.PERMISSION_DENIED) {
+              tryGetLocation(true);
+              return;
+            }
+            
+            // On timeout, use a fallback or show appropriate message
+            let errorMessage = error.message;
+            if (error.code === error.TIMEOUT) {
+              errorMessage = 'Location request timed out. Please try again.';
+            }
+            
+            setState({
+              userLocation: null,
+              error: errorMessage,
+              isLoading: false,
+            });
+          },
+          {
+            enableHighAccuracy: highAccuracy,
+            timeout: highAccuracy ? 5000 : 3000, // Shorter timeout for mobile
+            maximumAge: 300000 // Accept cached location up to 5 minutes old
+          }
+        );
+      };
+      
+      // Start with low accuracy
+      tryGetLocation(false);
     };
 
     // Initial location fetch
@@ -71,36 +89,54 @@ export function useGeolocation() {
     setState(prev => ({ ...prev, isLoading: true }));
     
     return new Promise<{latitude: number, longitude: number}>((resolve, reject) => {
-      navigator.geolocation.getCurrentPosition(
-        (position) => {
-          const newLocation = {
-            latitude: position.coords.latitude,
-            longitude: position.coords.longitude,
-          };
-          
-          setState({
-            userLocation: newLocation,
-            error: null,
-            isLoading: false,
-          });
-          
-          resolve(newLocation);
-        },
-        (error) => {
-          setState({
-            userLocation: null,
-            error: error.message,
-            isLoading: false,
-          });
-          
-          reject(error);
-        },
-        {
-          enableHighAccuracy: true,
-          timeout: 10000,
-          maximumAge: 0 // Don't use cached position for manual refresh
-        }
-      );
+      // Try low accuracy first for faster response
+      const tryGetLocation = (highAccuracy: boolean) => {
+        navigator.geolocation.getCurrentPosition(
+          (position) => {
+            const newLocation = {
+              latitude: position.coords.latitude,
+              longitude: position.coords.longitude,
+            };
+            
+            setState({
+              userLocation: newLocation,
+              error: null,
+              isLoading: false,
+            });
+            
+            resolve(newLocation);
+          },
+          (error) => {
+            // If low accuracy fails, try high accuracy
+            if (!highAccuracy && error.code !== error.PERMISSION_DENIED) {
+              tryGetLocation(true);
+              return;
+            }
+            
+            // On timeout, use a more helpful error message
+            let errorMessage = error.message;
+            if (error.code === error.TIMEOUT) {
+              errorMessage = 'Location request timed out. Please try again.';
+            }
+            
+            setState({
+              userLocation: null,
+              error: errorMessage,
+              isLoading: false,
+            });
+            
+            reject(error);
+          },
+          {
+            enableHighAccuracy: highAccuracy,
+            timeout: highAccuracy ? 5000 : 3000, // Shorter timeout for mobile
+            maximumAge: 0 // Don't use cached position for manual refresh
+          }
+        );
+      };
+      
+      // Start with low accuracy
+      tryGetLocation(false);
     });
   };
 
