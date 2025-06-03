@@ -257,7 +257,9 @@ const JobDetailsCard: React.FC<JobDetailsCardProps> = ({ jobId, isOpen, onClose 
   // Apply for job mutation
   const applyMutation = useMutation({
     mutationFn: async () => {
-      const response = await apiRequest('POST', `/api/jobs/${jobId}/apply`, {
+      // Use the same endpoint and payload as ApplicationForm
+      const response = await apiRequest('POST', '/api/applications', {
+        jobId,
         workerId: user?.id,
         message: applicationMessage,
         hourlyRate: parseFloat(proposedRate),

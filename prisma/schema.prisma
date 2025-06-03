@@ -1,0 +1,38 @@
+model User {
+  id              String    @id @default(cuid())
+  name            String?
+  email           String?   @unique
+  emailVerified   DateTime?
+  image           String?
+  accounts        Account[]
+  sessions        Session[]
+  stripeCustomerId String?  @unique
+  stripeConnectId String?  @unique
+  wallet          Wallet?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+}
+
+model Wallet {
+  id              String    @id @default(cuid())
+  userId          String    @unique
+  user            User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  balance         Float     @default(0)
+  pendingBalance  Float     @default(0)
+  transactions    Transaction[]
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+}
+
+model Transaction {
+  id              String    @id @default(cuid())
+  walletId        String
+  wallet          Wallet    @relation(fields: [walletId], references: [id], onDelete: Cascade)
+  amount          Float
+  type            String    // 'credit' or 'debit'
+  status          String    // 'completed' or 'pending'
+  description     String
+  stripePaymentId String?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+} 

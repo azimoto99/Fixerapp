@@ -859,4 +859,34 @@ export const ADMIN_PERMISSIONS = [
   "admin_manage"
 ] as const;
 
+export const userSchema = z.object({
+  id: z.string(),
+  email: z.string().email(),
+  name: z.string().optional(),
+  stripeCustomerId: z.string().optional(),
+});
+
+export const walletSchema = z.object({
+  id: z.string(),
+  userId: z.string(),
+  balance: z.number(),
+  pendingBalance: z.number(),
+  createdAt: z.date(),
+  updatedAt: z.date(),
+});
+
+export const transactionSchema = z.object({
+  id: z.string(),
+  userId: z.string(),
+  amount: z.number(),
+  type: z.enum(['CREDIT', 'DEBIT']),
+  status: z.enum(['PENDING', 'COMPLETED', 'FAILED']),
+  createdAt: z.date(),
+  updatedAt: z.date(),
+});
+
+export type User = z.infer<typeof userSchema>;
+export type Wallet = z.infer<typeof walletSchema>;
+export type Transaction = z.infer<typeof transactionSchema>;
+
 

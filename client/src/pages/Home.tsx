@@ -39,6 +39,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { apiRequest } from '@/lib/queryClient';
 import { useToast } from '@/hooks/use-toast';
+import { Badge } from '@/components/ui/badge';
 
 // Worker Dashboard Component
 const WorkerDashboard = () => {
@@ -434,7 +435,7 @@ export default function Home() {
       
       {/* Posted Jobs Drawer */}
       {showPostedJobs && (
-        <div className="fixed top-0 right-0 h-full w-80 bg-background/95 backdrop-blur-xl shadow-2xl z-[var(--z-drawer)] transform transition-transform duration-300 animate-in slide-in-from-right border-l border-border/50">
+        <div className="fixed top-0 right-0 h-full w-80 bg-background/95 backdrop-blur-xl shadow-2xl z-50 transform transition-transform duration-300 animate-in slide-in-from-right border-l border-border/50">
           {/* Close button with modern design */}
           <button 
             onClick={togglePostedJobs}
@@ -457,106 +458,36 @@ export default function Home() {
             </div>
           </div>
           
-          <div className="overflow-y-auto h-full pb-32 pt-0">
-            {!finalPostedJobs ? (
-              <div className="flex justify-center items-center h-32">
-                <div className="h-6 w-6 text-primary animate-spin">⟳</div>
-              </div>
-            ) : finalPostedJobs.length > 0 ? (
-              <div className="p-4 space-y-4">
-                {finalPostedJobs.map((job: Job) => (
-                  <div key={job.id} className="bg-card/80 backdrop-blur-sm rounded-xl border border-border/40 p-4 hover:shadow-lg hover:bg-card/95 transition-all duration-200">
-                    {/* Header with title and status */}
-                    <div className="flex items-start justify-between mb-3">
-                      <h4 className="font-semibold text-lg leading-tight flex-1 pr-3">{job.title}</h4>
-                      <span className={`px-3 py-1 text-xs font-medium rounded-full flex-shrink-0 ${
-                        job.status === 'open' ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400' : 
-                        job.status === 'assigned' ? 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400' : 
-                        job.status === 'completed' ? 'bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400' :
-                        'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400'
-                      }`}>
-                        {job.status.charAt(0).toUpperCase() + job.status.slice(1)}
-                      </span>
-                    </div>
-                    
-                    {/* Location */}
-                    <div className="flex items-center gap-2 text-sm text-muted-foreground mb-2">
-                      <MapPin className="h-4 w-4" />
-                      <span>{job.location}</span>
-                    </div>
-                    
-                    {/* Description */}
-                    <p className="text-sm text-muted-foreground line-clamp-2 mb-3">{job.description}</p>
-                    
-                    {/* Metadata */}
-                    <div className="flex items-center justify-between text-xs text-muted-foreground mb-4">
-                      <div className="flex items-center gap-4">
-                        <div className="flex items-center gap-1">
-                          <Calendar className="h-3 w-3" />
-                          <span>Posted: {job.datePosted ? new Date(job.datePosted).toLocaleDateString() : 'Unknown'}</span>
-                        </div>
-                        <div className="flex items-center gap-1">
-                          <DollarSign className="h-3 w-3" />
-                          <span className="font-medium">${job.paymentAmount?.toFixed(2) || '0.00'}</span>
+          {/* Jobs list */}
+          <div className="overflow-y-auto h-[calc(100%-4rem)]">
+            {finalPostedJobs?.length > 0 ? (
+              <div className="divide-y divide-border">
+                {finalPostedJobs.map((job) => (
+                  <div 
+                    key={job.id} 
+                    className="p-4 hover:bg-accent/50 transition-colors cursor-pointer"
+                    onClick={() => {
+                      setSelectedJob(job);
+                      setShowJobDetails(true);
+                    }}
+                  >
+                    <div className="flex items-start justify-between">
+                      <div className="flex-1">
+                        <h4 className="font-medium mb-1">{job.title}</h4>
+                        <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                          <span className="flex items-center gap-1">
+                            <MapPin className="h-3 w-3" />
+                            {job.location}
+                          </span>
+                          <span className="flex items-center gap-1">
+                            <DollarSign className="h-3 w-3" />
+                            ${job.paymentAmount}
+                          </span>
                         </div>
                       </div>
-                    </div>
-                    
-                    {/* Action buttons */}
-                    <div className="flex gap-2">
-                      <Button 
-                        variant="outline" 
-                        size="sm" 
-                        className="flex-1 hover:bg-primary/10 hover:border-primary/50"
-                        onClick={() => {
-                          window.dispatchEvent(new CustomEvent('open-job-details', { 
-                            detail: { jobId: job.id }
-                          }));
-                        }}
-                      >
-                        View Details
-                      </Button>
-                      <Button 
-                        variant="outline" 
-                        size="sm"
-                        className="flex-1 hover:bg-destructive/10 hover:border-destructive/50 hover:text-destructive"
-                        onClick={async () => {
-                          if (confirm(`Are you sure you want to cancel "${job.title}"?`)) {
-                            try {
-                              const response = await fetch(`/api/jobs/${job.id}`, {
-                                method: 'PATCH',
-                                headers: {
-                                  'Content-Type': 'application/json'
-                                },
-                                body: JSON.stringify({ status: 'cancelled' })
-                              });
-                              
-                              if (response.ok) {
-                                toast({
-                                  title: "Job Cancelled",
-                                  description: "The job has been cancelled successfully",
-                                });
-                                queryClient.invalidateQueries({ queryKey: ['/api/jobs'] });
-                              } else {
-                                toast({
-                                  title: "Error",
-                                  description: "Failed to cancel the job",
-                                  variant: "destructive"
-                                });
-                              }
-                            } catch (error) {
-                              console.error("Error cancelling job:", error);
-                              toast({
-                                title: "Error",
-                                description: "Failed to cancel the job",
-                                variant: "destructive"
-                              });
-                            }
-                          }
-                        }}
-                      >
-                        Cancel
-                      </Button>
+                      <Badge variant={job.status === 'open' ? 'default' : 'secondary'}>
+                        {job.status}
+                      </Badge>
                     </div>
                   </div>
                 ))}

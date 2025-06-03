@@ -1,5 +1,5 @@
 import { eq, and, like, notLike, desc, or, asc, gte, lte, count, sum, avg, sql } from 'drizzle-orm';
-import { db } from './db';
+import { db, pool } from './db';
 import { IStorage } from './storage';
 import {
   users, jobs, applications, reviews, tasks, earnings, payments, badges, userBadges, notifications, messages, supportTickets,
@@ -16,11 +16,8 @@ import {
 } from '@shared/schema';
 import connectPg from "connect-pg-simple";
 import session from "express-session";
-import pkg from 'pg';
-const { Pool } = pkg;
 import { config } from 'dotenv';
 config();
-const pool = new Pool({ connectionString: process.env.SUPABASE_DATABASE_URL });
 
 // Define a set of vibrant colors for job markers
 const JOB_MARKER_COLORS = [
@@ -43,6 +40,10 @@ export class UnifiedStorage implements IStorage {
   public sessionStore: session.Store;
   public db = db; // Expose database connection for admin queries
   constructor() {
+    if (!pool) {
+      throw new Error('Database pool not initialized');
+    }
+
     const PostgresStore = connectPg(session);
     
     this.sessionStore = new PostgresStore({

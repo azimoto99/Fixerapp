@@ -7,6 +7,12 @@ dns.setDefaultResultOrder('ipv4first');
 import express, { type Request, Response, NextFunction } from "express";
 import { registerRoutes } from "./routes";
 import { setupVite, serveStatic, log } from "./vite";
+import { healthCheckMiddleware } from './middleware/health-check';
+import { sessionActivityMiddleware } from './middleware/session-activity';
+import { sessionRecoveryMiddleware } from './middleware/session-recovery';
+import { systemMonitor } from './system-monitor';
+import { DatabaseResilience } from './utils/database-resilience';
+import { storage } from './storage';
 // Import seed script to create initial data
 import "./seed";
 
@@ -38,6 +44,75 @@ if (missingEnvVars.length > 0) {
 const app = express();
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
+
+// Import pool directly from db
+import { pool } from './db';
+import passport from 'passport';
+import session from 'express-session';
+import { setupAuth } from './auth';
+
+// Initialize database resilience
+const dbResilience = new DatabaseResilience(pool, {
+  maxRetries: 5,
+  retryDelay: 5000,
+  maxConnections: 20
+});
+
+dbResilience.on('reconnected', () => {
+  console.log('Database connection restored');
+  systemMonitor.recordEvent('database_reconnected');
+});
+
+dbResilience.on('reconnection_failed', (error) => {
+  console.error('Database reconnection failed:', error);
+  systemMonitor.recordEvent('database_reconnection_failed');
+});
+
+// Configure session middleware
+app.use(session({
+  store: storage.sessionStore,
+  secret: process.env.SESSION_SECRET || 'your-secret-key',
+  resave: false,
+  saveUninitialized: false,
+  cookie: {
+    secure: process.env.NODE_ENV === 'production',
+    httpOnly: true,
+    maxAge: 30 * 24 * 60 * 60 * 1000 // 30 days
+  }
+}));
+
+// Initialize authentication first
+setupAuth(app);
+
+// Then add resilience middleware
+app.use(healthCheckMiddleware);
+app.use(sessionActivityMiddleware);
+app.use(sessionRecoveryMiddleware);
+
+// Add authentication error handler
+app.use((err: any, req: Request, res: Response, next: NextFunction) => {
+  if (err.name === 'AuthenticationError' || err.message?.includes('authentication')) {
+    console.error('Authentication error:', err);
+    return res.status(401).json({ 
+      message: "Authentication failed",
+      error: process.env.NODE_ENV === 'development' ? err.message : undefined
+    });
+  }
+  next(err);
+});
+
+// Add error monitoring
+app.use((err: any, req: Request, res: Response, next: NextFunction) => {
+  console.error('Unhandled error:', err);
+  systemMonitor.recordRequest(true);
+  
+  // Don't expose internal errors to clients
+  res.status(500).json({
+    message: "An unexpected error occurred",
+    status: "error",
+    error: process.env.NODE_ENV === 'development' ? err.message : undefined
+  });
+});
 
 // Add CSP headers
 app.use((req, res, next) => {

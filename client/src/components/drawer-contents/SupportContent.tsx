@@ -261,9 +261,27 @@ export default function SupportContent() {
               </DialogTrigger>
               <DialogContent 
                 className="sm:max-w-[425px] support-dialog" 
-                onPointerDownOutside={(e) => e.preventDefault()}
-                onInteractOutside={(e) => e.preventDefault()}
-                onEscapeKeyDown={(e) => e.preventDefault()}
+                onPointerDownOutside={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                }}
+                onInteractOutside={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                }}
+                onEscapeKeyDown={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                }}
+                onClick={(e) => {
+                  e.stopPropagation();
+                }}
+                onPointerDown={(e) => {
+                  e.stopPropagation();
+                }}
+                onMouseDown={(e) => {
+                  e.stopPropagation();
+                }}
               >
                 <form onSubmit={(e) => {
                   e.preventDefault();
@@ -366,9 +384,27 @@ export default function SupportContent() {
               </DialogTrigger>
               <DialogContent 
                 className="sm:max-w-[425px] support-dialog" 
-                onPointerDownOutside={(e) => e.preventDefault()}
-                onInteractOutside={(e) => e.preventDefault()}
-                onEscapeKeyDown={(e) => e.preventDefault()}
+                onPointerDownOutside={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                }}
+                onInteractOutside={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                }}
+                onEscapeKeyDown={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                }}
+                onClick={(e) => {
+                  e.stopPropagation();
+                }}
+                onPointerDown={(e) => {
+                  e.stopPropagation();
+                }}
+                onMouseDown={(e) => {
+                  e.stopPropagation();
+                }}
               >
                 <form onSubmit={(e) => {
                   e.preventDefault();
@@ -474,8 +510,27 @@ export default function SupportContent() {
               </DialogTrigger>
               <DialogContent 
                 className="sm:max-w-[425px] support-dialog" 
-                onPointerDownOutside={(e) => e.preventDefault()}
-                onInteractOutside={(e) => e.preventDefault()}
+                onPointerDownOutside={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                }}
+                onInteractOutside={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                }}
+                onEscapeKeyDown={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                }}
+                onClick={(e) => {
+                  e.stopPropagation();
+                }}
+                onPointerDown={(e) => {
+                  e.stopPropagation();
+                }}
+                onMouseDown={(e) => {
+                  e.stopPropagation();
+                }}
               >
                 <form onSubmit={(e) => {
                   e.preventDefault();

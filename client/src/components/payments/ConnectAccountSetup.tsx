@@ -216,9 +216,15 @@ export default function ConnectAccountSetup() {
         description: 'Your Stripe Connect account has been created. You will now be redirected to complete your setup.',
       });
       
-      // Redirect to Stripe Connect onboarding
-      if (data.accountLinkUrl) {
-        window.location.href = data.accountLinkUrl;
+      // Redirect to Stripe Connect onboarding      const url = data.accountLinkUrl || data.url;  // Support both formats
+      if (url) {
+        window.open(url, '_blank');
+        toast({
+          title: 'Opening Stripe Connect Setup',
+          description: 'Please complete the account setup in the new tab. You may need to refresh this page after completion.',
+        });
+      } else {
+        throw new Error('No account setup URL received from server');
       }
     },
     onError: (error: Error) => {
@@ -240,13 +246,12 @@ export default function ConnectAccountSetup() {
       }
       return response.json();
     },
-    onSuccess: (data) => {
-      if (data.url) {
-        window.location.href = data.url;
-      } else if (data.accountLinkUrl) {
-        // Fallback to account link if login link not available
-        window.location.href = data.accountLinkUrl;
+    onSuccess: (data) => {      const url = data.accountLinkUrl || data.url;  // Support both formats
+      if (!url) {
+        throw new Error('No URL received from server');
       }
+      // For better UX, open in new tab instead of redirecting
+      window.open(url, '_blank');
     },
     onError: (error: Error) => {
       toast({

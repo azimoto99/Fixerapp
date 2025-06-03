@@ -131,6 +131,8 @@ div[role="dialog"] {
 .support-dialog {
   z-index: var(--z-index-support-dialog) !important;
   pointer-events: auto !important;
+  position: relative !important;
+  isolation: isolate !important;
 }
 
 .support-dialog * {
@@ -145,6 +147,19 @@ div[role="dialog"] {
 .support-dialog textarea,
 .support-dialog select {
   pointer-events: auto !important;
+}
+
+/* Ensure dialog overlay blocks all clicks to elements below */
+[role="dialog"][data-state="open"] {
+  pointer-events: auto !important;
+}
+
+/* Dialog backdrop should block all pointer events */
+.dialog-backdrop[data-state="open"] {
+  pointer-events: auto !important;
+  position: fixed !important;
+  inset: 0 !important;
+  z-index: var(--z-index-dialog-backdrop) !important;
 }
 
 /* Support dialog dropdowns */

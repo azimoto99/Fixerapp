@@ -88,9 +88,6 @@ const SelectContent = React.forwardRef<
       onCloseAutoFocus={(e) => {
         e.preventDefault();
       }}
-      onPointerDownOutside={(e) => {
-        e.preventDefault();
-      }}
       {...props}
     >
       <SelectScrollUpButton />

@@ -1,5 +1,7 @@
 import { storage } from './storage';
 import Stripe from 'stripe';
+import { loadavg } from 'os';
+import { sql } from 'drizzle-orm';
 
 interface ServiceHealth {
   status: 'healthy' | 'warning' | 'critical' | 'unknown';
@@ -106,7 +108,7 @@ class SystemMonitor {
     const startTime = Date.now();
     try {
       // Test database connection with a simple query
-      await storage.getAllUsers();
+      await storage.db.execute(sql`SELECT 1`);
       const responseTime = Date.now() - startTime;
       
       return {
@@ -137,7 +139,7 @@ class SystemMonitor {
       }
 
       const stripe = new Stripe(process.env.STRIPE_SECRET_KEY, {
-        apiVersion: "2023-10-16",
+        apiVersion: "2025-04-30.basil",
       });
 
       // Simple Stripe API health check
@@ -180,12 +182,11 @@ class SystemMonitor {
       error: errorRate > 5 ? `High error rate: ${errorRate.toFixed(2)}%` : undefined
     };
   }
-
   private async getCPUUsage(): Promise<number> {
     // Simplified CPU usage calculation
     // In production, would use more sophisticated monitoring
-    const loadAvg = require('os').loadavg();
-    return Math.min(loadAvg[0] * 10, 100); // Convert to percentage, cap at 100%
+    const cpuLoad = loadavg();
+    return Math.min(cpuLoad[0] * 10, 100); // Convert to percentage, cap at 100%
   }
 
   incrementConnectionCount() {

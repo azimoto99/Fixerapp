@@ -58,6 +58,43 @@ export default function MapboxMap({
     map.current.on('load', () => {
       setMapLoaded(true);
       
+      // Add Mapbox Traffic source and layers
+      if (map.current && !map.current.getSource('traffic')) {
+        map.current.addSource('traffic', {
+          type: 'vector',
+          url: 'mapbox://mapbox.mapbox-traffic-v1'
+        });
+        // Traffic flow layer
+        map.current.addLayer({
+          id: 'traffic-flow',
+          type: 'line',
+          source: 'traffic',
+          'source-layer': 'traffic',
+          layout: { 'line-join': 'round', 'line-cap': 'round' },
+          paint: {
+            'line-color': [
+              'case',
+              ['==', ['get', 'congestion'], 'low'], '#6bcf6b',
+              ['==', ['get', 'congestion'], 'moderate'], '#ffeb3b',
+              ['==', ['get', 'congestion'], 'heavy'], '#ff9800',
+              ['==', ['get', 'congestion'], 'severe'], '#f44336',
+              '#aaaaaa'
+            ],
+            'line-width': 3
+          }
+        });
+        // Traffic incidents layer
+        map.current.addLayer({
+          id: 'traffic-incidents',
+          type: 'symbol',
+          source: 'traffic',
+          'source-layer': 'incidents',
+          layout: {
+            'icon-image': 'car-15',
+            'icon-size': 1.2
+          }
+        });
+      }
       try {
         // We need to get all layer ids first to find the road layers
         const layers = map.current?.getStyle().layers || [];

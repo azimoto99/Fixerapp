@@ -25,6 +25,7 @@ import { Menu, X, Briefcase, MessageSquare } from 'lucide-react';
 import { ThemeToggle } from '@/components/theme';
 import { NotificationPopover } from '@/components/notifications';
 import UserDrawerV2 from '@/components/UserDrawerV2';
+import fixerLogo from '@/assets/fixer.png';
 
 interface HeaderProps {
   selectedRole?: 'worker' | 'poster';
@@ -65,19 +66,7 @@ const Header: React.FC<HeaderProps> = ({
         <div className="flex items-center">
           <Link href="/">
             <div className="flex-shrink-0 flex items-center cursor-pointer">
-              <svg 
-                width="40" 
-                height="40" 
-                viewBox="0 0 512 512" 
-                fill="none" 
-                xmlns="http://www.w3.org/2000/svg"
-                className="h-10 w-auto"
-              >
-                <circle cx="256" cy="256" r="240" fill="#10B981"/>
-                <path d="M323 160C290 160 263 187 263 220C263 226 264 231 265 236L176 325C171 324 166 323 160 323C127 323 100 350 100 383C100 416 127 443 160 443C193 443 220 416 220 383C220 377 219 372 218 367L307 278C312 279 317 280 323 280C356 280 383 253 383 220C383 187 356 160 323 160Z" fill="white"/>
-                <circle cx="323" cy="220" r="25" fill="#10B981"/>
-                <circle cx="160" cy="383" r="25" fill="#10B981"/>
-              </svg>
+              <img src={fixerLogo} alt="Fixer" className="h-10 w-10 rounded-full" />
               <span className="ml-2 text-xl font-bold text-emerald-600">Fixer</span>
             </div>
           </Link>

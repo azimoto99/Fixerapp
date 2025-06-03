@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Dialog, DialogContent } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
-import { Card } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { useLocation } from 'wouter';
 import { CheckCircle2, ArrowRight, XCircle, AlertCircle, RefreshCw } from 'lucide-react';
 import { apiRequest } from '@/lib/queryClient';
@@ -123,78 +123,52 @@ const PostJobSuccessModal: React.FC<PostJobSuccessModalProps> = ({
             )}
           </div>
           
-          {/* Status Card - Different for success vs failure */}
-          <Card className="p-4 bg-gray-50 border border-gray-200">
-            <div className="space-y-4">
-              {/* Payment Status */}
-              <div className="flex items-center">
-                <div className={`${isSuccess ? 'bg-green-100' : 'bg-red-100'} rounded-full p-1.5 mr-3`}>
-                  {isSuccess ? (
-                    <CheckCircle2 className="h-4 w-4 text-green-600" />
-                  ) : (
-                    <XCircle className="h-4 w-4 text-red-600" />
-                  )}
-                </div>
-                <div>
-                  <p className="font-medium">Payment {isSuccess ? 'Processed' : 'Failed'}</p>
-                  <p className="text-sm text-gray-500">
-                    {isSuccess 
-                      ? 'Your payment has been securely processed' 
-                      : 'Your card was declined. Please try another payment method'
-                    }
-                  </p>
-                </div>
-              </div>
-              
-              {/* Job Status */}
-              <div className="flex items-center">
-                {isLoadingStatus ? (
-                  <div className="bg-blue-100 rounded-full p-1.5 mr-3">
-                    <RefreshCw className="h-4 w-4 text-blue-600 animate-spin" />
-                  </div>
-                ) : (
-                  <div className={`${isSuccess ? 'bg-green-100' : 'bg-amber-100'} rounded-full p-1.5 mr-3`}>
+          {/* Status Card */}
+          <Card className="border-2 border-gray-100">
+            <CardContent className="pt-6">
+              <div className="space-y-4">
+                {/* Payment Status */}
+                <div className="flex items-center">
+                  <div className={`${isSuccess ? 'bg-green-100' : 'bg-red-100'} rounded-full p-1.5 mr-3`}>
                     {isSuccess ? (
                       <CheckCircle2 className="h-4 w-4 text-green-600" />
                     ) : (
-                      <AlertCircle className="h-4 w-4 text-amber-600" />
+                      <XCircle className="h-4 w-4 text-red-600" />
                     )}
                   </div>
-                )}
-                <div>
-                  <p className="font-medium">Job Status: {jobStatus.replace('_', ' ').toUpperCase()}</p>
-                  <p className="text-sm text-gray-500">
-                    {isSuccess 
-                      ? 'Your job is now visible to potential workers' 
-                      : 'Your job is on hold until payment is complete'
-                    }
-                  </p>
+                  <div>
+                    <p className="font-medium">Payment {isSuccess ? 'Processed' : 'Failed'}</p>
+                    <p className="text-sm text-gray-500">
+                      {isSuccess 
+                        ? 'Your payment has been securely processed' 
+                        : 'Your card was declined. Please try another payment method'
+                      }
+                    </p>
+                  </div>
+                </div>
+                
+                {/* Job Status */}
+                <div className="flex items-center">
+                  <div className="bg-blue-100 rounded-full p-1.5 mr-3">
+                    <AlertCircle className="h-4 w-4 text-blue-600" />
+                  </div>
+                  <div>
+                    <p className="font-medium">Job Status</p>
+                    <p className="text-sm text-gray-500">
+                      {isSuccess 
+                        ? 'Your job is now live and visible to workers' 
+                        : 'Your job is pending payment'
+                      }
+                    </p>
+                  </div>
                 </div>
               </div>
               
-              {/* Next Steps */}
-              <div className="flex items-center">
-                <div className="bg-blue-100 rounded-full p-1.5 mr-3">
-                  <ArrowRight className="h-4 w-4 text-blue-600" />
-                </div>
-                <div>
-                  <p className="font-medium">
-                    {isSuccess ? 'Next: Review Applications' : 'Next: Complete Payment'}
-                  </p>
-                  <p className="text-sm text-gray-500">
-                    {isSuccess 
-                      ? 'You\'ll be notified when workers apply' 
-                      : 'Update your payment method to activate your job posting'
-                    }
-                  </p>
-                </div>
-              </div>
-              
-              {/* Show fee info */}
+              {/* Service Fee Notice */}
               <div className="mt-3 p-2 bg-blue-50 rounded-md text-xs text-blue-800">
                 <p>Your payment includes the job cost plus a $2.50 service fee to help maintain the platform.</p>
               </div>
-            </div>
+            </CardContent>
           </Card>
           
           {/* Different buttons for success vs failure */}

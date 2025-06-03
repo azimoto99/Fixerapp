@@ -12,16 +12,19 @@ import { financialService } from "./financial-service";
 import { contentModerationService } from "./content-moderation";
 import { analyticsService } from "./analytics-service";
 import { systemMonitor } from "./system-monitor";
+import healthRoutes from './routes/health-routes';
 
 export function registerAdminRoutes(app: Express) {
-  // Apply security headers to all admin routes
-  app.use('/api/admin/*', adminSecurityHeaders);
+  // Apply security headers to all admin routes  app.use('/api/admin/*', adminSecurityHeaders);
   app.use('/api/admin/*', adminRateLimit);
   app.use('/api/admin/*', validateAdminInput);
 
   // Legacy admin auth for backward compatibility
   const adminAuth = enhancedAdminAuth('admin');
   const superAdminAuth = enhancedAdminAuth('super_admin');
+
+  // Register health monitoring routes
+  app.use('/api/admin', healthRoutes);
 
   // Get admin statistics
   app.get("/api/admin/stats", adminAuth, async (req, res) => {

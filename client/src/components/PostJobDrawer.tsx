@@ -118,10 +118,6 @@ export default function PostJobDrawer({ isOpen, onOpenChange }: PostJobDrawerPro
 
     setIsSubmitting(true);
     
-    // Enhanced logging to debug job posting
-    console.log('Job posting initiated for user:', user.id);
-    console.log('Payment amount:', data.paymentAmount);
-    
     try {
       // Final data formatting and validation before submission
       const jobDataToSubmit = {
@@ -138,9 +134,6 @@ export default function PostJobDrawer({ isOpen, onOpenChange }: PostJobDrawerPro
         posterId: user.id,
       };
       
-      // For regular users, proceed with payment flow
-      console.log('Regular user detected, initiating payment flow');
-      
       // Store the pending job data
       setPendingJobData(jobDataToSubmit);
       
@@ -151,10 +144,6 @@ export default function PostJobDrawer({ isOpen, onOpenChange }: PostJobDrawerPro
           
           // Update the form with the selected payment method
           form.setValue('paymentMethodId', paymentMethodId);
-          
-          // Log to confirm we received the payment method ID
-          console.log(`Received payment method ID: ${paymentMethodId}`);
-          console.log(`Job will proceed with payment method: ${paymentMethodId}`);
           
           // Continue with submission
           const updatedData = {

@@ -40,6 +40,18 @@ export default function StripeConnectSetupV2({ compact = false }: StripeConnectS
   const [isDismissed, setIsDismissed] = useState(localStorage.getItem('stripe-connect-dismissed') === 'true');
   const { toast } = useToast();
   
+  // Check if Stripe is configured
+  useEffect(() => {
+    if (!import.meta.env.VITE_STRIPE_PUBLIC_KEY) {
+      console.error('Stripe public key is not configured. Please set VITE_STRIPE_PUBLIC_KEY in your .env file');
+      toast({
+        title: "Configuration Error",
+        description: "Stripe is not properly configured. Please contact support.",
+        variant: "destructive",
+      });
+    }
+  }, []);
+  
   // Check localStorage when component mounts to update the state
   useEffect(() => {
     const checkDismissedStatus = () => {
@@ -67,18 +79,25 @@ export default function StripeConnectSetupV2({ compact = false }: StripeConnectS
     queryKey: ['/api/stripe/connect/account-status'],
     queryFn: async () => {
       try {
+        console.log('Checking Stripe Connect account status...');
         const res = await apiRequest('GET', '/api/stripe/connect/account-status');
+        console.log('Account status response:', res.status);
         if (res.status === 404) {
           // No account yet, which is fine
+          console.log('No Stripe Connect account found (404)');
           return { exists: false };
         }
         if (!res.ok) {
           const errorData = await res.json();
+          console.error('Account status error:', errorData);
           return { exists: false, error: errorData.message || 'Failed to get account status' };
         }
-        return res.json();
+        const data = await res.json();
+        console.log('Account status data:', data);
+        return data;
       } catch (error) {
         // Catch any network errors and return a default state
+        console.error('Network error checking account status:', error);
         return { exists: false, error: 'Connection error' };
       }
     },
@@ -88,12 +107,17 @@ export default function StripeConnectSetupV2({ compact = false }: StripeConnectS
   // Create account mutation
   const createAccountMutation = useMutation({
     mutationFn: async () => {
+      console.log('Creating Stripe Connect account...');
       const res = await apiRequest('POST', '/api/stripe/connect/create-account', { acceptTerms: true });
+      console.log('Create account response:', res.status);
       if (!res.ok) {
         const errorData = await res.json();
+        console.error('Create account error:', errorData);
         throw new Error(errorData.message || 'Failed to create Stripe Connect account');
       }
-      return res.json();
+      const data = await res.json();
+      console.log('Account created successfully:', data);
+      return data;
     },
     onSuccess: (data) => {
       toast({
@@ -134,9 +158,11 @@ export default function StripeConnectSetupV2({ compact = false }: StripeConnectS
       return res.json();
     },
     onSuccess: (data) => {
-      // Open the Stripe dashboard
-      if (data.url) {
-        window.open(data.url, '_blank');
+      const url = data.accountLinkUrl || data.url;  // Support both formats
+      if (url) {
+        window.open(url, '_blank');
+      } else {
+        throw new Error('No dashboard URL received from server');
       }
     },
     onError: (error: Error) => {

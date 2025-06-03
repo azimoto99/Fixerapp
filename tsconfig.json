@@ -11,30 +11,24 @@
     "**/*.test.ts"
   ],
   "compilerOptions": {
-    "incremental": true,
-    "tsBuildInfoFile": "./node_modules/typescript/tsbuildinfo",
-    "noEmit": true,
-    "module": "ESNext",
-    "strict": true,
-    "lib": [
-      "esnext",
-      "dom",
-      "dom.iterable"
-    ],
-    "jsx": "preserve",
-    "esModuleInterop": true,
+    "target": "es2017",
+    "lib": ["dom", "dom.iterable", "esnext"],
+    "allowJs": true,
     "skipLibCheck": true,
-    "allowImportingTsExtensions": true,
-    "moduleResolution": "bundler",
+    "strict": true,
+    "forceConsistentCasingInFileNames": true,
+    "noEmit": true,
+    "esModuleInterop": true,
+    "module": "esnext",
+    "moduleResolution": "node",
+    "resolveJsonModule": true,
+    "isolatedModules": true,
+    "jsx": "preserve",
+    "incremental": true,
     "baseUrl": ".",
-    "types": [
-      "@types/node",
-      "vite/client"
-    ],
     "paths": {
-      "@/*": ["./client/src/*"],
-      "@shared/*": ["./shared/*"],
-      "@assets/*": ["./attached_assets/*"]
+      "@/*": ["./*"],
+      "@shared/*": ["./shared/*"]
     }
   }
 }

@@ -52,14 +52,35 @@ stripeConnectRouter.use(stripeCSP);
 // Create a Connect account for a worker
 stripeConnectRouter.post('/create-account', async (req, res) => {
   try {
-    if (!req.user) {
-      return res.status(401).json({ message: 'User not authenticated' });
+    // Enhanced authentication check with session validation
+    if (!req.session || !req.isAuthenticated() || !req.user) {
+      console.error('Authentication check failed:', {
+        hasSession: !!req.session,
+        isAuthenticated: req.isAuthenticated(),
+        hasUser: !!req.user
+      });
+      return res.status(401).json({ 
+        message: 'Authentication required',
+        code: 'AUTH_REQUIRED'
+      });
     }
 
-    // Get user details
+    // Get user details with validation
     const user = await storage.getUser(req.user.id);
     if (!user) {
-      return res.status(404).json({ message: 'User not found' });
+      console.error(`User not found in database: ${req.user.id}`);
+      return res.status(404).json({ 
+        message: 'User account not found',
+        code: 'USER_NOT_FOUND'
+      });
+    }
+
+    // Validate user email
+    if (!user.email) {
+      return res.status(400).json({ 
+        message: 'Email address required for Stripe account creation',
+        code: 'EMAIL_REQUIRED'
+      });
     }
 
     // Check if user already has a Connect account
@@ -136,12 +157,67 @@ stripeConnectRouter.post('/create-account', async (req, res) => {
     });
 
     console.log(`Created new Connect account: ${account.id} with onboarding link: ${accountLink.url}`);
-    res.json({ accountLinkUrl: accountLink.url, accountId: account.id });
-  } catch (error) {
-    console.error('Error creating Stripe Connect account:', error);
-    res.status(500).json({ message: `Error creating Stripe Connect account: ${error.message}` });
-  }
-});
+    res.json({ accountLinkUrl: accountLink.url, accountId: account.id });    } catch (error) {
+      console.error('Error creating Stripe Connect account:', error);
+      
+      // Handle specific Stripe errors
+      if (error.type === 'StripeError') {
+        let statusCode = 500;
+        let message = 'An error occurred with Stripe';
+        let code = 'STRIPE_ERROR';
+
+        switch (error.code) {
+          case 'account_invalid':
+            statusCode = 400;
+            message = 'Invalid account details provided';
+            code = 'INVALID_ACCOUNT';
+            break;
+          case 'account_number_invalid':
+            statusCode = 400;
+            message = 'Invalid bank account number';
+            code = 'INVALID_BANK_ACCOUNT';
+            break;
+          case 'amount_too_small':
+            statusCode = 400;
+            message = 'Amount is below minimum requirement';
+            code = 'AMOUNT_TOO_LOW';
+            break;
+          case 'routing_number_invalid':
+            statusCode = 400;
+            message = 'Invalid routing number';
+            code = 'INVALID_ROUTING';
+            break;
+          default:
+            if (error.message.includes('db_termination')) {
+              message = 'Database connection error, please try again';
+              code = 'DB_ERROR';
+            }
+        }
+
+        return res.status(statusCode).json({
+          message,
+          code,
+          detail: process.env.NODE_ENV === 'development' ? error.message : undefined
+        });
+      }
+
+      // Handle database errors
+      if (error.code === 'XX000') {
+        return res.status(503).json({
+          message: 'Database service temporarily unavailable',
+          code: 'DB_ERROR',
+          retry: true
+        });
+      }
+
+      // Generic error response
+      res.status(500).json({ 
+        message: 'Failed to create Stripe Connect account',
+        code: 'INTERNAL_ERROR',
+        detail: process.env.NODE_ENV === 'development' ? error.message : undefined
+      });
+    }
+  });
 
 // Get the account status for a worker
 stripeConnectRouter.get('/account-status', async (req, res) => {
