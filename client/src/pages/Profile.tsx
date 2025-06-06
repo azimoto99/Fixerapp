@@ -324,8 +324,7 @@ export default function Profile() {
                           <p className="font-medium mb-2">Platform Service Fee:</p>
                           <p>A flat $2.50 service fee is applied to all transactions.</p>
                         </div>
-                        
-                        <div className="p-4 bg-gray-50 rounded-md">
+                          <div className="p-4 bg-gray-50 rounded-md">
                           <p className="font-medium mb-2">Minimum Payment:</p>
                           <p>The minimum payment amount for any job is $10.00.</p>
                         </div>
@@ -337,7 +336,6 @@ export default function Profile() {
                       </div>
                     </CardContent>
                   </Card>
-                </div>
               </TabsContent>
               
               {/* Earnings Tab */}

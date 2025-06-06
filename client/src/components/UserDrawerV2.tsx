@@ -25,10 +25,12 @@ import { Badge } from "@/components/ui/badge";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import ProfileContentV2 from './drawer-contents/ProfileContentV2';
-import WalletContent from './WalletContent';
+import WalletContent from './WalletContent'; // Ensure this is the main WalletContent in components, not drawer-contents
 import ReviewsContent from './drawer-contents/ReviewsContent';
 import SettingsContent from './drawer-contents/SettingsContent';
 import SupportContent from './drawer-contents/SupportContent';
+import PaymentContent from './drawer-contents/PaymentContent';
+import EarningsContent from './drawer-contents/EarningsContent';
 
 interface UserDrawerProps {
   children?: React.ReactNode;
@@ -48,6 +50,7 @@ const UserDrawerV2: React.FC<UserDrawerProps> = ({
 }) => {
   const { user, logoutMutation } = useAuth();
   const [activeTab, setActiveTab] = useState<string>("profile");
+  const [activeSection, setActiveSection] = useState<string>("earnings");
   const [isOpen, setIsOpen] = useState(externalIsOpen || false);
   const [, navigate] = useLocation();
   
@@ -156,8 +159,40 @@ const UserDrawerV2: React.FC<UserDrawerProps> = ({
       case "profile":
         return <ProfileContentV2 user={user} onSignOut={handleLogout} />;
       case "wallet":
-        return <WalletContent user={user} />;
+        return (
+          <div className="space-y-4">
+            <div className="flex items-center justify-between">
+              <h2 className="text-lg font-semibold flex items-center gap-2">
+                <Wallet className="h-5 w-5" />
+                Wallet
+              </h2>
+              <div className="flex bg-gray-100 dark:bg-gray-800 rounded-lg p-1">
+                <Button
+                  variant={activeSection === 'earnings' ? 'default' : 'ghost'}
+                  size="sm"
+                  onClick={() => setActiveSection('earnings')}
+                  className="text-xs px-3"
+                >
+                  Earnings
+                </Button>
+                <Button
+                  variant={activeSection === 'payments' ? 'default' : 'ghost'}
+                  size="sm"
+                  onClick={() => setActiveSection('payments')}
+                  className="text-xs px-3"
+                >
+                  Payments
+                </Button>
+              </div>
+            </div>
 
+            {activeSection === 'earnings' ? (
+              <EarningsContent user={user} />
+            ) : (
+              <PaymentContent user={user} />
+            )}
+          </div>
+        );
       case "reviews":
         return <ReviewsContent userId={user.id} />;
       case "settings":

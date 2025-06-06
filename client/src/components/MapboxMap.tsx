@@ -47,7 +47,7 @@ export default function MapboxMap({
     map.current = new mapboxgl.Map({
       container: mapContainer.current,
       style: document.documentElement.classList.contains('dark') 
-        ? 'mapbox://styles/mapbox/navigation-night-v1'  // Dark theme style
+        ? 'mapbox://styles/mapbox/dark-v11'  // Dark theme style
         : 'mapbox://styles/mapbox/streets-v12', // Light theme style
       center: [longitude, latitude],
       zoom: zoom,
@@ -285,7 +285,19 @@ export default function MapboxMap({
     <div 
       ref={mapContainer} 
       className={`mapbox-map ${className}`} 
-      style={style}
+      style={{
+        ...style,
+        position: 'absolute',
+        top: 0,
+        left: 0,
+        right: 0,
+        bottom: 0,
+        width: '100%',
+        height: '100%',
+        margin: 0,
+        padding: 0,
+        backgroundColor: document.documentElement.classList.contains('dark') ? '#000' : '#fff'
+      }}
     />
   );
 }

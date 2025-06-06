@@ -11,7 +11,7 @@ import {
   notifications,
   contacts,
   messages,
-  type User, 
+  type DbUser as User, 
   type InsertUser, 
   type Job,
   type InsertJob,
@@ -31,8 +31,6 @@ import {
   type InsertUserBadge,
   type Notification,
   type InsertNotification,
-  type Contact,
-  type InsertContact,
   type Message,
   type InsertMessage
 } from "@shared/schema";
@@ -158,11 +156,13 @@ export interface IStorage {
   getMessagesBetweenUsers(userId1: number, userId2: number): Promise<Message[]>;
   markMessagesAsRead(recipientId: number, senderId: number): Promise<boolean>;
   markMessageAsRead(messageId: number, userId: number): Promise<Message | undefined>;
-
   // Admin operations
   getAllJobs(): Promise<Job[]>;
   getAllPayments(): Promise<Payment[]>;
   getAllEarnings(): Promise<Earning[]>;
+  getAllSupportTickets(): Promise<any[]>;
+  getEarnings(userId: number): Promise<Earning[]>;
+  addTicketResponse(responseData: any): Promise<any>;
   getUserById(id: number): Promise<User | undefined>;
   deleteUser(id: number): Promise<boolean>;
   createMessage(message: InsertMessage): Promise<Message>;
@@ -266,18 +266,18 @@ export class MemStorage implements IStorage {
     return Array.from(this.users.values()).find(
       (user) => user.email === email
     );
-  }
-
-  async createUser(insertUser: InsertUser): Promise<User> {
+  }  async createUser(insertUser: InsertUser): Promise<User> {
     const id = this.userIdCounter++;
     const lastActive = new Date();
-    const rating = 0;
+    const rating = null;
     const completedJobs = 0;
     const successRate = 0;
     const responseTime = 0;
     const skills = insertUser.skills || [];
     const skillsVerified = {};
-    const badgeIds = [];
+    const badgeIds: string[] = [];
+    const createdAt = new Date();
+    const datePosted = new Date();
     
     const user: User = { 
       ...insertUser, 
@@ -290,8 +290,46 @@ export class MemStorage implements IStorage {
       skills,
       skillsVerified,
       badgeIds,
+      accountType: insertUser.accountType || "worker", // Ensure accountType is always a string
       stripeCustomerId: null,
-      stripeConnectAccountId: null
+      stripeConnectAccountId: null,
+      stripeConnectAccountStatus: null,
+      stripeTermsAccepted: false,
+      stripeTermsAcceptedAt: null,
+      stripeRepresentativeName: null,
+      stripeRepresentativeTitle: null,
+      stripeRepresentativeRequirementsComplete: false,
+      stripeBankingDetailsComplete: false,
+      contactPreferences: {
+        email: true,
+        sms: false,
+        push: true
+      },
+      availability: {
+        weekdays: [true, true, true, true, true],
+        weekend: [false, false],
+        hourStart: 9,
+        hourEnd: 17
+      },
+      emailVerified: false,
+      phoneVerified: false,
+      identityVerified: false,
+      verificationToken: null,
+      verificationTokenExpiry: null,
+      phoneVerificationCode: null,
+      phoneVerificationExpiry: null,
+      createdAt,
+      datePosted,
+      isActive: true,
+      isAdmin: false,
+      googleId: null,
+      facebookId: null,
+      latitude: null,
+      longitude: null,
+      location: null,
+      phone: insertUser.phone || null,
+      bio: insertUser.bio || null,
+      avatarUrl: insertUser.avatarUrl || null
     };
     
     this.users.set(id, user);
@@ -417,11 +455,12 @@ export class MemStorage implements IStorage {
         );
       }
     }
-    
-    // Sort by date posted (newest first)
-    return jobList.sort((a, b) => 
-      new Date(b.datePosted).getTime() - new Date(a.datePosted).getTime()
-    );
+      // Sort by date posted (newest first)
+    return jobList.sort((a, b) => {
+      const dateA = a.datePosted ? new Date(a.datePosted).getTime() : 0;
+      const dateB = b.datePosted ? new Date(b.datePosted).getTime() : 0;
+      return dateB - dateA;
+    });
   }
 
   async createJob(insertJob: InsertJob): Promise<Job> {
@@ -434,8 +473,7 @@ export class MemStorage implements IStorage {
     
     // Make sure boolean values are defined
     const equipmentProvided = insertJob.equipmentProvided === undefined ? false : insertJob.equipmentProvided;
-    
-    const job: Job = { 
+      const job: Job = { 
       ...insertJob, 
       id, 
       datePosted, 
@@ -443,7 +481,18 @@ export class MemStorage implements IStorage {
       serviceFee, 
       totalAmount,
       status,
-      equipmentProvided
+      equipmentProvided,
+      completedAt: null,
+      autoAccept: insertJob.autoAccept || false,
+      startTime: null,
+      clockInTime: null,
+      completionTime: null,
+      shiftStartTime: null,
+      shiftEndTime: null,
+      workerTrackingEnabled: insertJob.workerTrackingEnabled !== undefined ? insertJob.workerTrackingEnabled : true,
+      verifyLocationToStart: insertJob.verifyLocationToStart !== undefined ? insertJob.verifyLocationToStart : true,
+      markerColor: insertJob.markerColor || null,
+      requiredSkills: insertJob.requiredSkills || []
     };
     
     this.jobs.set(id, job);
@@ -545,13 +594,10 @@ export class MemStorage implements IStorage {
       coverLetter
     };
     this.applications.set(id, application);
-    
-    // If auto-accept is enabled, also update the job to assign this worker
+      // If auto-accept is enabled, also update the job to assign this worker
     if (job && job.autoAccept && status === "accepted") {
-      await this.updateJob(job.id, { 
-        workerId: insertApplication.workerId,
-        status: "assigned"
-      });
+      const updatedJob = { ...job, workerId: insertApplication.workerId, status: "assigned" };
+      this.jobs.set(job.id, updatedJob);
       
       // Create a notification for the worker
       const notificationData: InsertNotification = {
@@ -560,7 +606,8 @@ export class MemStorage implements IStorage {
         message: `Your application for job "${job.title}" was automatically accepted.`,
         type: "application_accepted",
         sourceId: job.id,
-        sourceType: "job"
+        sourceType: "job",
+        metadata: {}
       };
       
       try {
@@ -635,14 +682,21 @@ export class MemStorage implements IStorage {
     const position = tasksForJob.length === 0 
       ? 0 
       : Math.max(...tasksForJob.map(t => t.position)) + 1;
-    
-    const newTask: Task = {
+      const newTask: Task = {
       ...task,
       id,
       completedAt,
       completedBy,
       isCompleted: false,
-      position
+      position,
+      latitude: task.latitude || null,
+      longitude: task.longitude || null,
+      location: task.location || null,
+      isOptional: task.isOptional || false,
+      dueTime: task.dueTime || null,
+      estimatedDuration: task.estimatedDuration || null,
+      bonusAmount: task.bonusAmount || null,
+      notes: task.notes || null
     };
     this.tasks.set(id, newTask);
     return newTask;
@@ -700,19 +754,25 @@ export class MemStorage implements IStorage {
   async getEarning(id: number): Promise<Earning | undefined> {
     return this.earnings.get(id);
   }
-
   async getEarningsForWorker(workerId: number): Promise<Earning[]> {
     return Array.from(this.earnings.values())
       .filter(earning => earning.workerId === workerId)
-      .sort((a, b) => new Date(b.dateEarned).getTime() - new Date(a.dateEarned).getTime());
+      .sort((a, b) => {
+        const dateA = a.dateEarned ? new Date(a.dateEarned).getTime() : 0;
+        const dateB = b.dateEarned ? new Date(b.dateEarned).getTime() : 0;
+        return dateB - dateA;
+      });
   }
 
   async getEarningsForJob(jobId: number): Promise<Earning[]> {
     return Array.from(this.earnings.values())
       .filter(earning => earning.jobId === jobId)
-      .sort((a, b) => new Date(b.dateEarned).getTime() - new Date(a.dateEarned).getTime());
+      .sort((a, b) => {
+        const dateA = a.dateEarned ? new Date(a.dateEarned).getTime() : 0;
+        const dateB = b.dateEarned ? new Date(b.dateEarned).getTime() : 0;
+        return dateB - dateA;
+      });
   }
-
   async createEarning(earning: InsertEarning): Promise<Earning> {
     const id = this.earningIdCounter++;
     const dateEarned = new Date();
@@ -726,7 +786,16 @@ export class MemStorage implements IStorage {
       dateEarned,
       datePaid,
       status,
-      serviceFee
+      serviceFee,
+      createdAt: new Date(),
+      transactionId: null,
+      paymentId: null,
+      stripeAccountId: null,
+      metadata: {},
+      platformFee: earning.platformFee || 0,
+      netAmount: earning.netAmount || (earning.amount - serviceFee),
+      description: earning.description || null,
+      jobId: earning.jobId || null
     };
     this.earnings.set(id, newEarning);
     return newEarning;
@@ -777,19 +846,26 @@ export class MemStorage implements IStorage {
         return dateA - dateB;
       });
   }
-
   async createPayment(payment: InsertPayment): Promise<Payment> {
     const id = this.paymentIdCounter++;
     const createdAt = new Date();
     const status = "pending";
     const transactionId = null;
-    
-    const newPayment: Payment = {
+      const newPayment: Payment = {
       ...payment,
       id,
       createdAt,
       status,
-      transactionId
+      transactionId,
+      completedAt: null,
+      stripeCustomerId: payment.stripeCustomerId || null,
+      stripeConnectAccountId: payment.stripeConnectAccountId || null,
+      description: payment.description || null,
+      workerId: payment.workerId || null,
+      jobId: payment.jobId || null,
+      serviceFee: payment.serviceFee || null,
+      currency: payment.currency || null,
+      metadata: payment.metadata || null
     };
     this.payments.set(id, newPayment);
     return newPayment;
@@ -821,15 +897,16 @@ export class MemStorage implements IStorage {
     return Array.from(this.badges.values())
       .filter(badge => badge.category === category);
   }
-  
-  async createBadge(badge: InsertBadge): Promise<Badge> {
+    async createBadge(badge: InsertBadge): Promise<Badge> {
     const id = this.badgeIdCounter++;
     const createdAt = new Date();
     
     const newBadge: Badge = {
       ...badge,
       id,
-      createdAt
+      createdAt,
+      requirements: badge.requirements || {},
+      tier: badge.tier || 1
     };
     
     this.badges.set(id, newBadge);
@@ -841,15 +918,15 @@ export class MemStorage implements IStorage {
     return Array.from(this.userBadges.values())
       .filter(userBadge => userBadge.userId === userId);
   }
-  
-  async awardBadge(userBadge: InsertUserBadge): Promise<UserBadge> {
+    async awardBadge(userBadge: InsertUserBadge): Promise<UserBadge> {
     const id = this.userBadgeIdCounter++;
     const earnedAt = new Date();
     
     const newUserBadge: UserBadge = {
       ...userBadge,
       id,
-      earnedAt
+      earnedAt,
+      metadata: userBadge.metadata || {}
     };
     
     this.userBadges.set(id, newUserBadge);
@@ -886,7 +963,7 @@ export class MemStorage implements IStorage {
     if (removed) {
       const user = this.users.get(userId);
       if (user && user.badgeIds && user.badgeIds.length) {
-        const badgeIds = user.badgeIds.filter(id => id !== badgeId.toString());
+        const badgeIds = user.badgeIds.filter((id: string) => id !== badgeId.toString());
         const updatedUser = { ...user, badgeIds };
         this.users.set(userId, updatedUser);
       }
@@ -904,11 +981,12 @@ export class MemStorage implements IStorage {
     if (options && options.isRead !== undefined) {
       notifications = notifications.filter(notification => notification.isRead === options.isRead);
     }
-    
-    // Sort by createdAt (newest first)
-    notifications = notifications.sort((a, b) => 
-      new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
-    );
+      // Sort by createdAt (newest first)
+    notifications = notifications.sort((a, b) => {
+      const dateA = a.createdAt ? new Date(a.createdAt).getTime() : 0;
+      const dateB = b.createdAt ? new Date(b.createdAt).getTime() : 0;
+      return dateB - dateA;
+    });
     
     // Apply limit if specified
     if (options && options.limit) {
@@ -921,8 +999,7 @@ export class MemStorage implements IStorage {
   async getNotification(id: number): Promise<Notification | undefined> {
     return this.notifications.get(id);
   }
-  
-  async createNotification(notification: InsertNotification): Promise<Notification> {
+    async createNotification(notification: InsertNotification): Promise<Notification> {
     const id = this.notificationIdCounter++;
     const createdAt = new Date();
     const isRead = false;
@@ -931,7 +1008,10 @@ export class MemStorage implements IStorage {
       ...notification,
       id,
       createdAt,
-      isRead
+      isRead,
+      metadata: notification.metadata || {},
+      sourceId: notification.sourceId || null,
+      sourceType: notification.sourceType || null
     };
     
     this.notifications.set(id, newNotification);
@@ -1011,6 +1091,217 @@ export class MemStorage implements IStorage {
     
     return notificationCount;
   }
+
+  // Contact operations
+	async getUserContacts(userId: string): Promise<{ id: string; name: string; email: string; phone?: string; lastContact?: string }[]> {
+		// In-memory implementation would need a contacts structure
+		// For now, return empty array as this is a basic implementation
+		return [];
+	}
+
+	async addUserContact(userId: string, contact: { name: string; email: string; phone?: string }): Promise<string> {
+		// Generate a simple ID for the contact
+		const contactId = `contact_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+		// In a real implementation, we'd store this in memory
+		return contactId;
+	}
+
+	async removeUserContact(userId: string, contactId: string): Promise<void> {
+		// In-memory implementation would remove from contacts structure
+		// For now, this is a no-op
+	}
+
+	// Search functionality
+	async searchUsers(query: string, limit: number = 10): Promise<{ id: string; name: string; email: string; type: string }[]> {
+		const searchResults = Array.from(this.users.values())
+			.filter(user => 
+				user.name.toLowerCase().includes(query.toLowerCase()) ||
+				user.email.toLowerCase().includes(query.toLowerCase())
+			)
+			.slice(0, limit)
+			.map(user => ({
+				id: user.id,
+				name: user.name,
+				email: user.email,
+				type: user.type
+			}));
+		return searchResults;
+	}
+
+	// Message operations
+	async getMessagesBetweenUsers(userId1: string, userId2: string): Promise<any[]> {
+		const messages = Array.from(this.messages.values())
+			.filter(message => 
+				(message.senderId === userId1 && message.receiverId === userId2) ||
+				(message.senderId === userId2 && message.receiverId === userId1)
+			)
+			.sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
+		return messages;
+	}
+
+	async markMessagesAsRead(userId: string, otherUserId: string): Promise<void> {
+		// Mark messages as read in memory
+		for (const message of this.messages.values()) {
+			if (message.receiverId === userId && message.senderId === otherUserId) {
+				message.isRead = true;
+			}
+		}
+	}
+
+	async markMessageAsRead(messageId: string): Promise<void> {
+		const message = this.messages.get(messageId);
+		if (message) {
+			message.isRead = true;
+		}
+	}
+
+	// Admin operations
+	async getAllJobs(): Promise<any[]> {
+		return Array.from(this.jobs.values());
+	}
+
+	async getAllPayments(): Promise<any[]> {
+		return Array.from(this.payments.values());
+	}
+
+	async getAllEarnings(): Promise<any[]> {
+		// Calculate earnings from payments
+		const earnings = Array.from(this.payments.values())
+			.filter(payment => payment.status === 'completed')
+			.map(payment => ({
+				id: payment.id,
+				jobId: payment.jobId,
+				amount: payment.amount,
+				createdAt: payment.createdAt,
+				type: 'job_payment'
+			}));
+		return earnings;
+	}
+
+	async getAllSupportTickets(): Promise<any[]> {
+		return Array.from(this.supportTickets.values());
+	}
+
+	async getEarnings(userId: string): Promise<{ total: number; thisMonth: number; thisWeek: number }> {
+		const userPayments = Array.from(this.payments.values())
+			.filter(payment => {
+				const job = this.jobs.get(payment.jobId);
+				return job && job.workerId === userId && payment.status === 'completed';
+			});
+
+		const total = userPayments.reduce((sum, payment) => sum + payment.amount, 0);
+		
+		const now = new Date();
+		const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+		const startOfWeek = new Date(now.setDate(now.getDate() - now.getDay()));
+
+		const thisMonth = userPayments
+			.filter(payment => new Date(payment.createdAt) >= startOfMonth)
+			.reduce((sum, payment) => sum + payment.amount, 0);
+
+		const thisWeek = userPayments
+			.filter(payment => new Date(payment.createdAt) >= startOfWeek)
+			.reduce((sum, payment) => sum + payment.amount, 0);
+
+		return { total, thisMonth, thisWeek };
+	}
+
+	async addTicketResponse(ticketId: string, response: string, responderId: string): Promise<string> {
+		const ticket = this.supportTickets.get(ticketId);
+		if (!ticket) {
+			throw new Error('Support ticket not found');
+		}
+
+		const responseId = `response_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+		
+		// Add response to ticket (assuming ticket has responses array)
+		if (!ticket.responses) {
+			ticket.responses = [];
+		}
+		
+		ticket.responses.push({
+			id: responseId,
+			message: response,
+			responderId,
+			createdAt: new Date().toISOString()
+		});
+
+		ticket.updatedAt = new Date().toISOString();
+		ticket.status = 'responded';
+
+		return responseId;
+	}
+
+	async getUserById(userId: string): Promise<any | null> {
+		return this.users.get(userId) || null;
+	}
+
+	async deleteUser(userId: string): Promise<void> {
+		this.users.delete(userId);
+		
+		// Also clean up related data
+		for (const [jobId, job] of this.jobs.entries()) {
+			if (job.posterId === userId || job.workerId === userId) {
+				this.jobs.delete(jobId);
+			}
+		}
+		
+		for (const [messageId, message] of this.messages.entries()) {
+			if (message.senderId === userId || message.receiverId === userId) {
+				this.messages.delete(messageId);
+			}
+		}
+	}
+
+	// Message CRUD operations
+	async createMessage(senderId: string, receiverId: string, content: string, jobId?: string): Promise<string> {
+		const messageId = `msg_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+		const message = {
+			id: messageId,
+			senderId,
+			receiverId,
+			content,
+			jobId,
+			createdAt: new Date().toISOString(),
+			isRead: false
+		};
+		
+		this.messages.set(messageId, message);
+		return messageId;
+	}
+
+	async getMessageById(messageId: string): Promise<any | null> {
+		return this.messages.get(messageId) || null;
+	}
+
+	async getPendingMessages(userId: string): Promise<any[]> {
+		return Array.from(this.messages.values())
+			.filter(message => message.receiverId === userId && !message.isRead)
+			.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+	}
+
+	async getMessagesForJob(jobId: string): Promise<any[]> {
+		return Array.from(this.messages.values())
+			.filter(message => message.jobId === jobId)
+			.sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
+	}
+
+	async getConversation(userId1: string, userId2: string): Promise<any[]> {
+		return this.getMessagesBetweenUsers(userId1, userId2);
+	}
+
+	// Job operations
+	async getJobsForWorker(workerId: string): Promise<any[]> {
+		return Array.from(this.jobs.values())
+			.filter(job => job.workerId === workerId)
+			.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+	}
+
+	async getJobsForPoster(posterId: string): Promise<any[]> {
+		return Array.from(this.jobs.values())
+			.filter(job => job.posterId === posterId)
+			.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+	}
 }
 
 // Import the fixed database storage implementation - don't rename the import

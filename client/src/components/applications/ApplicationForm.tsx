@@ -78,15 +78,14 @@ const ApplicationForm: React.FC<ApplicationFormProps> = ({
       }
       
       const data = await response.json();
-      if (data.url) {
+      const url = data.accountLinkUrl || data.url;
+      if (url) {
         // Open in new tab
-        window.open(data.url, '_blank');
-        
+        window.open(url, '_blank');
         toast({
           title: 'Setting up Stripe Connect',
           description: 'Complete the form in the new tab. You may need to refresh this page after completion.',
         });
-        
         // Set a timeout to check again for the account after some time
         setTimeout(() => {
           checkStripeConnectStatus()
@@ -105,7 +104,9 @@ const ApplicationForm: React.FC<ApplicationFormProps> = ({
             .finally(() => {
               setIsCheckingStripe(false);
             });
-        }, 10000); // Check after 10 seconds
+        }, 5000); // Check after 5 seconds
+      } else {
+        throw new Error('No onboarding URL received from server');
       }
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Failed to start Stripe Connect setup';

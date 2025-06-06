@@ -390,6 +390,24 @@ export class UnifiedStorage implements IStorage {
     }, [], `getEarningsByUserId(${userId})`);
   }
 
+  async getEarningsForWorker(workerId: number): Promise<Earning[]> {
+    return this.safeExecute(async () => {
+      return await db.select().from(earnings).where(eq(earnings.workerId, workerId)).orderBy(desc(earnings.dateEarned));
+    }, [], `getEarningsForWorker(${workerId})`);
+  }
+
+  async getEarningsForJob(jobId: number): Promise<Earning[]> {
+    return this.safeExecute(async () => {
+      return await db.select().from(earnings).where(eq(earnings.jobId, jobId)).orderBy(desc(earnings.dateEarned));
+    }, [], `getEarningsForJob(${jobId})`);
+  }
+
+  async getEarnings(userId: number): Promise<Earning[]> {
+    return this.safeExecute(async () => {
+      return await db.select().from(earnings).where(eq(earnings.workerId, userId)).orderBy(desc(earnings.dateEarned));
+    }, [], `getEarnings(${userId})`);
+  }
+
   // NOTIFICATION OPERATIONS
   async getAllNotifications(): Promise<Notification[]> {
     return this.safeExecute(async () => {
@@ -556,6 +574,12 @@ export class UnifiedStorage implements IStorage {
     }, [], 'getSupportTickets');
   }
 
+  async getAllSupportTickets(): Promise<any[]> {
+    return this.safeExecute(async () => {
+      return await db.select().from(supportTickets).orderBy(desc(supportTickets.createdAt));
+    }, [], 'getAllSupportTickets');
+  }
+
   async getSupportTicket(id: number): Promise<any | null> {
     return this.safeExecute(async () => {
       const result = await db.select().from(supportTickets).where(eq(supportTickets.id, id));
@@ -590,6 +614,22 @@ export class UnifiedStorage implements IStorage {
         .where(eq(supportTickets.userId, userId))
         .orderBy(desc(supportTickets.createdAt));
     }, [], `getSupportTicketsByUserId(${userId})`);
+  }
+
+  async addTicketResponse(responseData: any): Promise<any> {
+    return this.safeExecute(async () => {
+      // Assuming we have a supportMessages table for ticket responses
+      // If not, we can update the ticket with the response
+      const result = await db.update(supportTickets)
+        .set({ 
+          response: responseData.response,
+          status: responseData.status || 'resolved',
+          updatedAt: new Date()
+        })
+        .where(eq(supportTickets.id, responseData.ticketId))
+        .returning();
+      return result[0] || null;
+    }, null, 'addTicketResponse');
   }
 
   // INTERFACE COMPATIBILITY METHODS
@@ -805,7 +845,9 @@ export class UnifiedStorage implements IStorage {
 
   async getUserContacts(userId: number): Promise<any[]> {
     return this.safeExecute(async () => {
-      return await db.select().from(contacts).where(eq(contacts.userId, userId));
+      // Explicitly reference the contacts table from the schema
+      const { contacts: contactsTable } = await import('@shared/schema');
+      return await db.select().from(contactsTable).where(eq(contactsTable.userId, userId));
     }, [], `getUserContacts(${userId})`);
   }
 

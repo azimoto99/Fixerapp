@@ -41,6 +41,9 @@ import { apiRequest } from '@/lib/queryClient';
 import { useToast } from '@/hooks/use-toast';
 import { Badge } from '@/components/ui/badge';
 
+// Import the new connection system
+import { useAppConnections } from '@/hooks/useAppConnections';
+
 // Worker Dashboard Component
 const WorkerDashboard = () => {
   // Keep all useState calls together and in the same order every render
@@ -317,6 +320,20 @@ export default function Home() {
   const [selectedJob, setSelectedJob] = useState<Job | null>(null);
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  
+  // Initialize the comprehensive connection system
+  const {
+    isConnected,
+    connectionStatus,
+    notifications,
+    unreadCount,
+    jobLifecycle,
+    paymentFlow,
+    joinJobRoom,
+    leaveJobRoom,
+    handleJobCreated,
+    handleJobCompleted
+  } = useAppConnections();
   
   // Get jobs posted by this user (if any) - use the proper useJobs hook with poster filter
   // Enhanced with real-time updates for posted jobs drawer

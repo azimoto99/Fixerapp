@@ -5,13 +5,14 @@ import {
   useMutation,
   UseMutationResult,
 } from "@tanstack/react-query";
-import { insertUserSchema, User as SelectUser, InsertUser } from "@shared/schema";
+import { insertUserSchema, InsertUser } from "@shared/schema";
+import type { DbUser } from "@shared/schema";
 import { getQueryFn, apiRequest, queryClient } from "../lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { useLocation } from "wouter";
 
 // Extended user type to include potential account type selection flag
-interface UserWithFlags extends SelectUser {
+interface UserWithFlags extends DbUser {
   needsAccountType?: boolean;
   requiresProfileCompletion?: boolean;
 }

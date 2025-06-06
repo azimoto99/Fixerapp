@@ -1,5 +1,5 @@
 import { createMocks } from 'node-mocks-http';
-import handler from '@/server/api/stripe/create-connect-account';
+import handler from '@/server/api/stripe/create-account';
 import { getServerSession } from 'next-auth';
 import { prisma } from '@/lib/prisma';
 import Stripe from 'stripe';

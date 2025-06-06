@@ -37,292 +37,171 @@ async function processWorkerPayout(workerId: number, amount: number, jobId: numb
 }
 
 export async function processPayment(req: Request, res: Response) {
-  // Check authentication
   if (!req.isAuthenticated() || !req.user) {
     return res.status(401).json({ message: 'Not authenticated' });
   }
 
   const { jobId, applicationId, workerId, paymentMethodId, amount } = req.body;
 
-  // Handle different payment scenarios:
-  // 1. Fixed-price job payment during creation: requires jobId, paymentMethodId, amount
-  // 2. Hourly job payment to worker: requires jobId, applicationId, workerId, paymentMethodId
-
-  const isFixedPricePayment = !!jobId && !!paymentMethodId && !!amount && !applicationId && !workerId;
-  const isWorkerPayment = !!jobId && !!applicationId && !!workerId && !!paymentMethodId;
-
-  if (!isFixedPricePayment && !isWorkerPayment) {
+  // Validate required fields
+  if (!jobId || !paymentMethodId || amount === undefined) {
     return res.status(400).json({ message: 'Missing required fields for payment processing' });
   }
 
   try {
-    // Get job details
+    // Get the job
     const job = await storage.getJob(jobId);
     if (!job) {
       return res.status(404).json({ message: 'Job not found' });
     }
 
-    // Only job poster can process payment
+    // Verify job ownership
     if (job.posterId !== req.user.id) {
       return res.status(403).json({ message: 'You are not authorized to process this payment' });
     }
 
-    // For worker payments, get and validate the application
-    let application;
-    if (isWorkerPayment) {
-      application = await storage.getApplication(applicationId!);
-      if (!application) {
-        return res.status(404).json({ message: 'Application not found' });
-      }
+    // Get the user (job poster)
+    const user = await storage.getUser(req.user.id);
+    if (!user) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+
+    // Create or get Stripe customer
+    let customerId = user.stripeCustomerId;
+    if (!customerId) {
+      const customer = await stripe.customers.create({
+        name: user.fullName || user.username,
+        email: user.email || undefined,
+        metadata: {
+          userId: user.id.toString()
+        }
+      });
+      customerId = customer.id;
+      await storage.updateUser(user.id, { stripeCustomerId: customerId });
     }
 
     let paymentIntent;
-    let totalAmount = 0;
-    let serviceFee = 0;
+    const isWorkerPayment = !!applicationId && !!workerId;
 
-    // Handle fixed-price job payment during creation
-    if (isFixedPricePayment) {
-      totalAmount = amount;
-      serviceFee = totalAmount * 0.1; // 10% service fee
-
-      // Convert to cents for Stripe
-      const amountInCents = Math.round(totalAmount * 100);
-
-      try {
-        // Get the user to check for their customer ID
-        const user = await storage.getUser(req.user.id);
-        if (!user) {
-          return res.status(404).json({ message: 'User not found' });
-        }
-
-        // Check if user has a Stripe customer ID
-        let customerId = user.stripeCustomerId;
-
-        if (!customerId) {
-          // Create a new Stripe customer for this user
-          const customer = await stripe.customers.create({
-            name: user.fullName || user.username,
-            email: user.email || undefined,
-            metadata: {
-              userId: user.id.toString()
-            }
-          });
-
-          customerId = customer.id;
-
-          // Update the user with their new Stripe customer ID
-          await storage.updateUser(user.id, { stripeCustomerId: customerId });
-          console.log(`Created new Stripe customer for user ${user.id}: ${customerId}`);
-        }
-
-        // Create a payment intent for the fixed-price job with the customer ID
-        paymentIntent = await stripe.paymentIntents.create({
-          amount: amountInCents,
-          currency: 'usd',
-          customer: customerId,
-          payment_method: paymentMethodId,
-          confirm: true, // Confirm immediately to charge the card
-          confirmation_method: 'manual',
-          capture_method: 'automatic', // Automatically capture the funds
-          description: `Payment for fixed-price job: ${job.title}`,
-          return_url: `${req.protocol}://${req.get('host')}/jobs/${jobId}`,
-          automatic_payment_methods: {
-            enabled: true,
-            allow_redirects: 'always'
-          },
-          metadata: {
-            jobId: jobId.toString(),
-            posterId: req.user.id.toString(),
-            paymentType: 'fixed-price',
-          },
-        });
-
-        // Record the payment in our database
-        await storage.createPayment({
-          userId: req.user.id,
-          amount: totalAmount,
-          serviceFee,
-          type: 'job_payment',
-          status: paymentIntent.status,
-          paymentMethod: 'card',
-          transactionId: paymentIntent.id,
-          stripePaymentIntentId: paymentIntent.id,
-          stripeCustomerId: req.user.stripeCustomerId || undefined,
-          jobId,
-          description: `Fixed-price payment for job "${job.title}"`,
-        });
-      } catch (err) {
-        console.error('Stripe payment processing error:', err);
-        return res.status(400).json({ 
-          message: err instanceof Error ? err.message : 'Payment processing failed',
-          error: err
-        });
-      }
-    }
-    // Handle worker payment
-    else if (isWorkerPayment && application) {
-      // Calculate payment amount based on application hourlyRate and expectedDuration
-      let hours = 0;
-
-      if (!application.hourlyRate || !application.expectedDuration) {
-        return res.status(400).json({ message: 'Application does not have rate or duration information' });
-      }
-
-      const duration = application.expectedDuration;
-
-      if (duration.includes('Less than 1 hour')) {
-        hours = 0.5;
-      } else if (duration.includes('1-2 hours')) {
-        hours = 1.5;
-      } else if (duration.includes('2-4 hours')) {
-        hours = 3;
-      } else if (duration.includes('Half day')) {
-        hours = 5;
-      } else if (duration.includes('Full day')) {
-        hours = 7;
-      } else if (duration.includes('Multiple days')) {
-        hours = 16;
-      }
-
-      const workerAmount = application.hourlyRate * hours;
-      serviceFee = workerAmount * 0.1; // 10% service fee
-      totalAmount = workerAmount + serviceFee;
-
-      // Convert to cents for Stripe
-      const amountInCents = Math.round(totalAmount * 100);
-
-      // Check if worker has a Stripe Connect account
-      const worker = await storage.getUser(workerId!);
+    if (isWorkerPayment) {
+      // Handle worker payment
+      const worker = await storage.getUser(workerId);
       if (!worker) {
         return res.status(404).json({ message: 'Worker not found' });
       }
 
-      // Check if worker has a Stripe Connect account
       if (!worker.stripeConnectAccountId) {
-        return res.status(400).json({ 
-          message: 'Worker does not have a Stripe Connect account set up'
-        });
+        return res.status(400).json({ message: 'Worker does not have a Stripe Connect account' });
       }
 
-      try {
-        // Get the user to check for their customer ID
-        const poster = await storage.getUser(req.user.id);
-        if (!poster) {
-          return res.status(404).json({ message: 'User not found' });
+      const application = await storage.getApplication(applicationId);
+      if (!application) {
+        return res.status(404).json({ message: 'Application not found' });
+      }
+
+      // Calculate service fee (10%)
+      const serviceFee = amount * 0.1;
+      const workerAmount = amount - serviceFee;
+
+      paymentIntent = await stripe.paymentIntents.create({
+        amount: Math.round(amount * 100), // Convert to cents
+        currency: 'usd',
+        customer: customerId,
+        payment_method: paymentMethodId,
+        confirm: true,
+        application_fee_amount: Math.round(serviceFee * 100),
+        transfer_data: {
+          destination: worker.stripeConnectAccountId
+        },
+        metadata: {
+          jobId: jobId.toString(),
+          applicationId: applicationId.toString(),
+          workerId: workerId.toString(),
+          posterId: req.user.id.toString(),
+          paymentType: 'worker_payment'
         }
+      });
 
-        // Ensure the poster has a Stripe customer ID
-        let customerId = poster.stripeCustomerId;
+      // Create payment record
+      await storage.createPayment({
+        userId: req.user.id,
+        workerId,
+        amount,
+        serviceFee,
+        type: 'worker_payment',
+        status: paymentIntent.status,
+        paymentMethod: 'card',
+        transactionId: paymentIntent.id,
+        stripePaymentIntentId: paymentIntent.id,
+        stripeCustomerId: customerId,
+        stripeConnectAccountId: worker.stripeConnectAccountId,
+        jobId,
+        description: `Worker payment for job "${job.title}"`
+      });
 
-        if (!customerId) {
-          // Create a new Stripe customer for this user
-          const customer = await stripe.customers.create({
-            name: poster.fullName || poster.username,
-            email: poster.email || undefined,
-            metadata: {
-              userId: poster.id.toString()
-            }
-          });
+      // Update application and job status
+      await storage.updateApplication(applicationId, { status: 'accepted' });
+      await storage.updateJob(jobId, { status: 'assigned', workerId });
 
-          customerId = customer.id;
-
-          // Update the user with their new Stripe customer ID
-          await storage.updateUser(poster.id, { stripeCustomerId: customerId });
-          console.log(`Created new Stripe customer for user ${poster.id}: ${customerId}`);
-        }
-
-        // Create a payment intent with auto-capture
-        paymentIntent = await stripe.paymentIntents.create({
-          amount: amountInCents,
-          currency: 'usd',
-          customer: customerId,
-          payment_method: paymentMethodId,
-          confirm: true,
-          confirmation_method: 'manual',
-          capture_method: 'automatic', // Automatically capture funds
-          return_url: `${req.protocol}://${req.get('host')}/jobs/${jobId}`,
-          automatic_payment_methods: {
-            enabled: true,
-            allow_redirects: 'always'
-          },
-          application_fee_amount: Math.round(serviceFee * 100),
-          transfer_data: {
-            destination: worker.stripeConnectAccountId || '',
-          },
-          metadata: {
-            jobId: jobId.toString(),
-            applicationId: applicationId!.toString(),
-            workerId: workerId!.toString(),
-            posterId: req.user.id.toString(),
-            paymentType: 'worker_payment',
-          },
-        });
-
-        // Record the payment in our database
-        await storage.createPayment({
-          userId: req.user.id,
-          workerId: workerId!,
-          amount: totalAmount,
-          serviceFee,
-          type: 'worker_payment',
-          status: paymentIntent.status,
-          paymentMethod: 'card',
-          transactionId: paymentIntent.id,
-          stripePaymentIntentId: paymentIntent.id,
-          stripeCustomerId: req.user.stripeCustomerId || undefined,
-          stripeConnectAccountId: worker.stripeConnectAccountId || undefined,
+      // Create notification for worker
+      await storage.createNotification({
+        userId: workerId,
+        title: 'Application Accepted',
+        message: `Your application for "${job.title}" has been accepted! You can now start working on this job.`,
+        type: 'application_accepted',
+        sourceId: jobId,
+        sourceType: 'job',
+        metadata: {
           jobId,
-          description: `Worker payment for job "${job.title}"`,
-        });
+          applicationId,
+          posterId: req.user.id,
+          paymentId: paymentIntent.id
+        }
+      });
+    } else {
+      // Handle job creation payment
+      paymentIntent = await stripe.paymentIntents.create({
+        amount: Math.round(amount * 100), // Convert to cents
+        currency: 'usd',
+        customer: customerId,
+        payment_method: paymentMethodId,
+        confirm: true,
+        metadata: {
+          jobId: jobId.toString(),
+          userId: req.user.id.toString(),
+          paymentType: 'job_payment'
+        }
+      });
 
-        // Update the application status
-        await storage.updateApplication(applicationId!, {
-          status: 'accepted'
-        });
+      // Create payment record
+      await storage.createPayment({
+        userId: req.user.id,
+        amount,
+        serviceFee: amount * 0.1, // 10% service fee
+        type: 'job_payment',
+        status: paymentIntent.status,
+        paymentMethod: 'card',
+        transactionId: paymentIntent.id,
+        stripePaymentIntentId: paymentIntent.id,
+        stripeCustomerId: customerId,
+        jobId,
+        description: `Payment for job "${job.title}"`
+      });
 
-        // Update the job status
-        await storage.updateJob(jobId, {
-          status: 'assigned',
-          workerId: workerId!
-        });
-
-        // Create a notification for the worker
-        await storage.createNotification({
-          userId: workerId!,
-          title: 'Application Accepted',
-          message: `Your application for "${job.title}" has been accepted! You can now start working on this job.`,
-          type: 'application_accepted',
-          sourceId: jobId,
-          sourceType: 'job',
-          metadata: {
-            jobId,
-            applicationId: applicationId!,
-            posterId: req.user.id,
-            paymentId: paymentIntent.id
-          }
-        });
-      } catch (err) {
-        console.error('Stripe payment processing error:', err);
-        return res.status(400).json({ 
-          message: err instanceof Error ? err.message : 'Payment processing failed',
-          error: err
-        });
-      }
+      // Update job status
+      await storage.updateJob(jobId, { status: 'open' });
     }
 
-    // Return success response
     return res.status(200).json({
       success: true,
-      paymentId: paymentIntent?.id || 'no_payment_processed',
-      status: paymentIntent?.status || 'unknown',
+      paymentId: paymentIntent.id,
+      status: paymentIntent.status
     });
-
   } catch (error) {
     console.error('Payment processing error:', error);
-    const errorMessage = error instanceof Error ? error.message : 'Payment processing failed';
-    return res.status(500).json({ 
-      error: errorMessage,
-      details: process.env.NODE_ENV === 'development' ? error : undefined 
+    return res.status(500).json({
+      message: error instanceof Error ? error.message : 'Payment processing failed',
+      error: error
     });
   }
 }

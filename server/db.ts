@@ -28,31 +28,52 @@ export const supabase = createClient(
   }
 );
 
-// Create a pool for database connections
+// Create a pool for database connections with enhanced resilience
 let pool: Pool | undefined = undefined;
 let db: any = undefined;
 let client: any = undefined;
+let connectionCount = 0; // Track connection count for logging
 
 if (process.env.SUPABASE_DATABASE_URL) {
   const connectionString = process.env.SUPABASE_DATABASE_URL;
   const dbUrl = new URL(connectionString);
   
-  // Create the connection pool with more lenient timeouts for Render
+  // Create the connection pool with improved settings
   pool = new Pool({
     connectionString,
     ssl: { rejectUnauthorized: false },
     max: 20,
-    idleTimeoutMillis: 60000, // Increased from 30000
-    connectionTimeoutMillis: 30000, // Increased from 10000
+    min: 5, // Maintain minimum connections
+    idleTimeoutMillis: 60000, // Increased idle timeout
+    connectionTimeoutMillis: 15000, // Increased connection timeout
+    keepAlive: true,
+    keepAliveInitialDelayMillis: 10000,
   });
 
   // Add error handling for the pool
   pool.on('error', (err) => {
-    console.error('Unexpected error on idle client', err);
-    process.exit(-1);
+    console.error('❌ Database pool error:', err);
+    
+    // Handle specific error cases
+    if (err.message.includes('termination') || err.message.includes('connection')) {
+      console.log('🔄 Database connection lost, attempting to reconnect...');
+      // The pool will automatically attempt to reconnect
+    }
   });
 
-  // Create the postgres client with more lenient timeouts
+  pool.on('connect', (client) => {
+    // Only log first few connections to avoid spam
+    if (connectionCount < 3) {
+      console.log(`✅ Database client connected (${connectionCount + 1})`);
+    }
+    connectionCount++;
+    
+    client.on('error', (err) => {
+      console.error('❌ Database client error:', err);
+    });
+  });
+
+  // Create the postgres client with enhanced configuration
   client = postgres({
     host: dbUrl.hostname,
     port: parseInt(dbUrl.port) || 5432,
@@ -61,23 +82,17 @@ if (process.env.SUPABASE_DATABASE_URL) {
     password: dbUrl.password,
     ssl: 'require',
     max: 10,
-    idle_timeout: 60, // Increased from 20
-    connect_timeout: 30, // Increased from 10
+    idle_timeout: 30, // Increased idle timeout
+    connect_timeout: 15, // Increased connect timeout
     connection: {
       application_name: 'fixer-app',
+    },
+    onnotice: () => {}, // Suppress notices
+    transform: {
+      undefined: null
     }
   });
   
   db = drizzle(client, { schema });
-
-  // Test the connection
-  pool.query('SELECT NOW()', (err, res) => {
-    if (err) {
-      console.error('Database connection test failed:', err);
-    } else {
-      console.log('Database connection test successful');
-    }
-  });
 }
-
 export { db, client, pool };

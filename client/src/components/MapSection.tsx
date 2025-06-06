@@ -346,7 +346,7 @@ const MapSection: React.FC<MapSectionProps> = ({ jobs, selectedJob, onSelectJob,
   }
 
   return (
-    <div className="w-full h-full full-bleed">
+    <div className="w-full h-full relative">
       {/* Stripe Connect Required Modal */}
       {showStripeConnectRequired && (
         <StripeConnectRequired
@@ -360,7 +360,7 @@ const MapSection: React.FC<MapSectionProps> = ({ jobs, selectedJob, onSelectJob,
           onSkip={() => setShowStripeConnectRequired(false)}
         />
       )}
-      <div className="relative h-screen max-h-[calc(100vh-64px)] overflow-hidden">
+      <div className="relative h-screen max-h-[calc(100vh-64px)] w-full">
         <style>{`
           /* Animation for markers */
           @keyframes bounce-in {
@@ -387,9 +387,20 @@ const MapSection: React.FC<MapSectionProps> = ({ jobs, selectedJob, onSelectJob,
           .job-detail-panel {
             transition: transform 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
           }
-        `}</style>
-        
 
+          /* Map container styles */
+          .mapbox-map {
+            position: absolute !important;
+            top: 0 !important;
+            left: 0 !important;
+            right: 0 !important;
+            bottom: 0 !important;
+            width: 100% !important;
+            height: 100% !important;
+            margin: 0 !important;
+            padding: 0 !important;
+          }
+        `}</style>
         
         {position && (
           <MapboxMap
@@ -415,12 +426,8 @@ const MapSection: React.FC<MapSectionProps> = ({ jobs, selectedJob, onSelectJob,
           />
         )}
         
-        {/* Removed duplicate fallback location notice - already shown in top control panel */}
-        
-
-
-        {/* Map controls overlay - Job count display (positioned below UserDrawerV2) */}
-        <div className="absolute top-0 right-0 z-30 p-2">
+        {/* Map controls overlay - Job count display */}
+        <div className="absolute top-4 right-4 z-30">
           <div className="bg-background/90 border border-border/30 rounded-full shadow-md px-4 py-2">
             <div className="flex items-center space-x-2">
               <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>

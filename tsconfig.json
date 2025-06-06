@@ -27,8 +27,8 @@
     "incremental": true,
     "baseUrl": ".",
     "paths": {
-      "@/*": ["./*"],
-      "@shared/*": ["./shared/*"]
+      "@/*": ["client/src/*"],
+      "@shared/*": ["shared/*"]
     }
   }
 }

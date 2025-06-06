@@ -58,6 +58,9 @@ export const users = pgTable("users", {
   verificationTokenExpiry: timestamp("verification_token_expiry"), // Expiry for the verification token
   phoneVerificationCode: text("phone_verification_code"), // SMS verification code
   phoneVerificationExpiry: timestamp("phone_verification_expiry"), // Expiry for SMS verification code
+  // Timestamps
+  createdAt: timestamp("created_at").defaultNow(),
+  datePosted: timestamp("date_posted").defaultNow(),
 }, (table) => {
   // Create a unique constraint on the combination of email and accountType
   // This allows the same email to have multiple accounts with different types
@@ -90,6 +93,7 @@ export const jobs = pgTable("jobs", {
   startTime: timestamp("start_time"), // When work actually began
   clockInTime: timestamp("clock_in_time"), // When worker clocked in
   completionTime: timestamp("completion_time"), // When job was completed
+  completedAt: timestamp("completed_at"), // When job was marked as completed
   shiftStartTime: text("shift_start_time"), // For hourly jobs: when the shift is scheduled to start (HH:MM format)
   shiftEndTime: text("shift_end_time"), // For hourly jobs: when the shift is scheduled to end (HH:MM format)
   workerTrackingEnabled: boolean("worker_tracking_enabled").default(true), // Whether to track worker location 
@@ -144,9 +148,11 @@ export const tasks = pgTable("tasks", {
 export const earnings = pgTable("earnings", {
   id: serial("id").primaryKey(),
   workerId: integer("worker_id").notNull(), // References users.id
+  userId: integer("user_id").notNull(), // References users.id (same as workerId for compatibility)
   jobId: integer("job_id"), // References jobs.id (optional for non-job earnings)
   amount: doublePrecision("amount").notNull(), // Total amount earned before fees
   serviceFee: doublePrecision("service_fee").notNull().default(2.5), // Service fee amount
+  platformFee: doublePrecision("platform_fee").notNull().default(2.5), // Platform fee amount (alias for serviceFee)
   netAmount: doublePrecision("net_amount").notNull(), // Net amount after service fee
   status: text("status").notNull().default("pending"), // "pending", "paid", "cancelled"
   dateEarned: timestamp("date_earned").defaultNow(), // When the job was completed
@@ -156,6 +162,7 @@ export const earnings = pgTable("earnings", {
   stripeAccountId: text("stripe_account_id"), // Worker's Stripe Connect account ID
   description: text("description"), // Description of the earnings
   metadata: jsonb("metadata"), // Additional data about the earnings
+  createdAt: timestamp("created_at").defaultNow(),
 });
 
 // Payments table to track payment transactions
@@ -172,8 +179,10 @@ export const payments = pgTable("payments", {
   stripePaymentIntentId: text("stripe_payment_intent_id"), // Stripe Payment Intent ID
   stripeCustomerId: text("stripe_customer_id"), // Customer ID for the payer
   stripeConnectAccountId: text("stripe_connect_account_id"), // Connect account ID for the worker
+  stripeRefundId: text("stripe_refund_id"), // Stripe Refund ID for refunds
   jobId: integer("job_id"), // Optional reference to the related job
   description: text("description"), // Description of the payment
+  currency: text("currency").default("usd"), // Currency code
   createdAt: timestamp("created_at").defaultNow(),
   completedAt: timestamp("completed_at"), // When the payment was completed
   metadata: jsonb("metadata"), // Additional payment data
@@ -318,6 +327,7 @@ export const insertJobSchema = createInsertSchema(jobs).pick({
 export const insertApplicationSchema = createInsertSchema(applications).pick({
   jobId: true,
   workerId: true,
+  status: true,
   message: true,
   hourlyRate: true,
   expectedDuration: true,
@@ -348,10 +358,13 @@ export const insertTaskSchema = createInsertSchema(tasks).pick({
 
 export const insertEarningSchema = createInsertSchema(earnings).pick({
   workerId: true,
+  userId: true,
   jobId: true,
   amount: true,
   serviceFee: true,
+  platformFee: true,
   netAmount: true,
+  status: true,
   description: true,
 });
 
@@ -367,8 +380,11 @@ export const insertPaymentSchema = createInsertSchema(payments).pick({
   stripePaymentIntentId: true,
   stripeCustomerId: true,
   stripeConnectAccountId: true,
+  stripeRefundId: true,
   jobId: true,
   description: true,
+  currency: true,
+  metadata: true,
 });
 
 export const insertBadgeSchema = createInsertSchema(badges).pick({
@@ -427,7 +443,7 @@ export const insertContactRequestSchema = createInsertSchema(contactRequests).pi
 });
 
 // Types
-export type User = typeof users.$inferSelect & {
+export type DbUser = typeof users.$inferSelect & {
   requiresProfileCompletion?: boolean | null;
   needsAccountType?: boolean | null;
   skillsVerified?: Record<string, boolean>;
@@ -492,6 +508,10 @@ export type InsertUserBadge = z.infer<typeof insertUserBadgeSchema>;
 
 export type Notification = typeof notifications.$inferSelect;
 export type InsertNotification = z.infer<typeof insertNotificationSchema>;
+
+// Add missing Contact types
+export type Contact = typeof contacts.$inferSelect;
+export type InsertContact = z.infer<typeof insertContactSchema>;
 
 export type Message = typeof messages.$inferSelect;
 export type InsertMessage = z.infer<typeof insertMessageSchema>;
@@ -570,6 +590,7 @@ export const refunds = pgTable("refunds", {
   stripeRefundId: varchar("stripe_refund_id", { length: 100 }),
   processedBy: integer("processed_by"),
   status: varchar("status", { length: 20 }).notNull().default("pending"),
+  createdAt: timestamp("created_at").defaultNow(),
   processedAt: timestamp("processed_at").notNull().defaultNow(),
 });
 
@@ -885,8 +906,6 @@ export const transactionSchema = z.object({
   updatedAt: z.date(),
 });
 
-export type User = z.infer<typeof userSchema>;
-export type Wallet = z.infer<typeof walletSchema>;
-export type Transaction = z.infer<typeof transactionSchema>;
+export type RawUser = z.infer<typeof userSchema>;
 
 

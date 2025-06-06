@@ -37,6 +37,12 @@ import { MessagingDrawer } from "@/components/MessagingDrawer";
 import ExpoConnectGuide from "@/components/ExpoConnectGuide";
 import JobCardFix from "@/components/JobCardFix";
 import { useState, useEffect } from "react";
+import { WebSocketProvider } from "@/contexts/WebSocketContext";
+
+// Import new system components
+import { ErrorBoundarySystem, NetworkErrorRecovery, ChunkErrorRecovery } from "@/components/ErrorBoundarySystem";
+import { useAppConnections } from "@/hooks/useAppConnections";
+import { WebSocketDebug } from "@/components/WebSocketDebug";
 
 // Redirect component for old routes
 function RedirectToAuth() {
@@ -108,6 +114,14 @@ function AuthenticatedContent() {
   const [isMessagingOpen, setIsMessagingOpen] = useState(false);
   const [selectedUserId, setSelectedUserId] = useState<number | null>(null);
   
+  // Initialize the comprehensive connection system
+  const {
+    isConnected,
+    connectionStatus,
+    notifications,
+    unreadCount
+  } = useAppConnections();
+  
   // Listen for messaging events
   useEffect(() => {
     const handleOpenMessaging = (event: CustomEvent) => {
@@ -123,6 +137,12 @@ function AuthenticatedContent() {
       window.removeEventListener('open-messaging' as any, handleOpenMessaging);
     };
   }, []);
+  
+  // Update document title with unread count
+  useEffect(() => {
+    const baseTitle = 'Fixer - Gig Economy Platform';
+    document.title = unreadCount > 0 ? `(${unreadCount}) ${baseTitle}` : baseTitle;
+  }, [unreadCount]);
   
   return (
     <>
@@ -140,30 +160,55 @@ function AuthenticatedContent() {
       {/* Messaging drawer is now handled in Home.tsx */}
       {/* JobCardFix ensures job details card appears on top of other UI elements */}
       {user && <JobCardFix />}
+      
+      {/* Connection status indicator */}
+      {user && connectionStatus !== 'connected' && (
+        <div className="fixed top-4 right-4 z-50 bg-orange-500 text-white px-3 py-1 rounded-md text-sm">
+          {connectionStatus === 'connecting' ? 'Connecting...' : 'Reconnecting...'}
+        </div>
+      )}
+      
       <Toaster />
+      
+      {/* Temporary debug component - remove in production */}
+      {process.env.NODE_ENV === 'development' && <WebSocketDebug />}
     </>
   );
 }
 
 function App() {
   return (
-    <QueryClientProvider client={queryClient}>
-      <ThemeProvider defaultTheme="system" storageKey="fixer-theme">
-        <TooltipProvider>
-          <SimpleToastProvider>
-            <AuthProvider>
-              <NotificationProvider>
-                <PaymentDialogProvider>
-                  <OnboardingProvider>
-                    <AuthenticatedContent />
-                  </OnboardingProvider>
-                </PaymentDialogProvider>
-              </NotificationProvider>
-            </AuthProvider>
-          </SimpleToastProvider>
-        </TooltipProvider>
-      </ThemeProvider>
-    </QueryClientProvider>
+    <ErrorBoundarySystem 
+      queryClient={queryClient}
+      onError={(error, errorInfo) => {
+        console.error('App Error Boundary:', error, errorInfo);
+        // In production, send to error monitoring service
+      }}
+    >
+      <ChunkErrorRecovery>
+        <NetworkErrorRecovery>
+          <QueryClientProvider client={queryClient}>
+            <ThemeProvider defaultTheme="system" storageKey="fixer-theme">
+              <TooltipProvider>
+                <SimpleToastProvider>
+                  <AuthProvider>
+                    <NotificationProvider>
+                      <PaymentDialogProvider>
+                        <OnboardingProvider>
+                          <WebSocketProvider>
+                            <AuthenticatedContent />
+                          </WebSocketProvider>
+                        </OnboardingProvider>
+                      </PaymentDialogProvider>
+                    </NotificationProvider>
+                  </AuthProvider>
+                </SimpleToastProvider>
+              </TooltipProvider>
+            </ThemeProvider>
+          </QueryClientProvider>
+        </NetworkErrorRecovery>
+      </ChunkErrorRecovery>
+    </ErrorBoundarySystem>
   );
 }
 

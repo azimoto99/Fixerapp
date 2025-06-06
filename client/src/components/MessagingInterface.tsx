@@ -9,7 +9,7 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { Textarea } from '@/components/ui/textarea';
-import { useWebSocket } from '@/hooks/useWebSocket';
+import { useWebSocket } from '@/contexts/WebSocketContext';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { apiRequest } from '@/lib/queryClient';
 import { useToast } from '@/hooks/use-toast';
@@ -66,12 +66,10 @@ export function MessagingInterface({
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const typingTimeoutRef = useRef<NodeJS.Timeout>();
   const { toast } = useToast();
-  const queryClient = useQueryClient();
-
-  // WebSocket connection
+  const queryClient = useQueryClient();  // WebSocket connection
   const {
     isConnected,
-    isConnecting,
+    status,
     messages: wsMessages,
     typingUsers,
     onlineUsers,
@@ -81,7 +79,7 @@ export function MessagingInterface({
     startTyping,
     stopTyping,
     markMessageAsRead
-  } = useWebSocket(currentUserId);
+  } = useWebSocket();
 
   // Fetch conversation history
   const { data: conversationData = [], isLoading } = useQuery({
@@ -101,8 +99,7 @@ export function MessagingInterface({
         jobId
       });
       return response.json();
-    },
-    onSuccess: (data) => {
+    },    onSuccess: (data) => {
       // Send via WebSocket for real-time delivery
       sendMessage(data.content, recipientId, jobId);
       
@@ -119,12 +116,13 @@ export function MessagingInterface({
       });
     }
   });
-
   // Join job room on mount
   useEffect(() => {
     if (jobId && isConnected) {
       joinRoom(jobId);
-      return () => leaveRoom(jobId);
+      return () => {
+        leaveRoom(jobId);
+      };
     }
   }, [jobId, isConnected, joinRoom, leaveRoom]);
 
@@ -261,14 +259,12 @@ export function MessagingInterface({
             </Button>
           )}
         </div>
-      </div>
-
-      {/* Connection Status */}
+      </div>      {/* Connection Status */}
       {!isConnected && (
         <div className="flex items-center justify-center p-2 bg-yellow-50 border-b border-yellow-200">
           <div className="flex items-center space-x-2 text-yellow-700 text-xs">
             <Circle className="h-3 w-3 animate-pulse" />
-            <span>{isConnecting ? 'Connecting...' : 'Reconnecting...'}</span>
+            <span>{status === 'connecting' ? 'Connecting...' : 'Reconnecting...'}</span>
           </div>
         </div>
       )}

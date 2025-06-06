@@ -51,35 +51,27 @@ import passport from 'passport';
 import session from 'express-session';
 import { setupAuth } from './auth';
 
-// Initialize database resilience
-const dbResilience = new DatabaseResilience(pool, {
-  maxRetries: 5,
-  retryDelay: 5000,
-  maxConnections: 20
-});
+// Initialize database resilience only if pool is available
+let dbResilience: DatabaseResilience | undefined = undefined;
+if (pool) {
+  dbResilience = new DatabaseResilience(pool, {
+    maxRetries: 5,
+    retryDelay: 5000,
+    maxConnections: 20
+  });
 
-dbResilience.on('reconnected', () => {
-  console.log('Database connection restored');
-  systemMonitor.recordEvent('database_reconnected');
-});
+  dbResilience.on('reconnected', () => {
+    console.log('Database connection restored');
+    systemMonitor.recordRequest(false); // Record as successful request
+  });
 
-dbResilience.on('reconnection_failed', (error) => {
-  console.error('Database reconnection failed:', error);
-  systemMonitor.recordEvent('database_reconnection_failed');
-});
-
-// Configure session middleware
-app.use(session({
-  store: storage.sessionStore,
-  secret: process.env.SESSION_SECRET || 'your-secret-key',
-  resave: false,
-  saveUninitialized: false,
-  cookie: {
-    secure: process.env.NODE_ENV === 'production',
-    httpOnly: true,
-    maxAge: 30 * 24 * 60 * 60 * 1000 // 30 days
-  }
-}));
+  dbResilience.on('reconnection_failed', (error) => {
+    console.error('Database reconnection failed:', error);
+    systemMonitor.recordRequest(true); // Record as error
+  });
+} else {
+  console.warn('Database pool not initialized - resilience features disabled');
+}
 
 // Initialize authentication first
 setupAuth(app);

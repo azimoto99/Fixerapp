@@ -1,125 +1,54 @@
-# dependencies
-/node_modules
-/.pnp
-.pnp.js
-.yarn/install-state.gz
+# Node
+node_modules/
+npm-debug.log
+yarn-debug.log
+yarn-error.log
 
-# testing
-/coverage
+# Build output
+dist/
+build/
+.next/
+out/
+coverage/
 
-# next.js
-/.next/
-/out/
-
-# production
-/build
-/dist
-
-# misc
+# System
 .DS_Store
-*.pem
-.env
-.env.local
-.env.development.local
-.env.test.local
-.env.production.local
-
-# debug
-npm-debug.log*
-yarn-debug.log*
-yarn-error.log*
-
-# local env files
-.env*.local
-
-# vercel
-.vercel
-
-# typescript
-*.tsbuildinfo
-next-env.d.ts
-
-# IDE
-.idea/
-.vscode/
-*.swp
-*.swo
-
-# OS generated files
-.DS_Store
-.DS_Store?
-._*
-.Spotlight-V100
-.Trashes
-ehthumbs.db
 Thumbs.db
 
+# Env
+.env
+.env.*
+
+# VSCode
+.vscode/
+
 # Logs
-logs
 *.log
 
-# Optional npm cache directory
-.npm
+# TypeScript
+*.tsbuildinfo
 
-# Optional eslint cache
-.eslintcache
+# Capacitor
+android/
+ios/
 
-# Optional stylelint cache
-.stylelintcache
+# Misc
+*.local
+.idea/
 
-# Optional REPL history
-.node_repl_history
+# Test
+/coverage
+/junit.xml
 
-# Output of 'npm pack'
-*.tgz
+# Ignore generated assets
+client/public/
+assets/images/
 
-# Yarn Integrity file
-.yarn-integrity
+# Ignore Prisma generated files
+prisma/migrations/
 
-# dotenv environment variable files
-.env
-.env.development.local
-.env.test.local
-.env.production.local
-.env.local
+# Ignore build scripts output
+*.sh
 
-# parcel-bundler cache
-.cache
-.parcel-cache
-
-# Next.js build output
-.next
-out
-
-# Nuxt.js build / generate output
-.nuxt
-dist
-
-# Gatsby files
-.cache/
-public
-
-# vuepress build output
-.vuepress/dist
-
-# Serverless directories
-.serverless/
-
-# FuseBox cache
-.fusebox/
-
-# DynamoDB Local files
-.dynamodb/
-
-# TernJS port file
-.tern-port
-
-# Stores VSCode versions used for testing VSCode extensions
-.vscode-test
-
-# yarn v2
-.yarn/cache
-.yarn/unplugged
-.yarn/build-state.yml
-.yarn/install-state.gz
-.pnp.* 
+# Ignore attached assets
+attached_assets/

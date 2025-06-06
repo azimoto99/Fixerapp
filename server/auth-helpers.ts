@@ -1,6 +1,34 @@
 import { Request, Response, NextFunction } from "express";
 import { storage } from "./storage";
 
+// Authentication helper functions
+export function requireAuth(req: Request, res: Response, next: NextFunction) {
+  if (!req.user) {
+    return res.status(401).json({ error: 'Authentication required' });
+  }
+  next();
+}
+
+export function getAuthenticatedUser(req: Request) {
+  if (!req.user) {
+    throw new Error('User not authenticated');
+  }
+  return req.user;
+}
+
+export function isAuthenticated(req: Request): boolean {
+  return !!req.user;
+}
+
+// Type guard for authenticated requests
+export interface AuthenticatedRequest extends Request {
+  user: NonNullable<Request['user']>;
+}
+
+export function isAuthenticatedRequest(req: Request): req is AuthenticatedRequest {
+  return !!req.user;
+}
+
 // Simple admin check - in production you'd want more sophisticated auth
 export async function isAdmin(req: Request, res: Response, next: NextFunction) {
   if (!req.isAuthenticated() || !req.user) {

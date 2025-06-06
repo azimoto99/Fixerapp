@@ -19,7 +19,7 @@ const StripeConnectDialog: React.FC<StripeConnectDialogProps> = ({
   const handleSetupStripe = async () => {
     try {
       // Get the Stripe Connect onboarding URL
-      const response = await apiRequest('GET', '/api/stripe/create-connect-account');
+      const response = await apiRequest('GET', '/api/stripe/create-account');
       const { url } = await response.json();
       
       // Open Stripe Connect onboarding in a new window
