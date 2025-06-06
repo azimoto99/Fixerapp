@@ -353,7 +353,7 @@ const WalletContentInner: React.FC<WalletContentProps> = ({ user }) => {
               <Button size="sm" variant="outline" onClick={() => setAddCardOpen(true)}>
                 <Plus className="h-4 w-4 mr-1" /> Add
               </Button>
-              <Button size="sm" variant="default" onClick={handleStripeConnect}>
+              <Button size="sm" variant="default" onClick={() => setShowStripeConnect(true)}>
                 Set Up Stripe Connect
               </Button>
             </div>

@@ -63,6 +63,7 @@ function calculateDistanceInFeet(lat1: number, lon1: number, lat2: number, lon2:
 import Stripe from "stripe";
 import { filterJobContent, validatePaymentAmount } from "./content-filter";
 import { stripeRouter } from "./api/stripe-api";
+import stripeConnectRouter from "./api/stripe-connect";
 import { processPayment } from "./api/process-payment";
 import { preauthorizePayment } from "./api/preauthorize-payment";
 import { taskRouter } from "./api/task-api";
@@ -328,6 +329,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // Create API router
   const apiRouter = express.Router();
+
+  // Mount Stripe Connect routes
+  apiRouter.use('/stripe/connect', stripeConnectRouter);
 
   // Register the admin API routes
 
