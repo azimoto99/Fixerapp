@@ -5,6 +5,10 @@ import { Loader2, CreditCard, ArrowRight, AlertTriangle } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { apiRequest } from '@/lib/queryClient';
 
+// Debugging helper
+const DEBUG = true;
+const log = (...args) => DEBUG && console.log(...args);
+
 interface StripeConnectCardProps {
   onComplete?: () => void;
 }
@@ -18,10 +22,23 @@ const StripeConnectCard: React.FC<StripeConnectCardProps> = ({ onComplete }) => 
     setIsLoading(true);
     setError(null);
     try {
+      log('Attempting to connect to Stripe...');
+      
       // Call backend to create Stripe Connect onboarding link
+      // The API router is mounted at /api, and the stripe connect router at /stripe/connect
+      log('Making API request to /api/stripe/connect/create-account');
       const res = await apiRequest('POST', '/api/stripe/connect/create-account', {});
+      
+      log('Stripe Connect API response:', {
+        status: res.status,
+        statusText: res.statusText,
+        ok: res.ok,
+        headers: Object.fromEntries([...res.headers])
+      });
+      
       if (!res.ok) {
-        const data = await res.json();
+        const data = await res.json().catch(e => ({ message: `Failed to parse error response: ${e.message}` }));
+        log('Error response data:', data);
         throw new Error(data.message || 'Failed to create Stripe Connect account');
       }
       const data = await res.json();

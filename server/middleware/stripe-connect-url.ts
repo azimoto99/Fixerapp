@@ -11,6 +11,9 @@ export interface StripeURLConfig {
  * Middleware to ensure proper URL handling for Stripe Connect endpoints
  */
 export function stripeURLMiddleware(config: Partial<StripeURLConfig> = {}) {
+  // Log middleware initialization
+  console.log('[STRIPE URL MIDDLEWARE] Initializing with APP_URL:', process.env.APP_URL);
+  
   const defaults: StripeURLConfig = {
     baseURL: process.env.APP_URL || '',
     refreshPath: '/dashboard/connect/refresh',
@@ -18,9 +21,12 @@ export function stripeURLMiddleware(config: Partial<StripeURLConfig> = {}) {
     ...config
   };
   return async (req: Request, res: Response, next: NextFunction) => {
+    // Log request
+    console.log('[STRIPE URL MIDDLEWARE] Processing request:', req.method, req.path);
+    
     // First ensure user is authenticated
     if (!req.session) {
-      console.error("No session object found");
+      console.error("[STRIPE URL MIDDLEWARE] No session object found");
       return res.status(401).json({ message: "Session unavailable" });
     }
 

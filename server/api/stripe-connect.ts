@@ -55,6 +55,12 @@ const stripeCSP = helmet({
 // Apply CSP middleware
 stripeConnectRouter.use(stripeCSP);
 
+// Add a health check endpoint for debugging
+stripeConnectRouter.get('/health', (req, res) => {
+  console.log('[STRIPE CONNECT] Health check request received');
+  return res.status(200).json({ status: 'ok', message: 'Stripe Connect router is working' });
+});
+
 // Add type definitions
 interface StripeTransferWithMetadata extends Stripe.Transfer {
   metadata: {
@@ -76,11 +82,15 @@ interface AuthenticatedRequest extends Request {
 
 // Create a Connect account for a worker
 stripeConnectRouter.post('/create-account', isAuthenticated, async (req, res) => {
+  console.log('[STRIPE CONNECT] Create account request received');
+  
   try {
     if (!req.user) {
+      console.log('[STRIPE CONNECT] No user in request');
       return res.status(401).json({ message: 'User not authenticated' });
     }
     
+    console.log('[STRIPE CONNECT] User authenticated:', req.user.id);
     const user = await storage.getUser(req.user.id);
     if (!user) {
       return res.status(404).json({ message: 'User not found' });
