@@ -195,7 +195,7 @@ export default function StripeConnectSetupV2({ compact = false }: StripeConnectS
   
   // Display setup requirements
   const hasConnectAccount = connectAccount && connectAccount.exists;
-  const accountVerified = connectAccount?.account?.charges_enabled;
+  const accountVerified = connectAccount?.chargesEnabled && connectAccount?.payoutsEnabled;
   const accountDetails = connectAccount?.account || {};
   const capabilities = accountDetails.capabilities || {};
   const requirements = accountDetails.requirements || {};

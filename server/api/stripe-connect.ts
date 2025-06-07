@@ -292,7 +292,19 @@ stripeConnectRouter.get('/account-status', isAuthenticated, async (req, res) => 
       accountStatus: account.payouts_enabled ? 'active' : 'pending',
       accountId: account.id,
       payoutsEnabled: account.payouts_enabled,
-      chargesEnabled: account.charges_enabled
+      chargesEnabled: account.charges_enabled,
+      detailsSubmitted: account.details_submitted,
+      account: {
+        id: account.id,
+        charges_enabled: account.charges_enabled,
+        payouts_enabled: account.payouts_enabled,
+        details_submitted: account.details_submitted,
+        capabilities: account.capabilities,
+        requirements: account.requirements,
+        external_accounts: account.external_accounts,
+        company: account.company,
+        individual: account.individual
+      }
     });
   } catch (error) {
     console.error('Stripe Connect account status check error:', error);
