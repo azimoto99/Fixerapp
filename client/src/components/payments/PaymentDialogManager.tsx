@@ -171,10 +171,9 @@ export const PaymentDialogProvider: React.FC<{ children: React.ReactNode }> = ({
     setTimeout(() => {
       setIsAddPaymentMethodOpen(true);
       
-      // Only create setup intent if we don't already have one
-      if (!clientSecret) {
-        setupIntent.mutate();
-      }
+      // Always create a fresh setup intent when opening the dialog
+      // This ensures we have a valid client secret
+      setupIntent.mutate();
     }, 300); // Slight delay to allow drawer to close
   };
   
@@ -200,6 +199,8 @@ export const PaymentDialogProvider: React.FC<{ children: React.ReactNode }> = ({
 
   const closeAddPaymentMethod = () => {
     setIsAddPaymentMethodOpen(false);
+    // Reset client secret so we get a fresh one next time
+    setClientSecret(null);
   };
   
   const closeSelectPaymentMethod = () => {
@@ -271,30 +272,60 @@ export const PaymentDialogProvider: React.FC<{ children: React.ReactNode }> = ({
           </PaymentDialogHeader>
           
           {setupIntent.isPending ? (
-            <div className="flex justify-center py-8">
+            <div className="flex flex-col items-center justify-center py-8 space-y-4">
               <Loader2 className="h-8 w-8 animate-spin text-primary" />
+              <p className="text-sm text-muted-foreground">Setting up payment form...</p>
+            </div>
+          ) : setupIntent.isError ? (
+            <div className="py-6 text-center space-y-4">
+              <div className="text-destructive">
+                <AlertCircle className="h-8 w-8 mx-auto mb-2" />
+                <p className="text-sm font-medium">Failed to initialize payment form</p>
+                <p className="text-xs text-muted-foreground mt-1">
+                  {setupIntent.error?.message || 'Please try again'}
+                </p>
+              </div>
+              <div className="flex gap-2 justify-center">
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  onClick={closeAddPaymentMethod}
+                >
+                  Cancel
+                </Button>
+                <Button 
+                  variant="default" 
+                  size="sm" 
+                  onClick={() => setupIntent.mutate()} 
+                >
+                  Try Again
+                </Button>
+              </div>
             </div>
           ) : clientSecret ? (
             <Elements 
               stripe={stripePromise} 
               options={{ 
                 clientSecret,
-                appearance: { theme: 'stripe' },
+                appearance: { 
+                  theme: 'stripe',
+                  variables: {
+                    colorPrimary: 'hsl(var(--primary))',
+                    colorBackground: 'hsl(var(--background))',
+                    colorText: 'hsl(var(--foreground))',
+                    colorDanger: 'hsl(var(--destructive))',
+                    fontFamily: 'ui-sans-serif, system-ui, sans-serif',
+                    borderRadius: '6px'
+                  }
+                },
               }}
             >
               <AddPaymentMethodForm onSuccess={handleSuccess} />
             </Elements>
           ) : (
-            <div className="py-6 text-center">
-              <p className="text-sm text-muted-foreground">Failed to initialize payment form.</p>
-              <Button 
-                variant="outline" 
-                size="sm" 
-                onClick={() => setupIntent.mutate()} 
-                className="mt-2"
-              >
-                Try Again
-              </Button>
+            <div className="flex flex-col items-center justify-center py-8 space-y-4">
+              <Loader2 className="h-8 w-8 animate-spin text-primary" />
+              <p className="text-sm text-muted-foreground">Initializing payment form...</p>
             </div>
           )}
         </PaymentDialogContent>
