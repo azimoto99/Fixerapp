@@ -20,8 +20,14 @@ import {
 import { STRIPE_PUBLIC_KEY } from '@/lib/env';
 
 // Load Stripe outside of component render for better performance
-console.log('Loading Stripe with public key:', STRIPE_PUBLIC_KEY ? 'Key present' : 'Key missing');
-const stripePromise = loadStripe(STRIPE_PUBLIC_KEY);
+console.log('Loading Stripe with public key:', STRIPE_PUBLIC_KEY ? `Key present (${STRIPE_PUBLIC_KEY.substring(0, 7)}...)` : 'Key missing');
+console.log('Full STRIPE_PUBLIC_KEY:', STRIPE_PUBLIC_KEY);
+
+if (!STRIPE_PUBLIC_KEY) {
+  console.error('STRIPE_PUBLIC_KEY is missing! Check your .env file.');
+}
+
+const stripePromise = STRIPE_PUBLIC_KEY ? loadStripe(STRIPE_PUBLIC_KEY) : Promise.resolve(null);
 
 // Create context for payment dialog
 type PaymentDialogContextType = {
@@ -105,6 +111,41 @@ const AddPaymentMethodForm = ({ onSuccess }: { onSuccess: () => void }) => {
       onSuccess();
     }
   };
+
+  // Show error if Stripe is not available
+  if (!stripe && !elements) {
+    return (
+      <div className="space-y-4">
+        <Alert variant="destructive">
+          <AlertCircle className="h-4 w-4" />
+          <AlertTitle>Payment Setup Error</AlertTitle>
+          <AlertDescription>
+            Stripe payment system is not properly configured. Please check:
+            <ul className="list-disc list-inside mt-2 space-y-1">
+              <li>VITE_STRIPE_PUBLIC_KEY is set in environment variables</li>
+              <li>Stripe public key is valid</li>
+              <li>Network connection is working</li>
+            </ul>
+          </AlertDescription>
+        </Alert>
+        
+        <div className="text-xs text-gray-500 p-3 bg-gray-100 rounded">
+          <strong>Debug Info:</strong><br/>
+          Stripe Public Key: {import.meta.env.VITE_STRIPE_PUBLIC_KEY ? `${import.meta.env.VITE_STRIPE_PUBLIC_KEY.substring(0, 7)}...` : 'Missing'}<br/>
+          Stripe Instance: {stripe ? 'Available' : 'Not Available'}<br/>
+          Elements Instance: {elements ? 'Available' : 'Not Available'}
+        </div>
+        
+        <Button 
+          onClick={() => window.location.reload()} 
+          variant="outline" 
+          className="w-full"
+        >
+          Reload Page
+        </Button>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-4">
@@ -359,17 +400,36 @@ export const PaymentDialogProvider: React.FC<{ children: React.ReactNode }> = ({
               </div>
             </div>
           ) : clientSecret ? (
-            <Elements 
-              stripe={stripePromise} 
-              options={{ 
-                clientSecret,
-                appearance: { 
-                  theme: 'stripe'
-                }
-              }}
-            >
-              <AddPaymentMethodForm onSuccess={handleSuccess} />
-            </Elements>
+            STRIPE_PUBLIC_KEY ? (
+              <Elements 
+                stripe={stripePromise} 
+                options={{ 
+                  clientSecret,
+                  appearance: { 
+                    theme: 'stripe'
+                  }
+                }}
+              >
+                <AddPaymentMethodForm onSuccess={handleSuccess} />
+              </Elements>
+            ) : (
+              <div className="py-6 text-center space-y-4">
+                <Alert variant="destructive">
+                  <AlertCircle className="h-8 w-8 mx-auto mb-2" />
+                  <AlertTitle>Configuration Error</AlertTitle>
+                  <AlertDescription>
+                    Stripe public key is not configured. Please set VITE_STRIPE_PUBLIC_KEY in your environment variables.
+                  </AlertDescription>
+                </Alert>
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  onClick={closeAddPaymentMethod}
+                >
+                  Close
+                </Button>
+              </div>
+            )
           ) : (
             <div className="flex flex-col items-center justify-center py-8 space-y-4">
               <Loader2 className="h-8 w-8 animate-spin text-primary" />
