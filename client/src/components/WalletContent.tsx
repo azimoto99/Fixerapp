@@ -5,10 +5,9 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { useToast } from '@/hooks/use-toast';
 import { apiRequest } from '@/lib/queryClient';
-import { STRIPE_PUBLIC_KEY } from '@/lib/env';
+import { usePaymentDialog } from '@/components/payments/PaymentDialogManager';
 import {
   Wallet,
   TrendingUp,
@@ -24,11 +23,7 @@ import {
   Trash2,
   Loader2
 } from 'lucide-react';
-import { CardElement, useStripe, useElements, Elements } from '@stripe/react-stripe-js';
-import { loadStripe } from '@stripe/stripe-js';
 import StripeConnectCard from './StripeConnectCard';
-
-const stripePromise = loadStripe(STRIPE_PUBLIC_KEY);
 
 interface WalletContentProps {
   user: DbUser;
@@ -44,16 +39,13 @@ interface Transaction {
   status: 'completed' | 'pending' | 'failed';
 }
 
-const WalletContentInner: React.FC<WalletContentProps> = ({ user }) => {
+const WalletContent: React.FC<WalletContentProps> = ({ user }) => {
   const [showBalance, setShowBalance] = useState(true);
   const [activeSection, setActiveSection] = useState<'overview' | 'history'>('overview');
-  const [addCardOpen, setAddCardOpen] = useState(false);
-  const [isAddingCard, setIsAddingCard] = useState(false);
   const [removingCardId, setRemovingCardId] = useState<string | null>(null);
   const [showStripeConnect, setShowStripeConnect] = useState(false);
   const { toast } = useToast();
-  const stripe = useStripe();
-  const elements = useElements();
+  const { openAddPaymentMethod } = usePaymentDialog();
 
   // Fetch earnings data
   const { data: earningsRaw, isLoading: earningsLoading, error: earningsError, refetch: refetchEarnings } = useQuery({
@@ -69,7 +61,14 @@ const WalletContentInner: React.FC<WalletContentProps> = ({ user }) => {
 
   // Fetch payment methods
   const { data: paymentMethodsRaw, isLoading: paymentMethodsLoading, error: paymentMethodsError, refetch: refetchPaymentMethods } = useQuery({
-    queryKey: ['/api/stripe/payment-methods'],
+    queryKey: ['payment-methods'],
+    queryFn: async () => {
+      const response = await apiRequest('GET', '/api/stripe/payment-methods');
+      if (!response.ok) {
+        throw new Error('Failed to load payment methods');
+      }
+      return response.json();
+    },
     enabled: !!user,
   });
 
@@ -77,63 +76,6 @@ const WalletContentInner: React.FC<WalletContentProps> = ({ user }) => {
   const earnings = Array.isArray(earningsRaw) ? earningsRaw : [];
   const payments = Array.isArray(paymentsRaw) ? paymentsRaw : [];
   const paymentMethods = Array.isArray(paymentMethodsRaw) ? paymentMethodsRaw : [];
-
-  // Add payment method using Stripe Elements
-  const addPaymentMethod = async () => {
-    setIsAddingCard(true);
-    try {
-      if (!stripe || !elements) {
-        throw new Error('Stripe not loaded');
-      }
-      
-      const cardElement = elements.getElement(CardElement);
-      if (!cardElement) {
-        throw new Error('Card element not found');
-      }
-      
-      // Create payment method
-      const { error, paymentMethod } = await stripe.createPaymentMethod({
-        type: 'card',
-        card: cardElement,
-      });
-      
-      if (error) {
-        throw new Error(error.message || 'Failed to create payment method');
-      }
-      
-      if (!paymentMethod) {
-        throw new Error('No payment method created');
-      }
-      
-      // Send to backend
-      const res = await apiRequest('POST', '/api/stripe/payment-methods', {
-        paymentMethodId: paymentMethod.id
-      });
-      
-      if (!res.ok) {
-        const errorData = await res.json();
-        throw new Error(errorData.message || 'Failed to add payment method');
-      }
-      
-      toast({ 
-        title: 'Payment method added successfully',
-        description: `Card ending in ${paymentMethod.card?.last4} has been saved.`
-      });
-      
-      setAddCardOpen(false);
-      refetchPaymentMethods();
-      cardElement.clear();
-    } catch (e) {
-      console.error('Add payment method error:', e);
-      toast({ 
-        title: 'Failed to add payment method', 
-        description: e instanceof Error ? e.message : 'An unexpected error occurred',
-        variant: 'destructive' 
-      });
-    } finally {
-      setIsAddingCard(false);
-    }
-  };
 
   // Remove payment method mutation
   const removePaymentMethod = async (id: string) => {
@@ -350,7 +292,7 @@ const WalletContentInner: React.FC<WalletContentProps> = ({ user }) => {
               Payment Methods
             </CardTitle>
             <div className="flex gap-2">
-              <Button size="sm" variant="outline" onClick={() => setAddCardOpen(true)}>
+              <Button size="sm" variant="outline" onClick={openAddPaymentMethod}>
                 <Plus className="h-4 w-4 mr-1" /> Add
               </Button>
               <Button size="sm" variant="default" onClick={() => setShowStripeConnect(true)}>
@@ -390,45 +332,6 @@ const WalletContentInner: React.FC<WalletContentProps> = ({ user }) => {
           </CardContent>
         </Card>
       )}
-
-      {/* Add Payment Method Dialog */}
-      <Dialog open={addCardOpen} onOpenChange={setAddCardOpen}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Add Payment Method</DialogTitle>
-          </DialogHeader>
-          <div className="space-y-4">
-            <div className="border rounded p-4 bg-gray-50 dark:bg-gray-900">
-              <CardElement 
-                options={{ 
-                  hidePostalCode: true,
-                  style: {
-                    base: {
-                      fontSize: '16px',
-                      color: '#424770',
-                      '::placeholder': {
-                        color: '#aab7c4',
-                      },
-                    },
-                    invalid: {
-                      color: '#9e2146',
-                    },
-                  },
-                }} 
-              />
-            </div>
-            <p className="text-xs text-gray-500">
-              Your payment information is securely processed by Stripe and never stored on our servers.
-            </p>
-          </div>
-          <DialogFooter>
-            <Button onClick={addPaymentMethod} disabled={isAddingCard || !stripe || !elements} className="w-full">
-              {isAddingCard ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Plus className="h-4 w-4 mr-2" />}
-              Add Card
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
 
       {/* Section Toggle */}
       <div className="flex items-center justify-center gap-2 mt-4">
@@ -492,11 +395,5 @@ const WalletContentInner: React.FC<WalletContentProps> = ({ user }) => {
     </div>
   );
 };
-
-const WalletContent: React.FC<WalletContentProps> = (props) => (
-  <Elements stripe={stripePromise}>
-    <WalletContentInner {...props} />
-  </Elements>
-);
 
 export default WalletContent;
