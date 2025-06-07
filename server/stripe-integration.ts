@@ -2,13 +2,13 @@ import Stripe from 'stripe';
 
 // Initialize Stripe with secret key from environment
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
-  apiVersion: '2022-11-15',
+  apiVersion: '2025-05-28.basil',
 });
 
 /**
  * Create a new Stripe Connect express account and return onboarding link
  */
-export async function createStripeConnectAccount(userId: string): Promise<{ accountId: string; onboardingUrl: string }> {
+export async function createStripeConnectAccount(userId: string): Promise<{ accountId: string; accountLinkUrl: string }> {
   const account = await stripe.accounts.create({
     type: 'express',
     metadata: { userId },
@@ -19,7 +19,7 @@ export async function createStripeConnectAccount(userId: string): Promise<{ acco
     return_url: `${process.env.APP_URL}/dashboard`,
     type: 'account_onboarding',
   });
-  return { accountId: account.id, onboardingUrl: link.url! };
+  return { accountId: account.id, accountLinkUrl: link.url! };
 }
 
 /**

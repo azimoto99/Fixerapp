@@ -240,7 +240,7 @@ stripeConnectRouter.post('/create-account', isAuthenticated, async (req: Request
     console.log(`[STRIPE CONNECT] Generated onboarding URL for account ${accountId}: ${accountLink.url}`);
     return res.status(200).json({
       accountId: accountId,
-      onboardingUrl: accountLink.url, // Send this URL to the client to redirect the user
+      accountLinkUrl: accountLink.url, // Send this URL to the client to redirect the user
     });
 
   } catch (error: any) {

@@ -37,7 +37,7 @@ export default async function handler(
         type: 'account_onboarding',
       });
 
-      return res.status(200).json({ onboardingUrl: accountLink.url });
+      return res.status(200).json({ accountLinkUrl: accountLink.url });
     }
 
     // Create a new Stripe Connect account
@@ -69,7 +69,7 @@ export default async function handler(
       type: 'account_onboarding',
     });
 
-    return res.status(200).json({ onboardingUrl: accountLink.url });
+    return res.status(200).json({ accountLinkUrl: accountLink.url });
   } catch (error) {
     console.error('Error creating Stripe Connect account:', error);
     return res.status(500).json({ 
