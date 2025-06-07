@@ -13,7 +13,7 @@ const PaymentNotification: React.FC<PaymentNotificationProps> = ({ earning, onDi
   const { amount, job } = earning;
   
   return (
-    <div className="fixed inset-0 bg-black/50 z-[10000] flex items-center justify-center p-4">
+    <div className="fixed inset-0 bg-black/50 z-[500] flex items-center justify-center p-4">
       <div className="bg-white rounded-lg max-w-md w-full shadow-lg animate-in zoom-in-95 duration-300">
         <div className="p-6">
           <div className="flex justify-between items-start mb-4">

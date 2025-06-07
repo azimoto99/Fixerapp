@@ -68,7 +68,7 @@ const ApplicationModal: React.FC<ApplicationModalProps> = ({ isOpen, onClose, jo
   if (!isOpen) return null;
   
   return (
-    <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-[9999]" 
+    <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-[500]" 
          onClick={onClose} 
          style={{ pointerEvents: 'auto' }}>
       <div className="bg-background rounded-lg shadow-lg max-w-md w-full p-6" 

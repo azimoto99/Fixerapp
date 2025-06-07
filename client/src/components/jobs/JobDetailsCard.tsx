@@ -1343,7 +1343,7 @@ const JobDetailsCard: React.FC<JobDetailsCardProps> = ({ jobId, isOpen, onClose 
                     
                     {job.workerId === user.id && job.status === 'assigned' && (
                       <Button
-                        className="flex-1" 
+                        className="flex-1"
                         onClick={handleStartJob}
                         disabled={isCheckingLocation}
                       >
@@ -1422,7 +1422,7 @@ const JobDetailsCard: React.FC<JobDetailsCardProps> = ({ jobId, isOpen, onClose 
           
           {/* Custom Application Modal (renders outside the DOM hierarchy) */}
           {showApplyDialog && (
-            <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-[9999]" 
+            <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-[500]" 
                  onClick={() => setShowApplyDialog(false)}>
               <div className="bg-background rounded-lg shadow-lg max-w-md w-full p-6" 
                    onClick={(e) => e.stopPropagation()}>

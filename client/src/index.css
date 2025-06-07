@@ -525,6 +525,19 @@ body, html {
   --ring: 160 84% 39%;
   --radius: 0.5rem;
   
+  /* Standardized Z-Index System */
+  --z-base: 1;
+  --z-focus: 10;
+  --z-navigation: 100;
+  --z-floating: 200;
+  --z-dropdown: 300;
+  --z-overlay: 400;
+  --z-modal: 500;
+  --z-toast: 600;
+  --z-tooltip: 700;
+  --z-critical: 800;
+  --z-emergency: 900;
+  
   /* Chart colors */
   --chart-1: 160 84% 39%;
   --chart-2: 160 74% 45%;

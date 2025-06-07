@@ -20,6 +20,7 @@ import {
 import { STRIPE_PUBLIC_KEY } from '@/lib/env';
 
 // Load Stripe outside of component render for better performance
+console.log('Loading Stripe with public key:', STRIPE_PUBLIC_KEY ? 'Key present' : 'Key missing');
 const stripePromise = loadStripe(STRIPE_PUBLIC_KEY);
 
 // Create context for payment dialog
@@ -50,10 +51,27 @@ const AddPaymentMethodForm = ({ onSuccess }: { onSuccess: () => void }) => {
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const { toast } = useToast();
 
+  // Debug logging
+  useEffect(() => {
+    console.log('AddPaymentMethodForm mounted');
+    console.log('Stripe instance:', stripe);
+    console.log('Elements instance:', elements);
+    
+    // Check if PaymentElement is available
+    if (elements) {
+      console.log('Elements available, checking PaymentElement...');
+      setTimeout(() => {
+        const paymentElement = elements.getElement('payment');
+        console.log('PaymentElement found:', paymentElement);
+      }, 1000);
+    }
+  }, [stripe, elements]);
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
     if (!stripe || !elements) {
+      console.log('Stripe or elements not ready:', { stripe: !!stripe, elements: !!elements });
       return;
     }
 
@@ -89,35 +107,55 @@ const AddPaymentMethodForm = ({ onSuccess }: { onSuccess: () => void }) => {
   };
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-4">
-      <PaymentElement />
+    <div className="space-y-4">
+      <div className="text-sm text-gray-600 mb-4">
+        Debug Info: Stripe={stripe ? '✓' : '✗'}, Elements={elements ? '✓' : '✗'}
+      </div>
       
-      {errorMessage && (
-        <Alert variant="destructive">
-          <AlertCircle className="h-4 w-4" />
-          <AlertTitle>Error</AlertTitle>
-          <AlertDescription>{errorMessage}</AlertDescription>
-        </Alert>
-      )}
-      
-      <Button 
-        type="submit" 
-        disabled={!stripe || isProcessing} 
-        className="w-full"
-      >
-        {isProcessing ? (
-          <>
-            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-            Processing...
-          </>
-        ) : (
-          <>
-            Save Card
-            <ArrowRight className="ml-2 h-4 w-4" />
-          </>
+      <form onSubmit={handleSubmit} className="space-y-4">
+        <div 
+          className="border-2 border-dashed border-gray-300 rounded-lg p-6 min-h-[150px] bg-gray-50"
+          style={{ minHeight: '150px' }}
+        >
+          <div className="text-sm text-gray-500 mb-2">PaymentElement should render below:</div>
+          <PaymentElement 
+            id="payment-element"
+            options={{
+              layout: 'tabs',
+              fields: {
+                billingDetails: 'never'
+              }
+            }}
+          />
+        </div>
+        
+        {errorMessage && (
+          <Alert variant="destructive">
+            <AlertCircle className="h-4 w-4" />
+            <AlertTitle>Error</AlertTitle>
+            <AlertDescription>{errorMessage}</AlertDescription>
+          </Alert>
         )}
-      </Button>
-    </form>
+        
+        <Button 
+          type="submit" 
+          disabled={!stripe || !elements || isProcessing} 
+          className="w-full"
+        >
+          {isProcessing ? (
+            <>
+              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              Processing...
+            </>
+          ) : (
+            <>
+              Save Card
+              <ArrowRight className="ml-2 h-4 w-4" />
+            </>
+          )}
+        </Button>
+      </form>
+    </div>
   );
 };
 
@@ -230,6 +268,24 @@ export const PaymentDialogProvider: React.FC<{ children: React.ReactNode }> = ({
     closeAddPaymentMethod();
   };
 
+  // Debug logging for clientSecret
+  useEffect(() => {
+    if (clientSecret) {
+      console.log('Client secret received:', clientSecret.substring(0, 20) + '...');
+      console.log('Stripe promise:', stripePromise);
+    }
+  }, [clientSecret]);
+
+  // Debug logging for dialog state
+  useEffect(() => {
+    console.log('Payment dialog state:', {
+      isOpen: isAddPaymentMethodOpen,
+      isPending: setupIntent.isPending,
+      isError: setupIntent.isError,
+      hasClientSecret: !!clientSecret
+    });
+  }, [isAddPaymentMethodOpen, setupIntent.isPending, setupIntent.isError, clientSecret]);
+
   // When modal is opened/closed, handle body scroll
   useEffect(() => {
     const isAnyDialogOpen = isAddPaymentMethodOpen || isSelectPaymentMethodOpen;
@@ -308,16 +364,8 @@ export const PaymentDialogProvider: React.FC<{ children: React.ReactNode }> = ({
               options={{ 
                 clientSecret,
                 appearance: { 
-                  theme: 'stripe',
-                  variables: {
-                    colorPrimary: 'hsl(var(--primary))',
-                    colorBackground: 'hsl(var(--background))',
-                    colorText: 'hsl(var(--foreground))',
-                    colorDanger: 'hsl(var(--destructive))',
-                    fontFamily: 'ui-sans-serif, system-ui, sans-serif',
-                    borderRadius: '6px'
-                  }
-                },
+                  theme: 'stripe'
+                }
               }}
             >
               <AddPaymentMethodForm onSuccess={handleSuccess} />

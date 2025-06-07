@@ -67,7 +67,7 @@ const SimpleToast: React.FC<SimpleToastProps> = ({
       className={cn(
         toastVariants({ type, position }),
         isVisible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-2",
-        "z-[999999999]" // Ultra high z-index to appear above everything
+        "z-[900]" // Using --z-emergency level instead of ultra-high value
       )}
       style={{ transition: "opacity 0.3s ease, transform 0.3s ease" }}
       role="alert"
