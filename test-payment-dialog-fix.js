@@ -47,32 +47,39 @@ if (fs.existsSync(paymentDialogFile)) {
   dialogTestPassed = false;
 }
 
-// Test 2: Check z-index values are still high
-console.log('\n🎨 Test 2: Checking z-index values...');
+// Test 2: Check that overlay has been removed
+console.log('\n🎨 Test 2: Checking overlay removal...');
 
 const paymentDialogComponentFile = 'client/src/components/payments/PaymentDialog.tsx';
-let zIndexTestPassed = true;
+let overlayTestPassed = true;
 
 if (fs.existsSync(paymentDialogComponentFile)) {
   const content = fs.readFileSync(paymentDialogComponentFile, 'utf8');
   
-  if (content.includes('z-[999990]') && content.includes('z-[999999]')) {
-    console.log('✅ High z-index values maintained');
+  if (!content.includes('PaymentDialogOverlay') && !content.includes('bg-black/80')) {
+    console.log('✅ Blur overlay removed successfully');
   } else {
-    console.log('❌ Z-index values not high enough');
-    zIndexTestPassed = false;
+    console.log('❌ Blur overlay still present');
+    overlayTestPassed = false;
+  }
+  
+  if (content.includes('z-[999999]')) {
+    console.log('✅ Dialog content z-index maintained');
+  } else {
+    console.log('❌ Dialog content z-index missing');
+    overlayTestPassed = false;
   }
 } else {
   console.log('❌ PaymentDialog.tsx not found');
-  zIndexTestPassed = false;
+  overlayTestPassed = false;
 }
 
 // Summary
 console.log('\n📋 Test Summary:');
 console.log(`Dialog Loading Fix: ${dialogTestPassed ? '✅ PASSED' : '❌ FAILED'}`);
-console.log(`Z-Index Fix: ${zIndexTestPassed ? '✅ PASSED' : '❌ FAILED'}`);
+console.log(`Overlay Removal Fix: ${overlayTestPassed ? '✅ PASSED' : '❌ FAILED'}`);
 
-const allTestsPassed = dialogTestPassed && zIndexTestPassed;
+const allTestsPassed = dialogTestPassed && overlayTestPassed;
 console.log(`\nOverall Status: ${allTestsPassed ? '🎉 ALL TESTS PASSED' : '⚠️ SOME TESTS FAILED'}`);
 
 if (allTestsPassed) {

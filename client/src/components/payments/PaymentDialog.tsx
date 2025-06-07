@@ -17,29 +17,12 @@ const PaymentDialogPortal = ({
 );
 PaymentDialogPortal.displayName = DialogPrimitive.Portal.displayName;
 
-// Dialog overlay component (background overlay)
-const PaymentDialogOverlay = React.forwardRef<
-  React.ElementRef<typeof DialogPrimitive.Overlay>,
-  React.ComponentPropsWithoutRef<typeof DialogPrimitive.Overlay>
->(({ className, ...props }, ref) => (
-  <DialogPrimitive.Overlay
-    ref={ref}
-    className={cn(
-      "fixed inset-0 z-[999990] bg-black/80 backdrop-blur-sm data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0",
-      className
-    )}
-    {...props}
-  />
-));
-PaymentDialogOverlay.displayName = DialogPrimitive.Overlay.displayName;
-
 // Dialog content component (the actual modal)
 const PaymentDialogContent = React.forwardRef<
   React.ElementRef<typeof DialogPrimitive.Content>,
   React.ComponentPropsWithoutRef<typeof DialogPrimitive.Content>
 >(({ className, children, ...props }, ref) => (
   <PaymentDialogPortal>
-    <PaymentDialogOverlay />
     <DialogPrimitive.Content
       ref={ref}
       className={cn(
