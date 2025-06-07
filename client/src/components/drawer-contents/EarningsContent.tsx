@@ -132,8 +132,7 @@ const EarningsContent: React.FC<EarningsContentProps> = ({ user }) => {
             ) : (
               <Badge variant="destructive">Not Connected</Badge>
             )}
-          </CardHeader>
-          <CardContent>
+          </CardHeader>          <CardContent>
             {!stripeConnect || !stripeConnect.exists ? (
               <>
                 <p className="text-sm text-muted-foreground mb-3">
@@ -143,26 +142,33 @@ const EarningsContent: React.FC<EarningsContentProps> = ({ user }) => {
                   <Link className="mr-2 h-4 w-4" /> Connect Stripe Account
                 </Button>
               </>
-            ) : isStripeSetupIncomplete ? (
-              <div className="p-3 bg-yellow-100 border border-yellow-300 rounded-md">
-                <div className="flex items-center">
-                  <AlertCircle className="h-5 w-5 text-yellow-700 mr-2" />
-                  <p className="text-sm text-yellow-700">
-                    Your Stripe account setup is incomplete. Please provide the required details to Stripe to enable payouts.
-                  </p>
+            ) : stripeConnect.exists && !stripeConnect.payoutsEnabled ? (
+              <>
+                <div className="p-3 bg-yellow-100 border border-yellow-300 rounded-md mb-3">
+                  <div className="flex items-center">
+                    <AlertCircle className="h-5 w-5 text-yellow-700 mr-2" />
+                    <p className="text-sm text-yellow-700">
+                      Your Stripe account setup is incomplete or under verification. Please complete the setup to enable payouts.
+                    </p>
+                  </div>
                 </div>
-                <Button onClick={handleConnectStripe} size="sm" className="mt-2">
-                  Complete Setup on Stripe
+                <Button onClick={handleConnectStripe} className="w-full">
+                  <Link className="mr-2 h-4 w-4" /> Connect Stripe Account
                 </Button>
-              </div>
+              </>
             ) : isStripeActuallyConnected ? (
               <p className="text-sm text-muted-foreground">
                 Your Stripe account is connected and verified. You can receive payouts.
               </p>
             ) : (
-              <p className="text-sm text-muted-foreground">
-                Your Stripe account is connected but may require further verification or is pending approval. Check your Stripe dashboard.
-              </p>
+              <>
+                <p className="text-sm text-muted-foreground mb-3">
+                  Your Stripe account may require further verification. Please complete the setup.
+                </p>
+                <Button onClick={handleConnectStripe} className="w-full">
+                  <Link className="mr-2 h-4 w-4" /> Connect Stripe Account
+                </Button>
+              </>
             )}
           </CardContent>
         </Card>

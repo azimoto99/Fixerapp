@@ -4,60 +4,21 @@ import { isAuthenticated } from '../middleware/auth';
 
 const jobsRouter = Router();
 
-// Add type definitions
+// Add type definitions  
 interface JobRequest extends Request {
-  user?: {
-    id: number;
-  };
+  user?: Express.User;
 }
 
-interface JobResponse extends Response {
-  json: (body: any) => JobResponse;
-}
-
-jobsRouter.post('/', isAuthenticated, async (req: JobRequest, res: JobResponse) => {
+jobsRouter.post('/', isAuthenticated, async (req: JobRequest, res: Response) => {
   try {
     if (!req.user) {
       return res.status(401).json({ message: 'Not authenticated' });
-    }
-
-    const {
+    }    const {
       title,
       description,
       category,
       location,
-      budget,
-      duration,
-      skills,
-      images,
-      paymentType,
-      hourlyRate,
-      latitude,
-      longitude,
-      address
-    } = req.body;
-
-    // Validate required fields
-    if (!title || !description || !category || !location || !budget) {
-      return res.status(400).json({ message: 'Missing required fields' });
-    }
-
-    // Validate payment type and related fields
-    if (paymentType === 'hourly' && !hourlyRate) {
-      return res.status(400).json({ message: 'Hourly rate is required for hourly jobs' });
-    }
-
-    if (paymentType === 'fixed' && !budget) {
-      return res.status(400).json({ message: 'Budget is required for fixed-price jobs' });
-    }
-
-    // Create the job
-    const job = await storage.createJob({
-      title,
-      description,
-      category,
-      location,
-      budget: paymentType === 'hourly' ? hourlyRate : budget,
+      paymentAmount, // Use paymentAmount instead of budget
       duration,
       skills,
       images,
@@ -66,10 +27,42 @@ jobsRouter.post('/', isAuthenticated, async (req: JobRequest, res: JobResponse) 
       latitude,
       longitude,
       address,
+      dateNeeded,
+      requiredSkills,
+      equipmentProvided,
+      autoAccept
+    } = req.body;
+
+    // Validate required fields
+    if (!title || !description || !category || !location || !paymentAmount) {
+      return res.status(400).json({ message: 'Missing required fields' });
+    }
+
+    // Validate payment type and related fields
+    if (paymentType === 'hourly' && !hourlyRate) {
+      return res.status(400).json({ message: 'Hourly rate is required for hourly jobs' });
+    }
+
+    if (paymentType === 'fixed' && !paymentAmount) {
+      return res.status(400).json({ message: 'Payment amount is required for fixed-price jobs' });
+    }
+
+    // Create the job
+    const job = await storage.createJob({
+      title,
+      description,
+      category,
+      location,
+      paymentAmount: paymentType === 'hourly' ? hourlyRate : paymentAmount,
+      paymentType,
+      latitude,
+      longitude,
       posterId: req.user.id,
       status: 'pending', // Job starts as pending until payment is processed
-      createdAt: new Date(),
-      updatedAt: new Date()
+      dateNeeded: new Date(dateNeeded),
+      requiredSkills: requiredSkills || [],
+      equipmentProvided: equipmentProvided || false,
+      autoAccept: autoAccept || false
     });
 
     // Create notification for job poster
@@ -107,10 +100,8 @@ jobsRouter.put('/:id', isAuthenticated, async (req, res) => {
 
     if (!job) {
       return res.status(404).json({ message: 'Job not found' });
-    }
-
-    // Verify job ownership
-    if (job.posterId !== req.user.id) {
+    }    // Verify job ownership
+    if (!req.user || job.posterId !== req.user.id) {
       return res.status(403).json({ message: 'You are not authorized to update this job' });
     }
 
@@ -128,16 +119,12 @@ jobsRouter.put('/:id', isAuthenticated, async (req, res) => {
       'latitude',
       'longitude',
       'address'
-    ];
-
-    const updates = Object.keys(req.body)
+    ];    const updates = Object.keys(req.body)
       .filter(key => allowedUpdates.includes(key))
       .reduce((obj, key) => {
         obj[key] = req.body[key];
         return obj;
       }, {} as any);
-
-    updates.updatedAt = new Date();
 
     const updatedJob = await storage.updateJob(jobId, updates);
 
@@ -167,10 +154,8 @@ jobsRouter.patch('/:id/status', isAuthenticated, async (req, res) => {
     const job = await storage.getJob(jobId);
     if (!job) {
       return res.status(404).json({ message: 'Job not found' });
-    }
-
-    // Verify job ownership
-    if (job.posterId !== req.user.id) {
+    }    // Verify job ownership
+    if (!req.user || job.posterId !== req.user.id) {
       return res.status(403).json({ message: 'You are not authorized to update this job' });
     }
 
@@ -189,11 +174,8 @@ jobsRouter.patch('/:id/status', isAuthenticated, async (req, res) => {
       return res.status(400).json({ 
         message: `Invalid status transition from ${job.status} to ${status}` 
       });
-    }
-
-    const updatedJob = await storage.updateJob(jobId, { 
-      status,
-      updatedAt: new Date()
+    }    const updatedJob = await storage.updateJob(jobId, { 
+      status
     });
 
     // Create notification for status change
@@ -238,4 +220,100 @@ jobsRouter.patch('/:id/status', isAuthenticated, async (req, res) => {
       error: error
     });
   }
-}); 
+});
+
+// Add test job endpoint for testing purposes (bypasses payment)
+jobsRouter.post('/test', isAuthenticated, async (req: JobRequest, res: Response) => {
+  try {
+    if (!req.user) {
+      return res.status(401).json({ message: 'Not authenticated' });
+    }
+
+    const {
+      title,
+      description,
+      category,
+      location,
+      paymentAmount, // Use paymentAmount instead of budget
+      duration,
+      skills,
+      images,
+      paymentType,
+      hourlyRate,
+      latitude,
+      longitude,
+      address,
+      isTestJob,
+      dateNeeded,
+      requiredSkills,
+      equipmentProvided,
+      autoAccept
+    } = req.body;
+
+    // Validate required fields
+    if (!title || !description || !category || !location || !paymentAmount) {
+      return res.status(400).json({ message: 'Missing required fields' });
+    }
+
+    // Validate that this is indeed a test job
+    if (!isTestJob) {
+      return res.status(400).json({ message: 'This endpoint is only for test jobs' });
+    }
+
+    // Validate payment type and related fields
+    if (paymentType === 'hourly' && !hourlyRate) {
+      return res.status(400).json({ message: 'Hourly rate is required for hourly jobs' });
+    }
+
+    if (paymentType === 'fixed' && !paymentAmount) {
+      return res.status(400).json({ message: 'Payment amount is required for fixed-price jobs' });
+    }
+
+    // Create the test job (status is 'open' since no payment required)
+    const job = await storage.createJob({
+      title,
+      description,
+      category,
+      location,
+      paymentAmount: paymentType === 'hourly' ? hourlyRate : paymentAmount,
+      paymentType,
+      latitude,
+      longitude,
+      posterId: req.user.id,
+      status: 'open', // Test jobs are immediately available
+      dateNeeded: new Date(dateNeeded),
+      requiredSkills: requiredSkills || [],
+      equipmentProvided: equipmentProvided || false,
+      autoAccept: autoAccept || false
+    });
+
+    // Create notification for job poster
+    await storage.createNotification({
+      userId: req.user.id,
+      title: 'Test Job Created',
+      message: `Your test job "${title}" has been created successfully and is now visible to workers. No payment required for test jobs.`,
+      type: 'test_job_created',
+      sourceId: job.id,
+      sourceType: 'job',
+      metadata: {
+        jobId: job.id,
+        status: 'open',
+        isTestJob: true
+      }
+    });
+
+    return res.status(201).json({
+      message: 'Test job created successfully - no payment required',
+      job,
+      isTestJob: true
+    });
+  } catch (error) {
+    console.error('Test job creation error:', error);
+    return res.status(500).json({
+      message: error instanceof Error ? error.message : 'Failed to create test job',
+      error: error
+    });
+  }
+});
+
+export { jobsRouter };

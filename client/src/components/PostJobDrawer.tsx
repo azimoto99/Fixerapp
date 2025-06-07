@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import React, { useState } from 'react';
 import { useLocation } from 'wouter';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -35,7 +36,7 @@ import { usePaymentDialog } from '@/components/payments/PaymentDialogManager';
 import PostJobSuccessModal from '@/components/PostJobSuccessModal';
 
 // Form schema with enhanced validation and formatting
-const formSchema = insertJobSchema.extend({
+const formSchema = z.object({
   title: z.string()
     .min(3, 'Title must be at least 3 characters')
     .max(100, 'Title must be less than 100 characters')
@@ -43,6 +44,10 @@ const formSchema = insertJobSchema.extend({
   description: z.string()
     .min(5, 'Description must be at least 5 characters')
     .transform(val => val.trim()), // Remove trailing whitespace
+  category: z.string().min(1, 'Please select a category'),
+  posterId: z.number(),
+  status: z.string().default('pending'),
+  paymentType: z.string().min(1, 'Please select a payment type'),
   paymentAmount: z.coerce
     .number()
     .min(10, 'Minimum payment amount is $10')
@@ -55,8 +60,14 @@ const formSchema = insertJobSchema.extend({
   longitude: z.number()
     .transform(val => Number(val.toFixed(6))), // Format to 6 decimal places
   dateNeeded: z.string(), // Keep as ISO string format
+  requiredSkills: z.array(z.string()).default([]),
+  equipmentProvided: z.boolean().default(false),
+  autoAccept: z.boolean().default(false),
+  shiftStartTime: z.string().optional(),
+  shiftEndTime: z.string().optional(),
   paymentMethodId: z.string().optional(),
   autoAcceptApplicants: z.boolean().default(false),
+  isTestJob: z.boolean().default(false),
 });
 
 interface PostJobDrawerProps {
@@ -95,7 +106,8 @@ export default function PostJobDrawer({ isOpen, onOpenChange }: PostJobDrawerPro
       dateNeeded: new Date(Date.now() + 86400000).toISOString().split('T')[0],
       requiredSkills: [],
       equipmentProvided: false,
-      posterId: user?.id || 0
+      posterId: user?.id || 0,
+      isTestJob: false
     }
   });
 
@@ -134,6 +146,13 @@ export default function PostJobDrawer({ isOpen, onOpenChange }: PostJobDrawerPro
         posterId: user.id,
       };
       
+      // Check if this is a test job
+      if (data.isTestJob) {
+        console.log('Processing test job - bypassing payment');
+        await processTestJob(jobDataToSubmit);
+        return;
+      }
+      
       // Store the pending job data
       setPendingJobData(jobDataToSubmit);
       
@@ -170,6 +189,34 @@ export default function PostJobDrawer({ isOpen, onOpenChange }: PostJobDrawerPro
         description: error instanceof Error ? error.message : "Failed to prepare job posting",
         variant: "destructive"
       });
+    }
+  };
+  
+  // Function to process test job without payment
+  const processTestJob = async (data: z.infer<typeof formSchema>) => {
+    setIsSubmitting(true);
+    try {
+      // Create test job without payment processing
+      const payload = { ...data, tasks, isTestJob: true };
+      const response = await apiRequest('POST', '/api/jobs/test', payload);
+      const result = await response.json();
+      if (!response.ok) throw new Error(result.message || 'Failed to post test job');
+      
+      // Show success
+      toast({ 
+        title: 'Test Job Posted', 
+        description: 'Your test job has been posted successfully (no payment required)' 
+      });
+      onOpenChange(false);
+      setShowSuccessModal(true);
+      setCreatedJobId(result.job.id);
+      setCreatedJobTitle(result.job.title);
+      queryClient.invalidateQueries({ queryKey: ['jobs'] });
+    } catch (error) {
+      const msg = error instanceof Error ? error.message : 'Error posting test job';
+      toast({ title: 'Error', description: msg, variant: 'destructive' });
+    } finally {
+      setIsSubmitting(false);
     }
   };
   
@@ -612,6 +659,29 @@ export default function PostJobDrawer({ isOpen, onOpenChange }: PostJobDrawerPro
                         </FormLabel>
                         <FormDescription>
                           Automatically accept qualified workers without manual review
+                        </FormDescription>
+                      </div>
+                    </FormItem>
+                  )}
+                />
+                
+                <FormField
+                  control={form.control}
+                  name="isTestJob"
+                  render={({ field }) => (
+                    <FormItem className="flex flex-row items-start space-x-3 space-y-0 rounded-md border p-4 mb-4 bg-yellow-50 border-yellow-200">
+                      <FormControl>
+                        <Checkbox
+                          checked={field.value}
+                          onCheckedChange={field.onChange}
+                        />
+                      </FormControl>
+                      <div className="space-y-1 leading-none">
+                        <FormLabel className="cursor-pointer text-yellow-800">
+                          Test Job (No Payment Required)
+                        </FormLabel>
+                        <FormDescription className="text-yellow-700">
+                          Post this job for testing purposes without payment processing. Test jobs are marked clearly and can be used to test functionality.
                         </FormDescription>
                       </div>
                     </FormItem>

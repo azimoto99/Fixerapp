@@ -76,7 +76,9 @@ div[role="dialog"] {
   --z-index-toast: 5000;
   --z-index-loading: 6000;
   
-  /* Critical system layers */
+  /* Emergency and payment layers */
+  --z-index-payment-dialog: 99990;
+  --z-index-payment-modal: 99999;
   --z-index-debug: 9000;
   --z-index-emergency: 9999;
 }
@@ -257,6 +259,20 @@ div[role="dialog"] {
 /* Prevent click-through on overlays */
 [data-state="open"] {
   pointer-events: auto !important;
+}
+
+/* Payment Dialog specific fixes - highest priority */
+[data-radix-dialog-overlay][class*="PaymentDialog"],
+[data-radix-dialog-content][class*="PaymentDialog"] {
+  z-index: var(--z-index-payment-modal) !important;
+}
+
+[data-radix-dialog-overlay][class*="Payment"] {
+  z-index: var(--z-index-payment-dialog) !important;
+}
+
+[data-radix-dialog-content][class*="Payment"] {
+  z-index: var(--z-index-payment-modal) !important;
 }
 
 /* Ensure proper stacking context */

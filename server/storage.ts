@@ -188,6 +188,9 @@ export class MemStorage implements IStorage {
   private badges: Map<number, Badge>;
   private userBadges: Map<number, UserBadge>;
   private notifications: Map<number, Notification>;
+  private messages: Map<number, Message>;
+  private contacts: Map<string, any>;
+  private supportTickets: Map<number, any>;
   
   private userIdCounter: number;
   private jobIdCounter: number;
@@ -199,6 +202,7 @@ export class MemStorage implements IStorage {
   private badgeIdCounter: number;
   private userBadgeIdCounter: number;
   private notificationIdCounter: number;
+  private messageIdCounter: number;
 
   constructor() {
     this.users = new Map();
@@ -211,6 +215,10 @@ export class MemStorage implements IStorage {
     this.badges = new Map();
     this.userBadges = new Map();
     this.notifications = new Map();
+    this.messages = new Map();    this.contacts = new Map();
+    this.supportTickets = new Map();
+    this.userBadges = new Map();
+    this.notifications = new Map();
     
     this.userIdCounter = 1;
     this.jobIdCounter = 1;
@@ -220,6 +228,9 @@ export class MemStorage implements IStorage {
     this.earningIdCounter = 1;
     this.paymentIdCounter = 1;
     this.badgeIdCounter = 1;
+    this.userBadgeIdCounter = 1;
+    this.notificationIdCounter = 1;
+    this.messageIdCounter = 1;
     this.userBadgeIdCounter = 1;
     this.notificationIdCounter = 1;
     
@@ -850,8 +861,7 @@ export class MemStorage implements IStorage {
     const id = this.paymentIdCounter++;
     const createdAt = new Date();
     const status = "pending";
-    const transactionId = null;
-      const newPayment: Payment = {
+    const transactionId = null;      const newPayment: Payment = {
       ...payment,
       id,
       createdAt,
@@ -865,7 +875,10 @@ export class MemStorage implements IStorage {
       jobId: payment.jobId || null,
       serviceFee: payment.serviceFee || null,
       currency: payment.currency || null,
-      metadata: payment.metadata || null
+      metadata: payment.metadata || null,
+      paymentMethod: payment.paymentMethod || null,
+      stripePaymentIntentId: payment.stripePaymentIntentId || null,
+      stripeRefundId: payment.stripeRefundId || null
     };
     this.payments.set(id, newPayment);
     return newPayment;
@@ -1092,67 +1105,73 @@ export class MemStorage implements IStorage {
     return notificationCount;
   }
 
-  // Contact operations
-	async getUserContacts(userId: string): Promise<{ id: string; name: string; email: string; phone?: string; lastContact?: string }[]> {
-		// In-memory implementation would need a contacts structure
-		// For now, return empty array as this is a basic implementation
-		return [];
+	// Contact operations
+	async getUserContacts(userId: number): Promise<(User & { lastMessage?: string | null })[]> {
+		// In-memory implementation - return all users except the current user as potential contacts
+		return Array.from(this.users.values())
+			.filter(user => user.id !== userId)
+			.map(user => ({ ...user, lastMessage: null }));
 	}
 
-	async addUserContact(userId: string, contact: { name: string; email: string; phone?: string }): Promise<string> {
-		// Generate a simple ID for the contact
-		const contactId = `contact_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-		// In a real implementation, we'd store this in memory
-		return contactId;
+	async addUserContact(userId: number, contactId: number): Promise<{ userId: number, contactId: number }> {
+		// Store the contact relationship
+		const contactKey = `${userId}_${contactId}`;
+		this.contacts.set(contactKey, { userId, contactId, createdAt: new Date() });
+		return { userId, contactId };
 	}
 
-	async removeUserContact(userId: string, contactId: string): Promise<void> {
-		// In-memory implementation would remove from contacts structure
-		// For now, this is a no-op
+	async removeUserContact(userId: number, contactId: number): Promise<boolean> {
+		const contactKey = `${userId}_${contactId}`;
+		return this.contacts.delete(contactKey);
 	}
-
-	// Search functionality
-	async searchUsers(query: string, limit: number = 10): Promise<{ id: string; name: string; email: string; type: string }[]> {
+	// Search functionality - fix the overloaded methods
+	async searchUsers(query: string, currentUserId?: number): Promise<User[]> {
 		const searchResults = Array.from(this.users.values())
-			.filter(user => 
-				user.name.toLowerCase().includes(query.toLowerCase()) ||
-				user.email.toLowerCase().includes(query.toLowerCase())
-			)
-			.slice(0, limit)
-			.map(user => ({
-				id: user.id,
-				name: user.name,
-				email: user.email,
-				type: user.type
-			}));
+			.filter(user => {
+				// Exclude current user if provided
+				if (currentUserId && user.id === currentUserId) return false;
+				
+				return user.fullName.toLowerCase().includes(query.toLowerCase()) ||
+					user.email.toLowerCase().includes(query.toLowerCase()) ||
+					user.username.toLowerCase().includes(query.toLowerCase());
+			})
+			.slice(0, 10);
 		return searchResults;
 	}
-
 	// Message operations
-	async getMessagesBetweenUsers(userId1: string, userId2: string): Promise<any[]> {
-		const messages = Array.from(this.messages.values())
+	async getMessagesBetweenUsers(userId1: number, userId2: number): Promise<Message[]> {
+		return Array.from(this.messages.values())
 			.filter(message => 
-				(message.senderId === userId1 && message.receiverId === userId2) ||
-				(message.senderId === userId2 && message.receiverId === userId1)
+				(message.senderId === userId1 && message.recipientId === userId2) ||
+				(message.senderId === userId2 && message.recipientId === userId1)
 			)
-			.sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
-		return messages;
+			.sort((a, b) => {
+				const dateA = a.sentAt ? new Date(a.sentAt).getTime() : 0;
+				const dateB = b.sentAt ? new Date(b.sentAt).getTime() : 0;
+				return dateA - dateB;
+			});
 	}
 
-	async markMessagesAsRead(userId: string, otherUserId: string): Promise<void> {
-		// Mark messages as read in memory
+	async markMessagesAsRead(recipientId: number, senderId: number): Promise<boolean> {
+		let updated = false;
 		for (const message of this.messages.values()) {
-			if (message.receiverId === userId && message.senderId === otherUserId) {
+			if (message.recipientId === recipientId && message.senderId === senderId && !message.isRead) {
 				message.isRead = true;
+				message.readAt = new Date();
+				updated = true;
 			}
 		}
+		return updated;
 	}
 
-	async markMessageAsRead(messageId: string): Promise<void> {
+	async markMessageAsRead(messageId: number, userId: number): Promise<Message | undefined> {
 		const message = this.messages.get(messageId);
-		if (message) {
-			message.isRead = true;
+		if (message && message.recipientId === userId) {
+			const updatedMessage = { ...message, isRead: true, readAt: new Date() };
+			this.messages.set(messageId, updatedMessage);
+			return updatedMessage;
 		}
+		return undefined;
 	}
 
 	// Admin operations
@@ -1177,130 +1196,145 @@ export class MemStorage implements IStorage {
 			}));
 		return earnings;
 	}
-
 	async getAllSupportTickets(): Promise<any[]> {
 		return Array.from(this.supportTickets.values());
 	}
-
-	async getEarnings(userId: string): Promise<{ total: number; thisMonth: number; thisWeek: number }> {
-		const userPayments = Array.from(this.payments.values())
-			.filter(payment => {
-				const job = this.jobs.get(payment.jobId);
-				return job && job.workerId === userId && payment.status === 'completed';
+	async getEarnings(userId: number): Promise<Earning[]> {
+		return Array.from(this.earnings.values())
+			.filter(earning => earning.userId === userId)
+			.sort((a, b) => {
+				const dateA = a.dateEarned ? new Date(a.dateEarned).getTime() : 0;
+				const dateB = b.dateEarned ? new Date(b.dateEarned).getTime() : 0;
+				return dateB - dateA;
 			});
-
-		const total = userPayments.reduce((sum, payment) => sum + payment.amount, 0);
-		
-		const now = new Date();
-		const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
-		const startOfWeek = new Date(now.setDate(now.getDate() - now.getDay()));
-
-		const thisMonth = userPayments
-			.filter(payment => new Date(payment.createdAt) >= startOfMonth)
-			.reduce((sum, payment) => sum + payment.amount, 0);
-
-		const thisWeek = userPayments
-			.filter(payment => new Date(payment.createdAt) >= startOfWeek)
-			.reduce((sum, payment) => sum + payment.amount, 0);
-
-		return { total, thisMonth, thisWeek };
 	}
-
-	async addTicketResponse(ticketId: string, response: string, responderId: string): Promise<string> {
+	async addTicketResponse(responseData: any): Promise<any> {
+		const ticketId = responseData.ticketId;
 		const ticket = this.supportTickets.get(ticketId);
 		if (!ticket) {
 			throw new Error('Support ticket not found');
 		}
 
-		const responseId = `response_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+		const responseId = Date.now();
 		
 		// Add response to ticket (assuming ticket has responses array)
 		if (!ticket.responses) {
 			ticket.responses = [];
 		}
 		
-		ticket.responses.push({
+		const response = {
 			id: responseId,
-			message: response,
-			responderId,
-			createdAt: new Date().toISOString()
-		});
-
-		ticket.updatedAt = new Date().toISOString();
+			...responseData,
+			createdAt: new Date()
+		};
+		
+		ticket.responses.push(response);
+		ticket.updatedAt = new Date();
 		ticket.status = 'responded';
 
-		return responseId;
+		return response;
 	}
 
-	async getUserById(userId: string): Promise<any | null> {
-		return this.users.get(userId) || null;
+	async getUserById(id: number): Promise<User | undefined> {
+		return this.users.get(id);
 	}
 
-	async deleteUser(userId: string): Promise<void> {
-		this.users.delete(userId);
+	async deleteUser(id: number): Promise<boolean> {
+		const deleted = this.users.delete(id);
 		
 		// Also clean up related data
 		for (const [jobId, job] of this.jobs.entries()) {
-			if (job.posterId === userId || job.workerId === userId) {
+			if (job.posterId === id || job.workerId === id) {
 				this.jobs.delete(jobId);
 			}
 		}
 		
 		for (const [messageId, message] of this.messages.entries()) {
-			if (message.senderId === userId || message.receiverId === userId) {
+			if (message.senderId === id || message.recipientId === id) {
 				this.messages.delete(messageId);
 			}
 		}
+		
+		return deleted;
 	}
-
 	// Message CRUD operations
-	async createMessage(senderId: string, receiverId: string, content: string, jobId?: string): Promise<string> {
-		const messageId = `msg_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-		const message = {
-			id: messageId,
-			senderId,
-			receiverId,
-			content,
-			jobId,
-			createdAt: new Date().toISOString(),
-			isRead: false
+	async createMessage(message: InsertMessage): Promise<Message> {
+		const id = this.messageIdCounter++;
+		const sentAt = new Date();
+		const isRead = false;
+				const newMessage: Message = {
+			...message,
+			id,
+			sentAt,
+			isRead,
+			readAt: null,
+			attachmentUrl: message.attachmentUrl || null,
+			attachmentType: message.attachmentType || null,
+			isEdited: false,
+			editedAt: null,
+			jobId: message.jobId || null,
+			messageType: message.messageType || null
 		};
 		
-		this.messages.set(messageId, message);
-		return messageId;
+		this.messages.set(id, newMessage);
+		return newMessage;
 	}
 
-	async getMessageById(messageId: string): Promise<any | null> {
-		return this.messages.get(messageId) || null;
+	async getMessageById(messageId: number): Promise<Message | undefined> {
+		return this.messages.get(messageId);
 	}
 
-	async getPendingMessages(userId: string): Promise<any[]> {
+	async getPendingMessages(userId: number): Promise<Message[]> {
 		return Array.from(this.messages.values())
-			.filter(message => message.receiverId === userId && !message.isRead)
-			.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+			.filter(message => message.recipientId === userId && !message.isRead)
+			.sort((a, b) => {
+				const dateA = a.sentAt ? new Date(a.sentAt).getTime() : 0;
+				const dateB = b.sentAt ? new Date(b.sentAt).getTime() : 0;
+				return dateB - dateA;
+			});
 	}
 
-	async getMessagesForJob(jobId: string): Promise<any[]> {
+	async getMessagesForJob(jobId: number): Promise<Message[]> {
 		return Array.from(this.messages.values())
 			.filter(message => message.jobId === jobId)
-			.sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
+			.sort((a, b) => {
+				const dateA = a.sentAt ? new Date(a.sentAt).getTime() : 0;
+				const dateB = b.sentAt ? new Date(b.sentAt).getTime() : 0;
+				return dateA - dateB;
+			});
 	}
 
-	async getConversation(userId1: string, userId2: string): Promise<any[]> {
-		return this.getMessagesBetweenUsers(userId1, userId2);
+	async getConversation(userId1: number, userId2: number, jobId?: number): Promise<Message[]> {
+		return Array.from(this.messages.values())
+			.filter(message => {
+				const isUserConversation = (
+					(message.senderId === userId1 && message.recipientId === userId2) ||
+					(message.senderId === userId2 && message.recipientId === userId1)
+				);
+				
+				if (jobId) {
+					return isUserConversation && message.jobId === jobId;
+				}
+				
+				return isUserConversation;
+			})
+			.sort((a, b) => {
+				const dateA = a.sentAt ? new Date(a.sentAt).getTime() : 0;
+				const dateB = b.sentAt ? new Date(b.sentAt).getTime() : 0;
+				return dateA - dateB;
+			});
 	}
-
 	// Job operations
-	async getJobsForWorker(workerId: string): Promise<any[]> {
+	async getJobsForWorker(workerId: number): Promise<any[]> {
 		return Array.from(this.jobs.values())
 			.filter(job => job.workerId === workerId)
-			.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+			.sort((a, b) => new Date(b.datePosted || 0).getTime() - new Date(a.datePosted || 0).getTime());
 	}
 
-	async getJobsForPoster(posterId: string): Promise<any[]> {
+	async getJobsForPoster(posterId: number): Promise<any[]> {
 		return Array.from(this.jobs.values())
 			.filter(job => job.posterId === posterId)
-			.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+			.sort((a, b) => new Date(b.datePosted || 0).getTime() - new Date(a.datePosted || 0).getTime());
 	}
 }
 
