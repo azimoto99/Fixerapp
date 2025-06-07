@@ -333,6 +333,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Mount Stripe Connect routes
   apiRouter.use('/stripe/connect', stripeConnectRouter);
 
+  // Mount main Stripe routes
+  apiRouter.use('/stripe', stripeRouter);
+
+  // Mount Stripe create payment intent routes
+  apiRouter.use('/stripe', createPaymentIntentRouter);
+
+  // Set up Stripe payment methods routes
+  setupStripePaymentMethodsRoutes(app);
+
+  // Set up Stripe transfers routes
+  setupStripeTransfersRoutes(app);
+
+  // Set up Stripe webhooks
+  setupStripeWebhooks(app);
+
   // Register the admin API routes
 
 
