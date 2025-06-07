@@ -124,17 +124,23 @@ export default function PostJob() {
         paymentMethodId: pmId
       };
       
-      // Create the job
-      const response = await apiRequest('POST', '/api/jobs', jobData);
+      // Create the job using the payment-first endpoint
+      const response = await apiRequest('POST', '/api/jobs/payment-first', jobData);
+      
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || 'Failed to create job');
+      }
+      
       const jobResponse = await response.json();
       
       // Create tasks for the job if there are any
       if (tasks.length > 0) {
         try {
           // Submit each task with the job ID
-          const taskPromises = tasks.map(task => {
+          const taskPromises = tasks.map(async (task) => {
             const taskData = {
-              jobId: jobResponse.id,
+              jobId: jobResponse.job.id,
               description: task.description,
               position: task.position,
               isOptional: task.isOptional,
@@ -145,7 +151,11 @@ export default function PostJob() {
               bonusAmount: task.bonusAmount || 0
             };
             
-            return apiRequest('POST', '/api/tasks', taskData);
+            const taskResponse = await apiRequest('POST', '/api/tasks', taskData);
+            if (!taskResponse.ok) {
+              console.error('Failed to create task:', task.description);
+            }
+            return taskResponse;
           });
           
           await Promise.all(taskPromises);
@@ -153,6 +163,11 @@ export default function PostJob() {
         } catch (taskError) {
           console.error('Error creating tasks:', taskError);
           // We don't fail the whole job if tasks fail to be created
+          toast({
+            title: "Warning",
+            description: "Job created but some tasks failed to save. You can add them later.",
+            variant: "default"
+          });
         }
       }
       
@@ -165,11 +180,13 @@ export default function PostJob() {
       });
       
       // Navigate to the job details page
-      navigate(`/job/${jobResponse.id}`);
+      navigate(`/job/${jobResponse.job.id}`);
+      
     } catch (error) {
+      console.error('Error posting job:', error);
       toast({
         title: "Error",
-        description: "Failed to post job. Please try again.",
+        description: error instanceof Error ? error.message : "Failed to post job. Please try again.",
         variant: "destructive"
       });
     } finally {

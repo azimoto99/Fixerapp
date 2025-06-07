@@ -362,7 +362,6 @@ export const PaymentDialogProvider: React.FC<{ children: React.ReactNode }> = ({
                               fill="#F79E1B"
                             />
                           </svg>
-                          
                           <span>
                             <span className="font-medium">{method.card?.brand || 'Card'}</span>
                             <span className="text-muted-foreground ml-2">•••• {method.card?.last4 || '****'}</span>
@@ -379,7 +378,10 @@ export const PaymentDialogProvider: React.FC<{ children: React.ReactNode }> = ({
               )}
               
               <Button
-                onClick={() => openAddPaymentMethod()}
+                onClick={() => {
+                  closeSelectPaymentMethod();
+                  openAddPaymentMethod();
+                }}
                 className="w-full"
                 variant="outline"
               >

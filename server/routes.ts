@@ -1914,6 +1914,87 @@ export async function registerRoutes(app: Express): Promise<Server> {
     catch (error) { console.error('Job posting error:', error); res.status(500).json({ success: false, message: 'Failed to post job' }); }
   });
 
+  // Test job posting route (bypasses payment)
+  apiRouter.post("/jobs/test", isAuthenticated, async (req, res) => {
+    try {
+      if (!req.user) {
+        return res.status(401).json({ message: 'Not authenticated' });
+      }
+
+      const {
+        title,
+        description,
+        category,
+        location,
+        paymentAmount,
+        paymentType,
+        latitude,
+        longitude,
+        dateNeeded,
+        requiredSkills,
+        equipmentProvided,
+        isTestJob
+      } = req.body;
+
+      // Validate required fields
+      if (!title || !description || !category || !location || !paymentAmount) {
+        return res.status(400).json({ message: 'Missing required fields' });
+      }
+
+      // Validate that this is indeed a test job
+      if (!isTestJob) {
+        return res.status(400).json({ message: 'This endpoint is only for test jobs' });
+      }
+
+      // Create the test job (status is 'open' since no payment required)
+      const job = await storage.createJob({
+        title,
+        description,
+        category,
+        location,
+        paymentAmount,
+        paymentType: paymentType || 'fixed',
+        latitude,
+        longitude,
+        posterId: req.user.id,
+        status: 'open', // Test jobs are immediately available
+        dateNeeded: new Date(dateNeeded),
+        requiredSkills: requiredSkills || [],
+        equipmentProvided: equipmentProvided || false,
+        datePosted: new Date()
+      });
+
+      // Create notification for job poster
+      await storage.createNotification({
+        userId: req.user.id,
+        title: 'Test Job Created',
+        message: `Your test job "${title}" has been created successfully and is now visible to workers. No payment required for test jobs.`,
+        type: 'test_job_created',
+        sourceId: job.id,
+        sourceType: 'job',
+        metadata: {
+          jobId: job.id,
+          status: 'open',
+          isTestJob: true
+        }
+      });
+
+      return res.status(201).json({
+        success: true,
+        message: 'Test job created successfully - no payment required',
+        job,
+        isTestJob: true
+      });
+    } catch (error) {
+      console.error('Test job creation error:', error);
+      return res.status(500).json({
+        success: false,
+        message: error instanceof Error ? error.message : 'Failed to create test job',
+        error: error
+      });
+    }
+  });
+
   // Hire a worker for a job
   apiRouter.post("/jobs/:jobId/hire/:workerId", isAuthenticated, async (req, res) => {
     const jobId = Number(req.params.jobId);

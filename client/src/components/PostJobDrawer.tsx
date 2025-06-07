@@ -1,5 +1,4 @@
 import React, { useState } from 'react';
-import React, { useState } from 'react';
 import { useLocation } from 'wouter';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -9,7 +8,7 @@ import { apiRequest } from '@/lib/queryClient';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/hooks/use-auth';
 import { useGeolocation } from '@/lib/geolocation';
-import LocationInput from '@/components/LocationInput';
+import { AddressAutocompleteInput } from '@/components/AddressAutocompleteInput';
 import {
   Drawer,
   DrawerClose,
@@ -43,6 +42,7 @@ const formSchema = z.object({
     .transform(val => val.trim()), // Remove trailing whitespace
   description: z.string()
     .min(5, 'Description must be at least 5 characters')
+    .max(5000, 'Description must be less than 5000 characters')
     .transform(val => val.trim()), // Remove trailing whitespace
   category: z.string().min(1, 'Please select a category'),
   posterId: z.number(),
@@ -51,15 +51,21 @@ const formSchema = z.object({
   paymentAmount: z.coerce
     .number()
     .min(10, 'Minimum payment amount is $10')
+    .max(10000, 'Maximum payment amount is $10,000')
     .positive('Payment amount must be positive')
     .transform(val => Math.round(val * 100) / 100), // Round to 2 decimal places
   location: z.string()
-    .transform(val => val.trim() || ""), // Ensure location is at least an empty string
+    .min(1, 'Location is required')
+    .transform(val => val.trim()), // Ensure location is properly trimmed
   latitude: z.number()
+    .min(-90, 'Invalid latitude')
+    .max(90, 'Invalid latitude')
     .transform(val => Number(val.toFixed(6))), // Format to 6 decimal places
   longitude: z.number()
+    .min(-180, 'Invalid longitude')
+    .max(180, 'Invalid longitude')
     .transform(val => Number(val.toFixed(6))), // Format to 6 decimal places
-  dateNeeded: z.string(), // Keep as ISO string format
+  dateNeeded: z.string().min(1, 'Date needed is required'), // Keep as ISO string format
   requiredSkills: z.array(z.string()).default([]),
   equipmentProvided: z.boolean().default(false),
   autoAccept: z.boolean().default(false),
@@ -128,6 +134,30 @@ export default function PostJobDrawer({ isOpen, onOpenChange }: PostJobDrawerPro
       return;
     }
 
+    // Validate location is provided
+    if (!data.location || data.location.trim().length === 0) {
+      toast({
+        title: "Location Required",
+        description: "Please provide a location for your job",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    // Validate date is in the future
+    const selectedDate = new Date(data.dateNeeded);
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    
+    if (selectedDate < today) {
+      toast({
+        title: "Invalid Date",
+        description: "Please select a future date for your job",
+        variant: "destructive"
+      });
+      return;
+    }
+
     setIsSubmitting(true);
     
     try {
@@ -137,7 +167,7 @@ export default function PostJobDrawer({ isOpen, onOpenChange }: PostJobDrawerPro
         // Format all text fields
         title: data.title.trim().replace(/\b\w/g, c => c.toUpperCase()),
         description: data.description.trim(),
-        location: data.location.trim() || "",
+        location: data.location.trim(),
         // Ensure we have properly formatted numbers
         latitude: Number(Number(data.latitude).toFixed(6)),
         longitude: Number(Number(data.longitude).toFixed(6)),
@@ -199,22 +229,41 @@ export default function PostJobDrawer({ isOpen, onOpenChange }: PostJobDrawerPro
       // Create test job without payment processing
       const payload = { ...data, tasks, isTestJob: true };
       const response = await apiRequest('POST', '/api/jobs/test', payload);
+      
+      if (!response.ok) {
+        const result = await response.json();
+        throw new Error(result.message || 'Failed to post test job');
+      }
+      
       const result = await response.json();
-      if (!response.ok) throw new Error(result.message || 'Failed to post test job');
       
       // Show success
       toast({ 
         title: 'Test Job Posted', 
         description: 'Your test job has been posted successfully (no payment required)' 
       });
+      
+      // Reset form and close drawer
+      form.reset();
+      setTasks([]);
       onOpenChange(false);
+      
+      // Show success modal
       setShowSuccessModal(true);
       setCreatedJobId(result.job.id);
       setCreatedJobTitle(result.job.title);
+      
+      // Invalidate queries to refresh data
       queryClient.invalidateQueries({ queryKey: ['jobs'] });
+      
     } catch (error) {
+      console.error('Error posting test job:', error);
       const msg = error instanceof Error ? error.message : 'Error posting test job';
-      toast({ title: 'Error', description: msg, variant: 'destructive' });
+      toast({ 
+        title: 'Error', 
+        description: msg, 
+        variant: 'destructive' 
+      });
     } finally {
       setIsSubmitting(false);
     }
@@ -224,21 +273,44 @@ export default function PostJobDrawer({ isOpen, onOpenChange }: PostJobDrawerPro
   const processPaymentAndCreateJob = async (data: z.infer<typeof formSchema>) => {
     setIsSubmitting(true);
     try {
-      // Simplify: delegate job creation and payment to server
+      // Delegate job creation and payment to server
       const payload = { ...data, tasks };
       const response = await apiRequest('POST', '/api/jobs/payment-first', payload);
+      
+      if (!response.ok) {
+        const result = await response.json();
+        throw new Error(result.message || 'Failed to post job');
+      }
+      
       const result = await response.json();
-      if (!response.ok) throw new Error(result.message || 'Failed to post job');
+      
       // Show success
-      toast({ title: 'Job Posted', description: 'Your job has been posted successfully' });
+      toast({ 
+        title: 'Job Posted', 
+        description: 'Your job has been posted successfully' 
+      });
+      
+      // Reset form and close drawer
+      form.reset();
+      setTasks([]);
       onOpenChange(false);
+      
+      // Show success modal
       setShowSuccessModal(true);
       setCreatedJobId(result.job.id);
       setCreatedJobTitle(result.job.title);
+      
+      // Invalidate queries to refresh data
       queryClient.invalidateQueries({ queryKey: ['jobs'] });
+      
     } catch (error) {
+      console.error('Error posting job:', error);
       const msg = error instanceof Error ? error.message : 'Error posting job';
-      toast({ title: 'Error', description: msg, variant: 'destructive' });
+      toast({ 
+        title: 'Error', 
+        description: msg, 
+        variant: 'destructive' 
+      });
     } finally {
       setIsSubmitting(false);
     }
@@ -491,23 +563,23 @@ export default function PostJobDrawer({ isOpen, onOpenChange }: PostJobDrawerPro
                       <FormItem>
                         <FormLabel>Job Location</FormLabel>
                         <FormControl>
-                          <LocationInput
+                          <AddressAutocompleteInput
                             value={field.value}
-                            onChange={(value) => {
+                            onChange={(value, latitude, longitude) => {
+                              // Update the location field with the address
                               field.onChange(value);
-                            }}
-                            onCoordinatesChange={(latitude, longitude, formattedAddress) => {
-                              // Update the location field with the formatted address
-                              field.onChange(formattedAddress);
                               
-                              // Format to exactly 6 decimal places
-                              const formattedLat = Number(latitude.toFixed(6));
-                              const formattedLng = Number(longitude.toFixed(6));
-                              
-                              // Update the form with the geocoded coordinates
-                              form.setValue('latitude', formattedLat);
-                              form.setValue('longitude', formattedLng);
-                              console.log(`Location geocoded: ${formattedAddress} => [${formattedLat}, ${formattedLng}]`);
+                              // If coordinates are provided, update them too
+                              if (latitude && longitude) {
+                                // Format to exactly 6 decimal places
+                                const formattedLat = Number(latitude.toFixed(6));
+                                const formattedLng = Number(longitude.toFixed(6));
+                                
+                                // Update the form with the geocoded coordinates
+                                form.setValue('latitude', formattedLat);
+                                form.setValue('longitude', formattedLng);
+                                console.log(`Location geocoded: ${value} => [${formattedLat}, ${formattedLng}]`);
+                              }
                             }}
                             placeholder="Enter job address, city, or coordinates"
                             className="w-full"

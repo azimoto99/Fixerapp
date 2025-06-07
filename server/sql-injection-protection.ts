@@ -159,19 +159,19 @@ export const secureValidationSchemas = {
   // Job posting validation
   jobPosting: [
     body('title')
-      .isLength({ min: 5, max: 100 })
-      .matches(/^[a-zA-Z0-9\s\-.,!?()]+$/)
+      .isLength({ min: 3, max: 100 })
+      .matches(/^[a-zA-Z0-9\s\-.,!?()&']+$/)
       .withMessage('Job title contains invalid characters'),
     body('description')
-      .isLength({ min: 20, max: 2000 })
-      .matches(/^[a-zA-Z0-9\s\-.,!?()'\n\r]+$/)
+      .isLength({ min: 5, max: 5000 })
+      .matches(/^[a-zA-Z0-9\s\-.,!?()'\n\r&]+$/)
       .withMessage('Job description contains invalid characters'),
     body('paymentAmount')
-      .isFloat({ min: 1, max: 10000 })
-      .withMessage('Payment amount must be between $1 and $10,000'),
+      .isFloat({ min: 10, max: 10000 })
+      .withMessage('Payment amount must be between $10 and $10,000'),
     body('location')
-      .isLength({ min: 5, max: 200 })
-      .matches(/^[a-zA-Z0-9\s\-.,#()]+$/)
+      .isLength({ min: 1, max: 200 })
+      .matches(/^[a-zA-Z0-9\s\-.,#()&']+$/)
       .withMessage('Location contains invalid characters'),
     body('category')
       .isIn([
@@ -232,7 +232,7 @@ export function handleValidationErrors(req: Request, res: Response, next: NextFu
     return res.status(400).json({
       message: 'Invalid input provided',
       errors: errors.array().map(error => ({
-        field: error.param,
+        field: 'path' in error ? error.path : 'unknown',
         message: error.msg
       }))
     });

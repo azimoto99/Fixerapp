@@ -8,26 +8,28 @@ if (!process.env.STRIPE_SECRET_KEY) {
 }
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY, {
-  apiVersion: "2023-10-16",
+  apiVersion: "2023-10-16" as any,
 });
 
 // Job posting schema with payment validation
 const jobPostingSchema = z.object({
-  title: z.string().min(1, 'Title is required'),
-  description: z.string().min(1, 'Description is required'),
-  category: z.string(),
+  title: z.string().min(3, 'Title must be at least 3 characters').max(100, 'Title too long'),
+  description: z.string().min(5, 'Description must be at least 5 characters').max(5000, 'Description too long'),
+  category: z.string().min(1, 'Category is required'),
   paymentType: z.enum(['fixed', 'hourly']),
-  paymentAmount: z.number().min(10, 'Minimum payment amount is $10'),
-  location: z.string(),
-  latitude: z.number(),
-  longitude: z.number(),
-  dateNeeded: z.string(),
-  requiredSkills: z.array(z.string()).optional(),
-  equipmentProvided: z.boolean().optional(),
+  paymentAmount: z.number().min(10, 'Minimum payment amount is $10').max(10000, 'Maximum payment amount is $10,000'),
+  location: z.string().min(1, 'Location is required'),
+  latitude: z.number().min(-90).max(90),
+  longitude: z.number().min(-180).max(180),
+  dateNeeded: z.string().min(1, 'Date needed is required'),
+  requiredSkills: z.array(z.string()).optional().default([]),
+  equipmentProvided: z.boolean().optional().default(false),
   paymentMethodId: z.string().min(1, 'Payment method is required'),
   estimatedHours: z.number().optional(),
   shiftStartTime: z.string().optional(),
   shiftEndTime: z.string().optional(),
+  tasks: z.array(z.any()).optional().default([]), // Allow tasks to be passed
+  isTestJob: z.boolean().optional().default(false),
 });
 
 /**
@@ -117,8 +119,6 @@ export async function createJobWithPaymentFirst(req: Request, res: Response) {
         shiftEndTime: validatedData.shiftEndTime,
         posterId: req.user.id,
         status: 'open' as const, // Job goes live immediately after successful payment
-        paymentIntentId: paymentIntent.id,
-        paymentStatus: 'completed' as const,
         datePosted: new Date()
       };
       
@@ -153,9 +153,37 @@ export async function createJobWithPaymentFirst(req: Request, res: Response) {
         });
       }
       
+      // Step 6: Create tasks if provided
+      if (validatedData.tasks && validatedData.tasks.length > 0) {
+        try {
+          const taskPromises = validatedData.tasks.map(async (task: any, index: number) => {
+            const taskData = {
+              jobId: createdJob.id,
+              description: task.description || `Task ${index + 1}`,
+              position: task.position || index + 1,
+              isOptional: task.isOptional || false,
+              dueTime: task.dueTime ? new Date(task.dueTime) : undefined,
+              location: task.location,
+              latitude: task.latitude,
+              longitude: task.longitude,
+              bonusAmount: task.bonusAmount || 0,
+              notes: task.notes
+            };
+            
+            return await storage.createTask(taskData);
+          });
+          
+          await Promise.all(taskPromises);
+          console.log(`Created ${validatedData.tasks.length} tasks for job ${createdJob.id}`);
+        } catch (taskError) {
+          console.error('Error creating tasks for job:', taskError);
+          // Don't fail the job creation if tasks fail
+        }
+      }
+      
       console.log(`Job created successfully: ${createdJob.id} with payment: ${paymentIntent.id}`);
       
-      // Step 6: Success - Job posted and payment processed
+      // Step 7: Success - Job posted and payment processed
       res.status(201).json({
         success: true,
         message: 'Job posted successfully',
@@ -216,11 +244,11 @@ export async function updateJobWithPaymentCheck(req: Request, res: Response) {
       return res.status(403).json({ message: 'Not authorized to edit this job' });
     }
     
-    // Only allow editing if payment was successful
-    if (existingJob.paymentStatus !== 'completed') {
+    // Only allow editing if job is in a valid state
+    if (existingJob.status === 'completed' || existingJob.status === 'canceled') {
       return res.status(400).json({ 
-        message: 'Cannot edit job - payment not completed',
-        paymentStatus: existingJob.paymentStatus
+        message: 'Cannot edit completed or canceled jobs',
+        status: existingJob.status
       });
     }
     

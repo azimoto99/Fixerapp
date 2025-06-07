@@ -16,6 +16,9 @@ export function filterJobContent(title: string, description: string) {
     'spam',
     'inappropriate',
     'adult',
+    'drugs',
+    'weapons',
+    'violence'
   ];
 
   const containsProhibitedTerm = (text: string) => {
@@ -37,11 +40,18 @@ export function filterJobContent(title: string, description: string) {
     };
   }
 
-  // Reduced minimum length requirements to make posting jobs easier
-  if (title.length < 3 || description.length < 5) {
+  // More lenient minimum length requirements
+  if (title.length < 3) {
     return {
       isApproved: false,
-      reason: 'Title must be at least 3 characters and description at least 5 characters'
+      reason: 'Title must be at least 3 characters'
+    };
+  }
+
+  if (description.length < 5) {
+    return {
+      isApproved: false,
+      reason: 'Description must be at least 5 characters'
     };
   }
 
