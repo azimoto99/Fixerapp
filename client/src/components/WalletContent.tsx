@@ -64,12 +64,41 @@ const WalletContent: React.FC<WalletContentProps> = ({ user }) => {
     queryKey: ['payment-methods'],
     queryFn: async () => {
       const response = await apiRequest('GET', '/api/stripe/payment-methods');
-      if (!response.ok) {
-        throw new Error('Failed to load payment methods');
+      // apiRequest would have thrown if !response.ok.
+      // So, if we are here, response.ok is true.
+      // The problem is when response.ok is true, but the body is HTML.
+      try {
+        // Clone the response before attempting to parse it as JSON
+        // This allows us to read the body as text if JSON parsing fails
+        const responseClone = response.clone();
+        const result = await response.json();
+        
+        // Ensure the expected structure is returned
+        if (typeof result.data !== 'undefined') {
+          return result.data || [];
+        } else {
+          // Valid JSON, but not the expected { data: ... } structure
+          console.error('Payment methods response received, but in unexpected format:', result);
+          throw new Error('Received payment methods in an unexpected format.');
+        }
+      } catch (jsonError) {
+        // This means response.json() failed, likely because the response was HTML
+        console.error('Error parsing payment methods response as JSON:', jsonError);
+        // Try to read the cloned response as text to confirm if it's HTML
+        try {
+          const textResponse = await response.clone().text(); // Use original response if clone wasn't made or needed before error
+          if (textResponse.trim().toLowerCase().startsWith('<!doctype html')) {
+            console.error('Server returned HTML instead of JSON for payment methods.');
+            throw new Error('Failed to process payment methods: The server returned HTML instead of JSON.');
+          } else {
+            console.error('Server returned non-JSON, non-HTML response:', textResponse);
+            throw new Error('Failed to process payment methods: The server returned an unexpected non-JSON response.');
+          }
+        } catch (textError) {
+          console.error('Additionally, failed to read response as text:', textError);
+          throw new Error('Failed to process payment methods: Response was not valid JSON and could not be read as text.');
+        }
       }
-      const result = await response.json();
-      // The API returns { data, total }, but we need just the data array
-      return result.data || [];
     },
     enabled: !!user,
   });

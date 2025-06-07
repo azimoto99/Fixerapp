@@ -76,9 +76,20 @@ const PaymentContent: React.FC<PaymentContentProps> = ({ user }) => {
     queryFn: async () => {
       const response = await apiRequest('GET', '/api/stripe/payment-methods');
       if (!response.ok) {
-        throw new Error('Failed to fetch payment methods');
+        // Try to parse error message from server if available
+        let errorMsg = 'Failed to fetch payment methods';
+        try {
+          const errorData = await response.json();
+          errorMsg = errorData.message || errorData.error || errorMsg;
+        } catch (e) {
+          // If parsing error fails, use the original text
+          errorMsg = await response.text(); 
+        }        
+        throw new Error(errorMsg);
       }
-      return response.json();
+      const result = await response.json();
+      // The API returns { data, total }, but we need just the data array
+      return result.data || []; 
     },
     enabled: !!user,
   });
@@ -297,4 +308,4 @@ const PaymentContent: React.FC<PaymentContentProps> = ({ user }) => {
   );
 };
 
-export default PaymentContent; 
+export default PaymentContent;
