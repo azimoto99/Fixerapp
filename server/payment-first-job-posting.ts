@@ -108,6 +108,8 @@ export async function createJobWithPaymentFirst(req: Request, res: Response) {
         category: validatedData.category,
         paymentType: validatedData.paymentType,
         paymentAmount: validatedData.paymentAmount,
+        serviceFee: 2.5, // Standard service fee
+        totalAmount: validatedData.paymentAmount + 2.5, // Payment amount + service fee
         location: validatedData.location,
         latitude: validatedData.latitude,
         longitude: validatedData.longitude,

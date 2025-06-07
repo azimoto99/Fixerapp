@@ -1933,7 +1933,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
         dateNeeded,
         requiredSkills,
         equipmentProvided,
-        isTestJob
+        isTestJob,
+        serviceFee,
+        totalAmount
       } = req.body;
 
       // Validate required fields
@@ -1946,6 +1948,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: 'This endpoint is only for test jobs' });
       }
 
+      // Calculate service fee and total amount if not provided
+      const calculatedServiceFee = serviceFee || 2.5;
+      const calculatedTotalAmount = totalAmount || (paymentAmount + calculatedServiceFee);
+
       // Create the test job (status is 'open' since no payment required)
       const job = await storage.createJob({
         title,
@@ -1953,6 +1959,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         category,
         location,
         paymentAmount,
+        serviceFee: calculatedServiceFee,
+        totalAmount: calculatedTotalAmount,
         paymentType: paymentType || 'fixed',
         latitude,
         longitude,

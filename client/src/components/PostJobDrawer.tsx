@@ -226,8 +226,18 @@ export default function PostJobDrawer({ isOpen, onOpenChange }: PostJobDrawerPro
   const processTestJob = async (data: z.infer<typeof formSchema>) => {
     setIsSubmitting(true);
     try {
+      // Calculate total amount (payment amount + service fee)
+      const serviceFee = 2.5; // Default service fee
+      const totalAmount = data.paymentAmount + serviceFee;
+      
       // Create test job without payment processing
-      const payload = { ...data, tasks, isTestJob: true };
+      const payload = { 
+        ...data, 
+        tasks, 
+        isTestJob: true,
+        serviceFee,
+        totalAmount
+      };
       const response = await apiRequest('POST', '/api/jobs/test', payload);
       
       if (!response.ok) {
