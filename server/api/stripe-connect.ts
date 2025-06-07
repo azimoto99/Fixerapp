@@ -727,9 +727,86 @@ stripeConnectRouter.get('/onboarding', isAuthenticated, async (req, res) => {
       return res.status(401).json({ message: 'User not authenticated' });
     }
     
-    // Since this is a client-side route, redirect to the frontend
-    const frontendUrl = process.env.CLIENT_URL || 'http://localhost:5173';
-    return res.redirect(`${frontendUrl}/stripe-connect/onboarding`);
+    const user = await storage.getUser(req.user.id);
+    if (!user) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+    
+    let accountId = user.stripeConnectAccountId;
+    
+    // Create account if it doesn't exist
+    if (!accountId) {
+      if (!user.email) {
+        return res.status(400).json({ message: 'User email is required for Stripe Connect setup.' });
+      }
+      
+      console.log(`[STRIPE CONNECT] Creating new Stripe Express account for user ${user.id}`);
+      const account = await stripe.accounts.create({
+        type: 'express',
+        email: user.email,
+        business_type: 'individual',
+        capabilities: {
+          card_payments: { requested: true },
+          transfers: { requested: true },
+        },
+        metadata: {
+          userId: user.id.toString(),
+        },
+      });
+      accountId = account.id;
+      console.log(`[STRIPE CONNECT] Created Stripe account ${accountId} for user ${user.id}`);
+      
+      await storage.updateUser(user.id, { 
+        stripeConnectAccountId: accountId 
+      });
+    }
+    
+    // Generate onboarding URLs
+    const defaultReturnPath = '/wallet?stripe_return=true&status=success';
+    const defaultRefreshPath = '/wallet?stripe_return=true&status=refresh';
+    
+    let refreshUrl: string;
+    let returnUrl: string;
+    const isProduction = process.env.NODE_ENV === 'production';
+    
+    // Use APP_URL or construct from request
+    if (process.env.APP_URL) {
+      let baseUrl = process.env.APP_URL.replace(/\/$/, '');
+      if (isProduction && !baseUrl.startsWith('https://')) {
+        baseUrl = baseUrl.replace(/^http:/, 'https:');
+      }
+      refreshUrl = `${baseUrl}${defaultRefreshPath}`;
+      returnUrl = `${baseUrl}${defaultReturnPath}`;
+    } else {
+      let protocol = req.protocol || 'http';
+      const forwardedProto = req.headers['x-forwarded-proto'] as string;
+      if (forwardedProto) {
+        protocol = forwardedProto.split(',')[0].trim();
+      }
+      if (isProduction && protocol !== 'https') {
+        protocol = 'https';
+      }
+      const hostHeader = req.headers['x-forwarded-host'] as string || req.get('host');
+      if (!hostHeader) {
+        return res.status(500).json({ message: 'Server configuration error: Cannot determine application host for Stripe callbacks.' });
+      }
+      const host = hostHeader.split(',')[0].trim();
+      refreshUrl = `${protocol}://${host}${defaultRefreshPath}`;
+      returnUrl = `${protocol}://${host}${defaultReturnPath}`;
+    }
+    
+    // Create account link for onboarding
+    const accountLink = await stripe.accountLinks.create({
+      account: accountId,
+      refresh_url: refreshUrl,
+      return_url: returnUrl,
+      type: 'account_onboarding',
+    });
+    
+    console.log(`[STRIPE CONNECT] Generated onboarding URL for account ${accountId}: ${accountLink.url}`);
+    
+    // Redirect to the Stripe onboarding URL
+    return res.redirect(accountLink.url);
   } catch (error) {
     console.error('Stripe Connect onboarding page error:', error);
     return res.status(500).json({ 

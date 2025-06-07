@@ -8,7 +8,7 @@ import { Separator } from "@/components/ui/separator";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { useToast } from '@/hooks/use-toast';
 import { apiRequest } from '@/lib/queryClient';
-import StripeConnectSetupV2 from '@/components/stripe/StripeConnectSetupV2';
+import StripeConnectSetupV2 from '@/components/stripe/StripeConnectSetupV2_fixed';
 import { 
   Wallet, 
   TrendingUp, 

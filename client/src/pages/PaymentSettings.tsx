@@ -8,7 +8,7 @@ import { Separator } from '@/components/ui/separator';
 import { CreditCard, Wallet, Settings, ArrowLeft } from 'lucide-react';
 import Header from '@/components/Header';
 import PaymentMethodsManager from '@/components/payments/PaymentMethodsManager';
-import StripeConnectSetupV2 from '@/components/stripe/StripeConnectSetupV2';
+import StripeConnectSetupV2 from '@/components/stripe/StripeConnectSetupV2_fixed';
 import StripeTester from '@/components/payments/StripeTester';
 import { Link } from 'wouter';
 

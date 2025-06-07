@@ -6,7 +6,7 @@ import PaymentHistory from '@/components/payments/PaymentHistory';
 import StripeTransferForm from '@/components/payments/StripeTransferForm';
 import JobPaymentForm from '@/components/payments/JobPaymentForm';
 import PaymentMethodsManager from '@/components/payments/PaymentMethodsManager';
-import StripeConnectSetupV2 from '@/components/stripe/StripeConnectSetupV2';
+import StripeConnectSetupV2 from '@/components/stripe/StripeConnectSetupV2_fixed';
 import {
   Card,
   CardContent,
