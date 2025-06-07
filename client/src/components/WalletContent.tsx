@@ -67,7 +67,9 @@ const WalletContent: React.FC<WalletContentProps> = ({ user }) => {
       if (!response.ok) {
         throw new Error('Failed to load payment methods');
       }
-      return response.json();
+      const result = await response.json();
+      // The API returns { data, total }, but we need just the data array
+      return result.data || [];
     },
     enabled: !!user,
   });
