@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import Header from '@/components/Header';
 import MobileNav from '@/components/MobileNav';
@@ -335,6 +335,58 @@ export default function Home() {
     handleJobCompleted
   } = useAppConnections();
   
+  // Check for wallet query parameter and auto-open wallet drawer
+  useEffect(() => {
+    const urlParams = new URLSearchParams(window.location.search);
+    const shouldOpenWallet = urlParams.get('wallet') === 'true';
+    
+    if (shouldOpenWallet) {
+      // Clear the query parameter from URL
+      const newUrl = window.location.pathname;
+      window.history.replaceState({}, '', newUrl);
+      
+      // Open the wallet drawer after a short delay to ensure components are mounted
+      setTimeout(() => {
+        // First, find and click a UserDrawerV2 trigger to open the drawer
+        const drawerTrigger = document.querySelector('.user-drawer-trigger');
+        if (drawerTrigger) {
+          (drawerTrigger as HTMLElement).click();
+          
+          // Then switch to wallet tab after drawer is open
+          setTimeout(() => {
+            window.dispatchEvent(new CustomEvent('switch-user-drawer-tab', { detail: 'wallet' }));
+          }, 300);
+        }
+      }, 500);
+    }
+  }, []);
+  
+  // Check for wallet query parameter and auto-open wallet drawer
+  useEffect(() => {
+    const urlParams = new URLSearchParams(window.location.search);
+    const shouldOpenWallet = urlParams.get('wallet') === 'true';
+    
+    if (shouldOpenWallet) {
+      // Clear the query parameter from URL
+      const newUrl = window.location.pathname;
+      window.history.replaceState({}, '', newUrl);
+      
+      // Open the wallet drawer after a short delay to ensure components are mounted
+      setTimeout(() => {
+        // First, find and click a UserDrawerV2 trigger to open the drawer
+        const drawerTrigger = document.querySelector('.user-drawer-trigger');
+        if (drawerTrigger) {
+          (drawerTrigger as HTMLElement).click();
+          
+          // Then switch to wallet tab after drawer is open
+          setTimeout(() => {
+            window.dispatchEvent(new CustomEvent('switch-user-drawer-tab', { detail: 'wallet' }));
+          }, 300);
+        }
+      }, 500);
+    }
+  }, []);
+  
   // Get jobs posted by this user (if any) - use the proper useJobs hook with poster filter
   // Enhanced with real-time updates for posted jobs drawer
   const { jobs: postedJobs, isLoading: postedJobsLoading } = useJobs({ poster: true });
@@ -479,7 +531,7 @@ export default function Home() {
           <div className="overflow-y-auto h-[calc(100%-4rem)]">
             {finalPostedJobs?.length > 0 ? (
               <div className="divide-y divide-border">
-                {finalPostedJobs.map((job) => (
+                {finalPostedJobs.map((job: Job) => (
                   <div 
                     key={job.id} 
                     className="p-4 hover:bg-accent/50 transition-colors cursor-pointer"

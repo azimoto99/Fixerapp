@@ -11,13 +11,12 @@ export interface StripeURLConfig {
  * This middleware only handles URL configuration and HTTPS enforcement.
  * Authentication is handled by separate auth middleware.
  */
-export function stripeURLMiddleware(config: Partial<StripeURLConfig> = {}) {
-  // Log middleware initialization
+export function stripeURLMiddleware(config: Partial<StripeURLConfig> = {}) {  // Log middleware initialization
   console.log('[STRIPE URL MIDDLEWARE] Initializing with APP_URL:', process.env.APP_URL);
     const defaults: StripeURLConfig = {
     baseURL: process.env.APP_URL || '',
-    refreshPath: '/dashboard/connect/refresh',
-    returnPath: '/dashboard/connect/return',
+    refreshPath: '/wallet?stripe_return=true&status=refresh',
+    returnPath: '/wallet?stripe_return=true&status=success',
     ...config
   };
 
