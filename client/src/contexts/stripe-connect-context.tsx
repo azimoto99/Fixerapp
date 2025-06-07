@@ -23,10 +23,9 @@ export function StripeConnectProvider({ children }: { children: React.ReactNode 
   const { accountStatus, isError, refreshAccountStatus } = useStripeConnectMonitor({
     pollInterval: 60000 // Check every minute by default
   });
-
   const openAccountSettings = useCallback(async () => {
     try {
-      const res = await fetch('/api/stripe/connect/account-link');
+      const res = await fetch('/api/stripe/connect/create-link');
       if (!res.ok) throw new Error('Failed to create account link');
       
       const { url } = await res.json();

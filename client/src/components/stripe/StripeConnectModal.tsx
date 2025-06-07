@@ -136,11 +136,10 @@ const StripeConnectModal: React.FC<StripeConnectModalProps> = ({ isOpen, onClose
       return prev;
     });
   };
-  
-  // Setup mutation with comprehensive data
+    // Setup mutation with comprehensive data
   const setupMutation = useMutation({
     mutationFn: async () => {
-      const response = await apiRequest('POST', '/api/stripe/connect/setup-account', {
+      const response = await apiRequest('POST', '/api/stripe/connect/create-account', {
         personalInfo: {
           firstName: formData.firstName,
           lastName: formData.lastName,

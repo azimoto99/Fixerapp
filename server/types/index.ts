@@ -1,14 +1,8 @@
 import { Request } from 'express';
-import { User } from '../storage';
 
-// Base authenticated request type
+// Base authenticated request type - Use Express.User for full type safety
 export interface AuthenticatedRequest extends Request {
-  user: {
-    id: number;
-    username: string;
-    email: string;
-    accountType: string;
-  };
+  user: Express.User;
 }
 
 // Application types

@@ -30,34 +30,13 @@ export function useStripeConnectMonitor(options = { pollInterval: 30000 }) {
     refetchInterval: options.pollInterval,
     enabled: !!sessionHealth?.isAuthenticated
   });
-
   // Handle requirements that need attention
   React.useEffect(() => {
     if (accountStatus?.requiresAttention) {
       toast({
         title: 'Stripe Account Needs Attention',
         description: 'There are pending requirements for your Stripe account that need to be addressed.',
-        variant: 'warning',
-        action: {
-          label: 'Review',
-          onClick: async () => {
-            try {
-              // Get new account link
-              const res = await apiRequest('POST', '/api/stripe/connect/account-link');
-              if (!res.ok) throw new Error('Failed to create account link');
-              
-              const { url } = await res.json();
-              window.open(url, '_blank');
-            } catch (error) {
-              console.error('Error creating account link:', error);
-              toast({
-                title: 'Error',
-                description: 'Failed to open Stripe account settings. Please try again.',
-                variant: 'destructive'
-              });
-            }
-          }
-        }
+        variant: 'destructive',
       });
     }
   }, [accountStatus?.requiresAttention, toast]);

@@ -20,9 +20,9 @@ export function isAuthenticated(req: Request): boolean {
   return !!req.user;
 }
 
-// Type guard for authenticated requests
+// Type guard for authenticated requests - Use Express.User for full type safety
 export interface AuthenticatedRequest extends Request {
-  user: NonNullable<Request['user']>;
+  user: Express.User;
 }
 
 export function isAuthenticatedRequest(req: Request): req is AuthenticatedRequest {

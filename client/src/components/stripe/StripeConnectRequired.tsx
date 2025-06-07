@@ -55,7 +55,7 @@ const StripeConnectRequired: React.FC<StripeConnectRequiredProps> = ({
       // Check if we already have a pending account
       if (accountStatus?.requiresAttention) {
         // Redirect to existing account update
-        const res = await apiRequest('POST', '/api/stripe/connect/account-link', {});
+        const res = await apiRequest('POST', '/api/stripe/connect/create-link', {});
         if (!res.ok) {
           const errorData = await res.json();
           throw new Error(errorData.message || 'Failed to create account link');

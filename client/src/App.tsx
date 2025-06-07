@@ -23,6 +23,7 @@ import PaymentsPage from "@/pages/payments-page";
 import NotificationsPage from "@/pages/notifications-page";
 import UserProfile from "@/pages/UserProfile";
 import AdminPanelV2 from "@/pages/AdminPanelV2";
+import StripeConnectOnboarding from "@/components/StripeConnectOnboarding";
 import { AuthProvider } from "@/hooks/use-auth";
 import { NotificationProvider } from "@/hooks/use-notifications";
 import { ProtectedRoute } from "@/lib/protected-route";
@@ -96,6 +97,7 @@ function RouterWithAuth() {
       <ProtectedRoute path="/notifications" component={NotificationsPage} />
       <ProtectedRoute path="/admin" component={AdminPanelV2} />
       <ProtectedRoute path="/profile/:id" component={UserProfile} />
+      <ProtectedRoute path="/stripe-connect/onboarding" component={StripeConnectOnboarding} />
       {/* Payment dashboard is not accessible as there are no job posters */}
       <Route path="/auth" component={AuthPage} />
       <Route path="/login" component={RedirectToAuth} />

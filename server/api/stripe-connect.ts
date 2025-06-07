@@ -4,6 +4,7 @@ import { storage } from '../storage';
 import helmet from 'helmet';
 import { pool } from '../db';
 import { isAuthenticated } from '../middleware/auth';
+import { AuthenticatedRequest } from '../types';
 
 if (!process.env.STRIPE_SECRET_KEY) {
   console.error('[FATAL] STRIPE_SECRET_KEY is missing. Set it in your environment variables.');
@@ -71,17 +72,8 @@ interface StripeTransferWithMetadata extends Stripe.Transfer {
   };
 }
 
-interface AuthenticatedRequest extends Request {
-  user: {
-    id: number;
-    username: string;
-    email: string;
-    isActive: boolean;
-  };
-}
-
 // Create a Connect account for a worker
-stripeConnectRouter.post('/create-account', isAuthenticated, async (req, res) => {
+stripeConnectRouter.post('/create-account', isAuthenticated, async (req: Request, res: Response) => {
   console.log('[STRIPE CONNECT] Create account request received');
   
   try {
@@ -90,63 +82,186 @@ stripeConnectRouter.post('/create-account', isAuthenticated, async (req, res) =>
       return res.status(401).json({ message: 'User not authenticated' });
     }
     
-    console.log('[STRIPE CONNECT] User authenticated:', req.user.id);
+    console.log(`[STRIPE CONNECT] User authenticated: ${req.user.id}`);
     const user = await storage.getUser(req.user.id);
     if (!user) {
       return res.status(404).json({ message: 'User not found' });
     }
+    if (!user.email) {
+      console.error('[STRIPE CONNECT] User email is missing, which is required for Stripe Express account creation.');
+      return res.status(400).json({ message: 'User email is required for Stripe Connect setup.' });
+    }
 
-    // Check if user already has a Stripe Connect account
-    if (user.stripeConnectAccountId) {
-      const account = await stripe.accounts.retrieve(user.stripeConnectAccountId);
-      if (account.payouts_enabled) {
-        return res.status(400).json({ 
-          message: 'Stripe Connect account already exists and is active',
-          accountStatus: 'active'
+    let accountId = user.stripeConnectAccountId;
+
+    if (accountId) {
+      try {
+        const existingAccount = await stripe.accounts.retrieve(accountId);
+        // You might want to check existingAccount.details_submitted or existingAccount.charges_enabled
+        // to decide if re-onboarding is necessary or if you should redirect to a dashboard.
+        // For now, we allow re-triggering onboarding.
+        console.log(`[STRIPE CONNECT] User ${user.id} already has Stripe account: ${accountId}. Proceeding to create new link.`);
+      } catch (retrieveError: any) {
+        if (retrieveError.code === 'account_invalid' || retrieveError.code === 'resource_missing') { // More specific error codes
+          console.warn(`[STRIPE CONNECT] Stripe account ${accountId} for user ${user.id} is invalid or not found in Stripe. Clearing from DB and creating a new one.`, retrieveError.message);
+          await storage.updateUser(user.id, { stripeConnectAccountId: undefined });
+          accountId = null;
+        } else {
+          console.error(`[STRIPE CONNECT] Error retrieving Stripe account ${accountId}:`, retrieveError.message);
+          throw retrieveError; // Re-throw if it's an unexpected error
+        }
+      }
+    }
+    
+    if (!accountId) {
+        console.log(`[STRIPE CONNECT] Creating new Stripe Express account for user ${user.id}`);
+        const account = await stripe.accounts.create({
+          type: 'express',
+          email: user.email,
+          business_type: 'individual',
+          capabilities: {
+            card_payments: { requested: true },
+            transfers: { requested: true },
+          },
+          metadata: {
+            userId: user.id.toString(),
+          },
         });
+        accountId = account.id;
+        console.log(`[STRIPE CONNECT] Created Stripe account ${accountId} for user ${user.id}`);
+
+        await storage.updateUser(user.id, { 
+          stripeConnectAccountId: accountId 
+        });
+    }
+
+    // Define your application's specific paths for Stripe return/refresh
+    // These should ideally lead to pages in your frontend that can handle the Stripe redirect
+    const defaultReturnPath = '/wallet?stripe_return=true&status=success';
+    const defaultRefreshPath = '/wallet?stripe_return=true&status=refresh';
+
+    let refreshUrl: string;
+    let returnUrl: string;
+    const isProduction = process.env.NODE_ENV === 'production';
+
+    // 1. Try to use URLs from stripeURLMiddleware (if it exists and populates req.stripeURLs)
+    if ((req as any).stripeURLs?.refresh && (req as any).stripeURLs?.return) {
+      refreshUrl = (req as any).stripeURLs.refresh;
+      returnUrl = (req as any).stripeURLs.return;
+      console.log('[STRIPE CONNECT] Using URLs from stripeURLMiddleware');
+
+      if (isProduction) {
+        if (!refreshUrl.startsWith('https://')) {
+            console.warn(`[STRIPE CONNECT] Middleware refreshUrl ${refreshUrl} is not HTTPS in production. Attempting to override to HTTPS. Please check stripeURLMiddleware.`);
+            refreshUrl = refreshUrl.replace(/^http:/, 'https:');
+        }
+        if (!returnUrl.startsWith('https://')) {
+            console.warn(`[STRIPE CONNECT] Middleware returnUrl ${returnUrl} is not HTTPS in production. Attempting to override to HTTPS. Please check stripeURLMiddleware.`);
+            returnUrl = returnUrl.replace(/^http:/, 'https:');
+        }
+      }
+    }
+    // 2. Fallback to APP_URL environment variable
+    else if (process.env.APP_URL) {
+      let baseUrl = process.env.APP_URL.replace(/\/$/, ''); // Remove trailing slash if any
+      
+      // Force HTTPS in production
+      if (isProduction && !baseUrl.startsWith('https://')) {
+        console.warn(`[STRIPE CONNECT] APP_URL (${baseUrl}) is not HTTPS in production. Forcing to HTTPS.`);
+        baseUrl = baseUrl.replace(/^http:/, 'https:');
+      }
+      
+      refreshUrl = `${baseUrl}${defaultRefreshPath}`;
+      returnUrl = `${baseUrl}${defaultReturnPath}`;
+      console.log('[STRIPE CONNECT] Using URLs from APP_URL environment variable:', { baseUrl, refreshUrl, returnUrl });
+    }
+    // 3. Fallback to dynamically constructing from request headers
+    else {
+      let protocol = req.protocol || 'http'; // Default if not behind a proxy or if proxy doesn't set header
+      const forwardedProto = req.headers['x-forwarded-proto'] as string;
+
+      if (forwardedProto) {
+        // If x-forwarded-proto is set (e.g., by a load balancer), use its value
+        protocol = forwardedProto.split(',')[0].trim(); // Take the first value if multiple
+      }
+
+      // If in production, ensure protocol is https for Stripe URLs
+      if (isProduction && protocol !== 'https') {
+        console.warn(`[STRIPE CONNECT] In production, determined protocol was '${protocol}'. Forcing to 'https' for Stripe URLs. Original req.protocol: '${req.protocol}', X-Forwarded-Proto: '${req.headers['x-forwarded-proto']}'`);
+        protocol = 'https';
+      }
+
+      // Use x-forwarded-host if available, otherwise fall back to req.get('host')
+      const hostHeader = req.headers['x-forwarded-host'] as string || req.get('host');
+      if (!hostHeader) {
+        console.error('[STRIPE CONNECT] Request host is undefined (and APP_URL not set), cannot construct callback URLs dynamically.');
+        return res.status(500).json({ message: 'Server configuration error: Cannot determine application host for Stripe callbacks.' });
+      }
+      const host = hostHeader.split(',')[0].trim(); // Take the first value if multiple
+
+      const baseUrl = `${protocol}://${host}`;
+      refreshUrl = `${baseUrl}${defaultRefreshPath}`;
+      returnUrl = `${baseUrl}${defaultReturnPath}`;
+      console.log(`[STRIPE CONNECT] Using dynamically constructed URLs (Base: ${baseUrl}) from request headers`);
+    }
+
+    console.log(`[STRIPE CONNECT] Using refresh_url: ${refreshUrl}, return_url: ${returnUrl} for account ${accountId}`);
+
+    // Ensure HTTPS in production for all determined URLs
+    if (process.env.NODE_ENV === 'production') {
+      if (refreshUrl && !refreshUrl.startsWith('https://')) {
+        console.warn(`[STRIPE CONNECT] Forcing HTTPS for refreshUrl in production. Original: ${refreshUrl}`);
+        refreshUrl = refreshUrl.replace(/^http:/, 'https:');
+      }
+      if (returnUrl && !returnUrl.startsWith('https://')) {
+        console.warn(`[STRIPE CONNECT] Forcing HTTPS for returnUrl in production. Original: ${returnUrl}`);
+        returnUrl = returnUrl.replace(/^http:/, 'https:');
+      }
+
+      // Log if APP_URL was the source and was misconfigured (though URLs are now fixed)
+      // This checks if stripeURLs were not used (meaning APP_URL or dynamic was the source)
+      // and if APP_URL is set but is not HTTPS.
+      if (process.env.APP_URL && !process.env.APP_URL.startsWith('https://') && !((req as any).stripeURLs?.refresh && (req as any).stripeURLs?.return)) {
+        console.error('[STRIPE CONNECT CRITICAL] APP_URL is configured as HTTP in a production environment. This is a misconfiguration. URLs derived from it have been forced to HTTPS, but APP_URL should be updated.');
       }
     }
 
-    // Create a new Stripe Connect account
-    const account = await stripe.accounts.create({
-      type: 'express',
-      email: user.email,
-      business_type: 'individual',
-      capabilities: {
-        card_payments: { requested: true },
-        transfers: { requested: true }
-      },
-      metadata: {
-        userId: user.id.toString()
-      }
-    });
+    // Log the final URLs being sent to Stripe
+    console.log(`[STRIPE CONNECT] Final URLs for Stripe. Account: ${accountId}, Refresh URL: ${refreshUrl}, Return URL: ${returnUrl}`);
 
-    // Update user with Stripe Connect account ID
-    await storage.updateUser(user.id, { 
-      stripeConnectAccountId: account.id 
-    });
-
-    // Create account link for onboarding
     const accountLink = await stripe.accountLinks.create({
-      account: account.id,
-      refresh_url: `${process.env.APP_URL || 'http://localhost:5000'}/profile?refresh=true`,
-      return_url: `${process.env.APP_URL || 'http://localhost:5000'}/profile?success=true`,
-      type: 'account_onboarding'
+      account: accountId!,
+      refresh_url: refreshUrl,
+      return_url: returnUrl,
+      type: 'account_onboarding',
+      // Removed deprecated 'collect' parameter - modern Stripe API handles collection automatically
     });
 
+    console.log(`[STRIPE CONNECT] Generated onboarding URL for account ${accountId}: ${accountLink.url}`);
     return res.status(200).json({
-      accountId: account.id,
-      accountLinkUrl: accountLink.url
+      accountId: accountId,
+      onboardingUrl: accountLink.url, // Send this URL to the client to redirect the user
     });
-  } catch (error) {
-    if (error instanceof Error) {
-      console.error('Stripe Connect account creation error:', error.message, error.stack);
+
+  } catch (error: any) {
+    let errorMessage = 'Unknown error during Stripe Connect account creation.';
+    let stripeErrorCode = undefined;
+
+    if (error.raw?.message) { // Stripe-specific error
+      errorMessage = error.raw.message;
+      stripeErrorCode = error.code;
+      console.error(`[STRIPE CONNECT] Stripe API Error for user ${req.user?.id} (${stripeErrorCode}): ${errorMessage}`, error.raw);
+    } else if (error instanceof Error) {
+      errorMessage = error.message;
+      console.error(`[STRIPE CONNECT] Generic Error for user ${req.user?.id}: ${errorMessage}`, error.stack);
     } else {
-      console.error('Stripe Connect account creation error:', error);
+      console.error(`[STRIPE CONNECT] Unknown error object for user ${req.user?.id}:`, error);
     }
+    
     return res.status(500).json({ 
-      message: 'Failed to create Stripe Connect account',
-      error: error instanceof Error ? error.message : 'Unknown error'
+      message: 'Failed to create Stripe Connect account link.',
+      error: errorMessage,
+      stripeErrorCode: stripeErrorCode
     });
   }
 });
@@ -589,5 +704,115 @@ setInterval(async () => {
     console.error('Periodic connection check failed:', error);
   }
 }, 30000); // Check every 30 seconds
+
+// Get the onboarding page route
+stripeConnectRouter.get('/onboarding', isAuthenticated, async (req, res) => {
+  console.log('[STRIPE CONNECT] Onboarding page request received');
+  
+  try {
+    if (!req.user) {
+      console.log('[STRIPE CONNECT] No user in onboarding request');
+      return res.status(401).json({ message: 'User not authenticated' });
+    }
+    
+    // Since this is a client-side route, redirect to the frontend
+    const frontendUrl = process.env.CLIENT_URL || 'http://localhost:5173';
+    return res.redirect(`${frontendUrl}/stripe-connect/onboarding`);
+  } catch (error) {
+    console.error('Stripe Connect onboarding page error:', error);
+    return res.status(500).json({ 
+      message: 'Failed to load onboarding page',
+      error: error instanceof Error ? error.message : 'Unknown error'
+    });
+  }
+});
+
+// Serve the onboarding page route (for direct API access)
+stripeConnectRouter.get('/onboarding-info', isAuthenticated, async (req, res) => {
+  console.log('[STRIPE CONNECT] Onboarding info request received');
+  
+  try {
+    if (!req.user) {
+      return res.status(401).json({ message: 'User not authenticated' });
+    }
+    
+    const user = await storage.getUser(req.user.id);
+    if (!user) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+
+    // Return onboarding information and user data
+    return res.status(200).json({
+      user: {
+        id: user.id,
+        username: user.username,
+        fullName: user.fullName,
+        email: user.email,
+        phone: user.phone,
+        hasStripeAccount: !!user.stripeConnectAccountId
+      },
+      requirements: {
+        personalInfo: [
+          'Full legal name',
+          'Date of birth',
+          'Social Security Number (SSN) or Tax ID',
+          'Phone number',
+          'Email address'
+        ],
+        addressInfo: [
+          'Home address',
+          'Mailing address (if different)',
+          'Country of residence'
+        ],
+        bankingInfo: [
+          'Bank account number',
+          'Routing number',
+          'Bank name and address'
+        ],
+        businessInfo: [
+          'Business type (if applicable)',
+          'Business address',
+          'Tax information',
+          'Business registration documents'
+        ]
+      },
+      process: {
+        estimatedTime: '5-10 minutes',
+        verificationTime: '1-2 business days',
+        steps: [
+          'Complete account information',
+          'Verify identity documents',
+          'Add banking details',
+          'Review and submit'
+        ]
+      }
+    });
+  } catch (error) {
+    console.error('Stripe Connect onboarding info error:', error);
+    return res.status(500).json({ 
+      message: 'Failed to get onboarding information',
+      error: error instanceof Error ? error.message : 'Unknown error'
+    });
+  }
+});
+
+// Add a simple index route that shows available endpoints
+stripeConnectRouter.get('/', (req, res) => {
+  console.log('[STRIPE CONNECT] Index request received');
+  
+  res.json({
+    message: 'Stripe Connect API',
+    endpoints: [
+      'GET /health - Health check',
+      'POST /create-account - Create new Stripe Connect account',
+      'GET /account-status - Get account status',
+      'POST /create-link - Create onboarding or dashboard link',
+      'GET /onboarding - Redirect to onboarding page',
+      'GET /onboarding-info - Get onboarding information',
+      'POST /transfer - Transfer funds to worker'
+    ],
+    documentation: 'Contact support for API documentation'
+  });
+});
 
 export default stripeConnectRouter;

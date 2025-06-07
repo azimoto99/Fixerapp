@@ -74,11 +74,9 @@ export class StripeConnectRecovery {
     if (attempts >= this.maxRetries) {
       this.cleanupPendingState();
       return false;
-    }
-
-    try {
+    }    try {
       // Create new account link
-      const res = await apiRequest('POST', '/api/stripe/connect/account-link');
+      const res = await apiRequest('POST', '/api/stripe/connect/create-link');
       if (!res.ok) throw new Error('Failed to create recovery link');
       
       const { url } = await res.json();

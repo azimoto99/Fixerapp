@@ -3,11 +3,11 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Loader2, CreditCard, ArrowRight, AlertTriangle } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
-import { apiRequest } from '@/lib/queryClient';
+import { useLocation } from 'wouter';
 
 // Debugging helper
 const DEBUG = true;
-const log = (...args) => DEBUG && console.log(...args);
+const log = (...args: any[]) => DEBUG && console.log(...args);
 
 interface StripeConnectCardProps {
   onComplete?: () => void;
@@ -17,44 +17,28 @@ const StripeConnectCard: React.FC<StripeConnectCardProps> = ({ onComplete }) => 
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const { toast } = useToast();
+  const [, navigate] = useLocation();
 
   const handleConnect = async () => {
     setIsLoading(true);
     setError(null);
     try {
-      log('Attempting to connect to Stripe...');
+      log('Navigating to custom Stripe Connect onboarding...');
       
-      // Call backend to create Stripe Connect onboarding link
-      // The API router is mounted at /api, and the stripe connect router at /stripe/connect
-      log('Making API request to /api/stripe/connect/create-account');
-      const res = await apiRequest('POST', '/api/stripe/connect/create-account', {});
+      // Navigate to our custom onboarding page
+      navigate('/stripe-connect/onboarding');
       
-      log('Stripe Connect API response:', {
-        status: res.status,
-        statusText: res.statusText,
-        ok: res.ok,
-        headers: Object.fromEntries([...res.headers])
-      });
-      
-      if (!res.ok) {
-        const data = await res.json().catch(e => ({ message: `Failed to parse error response: ${e.message}` }));
-        log('Error response data:', data);
-        throw new Error(data.message || 'Failed to create Stripe Connect account');
-      }
-      const data = await res.json();
-      const url = data.accountLinkUrl || data.url;
-      if (!url) throw new Error('No onboarding URL received from server');
-      window.open(url, '_blank');
       toast({
-        title: 'Stripe Connect Setup Started',
-        description: 'Complete the setup in the new tab. Return here when finished.',
+        title: 'Opening Stripe Connect Setup',
+        description: 'Complete the comprehensive setup process to start receiving payments.',
       });
+      
       if (onComplete) onComplete();
     } catch (e: any) {
-      setError(e.message || 'Failed to start Stripe Connect onboarding');
+      setError(e.message || 'Failed to open Stripe Connect setup');
       toast({
         title: 'Error',
-        description: e.message || 'Failed to start Stripe Connect onboarding',
+        description: e.message || 'Failed to open Stripe Connect setup',
         variant: 'destructive',
       });
     } finally {
@@ -72,11 +56,12 @@ const StripeConnectCard: React.FC<StripeConnectCardProps> = ({ onComplete }) => 
       </CardHeader>
       <CardContent className="space-y-4">
         <div className="text-sm text-gray-700 dark:text-gray-200">
-          To receive payments, you must set up a Stripe Connect account. This is a secure onboarding process handled by Stripe. You will:
+          To receive payments, you must set up a Stripe Connect account. Our guided setup process will help you:
           <ul className="list-disc pl-5 mt-2 space-y-1">
-            <li>Provide your personal and banking information</li>
-            <li>Verify your identity</li>
-            <li>Return to Fixer to start receiving payments</li>
+            <li>Understand what information you'll need</li>
+            <li>Complete your Stripe Connect account setup</li>
+            <li>Verify your account status</li>
+            <li>Start receiving payments for your work</li>
           </ul>
         </div>
         {error && (
@@ -94,11 +79,11 @@ const StripeConnectCard: React.FC<StripeConnectCardProps> = ({ onComplete }) => 
           {isLoading ? (
             <>
               <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-              Redirecting to Stripe...
+              Opening Setup...
             </>
           ) : (
             <>
-              Set Up Stripe Connect <ArrowRight className="h-4 w-4 ml-2" />
+              Start Payment Setup <ArrowRight className="h-4 w-4 ml-2" />
             </>
           )}
         </Button>

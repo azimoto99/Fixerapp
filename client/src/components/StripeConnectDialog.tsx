@@ -15,12 +15,20 @@ const StripeConnectDialog: React.FC<StripeConnectDialogProps> = ({
   open,
   onClose,
   onSuccess
-}) => {
-  const handleSetupStripe = async () => {
+}) => {  const handleSetupStripe = async () => {
     try {
       // Get the Stripe Connect onboarding URL
-      const response = await apiRequest('GET', '/api/stripe/create-account');
-      const { url } = await response.json();
+      const response = await apiRequest('POST', '/api/stripe/connect/create-account', {});
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.message || 'Failed to create Stripe Connect account');
+      }
+      const data = await response.json();
+      const url = data.accountLinkUrl || data.url;
+      
+      if (!url) {
+        throw new Error('No onboarding URL received from server');
+      }
       
       // Open Stripe Connect onboarding in a new window
       window.open(url, '_blank');

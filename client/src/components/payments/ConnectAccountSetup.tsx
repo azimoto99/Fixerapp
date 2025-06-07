@@ -235,11 +235,10 @@ export default function ConnectAccountSetup() {
       });
     }
   });
-
   // Create login link for existing account
   const createLoginLink = useMutation({
     mutationFn: async () => {
-      const response = await apiRequest('POST', '/api/stripe/connect/create-login-link');
+      const response = await apiRequest('POST', '/api/stripe/connect/create-link');
       if (!response.ok) {
         const error = await response.json();
         throw new Error(error.message || 'Failed to create login link');

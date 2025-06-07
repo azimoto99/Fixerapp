@@ -42,7 +42,7 @@ export default function StripeConnectSetupV2({ compact = false }: StripeConnectS
   
   // Check if Stripe is configured
   useEffect(() => {
-    if (!import.meta.env.VITE_STRIPE_PUBLIC_KEY) {
+    if (!(import.meta.env as any).VITE_STRIPE_PUBLIC_KEY) {
       console.error('Stripe public key is not configured. Please set VITE_STRIPE_PUBLIC_KEY in your .env file');
       toast({
         title: "Configuration Error",
@@ -150,7 +150,7 @@ export default function StripeConnectSetupV2({ compact = false }: StripeConnectS
   // Create login link mutation
   const createLoginLinkMutation = useMutation({
     mutationFn: async () => {
-      const res = await apiRequest('POST', '/api/stripe/connect/create-login-link');
+      const res = await apiRequest('POST', '/api/stripe/connect/create-link');
       if (!res.ok) {
         const errorData = await res.json();
         throw new Error(errorData.message || 'Failed to create login link');
