@@ -5,7 +5,7 @@ import session from "express-session";
 import { scrypt, randomBytes, timingSafeEqual } from "crypto";
 import { promisify } from "util";
 import { storage } from "./storage";
-import { User as SelectUser, InsertUser } from "@shared/schema";
+import { DbUser, InsertUser } from "@shared/schema";
 import MemoryStore from "memorystore";
 
 // Extend the session data type with our custom properties
@@ -22,7 +22,7 @@ declare module 'express-session' {
 
 declare global {
   namespace Express {
-    interface User extends SelectUser {}
+    interface User extends DbUser {}
   }
 }
 
@@ -176,11 +176,23 @@ export function setupAuth(app: Express) {
 
       const user = await storage.createUser(userData);
 
+      // Store user ID as backup in case passport session gets corrupted
+      req.session.userId = user.id;
+      
       req.login(user, (err) => {
         if (err) return next(err);
-        // Don't return password in response
-        const { password, ...userResponse } = user;
-        res.status(201).json(userResponse);
+        
+        // Ensure session is saved before responding
+        req.session.save((saveErr) => {
+          if (saveErr) {
+            console.error('Session save error after registration:', saveErr);
+            return next(saveErr);
+          }
+          
+          // Don't return password in response
+          const { password, ...userResponse } = user as any;
+          res.status(201).json(userResponse);
+        });
       });
     } catch (error) {
       res.status(400).json({ message: (error as Error).message });
@@ -206,9 +218,17 @@ export function setupAuth(app: Express) {
           return next(loginErr);
         }
         
-        // Don't return password in response
-        const { password, ...userResponse } = user;
-        res.json(userResponse);
+        // Ensure session is saved before responding
+        req.session.save((saveErr) => {
+          if (saveErr) {
+            console.error('Session save error after login:', saveErr);
+            return next(saveErr);
+          }
+          
+          // Don't return password in response
+          const { password, ...userResponse } = user as any;
+          res.json(userResponse);
+        });
       });
     })(req, res, next);
   });
@@ -232,7 +252,7 @@ export function setupAuth(app: Express) {
           .then(user => {
             if (user) {
               // Don't return password in response
-              const { password, ...userResponse } = user;
+              const { password, ...userResponse } = user as any;
               return res.json(userResponse);
             } else {
               return res.status(401).json({ message: "Not authenticated" });
@@ -249,7 +269,7 @@ export function setupAuth(app: Express) {
     
     // Don't return password in response
     if (req.user) {
-      const { password, ...userResponse } = req.user;
+      const { password, ...userResponse } = req.user as any;
       res.json(userResponse);
     } else {
       res.status(401).json({ message: "Not authenticated" });

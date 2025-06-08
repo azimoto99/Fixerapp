@@ -55,9 +55,9 @@ export default function ProfileContentV2({ user, onSignOut }: ProfileContentV2Pr
   // Calculate stats
   const completedJobs = Array.isArray(jobs) ? jobs.filter(job => job.status === 'completed').length : 0;
   const totalEarnings = Array.isArray(earnings) ? earnings.reduce((sum, earning) => sum + (earning.amount || 0), 0) : 0;
-  const avgRating = user.averageRating || 0;
-  const reviewCount = user.totalReviews || 0;
-  const successRate = completedJobs > 0 ? Math.round((completedJobs / (completedJobs + (user.strikes || 0))) * 100) : 100;
+  const avgRating = user.rating || 0;
+  const reviewCount = 0;
+  const successRate = completedJobs > 0 ? Math.round((completedJobs / (completedJobs + 0)) * 100) : 100;
 
   // Recent activity (last 3 completed jobs)
   const recentJobs = Array.isArray(jobs) 
@@ -78,7 +78,7 @@ export default function ProfileContentV2({ user, onSignOut }: ProfileContentV2Pr
             <div className="relative">
               <Avatar className="w-20 h-20 border-4 border-background shadow-lg">
                 <AvatarImage 
-                  src={user.avatarUrl || user.profileImageUrl || ''} 
+                  src={user.avatarUrl || ''} 
                   alt={user.fullName || user.username}
                   className="object-cover"
                 />
@@ -150,15 +150,6 @@ export default function ProfileContentV2({ user, onSignOut }: ProfileContentV2Pr
                 </div>
                 <p className="text-lg font-semibold">${totalEarnings.toFixed(2)}</p>
               </div>
-              
-              {(user.strikes || 0) > 0 && (
-                <div className="space-y-1">
-                  <div className="flex items-center gap-2">
-                    <span className="text-sm text-muted-foreground">⚠️ Strikes</span>
-                  </div>
-                  <p className="text-lg font-semibold text-red-500">{user.strikes}</p>
-                </div>
-              )}
               
               <div className="space-y-1">
                 <div className="flex items-center gap-2">
@@ -250,7 +241,7 @@ export default function ProfileContentV2({ user, onSignOut }: ProfileContentV2Pr
           </Button>
           
           {/* Only show admin panel button for admin users */}
-          {(user.role === 'admin' || user.email?.includes('admin')) && (
+          {(user.isAdmin || user.email?.includes('admin')) && (
             <Button 
               variant="outline" 
               className="w-full justify-start" 

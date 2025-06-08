@@ -432,6 +432,50 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Delete job route
+  apiRouter.delete("/jobs/:id", isAuthenticated, async (req: Request, res: Response) => {
+    try {
+      const jobId = parseInt(req.params.id);
+      if (isNaN(jobId)) {
+        return res.status(400).json({ message: "Invalid job ID" });
+      }
+      
+      if (!req.user) {
+        return res.status(401).json({ message: "Not authenticated" });
+      }
+      
+      // Get the job to verify ownership
+      const job = await storage.getJob(jobId);
+      if (!job) {
+        return res.status(404).json({ message: "Job not found" });
+      }
+      
+      // Only allow the job poster to delete their own job
+      if (job.posterId !== req.user.id) {
+        return res.status(403).json({ message: "You can only delete your own jobs" });
+      }
+      
+      // Check if job has applications or is in progress
+      const applications = await storage.getApplicationsForJob(jobId);
+      if (applications.length > 0 && job.status !== 'open') {
+        return res.status(400).json({ 
+          message: "Cannot delete job with applications unless it's still open" 
+        });
+      }
+      
+      // Delete the job
+      const deleted = await storage.deleteJob(jobId);
+      if (!deleted) {
+        return res.status(500).json({ message: "Failed to delete job" });
+      }
+      
+      res.json({ message: "Job deleted successfully" });
+    } catch (error) {
+      console.error("Error deleting job:", error);
+      res.status(500).json({ message: "Error deleting job" });
+    }
+  });
+
   // Notifications routes
   apiRouter.get("/notifications", isAuthenticated, async (req: Request, res: Response) => {
     try {
@@ -447,6 +491,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Mark all notifications as read
+  apiRouter.post("/notifications/mark-all-read", isAuthenticated, async (req: Request, res: Response) => {
+    try {
+      if (!req.user) {
+        return res.status(401).json({ message: "Not authenticated" });
+      }
+      
+      const count = await storage.markAllNotificationsAsRead(req.user.id);
+      res.json({ message: "All notifications marked as read", count });
+    } catch (error) {
+      console.error("Error marking notifications as read:", error);
+      res.status(500).json({ message: "Error marking notifications as read" });
+    }
+  });
+
   // Earnings routes
   apiRouter.get("/earnings", isAuthenticated, async (req: Request, res: Response) => {
     try {
@@ -454,7 +513,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(401).json({ message: "Not authenticated" });
       }
       
-      const earnings = await storage.getEarningsForUser(req.user.id);
+      const earnings = await storage.getEarningsForWorker(req.user.id);
       res.json(earnings);
     } catch (error) {
       console.error("Error fetching earnings:", error);

@@ -35,7 +35,8 @@ import {
   AlertDialogDescription,
   AlertDialogFooter,
   AlertDialogHeader,
-  AlertDialogTitle 
+  AlertDialogTitle,
+  AlertDialogTrigger
 } from "@/components/ui/alert-dialog";
 import { apiRequest } from '@/lib/queryClient';
 import { useToast } from '@/hooks/use-toast';
@@ -392,7 +393,7 @@ export default function Home() {
   const { jobs: postedJobs, isLoading: postedJobsLoading } = useJobs({ poster: true });
   
   // Add real-time polling for posted jobs when drawer is open
-  const { data: realtimePostedJobs } = useQuery({
+  const { data: realtimePostedJobs, refetch: refetchPostedJobs } = useQuery({
     queryKey: ['/api/jobs', 'poster-realtime', user?.id],
     queryFn: async () => {
       if (!user) return [];
@@ -407,6 +408,34 @@ export default function Home() {
   
   // Use realtime data when available, fallback to regular hook data
   const finalPostedJobs = showPostedJobs && realtimePostedJobs ? realtimePostedJobs : postedJobs;
+
+  // Delete job mutation
+  const deleteJobMutation = useMutation({
+    mutationFn: async (jobId: number) => {
+      const response = await apiRequest('DELETE', `/api/jobs/${jobId}`);
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.message || 'Failed to delete job');
+      }
+      return response.json();
+    },
+    onSuccess: () => {
+      toast({
+        title: "Job Deleted",
+        description: "Your job has been deleted successfully",
+      });
+      // Refresh the posted jobs list
+      refetchPostedJobs();
+      queryClient.invalidateQueries({ queryKey: ['/api/jobs'] });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Error",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
   
   const togglePostedJobs = () => {
     setShowPostedJobs(!showPostedJobs);
@@ -533,14 +562,16 @@ export default function Home() {
                 {finalPostedJobs.map((job: Job) => (
                   <div 
                     key={job.id} 
-                    className="p-4 hover:bg-accent/50 transition-colors cursor-pointer"
-                    onClick={() => {
-                      setSelectedJob(job);
-                      setShowJobDetails(true);
-                    }}
+                    className="p-4 hover:bg-accent/50 transition-colors"
                   >
                     <div className="flex items-start justify-between">
-                      <div className="flex-1">
+                      <div 
+                        className="flex-1 cursor-pointer"
+                        onClick={() => {
+                          setSelectedJob(job);
+                          setShowJobDetails(true);
+                        }}
+                      >
                         <h4 className="font-medium mb-1">{job.title}</h4>
                         <div className="flex items-center gap-2 text-sm text-muted-foreground">
                           <span className="flex items-center gap-1">
@@ -553,9 +584,42 @@ export default function Home() {
                           </span>
                         </div>
                       </div>
-                      <Badge variant={job.status === 'open' ? 'default' : 'secondary'}>
-                        {job.status}
-                      </Badge>
+                      <div className="flex items-center gap-2">
+                        <Badge variant={job.status === 'open' ? 'default' : 'secondary'}>
+                          {job.status}
+                        </Badge>
+                        <AlertDialog>
+                          <AlertDialogTrigger asChild>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className="text-red-600 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-950"
+                              disabled={deleteJobMutation.isPending}
+                            >
+                              <X className="h-4 w-4" />
+                            </Button>
+                          </AlertDialogTrigger>
+                          <AlertDialogContent>
+                            <AlertDialogHeader>
+                              <AlertDialogTitle>Delete Job</AlertDialogTitle>
+                              <AlertDialogDescription>
+                                Are you sure you want to delete "{job.title}"? This action cannot be undone.
+                                {job.status !== 'open' && ' Note: This job has applications or is in progress.'}
+                              </AlertDialogDescription>
+                            </AlertDialogHeader>
+                            <AlertDialogFooter>
+                              <AlertDialogCancel>Cancel</AlertDialogCancel>
+                              <AlertDialogAction
+                                onClick={() => deleteJobMutation.mutate(job.id)}
+                                className="bg-red-600 hover:bg-red-700"
+                                disabled={deleteJobMutation.isPending}
+                              >
+                                {deleteJobMutation.isPending ? 'Deleting...' : 'Delete'}
+                              </AlertDialogAction>
+                            </AlertDialogFooter>
+                          </AlertDialogContent>
+                        </AlertDialog>
+                      </div>
                     </div>
                   </div>
                 ))}
