@@ -21,13 +21,25 @@ import { STRIPE_PUBLIC_KEY } from '@/lib/env';
 
 // Load Stripe outside of component render for better performance
 console.log('Loading Stripe with public key:', STRIPE_PUBLIC_KEY ? `Key present (${STRIPE_PUBLIC_KEY.substring(0, 7)}...)` : 'Key missing');
-console.log('Full STRIPE_PUBLIC_KEY:', STRIPE_PUBLIC_KEY);
 
 if (!STRIPE_PUBLIC_KEY) {
   console.error('STRIPE_PUBLIC_KEY is missing! Check your .env file.');
 }
 
-const stripePromise = STRIPE_PUBLIC_KEY ? loadStripe(STRIPE_PUBLIC_KEY) : Promise.resolve(null);
+// Initialize Stripe with better error handling
+const stripePromise = STRIPE_PUBLIC_KEY ? 
+  loadStripe(STRIPE_PUBLIC_KEY).then(stripe => {
+    if (!stripe) {
+      console.error('Failed to load Stripe. Check your public key and network connection.');
+    } else {
+      console.log('Stripe loaded successfully');
+    }
+    return stripe;
+  }).catch(error => {
+    console.error('Error loading Stripe:', error);
+    return null;
+  }) : 
+  Promise.resolve(null);
 
 // Create context for payment dialog
 type PaymentDialogContextType = {
@@ -55,22 +67,41 @@ const AddPaymentMethodForm = ({ onSuccess }: { onSuccess: () => void }) => {
   const elements = useElements();
   const [isProcessing, setIsProcessing] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [isStripeReady, setIsStripeReady] = useState(false);
+  const [loadingTimeout, setLoadingTimeout] = useState(false);
   const { toast } = useToast();
 
-  // Debug logging
+  // Monitor Stripe readiness
   useEffect(() => {
     console.log('AddPaymentMethodForm mounted');
-    console.log('Stripe instance:', stripe);
-    console.log('Elements instance:', elements);
+    console.log('Stripe instance:', stripe ? 'Available' : 'Not Available');
+    console.log('Elements instance:', elements ? 'Available' : 'Not Available');
     
-    // Check if PaymentElement is available
-    if (elements) {
-      console.log('Elements available, checking PaymentElement...');
+    if (stripe && elements) {
+      setIsStripeReady(true);
+      setLoadingTimeout(false);
+      console.log('Stripe and Elements are ready');
+      
+      // Check if PaymentElement is available after a short delay
       setTimeout(() => {
         const paymentElement = elements.getElement('payment');
-        console.log('PaymentElement found:', paymentElement);
+        console.log('PaymentElement found:', paymentElement ? 'Yes' : 'No');
       }, 1000);
+    } else {
+      setIsStripeReady(false);
     }
+  }, [stripe, elements]);
+
+  // Set a timeout for Stripe loading
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      if (!stripe || !elements) {
+        setLoadingTimeout(true);
+        console.warn('Stripe loading timeout reached');
+      }
+    }, 10000); // 10 second timeout
+
+    return () => clearTimeout(timer);
   }, [stripe, elements]);
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -112,62 +143,93 @@ const AddPaymentMethodForm = ({ onSuccess }: { onSuccess: () => void }) => {
     }
   };
 
-  // Show error if Stripe is not available
-  if (!stripe && !elements) {
+  // Show loading state while Stripe is initializing
+  if (!isStripeReady) {
     return (
       <div className="space-y-4">
-        <Alert variant="destructive">
-          <AlertCircle className="h-4 w-4" />
-          <AlertTitle>Payment Setup Error</AlertTitle>
-          <AlertDescription>
-            Stripe payment system is not properly configured. Please check:
-            <ul className="list-disc list-inside mt-2 space-y-1">
-              <li>VITE_STRIPE_PUBLIC_KEY is set in environment variables</li>
-              <li>Stripe public key is valid</li>
-              <li>Network connection is working</li>
-            </ul>
-          </AlertDescription>
-        </Alert>
+        {!STRIPE_PUBLIC_KEY ? (
+          <Alert variant="destructive">
+            <AlertCircle className="h-4 w-4" />
+            <AlertTitle>Configuration Error</AlertTitle>
+            <AlertDescription>
+              Stripe public key is not configured. Please set VITE_STRIPE_PUBLIC_KEY in your environment variables.
+            </AlertDescription>
+          </Alert>
+        ) : !stripe || !elements ? (
+          <div className="flex flex-col items-center justify-center py-8 space-y-4">
+            <Loader2 className="h-8 w-8 animate-spin text-primary" />
+            <p className="text-sm text-muted-foreground">
+              {loadingTimeout ? 'Payment system is taking longer than expected...' : 'Loading payment system...'}
+            </p>
+            <p className="text-xs text-gray-400">
+              {loadingTimeout ? 'Please check your connection and try again' : 'This may take a few seconds'}
+            </p>
+          </div>
+        ) : (
+          <Alert variant="destructive">
+            <AlertCircle className="h-4 w-4" />
+            <AlertTitle>Payment Setup Error</AlertTitle>
+            <AlertDescription>
+              Stripe payment system failed to initialize. Please check:
+              <ul className="list-disc list-inside mt-2 space-y-1">
+                <li>Your internet connection</li>
+                <li>Stripe public key is valid</li>
+                <li>No browser extensions are blocking Stripe</li>
+              </ul>
+            </AlertDescription>
+          </Alert>
+        )}
         
         <div className="text-xs text-gray-500 p-3 bg-gray-100 rounded">
           <strong>Debug Info:</strong><br/>
-          Stripe Public Key: {import.meta.env.VITE_STRIPE_PUBLIC_KEY ? `${import.meta.env.VITE_STRIPE_PUBLIC_KEY.substring(0, 7)}...` : 'Missing'}<br/>
+          Stripe Public Key: {STRIPE_PUBLIC_KEY ? `${STRIPE_PUBLIC_KEY.substring(0, 7)}...` : 'Missing'}<br/>
           Stripe Instance: {stripe ? 'Available' : 'Not Available'}<br/>
           Elements Instance: {elements ? 'Available' : 'Not Available'}
         </div>
         
-        <Button 
-          onClick={() => window.location.reload()} 
-          variant="outline" 
-          className="w-full"
-        >
-          Reload Page
-        </Button>
+        <div className="flex gap-2">
+          <Button 
+            onClick={() => window.location.reload()} 
+            variant="outline" 
+            className="flex-1"
+          >
+            Reload Page
+          </Button>
+          {STRIPE_PUBLIC_KEY && (
+            <Button 
+              onClick={() => setIsStripeReady(true)} 
+              variant="default" 
+              className="flex-1"
+            >
+              Try Again
+            </Button>
+          )}
+        </div>
       </div>
     );
   }
 
   return (
     <div className="space-y-4">
-      <div className="text-sm text-gray-600 mb-4">
-        Debug Info: Stripe={stripe ? '✓' : '✗'}, Elements={elements ? '✓' : '✗'}
-      </div>
-      
       <form onSubmit={handleSubmit} className="space-y-4">
-        <div 
-          className="border-2 border-dashed border-gray-300 rounded-lg p-6 min-h-[150px] bg-gray-50"
-          style={{ minHeight: '150px' }}
-        >
-          <div className="text-sm text-gray-500 mb-2">PaymentElement should render below:</div>
-          <PaymentElement 
-            id="payment-element"
-            options={{
-              layout: 'tabs',
-              fields: {
-                billingDetails: 'never'
-              }
-            }}
-          />
+        <div className="space-y-2">
+          <label className="text-sm font-medium text-gray-700">
+            Payment Information
+          </label>
+          <div className="border border-gray-300 rounded-lg p-4 bg-white">
+            <PaymentElement 
+              id="payment-element"
+              options={{
+                layout: 'tabs',
+                fields: {
+                  billingDetails: 'never'
+                },
+                terms: {
+                  card: 'never'
+                }
+              }}
+            />
+          </div>
         </div>
         
         {errorMessage && (

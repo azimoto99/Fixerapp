@@ -26,7 +26,6 @@ import {
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
-import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Checkbox } from '@/components/ui/checkbox';
 
 const formSchema = z.object({
@@ -40,9 +39,6 @@ const formSchema = z.object({
   phone: z.string().optional(),
   bio: z.string().optional(),
   skills: z.array(z.string()).optional().default([]),
-  accountType: z.enum(['worker', 'poster'], {
-    required_error: 'Please select an account type',
-  }),
 });
 
 type FormData = z.infer<typeof formSchema>;
@@ -72,7 +68,6 @@ export default function Register({ onModeChange }: RegisterProps) {
       phone: '',
       bio: '',
       skills: [],
-      accountType: 'worker' as const,
     },
   });
 
@@ -87,6 +82,7 @@ export default function Register({ onModeChange }: RegisterProps) {
         phone: userData.phone || '', // Ensure phone is never undefined
         bio: userData.bio || '', // Ensure bio is never undefined
         skills: userData.skills || [], // Ensure skills is never undefined
+        accountType: 'worker' as const, // Default all new users to worker
       };
       
       registerMutation.mutate(submitData, {
@@ -126,40 +122,7 @@ export default function Register({ onModeChange }: RegisterProps) {
           <Form {...form}>
             <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
               
-              <FormField
-                control={form.control}
-                name="accountType"
-                render={({ field }) => (
-                  <FormItem className="space-y-3">
-                    <FormLabel>Account Type</FormLabel>
-                    <FormDescription>
-                      Choose how you want to use Fixer
-                    </FormDescription>
-                    <FormControl>
-                      <RadioGroup
-                        onValueChange={field.onChange}
-                        defaultValue={field.value}
-                        className="flex flex-col space-y-2"
-                      >
-                        <div className="flex items-center space-x-3 space-y-0">
-                          <RadioGroupItem value="worker" id="worker" />
-                          <FormLabel htmlFor="worker" className="font-normal">
-                            Worker - I want to find and apply for jobs
-                          </FormLabel>
-                        </div>
-                        <div className="flex items-center space-x-3 space-y-0">
-                          <RadioGroupItem value="poster" id="poster" />
-                          <FormLabel htmlFor="poster" className="font-normal">
-                            Job Poster - I want to post jobs and hire workers
-                          </FormLabel>
-                        </div>
-                      </RadioGroup>
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              
+
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <FormField
                   control={form.control}

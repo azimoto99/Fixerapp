@@ -22,9 +22,11 @@ import {
   Edit,
   Award,
   Clock,
-  Shield
+  Shield,
+  Wrench
 } from 'lucide-react';
 import { format } from 'date-fns';
+import SkillsManager from '@/components/profile/SkillsManager';
 
 interface ProfileContentV2Props {
   user: User;
@@ -169,6 +171,19 @@ export default function ProfileContentV2({ user, onSignOut }: ProfileContentV2Pr
           </CardContent>
         </Card>
       )}
+
+      {/* Skills Section */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base flex items-center gap-2">
+            <Wrench className="h-5 w-5 text-blue-500" />
+            Skills
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <SkillsManager userId={user.id} />
+        </CardContent>
+      </Card>
 
       {/* Recent Activity */}
       {user.accountType === 'worker' && recentJobs.length > 0 && (
