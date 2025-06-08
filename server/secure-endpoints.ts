@@ -42,8 +42,8 @@ export const validators = {
       .withMessage('Skills must be an array'),
     body('skills.*')
       .optional()
-      .isIn(SKILLS)
-      .withMessage('Invalid skill'),
+      .isString()
+      .withMessage('Each skill must be a string'),
     body('hourlyRate')
       .optional()
       .isFloat({ min: 0.01, max: 1000 })
@@ -107,8 +107,8 @@ export const validators = {
       .withMessage('Required skills must be an array'),
     body('requiredSkills.*')
       .optional()
-      .isIn(SKILLS)
-      .withMessage('Invalid required skill'),
+      .isString()
+      .withMessage('Each required skill must be a string'),
     body('dateNeeded')
       .optional()
       .isISO8601()

@@ -62,6 +62,7 @@ function calculateDistanceInFeet(lat1: number, lon1: number, lat2: number, lon2:
 }
 import Stripe from "stripe";
 import { filterJobContent, validatePaymentAmount } from "./content-filter";
+import { validateSkills, sanitizeSkill } from './utils/skillValidation';
 import { stripeRouter } from "./api/stripe-api";
 import stripeConnectRouter from "./api/stripe-connect";
 import { processPayment } from "./api/process-payment";
@@ -75,6 +76,7 @@ import { setupStripePaymentMethodsRoutes } from "./api/stripe-payment-methods";
 import "./api/storage-extensions"; // Import to register extended storage methods
 import "./storage-extensions"; // Import admin and payment extensions
 import * as crypto from 'crypto';
+import { validateSkills, sanitizeSkill } from './utils/skillValidation';
 
 // Helper function to convert schema User to Express.User type for req.login compatibility
 function adaptUserForLogin(user: any): Express.User {
@@ -105,6 +107,7 @@ import {
   SKILLS,
   BADGE_CATEGORIES
 } from "@shared/schema";
+import { validateSkills, sanitizeSkill } from './utils/skillValidation';
 import { setupAuth } from "./auth";
 import { URL } from "url";
 
@@ -1001,15 +1004,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       const { skills } = schema.parse(req.body);
       
-      // Validate that all skills are in the predefined SKILLS list
-      const invalidSkills = skills.filter(skill => !SKILLS.includes(skill as any));
-      if (invalidSkills.length > 0) {
+      // Import skill validation functions
+      const { validateSkills, sanitizeSkill } = await import('./utils/skillValidation');
+      
+      // Sanitize and validate skills for inappropriate content
+      const sanitizedSkills = skills.map(skill => sanitizeSkill(skill)).filter(skill => skill.length > 0);
+      const validation = validateSkills(sanitizedSkills);
+      
+      if (!validation.isValid) {
         return res.status(400).json({ 
-          message: `Invalid skills: ${invalidSkills.join(', ')}` 
+          message: `Invalid skills detected: ${validation.reasons.join(', ')}`,
+          invalidSkills: validation.invalidSkills
         });
       }
       
-      const updatedUser = await storage.updateUserSkills(id, skills);
+      const updatedUser = await storage.updateUserSkills(id, sanitizedSkills);
       
       if (!updatedUser) {
         return res.status(404).json({ message: "User not found" });
@@ -1029,10 +1038,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const id = parseInt(req.params.id);
       const skill = req.params.skill;
       
-      // Validate that the skill is in the predefined SKILLS list
-      if (!SKILLS.includes(skill as any)) {
-        return res.status(400).json({ message: `Invalid skill: ${skill}` });
-      }
+      // Allow verification of any custom skill - no validation against predefined list
       
       // For now, only allow users to verify their own skills
       // In a production app, we would have an admin role or a job poster to verify skills
@@ -1072,13 +1078,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         skills = querySkills.map(s => s.toString());
       }
       
-      // Validate that all skills are in the predefined SKILLS list
-      const invalidSkills = skills.filter(skill => !SKILLS.includes(skill as any));
-      if (invalidSkills.length > 0) {
-        return res.status(400).json({ 
-          message: `Invalid skills: ${invalidSkills.join(', ')}` 
-        });
-      }
+      // Allow searching for any custom skills - no validation against predefined list
       
       const users = await storage.getUsersWithSkills(skills);
       
@@ -1947,6 +1947,72 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (!isTestJob) {
         return res.status(400).json({ message: 'This endpoint is only for test jobs' });
       }
+
+      // Import job validation functions
+      const { validateJobPosting, sanitizeJobContent, validateJobPayment, validateJobSkills } = await import('./utils/jobValidation');
+      
+      // Validate job content for inappropriate material
+      const contentValidation = validateJobPosting(title, description, category);
+      if (!contentValidation.isValid) {
+        return res.status(400).json({ 
+          message: contentValidation.reason,
+          flaggedContent: contentValidation.flaggedContent
+        });
+      }
+      
+      // Validate payment amount
+      const paymentValidation = validateJobPayment(paymentAmount, paymentType || 'fixed');
+      if (!paymentValidation.isValid) {
+        return res.status(400).json({ message: paymentValidation.reason });
+      }
+      
+      // Validate required skills if provided
+      if (requiredSkills && requiredSkills.length > 0) {
+        const skillsValidation = validateJobSkills(requiredSkills);
+        if (!skillsValidation.isValid) {
+          return res.status(400).json({ 
+            message: skillsValidation.reason,
+            invalidSkills: skillsValidation.invalidSkills
+          });
+        }
+      }
+      
+      // Sanitize content
+      const sanitizedTitle = sanitizeJobContent(title);
+      const sanitizedDescription = sanitizeJobContent(description);
+
+      // Import job validation functions
+      const { validateJobPosting, sanitizeJobContent, validateJobPayment, validateJobSkills } = await import('./utils/jobValidation');
+      
+      // Validate job content for inappropriate material
+      const contentValidation = validateJobPosting(title, description, category);
+      if (!contentValidation.isValid) {
+        return res.status(400).json({ 
+          message: contentValidation.reason,
+          flaggedContent: contentValidation.flaggedContent
+        });
+      }
+      
+      // Validate payment amount
+      const paymentValidation = validateJobPayment(paymentAmount, paymentType || 'fixed');
+      if (!paymentValidation.isValid) {
+        return res.status(400).json({ message: paymentValidation.reason });
+      }
+      
+      // Validate required skills if provided
+      if (requiredSkills && requiredSkills.length > 0) {
+        const skillsValidation = validateJobSkills(requiredSkills);
+        if (!skillsValidation.isValid) {
+          return res.status(400).json({ 
+            message: skillsValidation.reason,
+            invalidSkills: skillsValidation.invalidSkills
+          });
+        }
+      }
+      
+      // Sanitize content
+      const sanitizedTitle = sanitizeJobContent(title);
+      const sanitizedDescription = sanitizeJobContent(description);
 
       // Calculate service fee and total amount if not provided
       const calculatedServiceFee = serviceFee || 2.5;

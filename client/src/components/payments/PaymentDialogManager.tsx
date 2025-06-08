@@ -211,7 +211,7 @@ const AddPaymentMethodForm = ({ onSuccess }: { onSuccess: () => void }) => {
 
   return (
     <div className="space-y-4">
-      <form onSubmit={handleSubmit} className="space-y-4">
+    <form onSubmit={handleSubmit} className="space-y-4">
         <div className="space-y-2">
           <label className="text-sm font-medium text-gray-700">
             Payment Information
@@ -231,33 +231,33 @@ const AddPaymentMethodForm = ({ onSuccess }: { onSuccess: () => void }) => {
             />
           </div>
         </div>
-        
-        {errorMessage && (
-          <Alert variant="destructive">
-            <AlertCircle className="h-4 w-4" />
-            <AlertTitle>Error</AlertTitle>
-            <AlertDescription>{errorMessage}</AlertDescription>
-          </Alert>
-        )}
-        
-        <Button 
-          type="submit" 
+      
+      {errorMessage && (
+        <Alert variant="destructive">
+          <AlertCircle className="h-4 w-4" />
+          <AlertTitle>Error</AlertTitle>
+          <AlertDescription>{errorMessage}</AlertDescription>
+        </Alert>
+      )}
+      
+      <Button 
+        type="submit" 
           disabled={!stripe || !elements || isProcessing} 
-          className="w-full"
-        >
-          {isProcessing ? (
-            <>
-              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-              Processing...
-            </>
-          ) : (
-            <>
-              Save Card
-              <ArrowRight className="ml-2 h-4 w-4" />
-            </>
-          )}
-        </Button>
-      </form>
+        className="w-full"
+      >
+        {isProcessing ? (
+          <>
+            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+            Processing...
+          </>
+        ) : (
+          <>
+            Save Card
+            <ArrowRight className="ml-2 h-4 w-4" />
+          </>
+        )}
+      </Button>
+    </form>
     </div>
   );
 };
@@ -314,7 +314,7 @@ export const PaymentDialogProvider: React.FC<{ children: React.ReactNode }> = ({
       
       // Always create a fresh setup intent when opening the dialog
       // This ensures we have a valid client secret
-      setupIntent.mutate();
+        setupIntent.mutate();
     }, 300); // Slight delay to allow drawer to close
   };
   
@@ -463,18 +463,18 @@ export const PaymentDialogProvider: React.FC<{ children: React.ReactNode }> = ({
             </div>
           ) : clientSecret ? (
             STRIPE_PUBLIC_KEY ? (
-              <Elements 
-                stripe={stripePromise} 
-                options={{ 
-                  clientSecret,
+            <Elements 
+              stripe={stripePromise} 
+              options={{ 
+                clientSecret,
                   appearance: { 
                     theme: 'stripe'
                   }
-                }}
-              >
-                <AddPaymentMethodForm onSuccess={handleSuccess} />
-              </Elements>
-            ) : (
+              }}
+            >
+              <AddPaymentMethodForm onSuccess={handleSuccess} />
+            </Elements>
+          ) : (
               <div className="py-6 text-center space-y-4">
                 <Alert variant="destructive">
                   <AlertCircle className="h-8 w-8 mx-auto mb-2" />
@@ -483,13 +483,13 @@ export const PaymentDialogProvider: React.FC<{ children: React.ReactNode }> = ({
                     Stripe public key is not configured. Please set VITE_STRIPE_PUBLIC_KEY in your environment variables.
                   </AlertDescription>
                 </Alert>
-                <Button 
-                  variant="outline" 
-                  size="sm" 
+              <Button 
+                variant="outline" 
+                size="sm" 
                   onClick={closeAddPaymentMethod}
-                >
+              >
                   Close
-                </Button>
+              </Button>
               </div>
             )
           ) : (

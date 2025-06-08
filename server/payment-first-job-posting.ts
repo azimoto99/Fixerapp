@@ -45,6 +45,52 @@ export async function createJobWithPaymentFirst(req: Request, res: Response) {
     // Step 1: Validate all input data
     const validatedData = jobPostingSchema.parse(req.body);
     
+    // Step 1.5: Validate job content for inappropriate material
+    const { validateJobPosting, sanitizeJobContent, validateJobPayment, validateJobSkills } = await import('./utils/jobValidation');
+    
+    // Validate job content for inappropriate material
+    const contentValidation = validateJobPosting(validatedData.title, validatedData.description, validatedData.category);
+    if (!contentValidation.isValid) {
+      return res.status(400).json({ 
+        success: false,
+        message: contentValidation.reason,
+        flaggedContent: contentValidation.flaggedContent
+      });
+    }
+    
+    // Validate payment amount
+    const paymentValidation = validateJobPayment(
+      validatedData.paymentAmount, 
+      validatedData.paymentType,
+      validatedData.estimatedHours
+    );
+    if (!paymentValidation.isValid) {
+      return res.status(400).json({ 
+        success: false,
+        message: paymentValidation.reason 
+      });
+    }
+    
+    // Validate required skills if provided
+    if (validatedData.requiredSkills && validatedData.requiredSkills.length > 0) {
+      const skillsValidation = validateJobSkills(validatedData.requiredSkills);
+      if (!skillsValidation.isValid) {
+        return res.status(400).json({ 
+          success: false,
+          message: skillsValidation.reason,
+          invalidSkills: skillsValidation.invalidSkills
+        });
+      }
+    }
+    
+    // Sanitize content
+    const sanitizedTitle = sanitizeJobContent(validatedData.title);
+    const sanitizedDescription = sanitizeJobContent(validatedData.description);
+    
+    // Update validated data with sanitized content
+    validatedData.title = sanitizedTitle;
+    validatedData.description = sanitizedDescription;
+    
     // Step 2: Calculate total amount (job posting fee + service fee)
     const jobPostingFee = 2.50; // $2.50 job posting fee
     const totalAmount = Math.round((validatedData.paymentAmount + jobPostingFee) * 100); // Convert to cents
