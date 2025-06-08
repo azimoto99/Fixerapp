@@ -1,4 +1,4 @@
-import { User } from '@/shared/schema';
+import { DbUser } from '@shared/schema';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -26,10 +26,10 @@ import {
   Wrench
 } from 'lucide-react';
 import { format } from 'date-fns';
-import SkillsManager from '@/components/profile/SkillsManager';
+import { SkillsManager } from '@/components/profile/SkillsManager';
 
 interface ProfileContentV2Props {
-  user: User;
+  user: DbUser;
   onSignOut: () => void;
 }
 
@@ -181,7 +181,7 @@ export default function ProfileContentV2({ user, onSignOut }: ProfileContentV2Pr
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <SkillsManager userId={user.id} />
+          <SkillsManager user={user} />
         </CardContent>
       </Card>
 
