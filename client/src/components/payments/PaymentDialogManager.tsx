@@ -200,7 +200,7 @@ const AddPaymentMethodForm = ({ onSuccess }: { onSuccess: () => void }) => {
               options={{
                 layout: 'tabs',
                 fields: {
-                  billingDetails: 'never'
+                  billingDetails: 'auto'
                 },
                 terms: {
                   card: 'never'
