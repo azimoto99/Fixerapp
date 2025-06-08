@@ -55,6 +55,28 @@ export const setupStripePaymentMethodsRoutes = (app: express.Express) => {
     }
   };
 
+  // Create a SetupIntent for adding a new payment method
+  app.post('/api/stripe/create-setup-intent', requireAuth, async (req, res) => {
+    try {
+      const userId = req.user?.id;
+      if (!userId) {
+        return res.status(401).json({ message: 'User ID is missing' });
+      }
+      const stripeCustomerId = await getOrCreateStripeCustomer(userId);
+      const setupIntent = await stripe.setupIntents.create({
+        customer: stripeCustomerId,
+        usage: 'off_session',
+      });
+      return res.status(200).json({ clientSecret: setupIntent.client_secret });
+    } catch (error) {
+      console.error('Error creating setup intent:', error);
+      return res.status(500).json({
+        message: 'Failed to create setup intent',
+        error: error instanceof Error ? error.message : 'Unknown error',
+      });
+    }
+  });
+
   // Get all payment methods for the current user
   app.get('/api/stripe/payment-methods', requireAuth, async (req, res) => {
     try {
@@ -73,9 +95,8 @@ export const setupStripePaymentMethodsRoutes = (app: express.Express) => {
       });
       
       // Get customer to determine default payment method
-      const customer = await stripe.customers.retrieve(stripeCustomerId);
-      const defaultPaymentMethodId = 
-        typeof customer !== 'string' && customer.invoice_settings?.default_payment_method;
+      const customer = (await stripe.customers.retrieve(stripeCustomerId)) as Stripe.Customer;
+      const defaultPaymentMethodId = customer.invoice_settings?.default_payment_method;
       
       // Mark the default payment method
       const data = paymentMethods.data.map(method => ({
@@ -161,7 +182,7 @@ export const setupStripePaymentMethodsRoutes = (app: express.Express) => {
       const stripeCustomerId = await getOrCreateStripeCustomer(userId);
       
       // Get customer to check if we're deleting the default payment method
-      const customer = await stripe.customers.retrieve(stripeCustomerId);
+      const customer = (await stripe.customers.retrieve(stripeCustomerId)) as Stripe.Customer;
       
       // Get all payment methods for this customer
       const paymentMethods = await stripe.paymentMethods.list({
@@ -185,7 +206,6 @@ export const setupStripePaymentMethodsRoutes = (app: express.Express) => {
       
       // If we deleted the default payment method, set a new one if available
       if (
-        typeof customer !== 'string' &&
         customer.invoice_settings?.default_payment_method === paymentMethodId &&
         paymentMethods.data.length > 1
       ) {
@@ -260,6 +280,33 @@ export const setupStripePaymentMethodsRoutes = (app: express.Express) => {
       });
     } catch (error) {
       console.error('Error setting default payment method:', error);
+      return res.status(500).json({
+        message: 'Failed to set default payment method',
+        error: error instanceof Error ? error.message : 'Unknown error',
+      });
+    }
+  });
+
+  // Alias default route to match client-side set-default path
+  app.post('/api/stripe/payment-methods/:paymentMethodId/set-default', requireAuth, async (req, res) => {
+    try {
+      const userId = req.user?.id;
+      const { paymentMethodId } = req.params;
+      if (!userId) {
+        return res.status(401).json({ message: 'User ID is missing' });
+      }
+      const stripeCustomerId = await getOrCreateStripeCustomer(userId);
+      // Verify ownership
+      const methods = await stripe.paymentMethods.list({ customer: stripeCustomerId, type: 'card' });
+      if (!methods.data.some(m => m.id === paymentMethodId)) {
+        return res.status(403).json({ message: 'Payment method does not belong to this customer' });
+      }
+      await stripe.customers.update(stripeCustomerId, {
+        invoice_settings: { default_payment_method: paymentMethodId },
+      });
+      return res.status(200).json({ message: 'Default payment method updated successfully' });
+    } catch (error) {
+      console.error('Error setting default payment method (alias):', error);
       return res.status(500).json({
         message: 'Failed to set default payment method',
         error: error instanceof Error ? error.message : 'Unknown error',
