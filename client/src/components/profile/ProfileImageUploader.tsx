@@ -24,6 +24,7 @@ export function ProfileImageUploader({ user }: ProfileImageUploaderProps) {
         `/api/users/${user.id}/profile-image`, 
         { imageData }
       );
+      
       return response.json();
     },
     onSuccess: (updatedUser) => {

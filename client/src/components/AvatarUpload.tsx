@@ -21,33 +21,36 @@ export function AvatarUpload({ currentAvatarUrl, userId, onAvatarUpdate, classNa
 
   const uploadMutation = useMutation({
     mutationFn: async (file: File) => {
-      const formData = new FormData();
-      formData.append('avatar', file);
-      
-      const response = await fetch('/api/users/avatar', {
-        method: 'POST',
-        body: formData,
-        credentials: 'include'
+      // Convert file to base64 data URL to match the expected format
+      const imageData = await new Promise<string>((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = (e) => resolve(e.target?.result as string);
+        reader.onerror = reject;
+        reader.readAsDataURL(file);
       });
       
-      if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.message || 'Upload failed');
-      }
+      const response = await apiRequest(
+        'POST',
+        `/api/users/${userId}/profile-image`,
+        { imageData }
+      );
       
       return response.json();
     },
-    onSuccess: (data) => {
+    onSuccess: (updatedUser) => {
       toast({
         title: "Avatar Updated! 🎉",
         description: "Your profile picture has been updated successfully.",
       });
       
-      // Update local preview
-      setPreviewUrl(data.avatarUrl);
+      // Update local preview with the new avatar URL
+      setPreviewUrl(updatedUser.avatarUrl);
       
       // Notify parent component
-      onAvatarUpdate?.(data.avatarUrl);
+      onAvatarUpdate?.(updatedUser.avatarUrl);
+      
+      // Update the user cache
+      queryClient.setQueryData(['/api/user'], updatedUser);
       
       // Invalidate user queries to refresh everywhere
       queryClient.invalidateQueries({ queryKey: ['/api/user'] });

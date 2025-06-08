@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useAuth } from '@/hooks/use-auth';
+import { apiRequest } from '@/lib/queryClient';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { useLocation } from 'wouter';
@@ -32,18 +33,13 @@ export function withAuth<P extends object>(
     const handleRetry = async () => {
       setIsRetrying(true);
       try {
-        // Make a direct fetch to refresh the session state
-        const response = await fetch('/api/user', {
-          credentials: 'include'
-        });
-        
-        if (response.ok) {
-          const userData = await response.json();
-          if (userData) {
-            // Manually refresh the page to reset authentication state
-            window.location.reload();
-            return;
-          }
+        // Make a direct request to refresh the session state
+        const response = await apiRequest('GET', '/api/user');
+        const userData = await response.json();
+        if (userData) {
+          // Manually refresh the page to reset authentication state
+          window.location.reload();
+          return;
         }
         
         // Increment retry count

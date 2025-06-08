@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useCallback } from 'react';
 import { useStripeConnectMonitor } from '@/hooks/use-stripe-connect-monitor';
 import { useToast } from '@/hooks/use-toast';
+import { apiRequest } from '@/lib/queryClient';
 
 interface StripeConnectContextType {
   accountStatus: {
@@ -25,9 +26,7 @@ export function StripeConnectProvider({ children }: { children: React.ReactNode 
   });
   const openAccountSettings = useCallback(async () => {
     try {
-      const res = await fetch('/api/stripe/connect/create-link');
-      if (!res.ok) throw new Error('Failed to create account link');
-      
+      const res = await apiRequest('GET', '/api/stripe/connect/create-link');
       const { url } = await res.json();
       window.open(url, '_blank');
     } catch (error) {

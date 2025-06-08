@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
+import { apiRequest } from '@/lib/queryClient';
 import { Badge, UserBadge } from '@shared/schema';
 import { Badge as UIBadge } from '@/components/ui/badge';
 import { 
@@ -32,7 +33,7 @@ export function BadgesDisplay({ userId }: BadgesDisplayProps) {
   const { data: userBadges = [], isLoading: isLoadingUserBadges } = useQuery({
     queryKey: [`/api/users/${userId}/badges`],
     queryFn: async () => {
-      const response = await fetch(`/api/users/${userId}/badges`);
+      const response = await apiRequest('GET', `/api/users/${userId}/badges`);
       return response.json();
     },
   });
@@ -41,7 +42,7 @@ export function BadgesDisplay({ userId }: BadgesDisplayProps) {
   const { data: allBadges = [], isLoading: isLoadingBadges } = useQuery({
     queryKey: ['/api/badges'],
     queryFn: async () => {
-      const response = await fetch('/api/badges');
+      const response = await apiRequest('GET', '/api/badges');
       return response.json();
     },
   });

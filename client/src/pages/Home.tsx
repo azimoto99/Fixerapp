@@ -396,8 +396,7 @@ export default function Home() {
     queryKey: ['/api/jobs', 'poster-realtime', user?.id],
     queryFn: async () => {
       if (!user) return [];
-      const response = await fetch(`/api/jobs?posterId=${user.id}`);
-      if (!response.ok) return [];
+      const response = await apiRequest('GET', `/api/jobs?posterId=${user.id}`);
       return response.json();
     },
     enabled: showPostedJobs && !!user, // Only fetch when drawer is open and user exists

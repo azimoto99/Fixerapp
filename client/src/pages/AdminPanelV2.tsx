@@ -178,8 +178,7 @@ export default function AdminPanelV2() {
         sortOrder
       });
       
-      const response = await fetch(`/api/admin/analytics/users?${params}`);
-      if (!response.ok) throw new Error('Failed to fetch users');
+      const response = await apiRequest('GET', `/api/admin/analytics/users?${params}`);
       return response.json();
     },
     enabled: selectedTab === "users",
@@ -211,8 +210,7 @@ export default function AdminPanelV2() {
         sortOrder
       });
       
-      const response = await fetch(`/api/admin/analytics/jobs?${params}`);
-      if (!response.ok) throw new Error('Failed to fetch jobs');
+      const response = await apiRequest('GET', `/api/admin/analytics/jobs?${params}`);
       return response.json();
     },
     enabled: selectedTab === "jobs",
@@ -314,7 +312,6 @@ export default function AdminPanelV2() {
   const deleteTicketMutation = useMutation({
     mutationFn: async (ticketId: number) => {
       const response = await apiRequest("DELETE", `/api/admin/support-tickets/${ticketId}`);
-      if (!response.ok) throw new Error("Failed to delete ticket");
       return response.json();
     },
     onSuccess: () => {
@@ -333,7 +330,6 @@ export default function AdminPanelV2() {
         response,
         status: "resolved"
       });
-      if (!result.ok) throw new Error("Failed to send response");
       return result.json();
     },
     onSuccess: () => {

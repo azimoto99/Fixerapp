@@ -1,5 +1,6 @@
 import React from 'react';
 import { StripeTermsAcceptance } from '.';
+import { apiRequest } from '@/lib/queryClient';
 import { User } from '@shared/schema';
 
 interface StripeRequirementsCheckProps {
@@ -41,17 +42,10 @@ const StripeRequirementsCheck: React.FC<StripeRequirementsCheckProps> = ({
     if (user) {
       console.log('Invalidating user data after Stripe terms completion');
       // Directly query the API to re-fetch the latest user data before hiding the form
-      fetch('/api/user', {
-        credentials: 'include' // Important: includes cookies in the request
-      })
+      apiRequest('GET', '/api/user')
       .then(response => {
-        if (response.ok) {
-          console.log('User data refreshed successfully');
-          return response.json();
-        } else {
-          console.error('Failed to refresh user data after Stripe terms completion');
-          throw new Error('Failed to refresh user data');
-        }
+        console.log('User data refreshed successfully');
+        return response.json();
       })
       .then(() => {
         console.log('Setting showTermsAcceptance to false');

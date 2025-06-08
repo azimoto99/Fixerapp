@@ -3,6 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Loader2, ExternalLink, Bug, Network, Check } from 'lucide-react';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { apiRequest } from '@/lib/queryClient';
 
 const StripeDebugPage = () => {
   const [logs, setLogs] = useState<string[]>([]);
@@ -21,13 +22,11 @@ const StripeDebugPage = () => {
     addLog(`Testing endpoint: ${path}`);
     
     try {
-      const response = await fetch(path, {
-        method: path.includes('create-account') ? 'POST' : 'GET',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        credentials: 'include'
-      });
+      const response = await apiRequest(
+        path.includes('create-account') ? 'POST' : 'GET',
+        path,
+        path.includes('create-account') ? {} : undefined
+      );
       
       const status = response.ok ? 'success' : 'error';
       let responseData: any = null;
@@ -93,14 +92,7 @@ const StripeDebugPage = () => {
     addLog('Testing create-account endpoint...');
     
     try {
-      const response = await fetch('/api/stripe/connect/create-account', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        credentials: 'include',
-        body: JSON.stringify({})
-      });
+      const response = await apiRequest('POST', '/api/stripe/connect/create-account', {});
       
       const status = response.ok ? 'success' : 'error';
       let responseData: any = null;

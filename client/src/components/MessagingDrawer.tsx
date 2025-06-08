@@ -160,7 +160,7 @@ export function MessagingDrawer({ open, onOpenChange }: MessagingDrawerProps) {
   // Get current user
   useEffect(() => {
     if (open) {
-      fetch('/api/user')
+      apiRequest('GET', '/api/user')
         .then(res => res.json())
         .then(data => {
           setCurrentUser(data);

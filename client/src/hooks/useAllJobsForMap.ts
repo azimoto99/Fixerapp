@@ -1,4 +1,5 @@
 import { useQuery } from '@tanstack/react-query';
+import { apiRequest } from '@/lib/queryClient';
 import { Job } from '@shared/schema';
 
 /**
@@ -10,10 +11,7 @@ export function useAllJobsForMap() {
   const { data: jobsResponse, isLoading, error } = useQuery<Job[]>({
     queryKey: ['/api/jobs', 'map-display'],
     queryFn: async () => {
-      const response = await fetch('/api/jobs?hasCoordinates=true');
-      if (!response.ok) {
-        throw new Error('Failed to fetch jobs for map');
-      }
+      const response = await apiRequest('GET', '/api/jobs?hasCoordinates=true');
       return response.json();
     }
   });

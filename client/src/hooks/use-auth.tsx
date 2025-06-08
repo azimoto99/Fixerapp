@@ -55,40 +55,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       try {
         console.log('Attempting login with username:', credentials.username);
         
-        // Enhanced login flow with direct fetch for more reliable session handling
-        const res = await fetch("/api/login", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify(credentials),
-          credentials: 'include'
-        });
-        
-        if (!res.ok) {
-          const errorText = await res.text();
-          console.error('Login response not OK:', res.status, errorText);
-          throw new Error(errorText || 'Invalid username or password');
-        }
+        // Enhanced login flow with apiRequest for consistent error handling
+        const res = await apiRequest("POST", "/api/login", credentials);
         
         console.log('Login response status:', res.status);
         
-        try {
-          const userData = await res.json();
-          console.log('Login successful, user data retrieved:', userData.id);
-          return userData;
-        } catch (parseError) {
-          console.error('Failed to parse login response:', parseError);
-          
-          // If we can't parse JSON but login was successful, still try to proceed
-          if (res.ok) {
-            console.log('Login successful but could not parse user data, refreshing page...');
-            // Return placeholder data to avoid errors, page will reload
-            return { id: 999, username: credentials.username } as any;
-          }
-          
-          throw new Error('Failed to parse server response');
-        }
+        const userData = await res.json();
+        console.log('Login successful, user data retrieved:', userData.id);
+        return userData;
       } catch (error) {
         console.error('Login error:', error);
         throw error;
@@ -108,13 +82,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         queryClient.setQueryData(["/api/user"], userData);
         
         // Verify the session is established by making a call to /api/user
-        fetch('/api/user', { credentials: 'include' })
+        apiRequest('GET', '/api/user')
           .then(res => {
-            if (res.ok) {
-              console.log('Session verified after login');
-            } else {
-              console.warn('Session verification failed after login:', res.status);
-            }
+            console.log('Session verified after login');
+            return res.json();
           })
           .catch(err => {
             console.error('Error verifying session after login:', err);
@@ -141,40 +112,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       try {
         console.log('Attempting registration with username:', credentials.username);
         
-        // Enhanced registration flow with direct fetch for more reliable session handling
-        const res = await fetch("/api/register", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify(credentials),
-          credentials: 'include'
-        });
-        
-        if (!res.ok) {
-          const errorText = await res.text();
-          console.error('Registration response not OK:', res.status, errorText);
-          throw new Error(errorText || 'Registration failed');
-        }
+        // Enhanced registration flow with apiRequest for consistent error handling
+        const res = await apiRequest("POST", "/api/register", credentials);
         
         console.log('Registration response status:', res.status);
         
-        try {
-          const userData = await res.json();
-          console.log('Registration successful, user data retrieved:', userData.id);
-          return userData;
-        } catch (parseError) {
-          console.error('Failed to parse registration response:', parseError);
-          
-          // If we can't parse JSON but registration was successful, still try to proceed
-          if (res.ok) {
-            console.log('Registration successful but could not parse user data, refreshing page...');
-            // Return placeholder data to avoid errors
-            return { id: 999, username: credentials.username } as any;
-          }
-          
-          throw new Error('Failed to parse server response');
-        }
+        const userData = await res.json();
+        console.log('Registration successful, user data retrieved:', userData.id);
+        return userData;
       } catch (error) {
         console.error('Registration error:', error);
         throw error;
@@ -194,13 +139,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         queryClient.setQueryData(["/api/user"], userData);
         
         // Verify the session is established by making a call to /api/user
-        fetch('/api/user', { credentials: 'include' })
+        apiRequest('GET', '/api/user')
           .then(res => {
-            if (res.ok) {
-              console.log('Session verified after registration');
-            } else {
-              console.warn('Session verification failed after registration:', res.status);
-            }
+            console.log('Session verified after registration');
+            return res.json();
           })
           .catch(err => {
             console.error('Error verifying session after registration:', err);
@@ -246,15 +188,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const logoutMutation = useMutation({
     mutationFn: async () => {
-      // Use direct fetch for more reliable session handling
-      const res = await fetch("/api/logout", {
-        method: "POST",
-        credentials: 'include'
-      });
-      
-      if (!res.ok) {
-        console.error('Logout failed with status:', res.status);
-      }
+      // Use apiRequest for consistent error handling
+      await apiRequest("POST", "/api/logout");
     },
     onSuccess: () => {
       queryClient.setQueryData(["/api/user"], null);
