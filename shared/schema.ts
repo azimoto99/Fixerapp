@@ -307,6 +307,8 @@ export const insertJobSchema = createInsertSchema(jobs).pick({
   status: true,
   paymentType: true,
   paymentAmount: true,
+  serviceFee: true,
+  totalAmount: true,
   location: true,
   latitude: true,
   longitude: true,

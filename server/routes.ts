@@ -62,7 +62,6 @@ function calculateDistanceInFeet(lat1: number, lon1: number, lat2: number, lon2:
 }
 import Stripe from "stripe";
 import { filterJobContent, validatePaymentAmount } from "./content-filter";
-import { validateSkills, sanitizeSkill } from './utils/skillValidation';
 import { stripeRouter } from "./api/stripe-api";
 import stripeConnectRouter from "./api/stripe-connect";
 import { processPayment } from "./api/process-payment";
@@ -72,11 +71,11 @@ import createPaymentIntentRouter from "./api/stripe-api-create-payment-intent";
 import { setupStripeWebhooks } from "./api/stripe-webhooks";
 import { setupStripeTransfersRoutes } from "./api/stripe-transfers";
 import { setupStripePaymentMethodsRoutes } from "./api/stripe-payment-methods";
+import { paymentsRouter } from "./routes/payments";
 
 import "./api/storage-extensions"; // Import to register extended storage methods
 import "./storage-extensions"; // Import admin and payment extensions
 import * as crypto from 'crypto';
-import { validateSkills, sanitizeSkill } from './utils/skillValidation';
 
 // Helper function to convert schema User to Express.User type for req.login compatibility
 function adaptUserForLogin(user: any): Express.User {
@@ -102,12 +101,10 @@ import {
   insertEarningSchema,
   insertPaymentSchema,
   insertBadgeSchema,
-  insertUserBadgeSchema,
-  JOB_CATEGORIES,
+  insertUserBadgeSchema,  JOB_CATEGORIES,
   SKILLS,
   BADGE_CATEGORIES
 } from "@shared/schema";
-import { validateSkills, sanitizeSkill } from './utils/skillValidation';
 import { setupAuth } from "./auth";
 import { URL } from "url";
 
@@ -338,9 +335,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // Mount main Stripe routes
   apiRouter.use('/stripe', stripeRouter);
-
   // Mount Stripe create payment intent routes
   apiRouter.use('/stripe', createPaymentIntentRouter);
+
+  // Mount payment routes
+  apiRouter.use('/payments', paymentsRouter);
 
   // Set up Stripe payment methods routes
   setupStripePaymentMethodsRoutes(app);
@@ -2188,15 +2187,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
         paymentAmount,
         serviceFee: calculatedServiceFee,
         totalAmount: calculatedTotalAmount,
-        paymentType: paymentType || 'fixed',
-        latitude,
+        paymentType: paymentType || 'fixed',        latitude,
         longitude,
         posterId: req.user.id,
         status: 'open', // Test jobs are immediately available
         dateNeeded: new Date(dateNeeded),
         requiredSkills: requiredSkills || [],
-        equipmentProvided: equipmentProvided || false,
-        datePosted: new Date()
+        equipmentProvided: equipmentProvided || false
       });
 
       // Create notification for job poster
