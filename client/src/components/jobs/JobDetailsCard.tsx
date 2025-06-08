@@ -76,9 +76,10 @@ interface JobDetailsCardProps {
   jobId: number;
   isOpen: boolean;
   onClose: () => void;
+  onMessagePoster?: (posterId: number) => void;
 }
 
-const JobDetailsCard: React.FC<JobDetailsCardProps> = ({ jobId, isOpen, onClose }) => {
+const JobDetailsCard: React.FC<JobDetailsCardProps> = ({ jobId, isOpen, onClose, onMessagePoster }) => {
   const { user } = useAuth();
   const { toast } = useToast();
   const queryClient = useQueryClient();
@@ -798,33 +799,16 @@ const JobDetailsCard: React.FC<JobDetailsCardProps> = ({ jobId, isOpen, onClose 
                             <User className="h-5 w-5 text-primary" />
                           </div>
                           <div>
-                            <p className="font-medium">
-                              {poster?.fullName || poster?.username || `User #${job.posterId}`}
-                            </p>
-                            <p className="text-sm text-muted-foreground">
-                              Job Poster
-                            </p>
+                            <p className="font-semibold">{poster.fullName || poster.username}</p>
+                            <p className="text-sm text-muted-foreground">Job Poster</p>
                           </div>
+                          {user && user.id !== poster.id && onMessagePoster && (
+                            <Button variant="outline" size="sm" onClick={() => onMessagePoster(poster.id)}>
+                              <MessageSquare className="h-4 w-4 mr-2" />
+                              Message
+                            </Button>
+                          )}
                         </div>
-                        {user && user.id !== job.posterId && (
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            onClick={() => {
-                              // Open messaging drawer with this poster
-                              window.dispatchEvent(new CustomEvent('open-messaging', {
-                                detail: { 
-                                  contactId: job.posterId,
-                                  contactName: poster?.fullName || poster?.username || `User #${job.posterId}`
-                                }
-                              }));
-                            }}
-                            className="text-xs"
-                          >
-                            <Send className="h-3 w-3 mr-1" />
-                            Message
-                          </Button>
-                        )}
                       </div>
                     </div>
 

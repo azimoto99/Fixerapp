@@ -15,16 +15,18 @@ import { apiRequest, queryClient } from '@/lib/queryClient';
 import { StripeConnectRequired } from '@/components/stripe';
 import JobDetailsCard from './jobs/JobDetailsCard';
 import { useAllJobsForMap } from '@/hooks/useAllJobsForMap';
+import { AnimatePresence, motion } from 'framer-motion';
 
 interface MapSectionProps {
   jobs: Job[];
   selectedJob?: Job;
   onSelectJob?: (job: Job) => void;
   searchCoordinates?: { latitude: number; longitude: number };
+  onMessagePoster?: (posterId: number) => void;
 }
 
 // DoorDash-style interactive map component for showing nearby gigs with Mapbox
-const MapSection: React.FC<MapSectionProps> = ({ jobs, selectedJob, onSelectJob, searchCoordinates }) => {
+const MapSection: React.FC<MapSectionProps> = ({ jobs, selectedJob, onSelectJob, searchCoordinates, onMessagePoster }) => {
   const { userLocation, locationError, isUsingFallback } = useGeolocation();
   const [showJobDetail, setShowJobDetail] = useState<boolean>(false);
   const [mapReady, setMapReady] = useState(false);
@@ -537,7 +539,26 @@ const MapSection: React.FC<MapSectionProps> = ({ jobs, selectedJob, onSelectJob,
       </div>
       
       {/* New Job Details Card */}
-
+      <div className="absolute inset-x-0 bottom-0 z-10 p-2 pointer-events-none">
+        <AnimatePresence>
+          {selectedJobId && (
+            <motion.div
+              initial={{ y: "100%" }}
+              animate={{ y: 0 }}
+              exit={{ y: "100%" }}
+              transition={{ type: "spring", stiffness: 300, damping: 30 }}
+              className="pointer-events-auto"
+            >
+              <JobDetailsCard
+                jobId={selectedJobId}
+                isOpen={true}
+                onClose={() => setSelectedJobId(null)}
+                onMessagePoster={onMessagePoster}
+              />
+            </motion.div>
+          )}
+        </AnimatePresence>
+      </div>
     </div>
   );
 };

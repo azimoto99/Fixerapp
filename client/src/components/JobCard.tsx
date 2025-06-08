@@ -8,10 +8,11 @@ interface JobCardProps {
   job: Job;
   isSelected?: boolean;
   onSelect?: (job: Job) => void;
+  onMessagePoster?: (posterId: number) => void;
 }
 
 // Use React.memo to prevent unnecessary re-renders when job data hasn't changed
-const JobCard: React.FC<JobCardProps> = memo(({ job, isSelected, onSelect }) => {
+const JobCard: React.FC<JobCardProps> = memo(({ job, isSelected, onSelect, onMessagePoster }) => {
   const {
     id,
     title,
@@ -21,7 +22,8 @@ const JobCard: React.FC<JobCardProps> = memo(({ job, isSelected, onSelect }) => 
     location,
     status,
     datePosted,
-    dateNeeded
+    dateNeeded,
+    posterId,
   } = job;
   
   // Calculate service fee and total amount based on payment amount
@@ -111,6 +113,20 @@ const JobCard: React.FC<JobCardProps> = memo(({ job, isSelected, onSelect }) => 
               </div>
             )}
           </div>
+          {onMessagePoster && (
+            <div className="mt-4">
+              <button 
+                onClick={(e) => {
+                  e.stopPropagation();
+                  e.preventDefault();
+                  onMessagePoster(posterId);
+                }}
+                className="w-full text-center px-4 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600"
+              >
+                Message Job Poster
+              </button>
+            </div>
+          )}
         </div>
       </div>
     </Link>

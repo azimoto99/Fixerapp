@@ -15,12 +15,14 @@ interface JobListSectionProps {
     searchMode?: 'location' | 'description';
     coordinates?: { latitude: number; longitude: number };
   };
+  onMessagePoster?: (posterId: number) => void;
 }
 
 const JobListSection: React.FC<JobListSectionProps> = ({ 
   onSelectJob, 
   selectedJobId,
-  searchParams
+  searchParams,
+  onMessagePoster
 }) => {
   // Get the current user to check if we're showing jobs for a worker or poster
   const { user } = useAuth();
@@ -117,6 +119,7 @@ const JobListSection: React.FC<JobListSectionProps> = ({
                   job={job}
                   isSelected={job.id === selectedJobId}
                   onSelect={handleSelectJob}
+                  onMessagePoster={onMessagePoster}
                 />
               ))
             ) : (

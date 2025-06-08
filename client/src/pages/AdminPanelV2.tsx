@@ -33,6 +33,7 @@ import {
   Menu,
   X
 } from "lucide-react";
+import { StatCard } from "@/components/ui/StatCard";
 
 interface AdminStats {
   totalUsers: number;
@@ -132,30 +133,33 @@ export default function AdminPanelV2() {
   }, [debouncedSearch, filterStatus, selectedTab]);
 
   // Enhanced data fetching with comprehensive analytics and real-time monitoring
-  const { data: dashboardStats, isLoading: isDashboardLoading, error: dashboardError } = useQuery({
+  const { data: dashboardStats, isLoading: isDashboardLoading, error: dashboardError } = useQuery<AdminStats>({
     queryKey: ["/api/admin/analytics/comprehensive"],
+    queryFn: () => apiRequest('GET', '/api/admin/analytics/comprehensive').then(res => res.json()),
     refetchInterval: 30000, // Refresh every 30 seconds
     staleTime: 10000, // Consider data stale after 10 seconds
     retry: 3,
   });
 
   // Real-time system health monitoring
-  const { data: systemHealth, isLoading: isSystemLoading } = useQuery({
+  const { data: systemHealth, isLoading: isSystemLoading, error: systemHealthError } = useQuery({
     queryKey: ["/api/admin/system/health"],
+    queryFn: () => apiRequest('GET', '/api/admin/system/health').then(res => res.json()),
     refetchInterval: 15000, // Refresh every 15 seconds for real-time monitoring
     staleTime: 5000,
   });
 
   // Performance metrics for advanced monitoring
-  const { data: performanceMetrics, isLoading: isPerformanceLoading } = useQuery({
+  const { data: performanceMetrics, isLoading: isPerformanceLoading, error: performanceMetricsError } = useQuery({
     queryKey: ["/api/admin/system/performance"],
+    queryFn: () => apiRequest('GET', '/api/admin/system/performance').then(res => res.json()),
     refetchInterval: 20000, // Refresh every 20 seconds
     staleTime: 8000,
   });
 
   // Optimized data fetching with pagination and filtering
   const usersQueryKey = useMemo(() => [
-    "/api/admin/users",
+    "/api/admin/analytics/users",
     { 
       page: currentPage, 
       pageSize, 
@@ -187,7 +191,7 @@ export default function AdminPanelV2() {
 
   // Enhanced jobs fetching with filtering
   const jobsQueryKey = useMemo(() => [
-    "/api/admin/jobs-detailed",
+    "/api/admin/analytics/jobs",
     { 
       page: currentPage, 
       pageSize, 
@@ -225,11 +229,13 @@ export default function AdminPanelV2() {
 
   const { data: supportResponse, isLoading: isSupportLoading, refetch: refetchSupport } = useQuery({
     queryKey: ["/api/admin/analytics/support"],
+    queryFn: () => apiRequest('GET', '/api/admin/analytics/support').then(res => res.json()),
     enabled: selectedTab === "support",
   });
 
   const { data: financialResponse, isLoading: isTransactionsLoading } = useQuery({
     queryKey: ["/api/admin/analytics/financials"],
+    queryFn: () => apiRequest('GET', '/api/admin/analytics/financials').then(res => res.json()),
     enabled: selectedTab === "financials",
   });
 
@@ -239,6 +245,7 @@ export default function AdminPanelV2() {
 
   const { data: systemMetrics = [], isLoading: isSystemMetricsLoading } = useQuery({
     queryKey: ["/api/admin/system-metrics"],
+    queryFn: () => apiRequest('GET', '/api/admin/system-metrics').then(res => res.json()),
     enabled: selectedTab === "overview",
   });
 
@@ -247,10 +254,9 @@ export default function AdminPanelV2() {
     mutationFn: (userId: number) => apiRequest("DELETE", `/api/admin/users/${userId}`),
     onSuccess: () => {
       toast({ title: "User deleted successfully" });
-      queryClient.invalidateQueries({ queryKey: ["/api/admin/users"] });
-      queryClient.invalidateQueries({ queryKey: ["/api/admin/stats"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/analytics/users"] });
     },
-    onError: () => {
+    onError: (error: any) => {
       toast({ title: "Failed to delete user", variant: "destructive" });
     },
   });
@@ -260,10 +266,32 @@ export default function AdminPanelV2() {
       apiRequest("PATCH", `/api/admin/users/${userId}`, { isActive }),
     onSuccess: () => {
       toast({ title: "User status updated" });
-      queryClient.invalidateQueries({ queryKey: ["/api/admin/users"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/analytics/users"] });
     },
     onError: () => {
       toast({ title: "Failed to update user status", variant: "destructive" });
+    },
+  });
+
+  const banUserMutation = useMutation({
+    mutationFn: (userId: number) => apiRequest("PUT", `/api/admin/users/${userId}/ban`),
+    onSuccess: () => {
+      toast({ title: "User updated successfully" });
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/analytics/users"] });
+    },
+    onError: (error: any) => {
+      toast({ title: "Failed to update user", variant: "destructive" });
+    },
+  });
+
+  const promoteUserMutation = useMutation({
+    mutationFn: (userId: number) => apiRequest("PUT", `/api/admin/users/${userId}/promote`),
+    onSuccess: () => {
+      toast({ title: "User promoted successfully" });
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/analytics/users"] });
+    },
+    onError: (error: any) => {
+      toast({ title: "Failed to promote user", variant: "destructive" });
     },
   });
 
@@ -272,28 +300,38 @@ export default function AdminPanelV2() {
     mutationFn: (jobId: number) => apiRequest("DELETE", `/api/admin/jobs/${jobId}`),
     onSuccess: () => {
       toast({ title: "Job deleted successfully" });
-      queryClient.invalidateQueries({ queryKey: ["/api/admin/jobs"] });
-      queryClient.invalidateQueries({ queryKey: ["/api/admin/stats"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/analytics/jobs"] });
     },
-    onError: () => {
+    onError: (error: any) => {
       toast({ title: "Failed to delete job", variant: "destructive" });
+    },
+  });
+
+  const updateJobStatusMutation = useMutation({
+    mutationFn: ({ jobId, status }: { jobId: number; status: string }) =>
+      apiRequest("PUT", `/api/admin/jobs/${jobId}/status`, { status }),
+    onSuccess: () => {
+      toast({ title: "Job status updated successfully" });
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/analytics/jobs"] });
+    },
+    onError: (error: any) => {
+      toast({ title: "Failed to update job status", variant: "destructive" });
     },
   });
 
   // Support ticket mutations
   const updateTicketStatusMutation = useMutation({
-    mutationFn: ({ ticketId, status, resolution }: { ticketId: number; status: string; resolution?: string }) =>
-      apiRequest("PATCH", `/api/admin/support-tickets/${ticketId}`, { status, resolution }),
+    mutationFn: ({ ticketId, status }: { ticketId: number; status: string }) =>
+      apiRequest("PUT", `/api/admin/support/${ticketId}/status`, { status }),
     onSuccess: () => {
-      toast({ title: "Ticket updated successfully" });
-      queryClient.invalidateQueries({ queryKey: ["/api/admin/support-tickets"] });
+      toast({ title: "Ticket status updated successfully" });
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/analytics/support"] });
     },
-    onError: () => {
-      toast({ title: "Failed to update ticket", variant: "destructive" });
+    onError: (error: any) => {
+      toast({ title: "Failed to update ticket status", variant: "destructive" });
     },
   });
 
-  // Add ticket response mutation
   const addTicketResponseMutation = useMutation({
     mutationFn: async ({ ticketId, message }: { ticketId: number; message: string }) => 
       apiRequest("POST", `/api/admin/support-tickets/${ticketId}/responses`, { message }),
@@ -308,7 +346,6 @@ export default function AdminPanelV2() {
     },
   });
 
-  // Delete ticket mutation
   const deleteTicketMutation = useMutation({
     mutationFn: async (ticketId: number) => {
       const response = await apiRequest("DELETE", `/api/admin/support-tickets/${ticketId}`);
@@ -323,20 +360,14 @@ export default function AdminPanelV2() {
     }
   });
 
-  // Respond to ticket mutation
   const respondToTicketMutation = useMutation({
-    mutationFn: async ({ ticketId, response }: { ticketId: number, response: string }) => {
-      const result = await apiRequest("POST", `/api/admin/support-tickets/${ticketId}/respond`, {
-        response,
-        status: "resolved"
-      });
-      return result.json();
-    },
+    mutationFn: ({ ticketId, response }: { ticketId: number; response: string }) =>
+      apiRequest("POST", `/api/admin/support/${ticketId}/respond`, { response }),
     onSuccess: () => {
-      refetchSupport();
+      toast({ title: "Response sent successfully" });
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/analytics/support"] });
       setIsTicketDialogOpen(false);
       setTicketResponse("");
-      toast({ title: "Response sent and ticket resolved" });
     },
     onError: () => {
       toast({ title: "Failed to send response", variant: "destructive" });
@@ -417,127 +448,66 @@ export default function AdminPanelV2() {
 
           {/* Overview Tab */}
           <TabsContent value="overview" className="space-y-6">
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-              <Card className="bg-white shadow-lg border-0">
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium text-gray-600">Total Users</CardTitle>
-                  <Users className="h-4 w-4 text-blue-600" />
-                </CardHeader>
-                <CardContent>
-                  <div className="text-2xl font-bold text-gray-900">
-                    {dashboardStats?.userGrowth?.totalUsers || 0}
-                  </div>
-                  <p className="text-xs text-gray-500">
-                    +{dashboardStats?.userGrowth?.newUsersToday || 0} today
-                  </p>
-                  <div className="flex items-center mt-1">
-                    <span className={`text-xs font-medium ${
-                      (dashboardStats?.userGrowth?.growthRate || 0) >= 0 ? 'text-green-600' : 'text-red-600'
-                    }`}>
-                      {(dashboardStats?.userGrowth?.growthRate || 0) >= 0 ? '↗' : '↘'} 
-                      {Math.abs(dashboardStats?.userGrowth?.growthRate || 0).toFixed(1)}%
-                    </span>
-                    <span className="text-xs text-gray-500 ml-1">vs last month</span>
-                  </div>
-                </CardContent>
-              </Card>
-
-              <Card className="bg-white shadow-lg border-0">
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium text-gray-600">Active Jobs</CardTitle>
-                  <Briefcase className="h-4 w-4 text-green-600" />
-                </CardHeader>
-                <CardContent>
-                  <div className="text-2xl font-bold text-gray-900">
-                    {dashboardStats?.jobMetrics?.activeJobs || 0}
-                  </div>
-                  <p className="text-xs text-gray-500">
-                    {dashboardStats?.jobMetrics?.totalJobs || 0} total jobs
-                  </p>
-                  <div className="flex items-center mt-1">
-                    <span className="text-xs font-medium text-blue-600">
-                      {(dashboardStats?.jobMetrics?.completionRate || 0).toFixed(1)}% completion rate
-                    </span>
-                  </div>
-                </CardContent>
-              </Card>
-
-              <Card className="bg-white shadow-lg border-0">
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium text-gray-600">Platform Revenue</CardTitle>
-                  <DollarSign className="h-4 w-4 text-emerald-600" />
-                </CardHeader>
-                <CardContent>
-                  <div className="text-2xl font-bold text-gray-900">
-                    ${(dashboardStats?.financialMetrics?.monthlyRevenue || 0).toLocaleString()}
-                  </div>
-                  <p className="text-xs text-gray-500">
-                    ${(dashboardStats?.financialMetrics?.totalRevenue || 0).toLocaleString()} total
-                  </p>
-                  <div className="flex items-center mt-1">
-                    <span className={`text-xs font-medium ${
-                      (dashboardStats?.financialMetrics?.revenueGrowth || 0) >= 0 ? 'text-green-600' : 'text-red-600'
-                    }`}>
-                      {(dashboardStats?.financialMetrics?.revenueGrowth || 0) >= 0 ? '↗' : '↘'} 
-                      {Math.abs(dashboardStats?.financialMetrics?.revenueGrowth || 0).toFixed(1)}%
-                    </span>
-                    <span className="text-xs text-gray-500 ml-1">growth</span>
-                  </div>
-                </CardContent>
-              </Card>
-
-              <Card className="bg-white shadow-lg border-0">
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium text-gray-600">Support Tickets</CardTitle>
-                  <Activity className="h-4 w-4 text-orange-600" />
-                </CardHeader>
-                <CardContent>
-                  <div className="text-2xl font-bold text-gray-900">{dashboardStats?.pendingSupport || 0}</div>
-                  <p className="text-xs text-gray-500">Pending tickets</p>
-                </CardContent>
-              </Card>
+            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+              {isDashboardLoading ? (
+                Array.from({ length: 4 }).map((_, i) => <Skeleton key={i} className="h-32 rounded-lg" />)
+              ) : dashboardError ? (
+                <div className="col-span-4 bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative" role="alert">
+                  <strong className="font-bold">Error!</strong>
+                  <span className="block sm:inline"> Failed to load dashboard stats. Please try again later.</span>
+                </div>
+              ) : dashboardStats ? (
+                <>
+                  <StatCard title="Total Users" value={dashboardStats.totalUsers} icon={Users} />
+                  <StatCard title="Active Jobs" value={dashboardStats.activeJobs} icon={Briefcase} />
+                  <StatCard title="Total Revenue" value={`$${dashboardStats.totalRevenue.toLocaleString()}`} icon={DollarSign} />
+                  <StatCard title="Pending Disputes" value={dashboardStats.pendingDisputes} icon={AlertTriangle} />
+                </>
+              ) : null}
             </div>
-
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              <Card className="bg-white shadow-lg border-0">
-                <CardHeader>
-                  <CardTitle className="text-lg font-semibold text-gray-900">Recent Activity</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-4">
-                    <div className="flex items-center gap-3 p-3 bg-blue-50 rounded-lg">
-                      <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
-                      <span className="text-sm text-gray-700">Platform running smoothly</span>
-                    </div>
-                    <div className="flex items-center gap-3 p-3 bg-green-50 rounded-lg">
-                      <div className="w-2 h-2 bg-green-500 rounded-full"></div>
-                      <span className="text-sm text-gray-700">All systems operational</span>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-
-              <Card className="bg-white shadow-lg border-0">
-                <CardHeader>
-                  <CardTitle className="text-lg font-semibold text-gray-900">System Health</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-4">
-                    <div className="flex justify-between items-center">
-                      <span className="text-sm text-gray-600">Database</span>
-                      <Badge className="bg-green-100 text-green-800">Healthy</Badge>
-                    </div>
-                    <div className="flex justify-between items-center">
-                      <span className="text-sm text-gray-600">Payment System</span>
-                      <Badge className="bg-green-100 text-green-800">Operational</Badge>
-                    </div>
-                    <div className="flex justify-between items-center">
-                      <span className="text-sm text-gray-600">Authentication</span>
-                      <Badge className="bg-green-100 text-green-800">Secure</Badge>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
+            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-2 mt-4">
+              {isSystemLoading ? (
+                <Skeleton className="h-24" />
+              ) : systemHealthError ? (
+                <Card>
+                  <CardHeader>
+                    <CardTitle>System Health Error</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <p className="text-red-500">Failed to load system health.</p>
+                  </CardContent>
+                </Card>
+              ) : (
+                <Card>
+                  <CardHeader>
+                    <CardTitle>System Health</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <p>Status: <span className={`font-semibold ${systemHealth?.status === 'OK' ? 'text-green-500' : 'text-red-500'}`}>{systemHealth?.status}</span></p>
+                  </CardContent>
+                </Card>
+              )}
+              {isPerformanceLoading ? (
+                <Skeleton className="h-24" />
+              ) : performanceMetricsError ? (
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Performance Metrics Error</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <p className="text-red-500">Failed to load performance metrics.</p>
+                  </CardContent>
+                </Card>
+              ) : (
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Performance</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <p>API Latency: {performanceMetrics?.apiLatency}ms</p>
+                  </CardContent>
+                </Card>
+              )}
             </div>
           </TabsContent>
 
@@ -709,8 +679,7 @@ export default function AdminPanelV2() {
                           variant="outline"
                           onClick={() => updateTicketStatusMutation.mutate({ 
                             ticketId: ticket.id, 
-                            status: ticket.status === "open" ? "in_progress" : "resolved",
-                            resolution: "Issue resolved by admin"
+                            status: ticket.status === "open" ? "in_progress" : "resolved"
                           })}
                           disabled={ticket.status === "resolved" || ticket.status === "closed"}
                         >
@@ -954,8 +923,7 @@ export default function AdminPanelV2() {
                       variant="secondary"
                       onClick={() => updateTicketStatusMutation.mutate({ 
                         ticketId: selectedTicket.id, 
-                        status: "resolved",
-                        resolution: ticketResponse.trim() || "Issue resolved by admin"
+                        status: "resolved"
                       })}
                       disabled={updateTicketStatusMutation.isPending}
                     >

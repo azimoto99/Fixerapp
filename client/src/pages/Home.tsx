@@ -52,6 +52,8 @@ const WorkerDashboard = () => {
   const [selectedJob, setSelectedJob] = useState<Job | undefined>(undefined);
   const [cancelJobId, setCancelJobId] = useState<number | null>(null);
   const [showCancelDialog, setShowCancelDialog] = useState(false);
+  const [isMessagingDrawerOpen, setIsMessagingDrawerOpen] = useState(false);
+  const [messagingContactId, setMessagingContactId] = useState<number | null>(null);
   const [searchParams, setSearchParams] = useState({ 
     query: '', 
     category: '', 
@@ -102,6 +104,11 @@ const WorkerDashboard = () => {
       setCancelJobId(null);
     }
   });
+
+  const handleSendMessageToPoster = (posterId: number) => {
+    setMessagingContactId(posterId);
+    setIsMessagingDrawerOpen(true);
+  };
 
   const handleSearch = (params: { 
     query: string; 
@@ -159,6 +166,7 @@ const WorkerDashboard = () => {
             selectedJob={selectedJob}
             onSelectJob={handleSelectJob}
             searchCoordinates={searchParams.coordinates}
+            onMessagePoster={handleSendMessageToPoster}
           />
           
           {/* Post Job Button positioned beneath UserDrawerV2 with lower z-index */}
@@ -204,6 +212,12 @@ const WorkerDashboard = () => {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      <MessagingDrawer
+        open={isMessagingDrawerOpen}
+        onOpenChange={setIsMessagingDrawerOpen}
+        initialContactId={messagingContactId}
+      />
     </>
   );
 };
@@ -523,12 +537,6 @@ export default function Home() {
           }} 
         />
       )}
-      
-      {/* Messaging Drawer */}
-      <MessagingDrawer
-        open={showMessaging}
-        onOpenChange={setShowMessaging}
-      />
       
       {/* Posted Jobs Drawer */}
       {showPostedJobs && (

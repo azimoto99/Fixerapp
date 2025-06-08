@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { 
   Sheet, 
@@ -17,6 +17,13 @@ import { apiRequest } from "@/lib/queryClient";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { useToast } from "@/hooks/use-toast";
 import { Search, X, Send, MessageSquare, UserPlus } from "lucide-react";
+
+type UserSearchResult = {
+  id: number;
+  username: string;
+  fullName: string | null;
+  avatarUrl: string | null;
+};
 
 type Contact = {
   id: number;
@@ -39,24 +46,26 @@ type Message = {
 export type MessagingDrawerProps = {
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  initialContactId?: number | null;
 };
 
 /**
  * MessagingDrawer component for managing user contacts and messages
  * Visually consistent with other drawer components in the application
  */
-export function MessagingDrawer({ open, onOpenChange }: MessagingDrawerProps) {
+export function MessagingDrawer({ open, onOpenChange, initialContactId = null }: MessagingDrawerProps) {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [currentUser, setCurrentUser] = useState<any>(null);
-  const [selectedContactId, setSelectedContactId] = useState<number | null>(null);
+  const [selectedContactId, setSelectedContactId] = useState<number | null>(initialContactId);
   const [newMessage, setNewMessage] = useState("");
   const [searchQuery, setSearchQuery] = useState("");
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const [tab, setTab] = useState("contacts");
 
-  const { data: contacts = [] } = useQuery({
+  const { data: contacts = [], refetch: refetchContacts } = useQuery<Contact[]>({
     queryKey: ['/api/contacts'],
+    queryFn: () => apiRequest('GET', '/api/contacts').then(res => res.json()),
     enabled: open,
   });
 
@@ -69,7 +78,7 @@ export function MessagingDrawer({ open, onOpenChange }: MessagingDrawerProps) {
     isError: isSearchError,
     isLoading: isSearchLoading,
     refetch: refetchSearch
-  } = useQuery({
+  } = useQuery<UserSearchResult[]>({
     queryKey: ['/api/users/search', searchQuery],
     queryFn: async () => {
       try {
@@ -93,8 +102,9 @@ export function MessagingDrawer({ open, onOpenChange }: MessagingDrawerProps) {
     staleTime: 30000 // Cache results for 30 seconds
   });
 
-  const { data: messages = [] } = useQuery({
+  const { data: messages = [] } = useQuery<Message[]>({
     queryKey: ['/api/messages', selectedContactId],
+    queryFn: () => apiRequest('GET', `/api/messages?contactId=${selectedContactId}`).then(res => res.json()),
     enabled: open && selectedContactId !== null,
   });
 
@@ -136,6 +146,22 @@ export function MessagingDrawer({ open, onOpenChange }: MessagingDrawerProps) {
       });
     }
   });
+
+  const addContactAndSelect = useCallback(async (contactId: number) => {
+    // Check if the user is already a contact
+    const isContact = contacts.some(contact => contact.id === contactId);
+    if (isContact) {
+      setSelectedContactId(contactId);
+      return;
+    }
+    // If not a contact, add them
+    try {
+      await addContactMutation.mutateAsync(contactId);
+      setSelectedContactId(contactId);
+    } catch (error) {
+      console.error("Failed to add contact:", error);
+    }
+  }, [contacts, addContactMutation]);
 
   const removeContactMutation = useMutation({
     mutationFn: (contactId: number) => 
@@ -187,6 +213,16 @@ export function MessagingDrawer({ open, onOpenChange }: MessagingDrawerProps) {
       setTab("contacts");
     }
   }, [open]);
+
+  useEffect(() => {
+    if (open && initialContactId) {
+      addContactAndSelect(initialContactId);
+    }
+    // Reset when the drawer is closed
+    if (!open) {
+      setSelectedContactId(null);
+    }
+  }, [open, initialContactId, addContactAndSelect]);
 
   const handleSendMessage = () => {
     if (!newMessage.trim() || !selectedContactId) return;
@@ -510,23 +546,17 @@ export function MessagingDrawer({ open, onOpenChange }: MessagingDrawerProps) {
                 </div>
               ) : (
                 <div className="space-y-2">
-                  {searchResults.map((user: any) => (
+                  {searchResults.map((user) => (
                     <div key={user.id} className="p-3 hover:bg-accent/50 border rounded-md transition-colors">
                       <div className="flex items-center gap-3">
                         <Avatar className="h-10 w-10 border">
-                          <AvatarImage src={user.avatarUrl || user.profileImage || ""} alt={user.username} />
+                          <AvatarImage src={user.avatarUrl || ""} alt={user.username} />
                           <AvatarFallback>{getInitials(user.fullName)}</AvatarFallback>
                         </Avatar>
                         <div className="flex-grow min-w-0">
                           <h4 className="font-medium">{user.fullName || user.username}</h4>
                           <div className="flex flex-col xs:flex-row xs:items-center gap-1 xs:gap-2">
                             <p className="text-sm text-muted-foreground">@{user.username}</p>
-                            {user.email && (
-                              <>
-                                <span className="hidden xs:inline text-muted-foreground">•</span>
-                                <p className="text-sm text-muted-foreground truncate max-w-[150px]">{user.email}</p>
-                              </>
-                            )}
                           </div>
                         </div>
                         <Button 

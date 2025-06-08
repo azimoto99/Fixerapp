@@ -23,7 +23,11 @@ export function SkillsManagerForm({
 
   // Update parent when skills change
   useEffect(() => {
-    onSkillsChange(skills);
+    try {
+      onSkillsChange(skills);
+    } catch (error) {
+      console.error('Error updating skills:', error);
+    }
   }, [skills, onSkillsChange]);
 
   const handleAddSkill = () => {

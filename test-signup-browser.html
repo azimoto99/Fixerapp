@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Signup</title>
+</head>
+<body>
+    <h1>Test Signup Flow</h1>
+    <button id="testBtn">Test Signup API</button>
+    <pre id="result"></pre>
+
+    <script>
+        document.getElementById('testBtn').addEventListener('click', async () => {
+            const resultEl = document.getElementById('result');
+            
+            try {
+                const timestamp = Date.now();
+                const testUser = {
+                    username: `testuser${timestamp}`,
+                    password: 'TestPass123!',
+                    fullName: 'Test User',
+                    email: `test${timestamp}@example.com`,
+                    phone: '555-1234',
+                    bio: 'Test bio',
+                    skills: ['JavaScript', 'React'],
+                    accountType: 'worker'
+                };
+                
+                resultEl.textContent = 'Sending request...\n';
+                
+                const response = await fetch('http://localhost:5000/api/register', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(testUser),
+                    credentials: 'include'
+                });
+                
+                const data = await response.json();
+                
+                resultEl.textContent += `Response status: ${response.status}\n`;
+                resultEl.textContent += `Response data: ${JSON.stringify(data, null, 2)}\n`;
+                
+                if (response.ok) {
+                    // Check session
+                    const userResponse = await fetch('http://localhost:5000/api/user', {
+                        credentials: 'include'
+                    });
+                    
+                    const userData = await userResponse.json();
+                    resultEl.textContent += `\nSession check: ${userResponse.status}\n`;
+                    resultEl.textContent += `User data: ${JSON.stringify(userData, null, 2)}\n`;
+                }
+                
+            } catch (error) {
+                resultEl.textContent = `Error: ${error.message}\n${error.stack}`;
+            }
+        });
+    </script>
+</body>
+</html> 
