@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { DbUser } from '@shared/schema';
 import { apiRequest } from '@/lib/queryClient';
@@ -66,75 +66,43 @@ const PaymentContent: React.FC<PaymentContentProps> = ({ user }) => {
   });
 
   // Fetch payment methods
-  const { 
-    data: paymentMethods, 
-    isLoading: paymentMethodsLoading, 
-    isError, 
-    error 
+  const {
+    data: paymentMethods,
+    isLoading: paymentMethodsLoading,
+    isError,
+    error
   } = useQuery({
     queryKey: ['payment-methods'],
     queryFn: async () => {
       const response = await apiRequest('GET', '/api/stripe/payment-methods');
-      const clonedResponse = response.clone(); // Clone the response immediately
-
-      // apiRequest would have thrown if !response.ok.
-      // So, if we are here, response.ok is true.
-      // The problem is when response.ok is true, but the body is HTML.
-      try {
-        const result = await response.json(); // Attempt to parse original response
-
-        // Ensure the expected structure is returned
-        if (typeof result.data !== 'undefined') {
-          return result.data || [];
-        } else {
-          // Valid JSON, but not the expected { data: ... } structure
-          console.error('Payment methods response received, but in unexpected format (PaymentContent):', result);
-          throw new Error('Received payment methods in an unexpected format.');
-        }
-      } catch (jsonError) {
-        // This means response.json() failed, likely because the response was HTML
-        console.error('Error parsing payment methods response as JSON (PaymentContent):', jsonError);
-        // Try to read the CLONED response as text to confirm if it's HTML
-        try {
-          const textResponse = await clonedResponse.text(); // Use the cloned response
-          if (textResponse.trim().toLowerCase().startsWith('<!doctype html')) {
-            console.error('Server returned HTML instead of JSON for payment methods (PaymentContent). Body:', textResponse.substring(0, 500));
-            throw new Error('Failed to process payment methods: The server returned HTML instead of JSON.');
-          } else {
-            console.error('Server returned non-JSON, non-HTML response (PaymentContent):', textResponse.substring(0, 500));
-            throw new Error('Failed to process payment methods: The server returned an unexpected non-JSON response.');
-          }
-        } catch (textError) {
-          console.error('Additionally, failed to read cloned response as text (PaymentContent):', textError);
-          throw new Error('Failed to process payment methods: Response was not valid JSON and could not be read as text from clone.');
-        }
-      }
+      if (!response.ok) throw new Error('Failed to load payment methods');
+      const json = await response.json();
+      return json.data || [];
     },
     enabled: !!user,
   });
 
+  // Set initial selected default method
+  useEffect(() => {
+    if (paymentMethods?.length) {
+      const def = paymentMethods.find((m: any) => m.isDefault);
+      if (def) setSelectedMethod(def.id);
+    }
+  }, [paymentMethods]);
+
   // Set default payment method
   const setDefault = useMutation({
     mutationFn: async (id: string) => {
-      const response = await apiRequest('POST', '/api/stripe/set-default-payment-method', { id });
-      if (!response.ok) {
-        throw new Error('Failed to set default payment method');
-      }
+      const response = await apiRequest('POST', `/api/stripe/payment-methods/${id}/set-default`);
+      if (!response.ok) throw new Error('Failed to set default payment method');
       return response.json();
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['payment-methods'] });
-      toast({
-        title: 'Default Payment Method',
-        description: 'Your default payment method has been updated.',
-      });
+      toast({ title: 'Default Payment Method', description: 'Your default payment method has been updated.' });
     },
     onError: (error: Error) => {
-      toast({
-        variant: 'destructive',
-        title: 'Error',
-        description: error.message,
-      });
+      toast({ variant: 'destructive', title: 'Error', description: error.message });
     }
   });
 

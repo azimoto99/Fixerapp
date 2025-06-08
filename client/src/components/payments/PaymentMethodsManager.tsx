@@ -257,7 +257,8 @@ export default function PaymentMethodsManager() {
       if (!response.ok) {
         throw new Error('Failed to fetch payment methods');
       }
-      return response.json();
+      const json = await response.json();
+      return json.data || [];
     },
   });
 

@@ -84,13 +84,12 @@ export default function PaymentConfirmation({
     error: paymentMethodsError,
     refetch: refetchPaymentMethods
   } = useQuery({
-    queryKey: ['/api/payment-methods'],
+    queryKey: ['payment-methods'],
     queryFn: async () => {
       const response = await apiRequest('GET', '/api/stripe/payment-methods');
-      if (!response.ok) {
-        throw new Error('Failed to fetch payment methods');
-      }
-      return response.json();
+      if (!response.ok) throw new Error('Failed to fetch payment methods');
+      const json = await response.json();
+      return json.data || [];
     }
   });
 

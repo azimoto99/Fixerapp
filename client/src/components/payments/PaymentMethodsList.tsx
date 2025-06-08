@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { apiRequest } from '@/lib/queryClient';
 import { useToast } from '@/hooks/use-toast';
@@ -61,14 +61,23 @@ export default function PaymentMethodsList() {
       if (!response.ok) {
         throw new Error('Failed to fetch payment methods');
       }
-      return response.json();
+      const json = await response.json();
+      return json.data || [];
     },
   });
+
+  // Set initial selected method to default
+  useEffect(() => {
+    if (paymentMethods && paymentMethods.length > 0) {
+      const defaultMethod = paymentMethods.find((m: any) => m.isDefault);
+      if (defaultMethod) setSelectedMethod(defaultMethod.id);
+    }
+  }, [paymentMethods]);
 
   // Set default payment method
   const setDefault = useMutation({
     mutationFn: async (id: string) => {
-      const response = await apiRequest('POST', '/api/stripe/set-default-payment-method', { id });
+      const response = await apiRequest('POST', `/api/stripe/payment-methods/${id}/set-default`);
       if (!response.ok) {
         throw new Error('Failed to set default payment method');
       }

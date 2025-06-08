@@ -341,6 +341,11 @@ const WalletContent: React.FC<WalletContentProps> = ({ user }) => {
                       <Badge variant="secondary" className="text-xs">
                         {method.card?.brand?.toUpperCase()}
                       </Badge>
+                      {method.isDefault && (
+                        <Badge variant="outline" className="text-xs ml-1">
+                          Default
+                        </Badge>
+                      )}
                     </div>
                     <Button
                       size="icon"

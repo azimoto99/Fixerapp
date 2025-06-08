@@ -390,7 +390,8 @@ export const PaymentDialogProvider: React.FC<{ children: React.ReactNode }> = ({
       if (!response.ok) {
         throw new Error('Failed to load payment methods');
       }
-      return response.json();
+      const json = await response.json();
+      return json.data || [];
     }
   });
 
