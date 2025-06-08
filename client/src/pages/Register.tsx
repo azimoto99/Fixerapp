@@ -3,7 +3,7 @@ import { useForm } from 'react-hook-form';
 import { z } from 'zod';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useAuth } from '@/hooks/use-auth';
-import { SKILLS } from '@shared/schema';
+import { SkillsManager } from '@/components/profile/SkillsManager';
 import logoImg from '@/assets/fixer.png';
 
 import {
@@ -26,7 +26,6 @@ import {
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
-import { Checkbox } from '@/components/ui/checkbox';
 
 const formSchema = z.object({
   username: z.string().min(3, 'Username must be at least 3 characters'),
@@ -232,49 +231,21 @@ export default function Register({ onModeChange }: RegisterProps) {
               <FormField
                 control={form.control}
                 name="skills"
-                render={() => (
+                render={({ field }) => (
                   <FormItem>
                     <div className="mb-4">
                       <FormLabel className="text-base">Skills</FormLabel>
                       <FormDescription>
-                        Select the skills you have to match with relevant jobs
+                        Add skills you have to match with relevant jobs. You can add custom skills or select from suggestions.
                       </FormDescription>
                     </div>
-                    <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
-                      {SKILLS.map((skill) => (
-                        <FormField
-                          key={skill}
-                          control={form.control}
-                          name="skills"
-                          render={({ field }) => {
-                            return (
-                              <FormItem
-                                key={skill}
-                                className="flex flex-row items-start space-x-3 space-y-0"
-                              >
-                                <FormControl>
-                                  <Checkbox
-                                    checked={field.value?.includes(skill)}
-                                    onCheckedChange={(checked) => {
-                                      return checked
-                                        ? field.onChange([...field.value, skill])
-                                        : field.onChange(
-                                            field.value?.filter(
-                                              (value) => value !== skill
-                                            )
-                                          )
-                                    }}
-                                  />
-                                </FormControl>
-                                <FormLabel className="font-normal">
-                                  {skill}
-                                </FormLabel>
-                              </FormItem>
-                            )
-                          }}
-                        />
-                      ))}
-                    </div>
+                    <FormControl>
+                      <SkillsManager
+                        initialSkills={field.value || []}
+                        onSkillsChange={(skills) => field.onChange(skills)}
+                        showTitle={false}
+                      />
+                    </FormControl>
                     <FormMessage />
                   </FormItem>
                 )}
