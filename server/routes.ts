@@ -1981,47 +1981,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const sanitizedTitle = sanitizeJobContent(title);
       const sanitizedDescription = sanitizeJobContent(description);
 
-      // Import job validation functions
-      const { validateJobPosting, sanitizeJobContent, validateJobPayment, validateJobSkills } = await import('./utils/jobValidation');
-      
-      // Validate job content for inappropriate material
-      const contentValidation = validateJobPosting(title, description, category);
-      if (!contentValidation.isValid) {
-        return res.status(400).json({ 
-          message: contentValidation.reason,
-          flaggedContent: contentValidation.flaggedContent
-        });
-      }
-      
-      // Validate payment amount
-      const paymentValidation = validateJobPayment(paymentAmount, paymentType || 'fixed');
-      if (!paymentValidation.isValid) {
-        return res.status(400).json({ message: paymentValidation.reason });
-      }
-      
-      // Validate required skills if provided
-      if (requiredSkills && requiredSkills.length > 0) {
-        const skillsValidation = validateJobSkills(requiredSkills);
-        if (!skillsValidation.isValid) {
-          return res.status(400).json({ 
-            message: skillsValidation.reason,
-            invalidSkills: skillsValidation.invalidSkills
-          });
-        }
-      }
-      
-      // Sanitize content
-      const sanitizedTitle = sanitizeJobContent(title);
-      const sanitizedDescription = sanitizeJobContent(description);
-
       // Calculate service fee and total amount if not provided
       const calculatedServiceFee = serviceFee || 2.5;
       const calculatedTotalAmount = totalAmount || (paymentAmount + calculatedServiceFee);
 
       // Create the test job (status is 'open' since no payment required)
       const job = await storage.createJob({
-        title,
-        description,
+        title: sanitizedTitle,
+        description: sanitizedDescription,
         category,
         location,
         paymentAmount,
