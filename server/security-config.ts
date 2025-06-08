@@ -75,9 +75,24 @@ export const securityConfig = {
         styleSrc: ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com"],
         fontSrc: ["'self'", "https://fonts.gstatic.com"],
         imgSrc: ["'self'", "data:", "https:", "blob:"],
-        scriptSrc: ["'self'", "'unsafe-inline'", "https://js.stripe.com", "https://api.mapbox.com", "https://cdnjs.cloudflare.com", "https://*.mapbox.com"],
-        connectSrc: ["'self'", "https://api.stripe.com", "https://api.mapbox.com", "https://events.mapbox.com"],
-        frameSrc: ["https://js.stripe.com", "https://hooks.stripe.com"],
+        scriptSrc: [
+          "'self'",
+          "'unsafe-inline'",
+          "'unsafe-eval'",
+          "https://js.stripe.com",
+          "https://api.mapbox.com",
+          "https://cdnjs.cloudflare.com",
+          "https://*.mapbox.com",
+          "https://basil.stripe.com"
+        ],
+        connectSrc: [
+          "'self'",
+          "https://api.stripe.com",
+          "https://api.mapbox.com",
+          "https://events.mapbox.com",
+          "wss://fixer.gg"
+        ],
+        frameSrc: ["https://js.stripe.com", "https://hooks.stripe.com", "https://connect.stripe.com"],
         workerSrc: ["'self'", "blob:"],
       },
     },

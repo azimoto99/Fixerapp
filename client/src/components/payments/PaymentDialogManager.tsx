@@ -64,20 +64,9 @@ const AddPaymentMethodForm = ({ onSuccess }: { onSuccess: () => void }) => {
 
   // Monitor Stripe readiness
   useEffect(() => {
-    console.log('AddPaymentMethodForm mounted');
-    console.log('Stripe instance:', stripe ? 'Available' : 'Not Available');
-    console.log('Elements instance:', elements ? 'Available' : 'Not Available');
-    
     if (stripe && elements) {
       setIsStripeReady(true);
       setLoadingTimeout(false);
-      console.log('Stripe and Elements are ready');
-      
-      // Check if PaymentElement is available after a short delay
-      setTimeout(() => {
-        const paymentElement = elements.getElement('payment');
-        console.log('PaymentElement found:', paymentElement ? 'Yes' : 'No');
-      }, 1000);
     } else {
       setIsStripeReady(false);
     }
@@ -88,7 +77,6 @@ const AddPaymentMethodForm = ({ onSuccess }: { onSuccess: () => void }) => {
     const timer = setTimeout(() => {
       if (!stripe || !elements) {
         setLoadingTimeout(true);
-        console.warn('Stripe loading timeout reached');
       }
     }, 10000); // 10 second timeout
 
@@ -99,7 +87,6 @@ const AddPaymentMethodForm = ({ onSuccess }: { onSuccess: () => void }) => {
     e.preventDefault();
 
     if (!stripe || !elements) {
-      console.log('Stripe or elements not ready:', { stripe: !!stripe, elements: !!elements });
       return;
     }
 
