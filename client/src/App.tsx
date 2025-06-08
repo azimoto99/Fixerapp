@@ -59,7 +59,7 @@ function RedirectToAuth() {
 
 // Auth-aware router that redirects to auth page if not logged in
 function RouterWithAuth() {
-  const { user, isLoading } = useAuth();
+  const { user, isLoading, error } = useAuth();
   const [, navigate] = useLocation();
   const [isRoot] = useRoute("/");
   
@@ -77,6 +77,13 @@ function RouterWithAuth() {
         <div className="animate-spin w-8 h-8 border-4 border-primary border-t-transparent rounded-full" aria-label="Loading"/>
       </div>
     );
+  }
+  
+  // If there's an error loading user data, redirect to auth
+  if (error && isRoot) {
+    console.error('Error loading user data:', error);
+    navigate('/auth');
+    return null;
   }
   
   return (

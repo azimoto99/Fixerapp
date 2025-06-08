@@ -3,7 +3,7 @@ import { useForm } from 'react-hook-form';
 import { z } from 'zod';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useAuth } from '@/hooks/use-auth';
-import { SkillsManager } from '@/components/profile/SkillsManager';
+import { SkillsManagerForm } from '@/components/profile/SkillsManagerForm';
 import logoImg from '@/assets/fixer.png';
 
 import {
@@ -86,7 +86,8 @@ export default function Register({ onModeChange }: RegisterProps) {
       
       registerMutation.mutate(submitData, {
         onSuccess: () => {
-          navigate('/');
+          // Navigation is now handled in the mutation's onSuccess in use-auth.tsx
+          // This ensures the session is properly established first
         },
         onError: (error: any) => {
           console.error('Registration error:', error);
@@ -240,7 +241,7 @@ export default function Register({ onModeChange }: RegisterProps) {
                       </FormDescription>
                     </div>
                     <FormControl>
-                      <SkillsManager
+                      <SkillsManagerForm
                         initialSkills={field.value || []}
                         onSkillsChange={(skills) => field.onChange(skills)}
                         showTitle={false}

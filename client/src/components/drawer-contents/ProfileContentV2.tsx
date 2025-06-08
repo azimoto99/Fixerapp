@@ -56,7 +56,8 @@ export default function ProfileContentV2({ user, onSignOut }: ProfileContentV2Pr
   const completedJobs = Array.isArray(jobs) ? jobs.filter(job => job.status === 'completed').length : 0;
   const totalEarnings = Array.isArray(earnings) ? earnings.reduce((sum, earning) => sum + (earning.amount || 0), 0) : 0;
   const avgRating = user.rating || 0;
-  const reviewCount = 0;
+  // TODO: Fetch actual review count from reviews API
+  const reviewCount = 0; // Currently hardcoded, will be fetched from reviews table
   const successRate = completedJobs > 0 ? Math.round((completedJobs / (completedJobs + 0)) * 100) : 100;
 
   // Recent activity (last 3 completed jobs)
@@ -108,15 +109,13 @@ export default function ProfileContentV2({ user, onSignOut }: ProfileContentV2Pr
                 </div>
               )}
               
-              {reviewCount > 0 && (
+              {avgRating > 0 && (
                 <div className="flex items-center justify-center gap-2">
                   <div className="flex items-center gap-1">
                     <Star className="h-4 w-4 fill-yellow-400 text-yellow-400" />
                     <span className="font-semibold">{avgRating.toFixed(1)}</span>
                   </div>
-                  <span className="text-sm text-muted-foreground">
-                    ({reviewCount} review{reviewCount !== 1 ? 's' : ''})
-                  </span>
+                  {/* Review count will be shown when implemented */}
                 </div>
               )}
             </div>

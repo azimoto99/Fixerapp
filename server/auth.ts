@@ -144,7 +144,30 @@ export function setupAuth(app: Express) {
   // Register a new user (always as worker type)
   app.post("/api/register", async (req: Request, res: Response, next: NextFunction) => {
     try {
-      const { username, email, password: rawPassword } = req.body;
+      const { username, email, password: rawPassword, fullName } = req.body;
+
+      // Validate required fields
+      if (!username || !email || !rawPassword || !fullName) {
+        return res.status(400).json({ 
+          message: "Missing required fields. Username, email, password, and full name are required." 
+        });
+      }
+
+      // Validate username length
+      if (username.length < 3) {
+        return res.status(400).json({ message: "Username must be at least 3 characters long" });
+      }
+
+      // Validate email format
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      if (!emailRegex.test(email)) {
+        return res.status(400).json({ message: "Invalid email address" });
+      }
+
+      // Validate password
+      if (rawPassword.length < 8) {
+        return res.status(400).json({ message: "Password must be at least 8 characters long" });
+      }
 
       // Check if the username is already taken
       const existingUser = await storage.getUserByUsername(username);
