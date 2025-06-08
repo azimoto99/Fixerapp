@@ -122,7 +122,7 @@ export default function PostJobDrawer({ isOpen, onOpenChange }: PostJobDrawerPro
   };
 
   const onSubmit = async (data: z.infer<typeof formSchema>) => {
-    console.log('PostJobDrawer form submitted with data:', data);
+
     
     if (!user) {
       console.warn('No user found when submitting job');
@@ -178,7 +178,7 @@ export default function PostJobDrawer({ isOpen, onOpenChange }: PostJobDrawerPro
       
       // Check if this is a test job
       if (data.isTestJob) {
-        console.log('Processing test job - bypassing payment');
+
         await processTestJob(jobDataToSubmit);
         return;
       }
@@ -189,7 +189,7 @@ export default function PostJobDrawer({ isOpen, onOpenChange }: PostJobDrawerPro
       // Open the payment method selection dialog
       openPaymentMethodsDialog({
         onSelect: (paymentMethodId) => {
-          console.log('Payment method selected:', paymentMethodId);
+
           
           // Update the form with the selected payment method
           form.setValue('paymentMethodId', paymentMethodId);
@@ -202,7 +202,7 @@ export default function PostJobDrawer({ isOpen, onOpenChange }: PostJobDrawerPro
           processPaymentAndCreateJob(updatedData);
         },
         onClose: () => {
-          console.log('Payment method dialog closed without selection');
+
           setIsSubmitting(false);
           toast({
             title: "Payment Method Required",
@@ -444,44 +444,54 @@ export default function PostJobDrawer({ isOpen, onOpenChange }: PostJobDrawerPro
                     render={({ field }) => (
                       <FormItem>
                         <FormLabel>Required Skills (Optional)</FormLabel>
-                        <Select
-                          onValueChange={(value) => {
-                            const currentSkills = field.value || [];
-                            if (!currentSkills.includes(value)) {
-                              field.onChange([...currentSkills, value]);
-                            }
-                          }}
-                        >
-                          <FormControl>
-                            <SelectTrigger>
-                              <SelectValue placeholder="Select skills" />
-                            </SelectTrigger>
-                          </FormControl>
-                          <SelectContent position="popper" sideOffset={4}>
-                            {SKILLS.filter(skill => !field.value?.includes(skill)).map((skill) => (
-                              <SelectItem key={skill} value={skill}>
-                                {skill}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
+                        <FormControl>
+                          <Input
+                            placeholder="e.g. Plumbing, Electrical, Carpentry (separate with commas)"
+                            value={field.value?.join(', ') || ''}
+                            onChange={(e) => {
+                              const skillsText = e.target.value;
+                              const skillsArray = skillsText
+                                .split(',')
+                                .map(skill => skill.trim())
+                                .filter(skill => skill.length > 0);
+                              field.onChange(skillsArray);
+                            }}
+                            onBlur={(e) => {
+                              // Clean up skills on blur
+                              const skillsText = e.target.value;
+                              const skillsArray = skillsText
+                                .split(',')
+                                .map(skill => skill.trim())
+                                .filter(skill => skill.length > 0 && skill.length <= 50)
+                                .slice(0, 10); // Limit to 10 skills
+                              field.onChange(skillsArray);
+                            }}
+                          />
+                        </FormControl>
                         
-                        <div className="flex flex-wrap gap-2 mt-2">
-                          {field.value?.map((skill) => (
-                            <Badge key={skill} variant="secondary" className="flex items-center gap-1">
-                              {skill}
-                              <button 
-                                type="button"
-                                className="ml-1 rounded-full hover:bg-secondary h-4 w-4 inline-flex items-center justify-center text-xs"
-                                onClick={() => {
-                                  field.onChange(field.value?.filter(s => s !== skill));
-                                }}
-                              >
-                                ✕
-                              </button>
-                            </Badge>
-                          ))}
-                        </div>
+                        {field.value && field.value.length > 0 && (
+                          <div className="flex flex-wrap gap-2 mt-2">
+                            {field.value.map((skill, index) => (
+                              <Badge key={index} variant="secondary" className="flex items-center gap-1">
+                                {skill}
+                                <button 
+                                  type="button"
+                                  className="ml-1 rounded-full hover:bg-secondary h-4 w-4 inline-flex items-center justify-center text-xs"
+                                  onClick={() => {
+                                    const newSkills = field.value?.filter((_, i) => i !== index) || [];
+                                    field.onChange(newSkills);
+                                  }}
+                                >
+                                  ✕
+                                </button>
+                              </Badge>
+                            ))}
+                          </div>
+                        )}
+                        
+                        <FormDescription>
+                          Enter skills separated by commas. Maximum 10 skills, 50 characters each.
+                        </FormDescription>
                         <FormMessage />
                       </FormItem>
                     )}
@@ -588,7 +598,7 @@ export default function PostJobDrawer({ isOpen, onOpenChange }: PostJobDrawerPro
                                 // Update the form with the geocoded coordinates
                                 form.setValue('latitude', formattedLat);
                                 form.setValue('longitude', formattedLng);
-                                console.log(`Location geocoded: ${value} => [${formattedLat}, ${formattedLng}]`);
+
                               }
                             }}
                             placeholder="Enter job address, city, or coordinates"

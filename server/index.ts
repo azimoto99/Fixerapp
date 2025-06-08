@@ -111,11 +111,14 @@ app.use((req, res, next) => {
   res.setHeader(
     'Content-Security-Policy',
     "default-src 'self'; " +
-    "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://js.stripe.com https://api.mapbox.com; " +
-    "style-src 'self' 'unsafe-inline'; " +
-    "img-src 'self' data: https:; " +
-    "connect-src 'self' https://api.stripe.com https://api.mapbox.com; " +
-    "frame-src 'self' https://js.stripe.com;"
+    "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://js.stripe.com https://api.mapbox.com blob:; " +
+    "script-src-elem 'self' 'unsafe-inline' https://js.stripe.com https://api.mapbox.com; " +
+    "style-src 'self' 'unsafe-inline' https:; " +
+    "img-src 'self' data: https: blob:; " +
+    "connect-src 'self' https://api.stripe.com https://api.mapbox.com https://events.mapbox.com wss: ws:; " +
+    "frame-src 'self' https://js.stripe.com https://hooks.stripe.com; " +
+    "child-src 'self' blob: https://js.stripe.com; " +
+    "worker-src 'self' blob: https://js.stripe.com;"
   );
   next();
 });

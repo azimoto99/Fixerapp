@@ -20,22 +20,13 @@ import {
 import { STRIPE_PUBLIC_KEY } from '@/lib/env';
 
 // Load Stripe outside of component render for better performance
-console.log('Loading Stripe with public key:', STRIPE_PUBLIC_KEY ? `Key present (${STRIPE_PUBLIC_KEY.substring(0, 7)}...)` : 'Key missing');
-
 if (!STRIPE_PUBLIC_KEY) {
   console.error('STRIPE_PUBLIC_KEY is missing! Check your .env file.');
 }
 
 // Initialize Stripe with better error handling
 const stripePromise = STRIPE_PUBLIC_KEY ? 
-  loadStripe(STRIPE_PUBLIC_KEY).then(stripe => {
-    if (!stripe) {
-      console.error('Failed to load Stripe. Check your public key and network connection.');
-    } else {
-      console.log('Stripe loaded successfully');
-    }
-    return stripe;
-  }).catch(error => {
+  loadStripe(STRIPE_PUBLIC_KEY).catch(error => {
     console.error('Error loading Stripe:', error);
     return null;
   }) : 

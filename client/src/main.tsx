@@ -5,14 +5,10 @@ import "./index.css";
 import "./components/ui/dialog-fix.css";
 import { Toaster } from "@/components/ui/toaster";
 
-console.log('main.tsx loading...');
-console.log('Environment variables:', {
-  VITE_STRIPE_PUBLIC_KEY: import.meta.env.VITE_STRIPE_PUBLIC_KEY ? 'Set' : 'Not set',
-  VITE_MAPBOX_ACCESS_TOKEN: import.meta.env.VITE_MAPBOX_ACCESS_TOKEN ? 'Set' : 'Not set',
-  MODE: import.meta.env.MODE,
-  DEV: import.meta.env.DEV,
-  PROD: import.meta.env.PROD
-});
+// Environment check for development
+if (import.meta.env.DEV) {
+  console.log('Development mode - Environment variables loaded');
+}
 
 // Simple error boundary
 class ErrorBoundary extends React.Component<{children: React.ReactNode}, {hasError: boolean, error?: Error}> {

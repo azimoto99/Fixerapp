@@ -352,6 +352,141 @@ export async function registerRoutes(app: Express): Promise<Server> {
   setupStripeWebhooks(app);
 
   // Register the admin API routes
+  registerAdminRoutes(app);
+
+  // Add missing API routes that are being called by the frontend
+  
+  // Jobs routes
+  apiRouter.get("/jobs", async (req: Request, res: Response) => {
+    try {
+      const { status, posterId, workerId, hasCoordinates } = req.query;
+      
+      let filters: any = {};
+      if (status) filters.status = status;
+      if (posterId) filters.posterId = parseInt(posterId as string);
+      if (workerId) filters.workerId = parseInt(workerId as string);
+      
+      const jobs = await storage.getJobs(filters);
+      
+      // Filter jobs with coordinates if requested
+      let filteredJobs = jobs;
+      if (hasCoordinates === 'true') {
+        filteredJobs = jobs.filter(job => job.latitude && job.longitude);
+      }
+      
+      res.json(filteredJobs);
+    } catch (error) {
+      console.error("Error fetching jobs:", error);
+      res.status(500).json({ message: "Error fetching jobs" });
+    }
+  });
+
+  apiRouter.get("/jobs/nearby/location", async (req: Request, res: Response) => {
+    try {
+      const { latitude, longitude, radius = 5, status = 'open' } = req.query;
+      
+      if (!latitude || !longitude) {
+        return res.status(400).json({ message: "Latitude and longitude are required" });
+      }
+      
+      const lat = parseFloat(latitude as string);
+      const lng = parseFloat(longitude as string);
+      const radiusNum = parseFloat(radius as string);
+      
+      // Get all jobs with the specified status
+      const jobs = await storage.getJobs({ status: status as string });
+      
+      // Filter jobs within radius (simple distance calculation)
+      const nearbyJobs = jobs.filter(job => {
+        if (!job.latitude || !job.longitude) return false;
+        
+        const distance = calculateDistanceInFeet(lat, lng, job.latitude, job.longitude);
+        const distanceInMiles = distance / 5280; // Convert feet to miles
+        
+        return distanceInMiles <= radiusNum;
+      });
+      
+      res.json(nearbyJobs);
+    } catch (error) {
+      console.error("Error fetching nearby jobs:", error);
+      res.status(500).json({ message: "Error fetching nearby jobs" });
+    }
+  });
+
+  apiRouter.get("/jobs/:id", async (req: Request, res: Response) => {
+    try {
+      const jobId = parseInt(req.params.id);
+      if (isNaN(jobId)) {
+        return res.status(400).json({ message: "Invalid job ID" });
+      }
+      
+      const job = await storage.getJob(jobId);
+      if (!job) {
+        return res.status(404).json({ message: "Job not found" });
+      }
+      
+      res.json(job);
+    } catch (error) {
+      console.error("Error fetching job:", error);
+      res.status(500).json({ message: "Error fetching job" });
+    }
+  });
+
+  // Notifications routes
+  apiRouter.get("/notifications", isAuthenticated, async (req: Request, res: Response) => {
+    try {
+      if (!req.user) {
+        return res.status(401).json({ message: "Not authenticated" });
+      }
+      
+      const notifications = await storage.getNotifications(req.user.id);
+      res.json(notifications);
+    } catch (error) {
+      console.error("Error fetching notifications:", error);
+      res.status(500).json({ message: "Error fetching notifications" });
+    }
+  });
+
+  // Earnings routes
+  apiRouter.get("/earnings", isAuthenticated, async (req: Request, res: Response) => {
+    try {
+      if (!req.user) {
+        return res.status(401).json({ message: "Not authenticated" });
+      }
+      
+      const earnings = await storage.getEarningsForUser(req.user.id);
+      res.json(earnings);
+    } catch (error) {
+      console.error("Error fetching earnings:", error);
+      res.status(500).json({ message: "Error fetching earnings" });
+    }
+  });
+
+  // Applications routes
+  apiRouter.get("/applications/worker", isAuthenticated, async (req: Request, res: Response) => {
+    try {
+      if (!req.user) {
+        return res.status(401).json({ message: "Not authenticated" });
+      }
+      
+      const applications = await storage.getApplicationsForWorker(req.user.id);
+      res.json(applications);
+    } catch (error) {
+      console.error("Error fetching worker applications:", error);
+      res.status(500).json({ message: "Error fetching worker applications" });
+    }
+  });
+
+  // Payment methods route (redirect to Stripe API)
+  apiRouter.get("/payment-methods", isAuthenticated, async (req: Request, res: Response) => {
+    try {
+      // This should redirect to the Stripe payment methods endpoint
+      res.redirect('/api/stripe/payment-methods');
+    } catch (error) {
+      console.error("Error fetching payment methods:", error);
+      res.status(500).json({ message: "Error fetching payment methods" });
+    }
+  });
 
 
   // Handle account type setting (always worker now)
