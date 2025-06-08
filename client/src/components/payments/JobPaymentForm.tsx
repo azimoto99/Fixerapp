@@ -268,6 +268,9 @@ export default function JobPaymentForm({
   onSuccess: () => void;
   onCancel: () => void;
 }) {
+  // Track saved payment method to use
+  const [savedMethodId, setSavedMethodId] = useState<string | null>(null);
+
   const [paymentMethod, setPaymentMethod] = useState<'saved' | 'new'>('saved');
   const [clientSecret, setClientSecret] = useState<string | null>(null);
   const [isCreatingIntent, setIsCreatingIntent] = useState(false);
@@ -301,6 +304,7 @@ export default function JobPaymentForm({
 
   // Create payment intent when user selects to pay with saved card
   const handleSavedCardContinue = (selectedMethodId: string) => {
+    setSavedMethodId(selectedMethodId);
     createPaymentIntent.mutate({
       jobId: job.id,
       payAmount: job.payAmount,
@@ -308,6 +312,34 @@ export default function JobPaymentForm({
       paymentMethodId: selectedMethodId
     });
   };
+
+  // Auto-confirm when using saved card
+  useEffect(() => {
+    if (paymentMethod === 'saved' && clientSecret && savedMethodId) {
+      (async () => {
+        const stripe = await stripePromise;
+        if (!stripe) {
+          toast({ variant: 'destructive', title: 'Stripe not loaded' });
+          return;
+        }
+        try {
+          const { error, paymentIntent } = await stripe.confirmCardPayment(clientSecret, {
+            payment_method: savedMethodId,
+          });
+          if (error) {
+            toast({ variant: 'destructive', title: 'Payment Failed', description: error.message });
+          } else if (paymentIntent && paymentIntent.status === 'succeeded') {
+            toast({ title: 'Payment Successful', description: 'Your job has been paid.' });
+            // refresh and callback
+            await queryClient.invalidateQueries({ queryKey: ['jobs'] });
+            onSuccess();
+          }
+        } catch (err: any) {
+          toast({ variant: 'destructive', title: 'Error', description: err.message });
+        }
+      })();
+    }
+  }, [clientSecret, paymentMethod, savedMethodId, queryClient, onSuccess, toast]);
 
   // Create payment intent for new card
   const handleUseNewCard = () => {
@@ -387,7 +419,7 @@ export default function JobPaymentForm({
               <div className="flex justify-center py-8">
                 <LoaderIcon className="h-8 w-8 animate-spin text-primary" />
               </div>
-            ) : clientSecret ? (
+            ) : clientSecret && paymentMethod === 'new' ? (
               <Elements 
                 stripe={stripePromise} 
                 options={{ 
@@ -399,18 +431,9 @@ export default function JobPaymentForm({
                   jobId={job.id} 
                   payAmount={job.payAmount} 
                   onSuccess={handlePaymentSuccess} 
-                  onCancel={onCancel}
-                />
+                  onCancel={onCancel} />
               </Elements>
-            ) : (
-              <Alert>
-                <InfoIcon className="h-4 w-4" />
-                <AlertTitle>Payment Setup</AlertTitle>
-                <AlertDescription>
-                  Loading payment options...
-                </AlertDescription>
-              </Alert>
-            )}
+            ) : null}
           </div>
         </div>
       </CardContent>

@@ -64,10 +64,11 @@ stripeRouter.get('/check-auth', (req, res) => {
 // Create a payment intent
 stripeRouter.post('/create-payment-intent', async (req, res) => {
   try {
-    const { jobId, payAmount, useExistingCard = false, paymentMethodId } = req.body;
-    
-    if (!jobId || !payAmount) {
-      return res.status(400).json({ message: 'Missing required parameters: jobId, payAmount' });
+    // Accept `amount` or fallback to `payAmount` for backward compatibility
+    const { jobId, useExistingCard = false, paymentMethodId } = req.body;
+    const payAmount = typeof req.body.amount === 'number' ? req.body.amount : req.body.payAmount;
+    if (!jobId || payAmount === undefined) {
+      return res.status(400).json({ message: 'Missing required parameters: jobId and amount' });
     }
 
     // Get job details
@@ -106,7 +107,7 @@ stripeRouter.post('/create-payment-intent', async (req, res) => {
       customerId = user.stripeCustomerId;
     }
 
-    // Create the payment intent with appropriate options based on saved card vs new card
+    // Create the payment intent with appropriate options
     const paymentIntentOptions: any = {
       amount: Math.round(payAmount * 100), // Convert dollars to cents
       currency: 'usd',
@@ -118,18 +119,15 @@ stripeRouter.post('/create-payment-intent', async (req, res) => {
       }
     };
     
-    // If using an existing card with a specific payment method ID
+    // If using an existing card
     if (useExistingCard && paymentMethodId) {
       paymentIntentOptions.payment_method = paymentMethodId;
       paymentIntentOptions.confirm = true;
       paymentIntentOptions.off_session = true;
     } else {
-      // For new cards, enable automatic payment methods
-      paymentIntentOptions.automatic_payment_methods = {
-        enabled: true
-      };
+      paymentIntentOptions.automatic_payment_methods = { enabled: true };
     }
-    
+
     const paymentIntent = await stripe.paymentIntents.create(paymentIntentOptions);
 
     // Create a payment record in the database
@@ -140,7 +138,6 @@ stripeRouter.post('/create-payment-intent', async (req, res) => {
       jobId,
       transactionId: paymentIntent.id,
       paymentMethod: 'credit_card',
-      createdAt: new Date(),
     });
 
     res.json({
