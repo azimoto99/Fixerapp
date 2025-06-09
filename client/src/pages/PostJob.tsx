@@ -133,7 +133,13 @@ export default function PostJob() {
       }
       
       const jobResponse = await response.json();
-      
+
+      if (!jobResponse.success) {
+        throw new Error(jobResponse.message || 'Job creation failed');
+      }
+
+      console.log('Job created successfully:', jobResponse);
+
       // Create tasks for the job if there are any
       if (tasks.length > 0) {
         try {
@@ -150,14 +156,14 @@ export default function PostJob() {
               longitude: task.longitude,
               bonusAmount: task.bonusAmount || 0
             };
-            
+
             const taskResponse = await apiRequest('POST', '/api/tasks', taskData);
             if (!taskResponse.ok) {
               console.error('Failed to create task:', task.description);
             }
             return taskResponse;
           });
-          
+
           await Promise.all(taskPromises);
           console.log('All tasks created successfully');
         } catch (taskError) {
@@ -173,12 +179,14 @@ export default function PostJob() {
       
       // Close the payment form dialog
       setShowPaymentForm(false);
-      
+
+      // Show success message with payment details
+      const paymentInfo = jobResponse.payment;
       toast({
-        title: "Job Posted",
-        description: "Your job has been posted successfully!"
+        title: "Job Posted Successfully!",
+        description: `Your job "${jobResponse.job.title}" has been posted and payment of $${paymentInfo?.amountCharged?.toFixed(2) || 'N/A'} has been processed.`
       });
-      
+
       // Navigate to the job details page
       navigate(`/job/${jobResponse.job.id}`);
       

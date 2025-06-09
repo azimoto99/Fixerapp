@@ -98,12 +98,27 @@ export async function createJobWithPaymentFirst(req: Request, res: Response) {
     console.log(`Processing payment-first job posting for user ${req.user.id}`);
     console.log(`Total charge amount: $${totalAmount / 100}`);
     
-    // Step 3: Process payment FIRST - NO job creation yet
+    // Step 3: Get or create Stripe customer
+    let customerId: string;
+    try {
+      const { getOrCreateStripeCustomer } = await import('./api/stripe-api');
+      customerId = await getOrCreateStripeCustomer(req.user.id);
+    } catch (customerError) {
+      console.error('Failed to create Stripe customer:', customerError);
+      return res.status(500).json({
+        success: false,
+        message: 'Failed to set up payment processing',
+        error: 'Customer creation failed'
+      });
+    }
+
+    // Step 4: Process payment FIRST - NO job creation yet
     let paymentIntent;
     try {
       paymentIntent = await stripe.paymentIntents.create({
         amount: totalAmount,
         currency: 'usd',
+        customer: customerId,
         payment_method: validatedData.paymentMethodId,
         confirm: true,
         automatic_payment_methods: {
@@ -114,39 +129,89 @@ export async function createJobWithPaymentFirst(req: Request, res: Response) {
           purpose: 'job_posting_fee',
           user_id: req.user.id.toString(),
           job_title: validatedData.title,
-          payment_amount: validatedData.paymentAmount.toString()
+          payment_amount: validatedData.paymentAmount.toString(),
+          service_fee: '2.50',
+          total_amount: (totalAmount / 100).toString()
         },
-        description: `Job posting fee for: ${validatedData.title}`
+        description: `Job posting fee for: ${validatedData.title}`,
+        receipt_email: req.user.email || undefined
       });
-      
-      console.log(`Payment processing initiated: ${paymentIntent.id}`);
+
+      console.log(`Payment processing initiated: ${paymentIntent.id} for user ${req.user.id}`);
       
     } catch (stripeError: any) {
-      console.error('Payment failed:', stripeError.message);
-      
+      console.error('Payment failed for user', req.user.id, ':', stripeError.message);
+
+      // Log detailed error for debugging
+      console.error('Stripe error details:', {
+        code: stripeError.code,
+        type: stripeError.type,
+        decline_code: stripeError.decline_code,
+        payment_method: validatedData.paymentMethodId
+      });
+
       // Payment failed - NO job should be created
       return res.status(400).json({
         success: false,
         message: 'Payment failed - job not posted',
         error: stripeError.message,
-        code: stripeError.code
+        code: stripeError.code,
+        type: stripeError.type
       });
     }
-    
-    // Step 4: Verify payment was successful
+
+    // Step 5: Verify payment was successful
     if (paymentIntent.status !== 'succeeded') {
-      console.error(`Payment status: ${paymentIntent.status} - Job not created`);
-      
+      console.error(`Payment status: ${paymentIntent.status} for payment ${paymentIntent.id} - Job not created`);
+
+      // Handle different payment statuses
+      let errorMessage = 'Payment was not successful - job not posted';
+      if (paymentIntent.status === 'requires_action') {
+        errorMessage = 'Payment requires additional authentication - please try again';
+      } else if (paymentIntent.status === 'requires_payment_method') {
+        errorMessage = 'Payment method was declined - please try a different card';
+      } else if (paymentIntent.status === 'processing') {
+        errorMessage = 'Payment is still processing - please wait and try again';
+      }
+
       return res.status(400).json({
         success: false,
-        message: 'Payment was not successful - job not posted',
-        paymentStatus: paymentIntent.status
+        message: errorMessage,
+        paymentStatus: paymentIntent.status,
+        paymentIntentId: paymentIntent.id
       });
     }
-    
-    console.log(`Payment successful: ${paymentIntent.id} - Creating job now`);
-    
-    // Step 5: Payment successful - NOW create the job
+
+    console.log(`Payment successful: ${paymentIntent.id} (${totalAmount / 100} USD) - Creating job now`);
+
+    // Step 6: Create payment record in database
+    let paymentRecord;
+    try {
+      paymentRecord = await storage.createPayment({
+        userId: req.user.id,
+        amount: totalAmount / 100, // Convert back to dollars
+        serviceFee: 2.5,
+        type: 'job_posting_fee',
+        status: 'completed',
+        paymentMethod: 'card',
+        transactionId: paymentIntent.id,
+        stripePaymentIntentId: paymentIntent.id,
+        stripeCustomerId: customerId,
+        description: `Job posting fee for: ${validatedData.title}`,
+        metadata: {
+          purpose: 'job_posting_fee',
+          job_title: validatedData.title,
+          payment_amount: validatedData.paymentAmount
+        }
+      });
+
+      console.log(`Payment record created: ${paymentRecord.id}`);
+    } catch (paymentRecordError) {
+      console.error('Failed to create payment record:', paymentRecordError);
+      // Continue with job creation even if payment record fails
+    }
+
+    // Step 7: Payment successful - NOW create the job
     try {
       const jobData = {
         title: validatedData.title,
@@ -169,36 +234,63 @@ export async function createJobWithPaymentFirst(req: Request, res: Response) {
         status: 'open' as const, // Job goes live immediately after successful payment
         datePosted: new Date()
       };
-      
+
       const createdJob = await storage.createJob(jobData);
       
       if (!createdJob) {
         // Critical: Job creation failed AFTER successful payment
         // We need to refund the payment
         console.error('CRITICAL: Job creation failed after successful payment - initiating refund');
-        
+
         try {
-          await stripe.refunds.create({
+          const refund = await stripe.refunds.create({
             payment_intent: paymentIntent.id,
             reason: 'requested_by_customer',
             metadata: {
               reason: 'job_creation_failed',
-              user_id: req.user.id.toString()
+              user_id: req.user.id.toString(),
+              original_amount: (totalAmount / 100).toString()
             }
           });
-          
-          console.log(`Refund initiated for failed job creation: ${paymentIntent.id}`);
-          
+
+          console.log(`Refund initiated for failed job creation: ${paymentIntent.id}, refund: ${refund.id}`);
+
+          // Update payment record to reflect refund
+          if (paymentRecord) {
+            try {
+              await storage.updatePaymentStatus(paymentRecord.id, 'refunded', refund.id);
+            } catch (updateError) {
+              console.error('Failed to update payment record with refund:', updateError);
+            }
+          }
+
         } catch (refundError) {
           console.error('CRITICAL: Failed to process refund after job creation failure:', refundError);
-          // This requires manual intervention
+          // This requires manual intervention - log for admin review
+          console.error('MANUAL INTERVENTION REQUIRED: Payment succeeded but job creation failed and refund failed', {
+            paymentIntentId: paymentIntent.id,
+            userId: req.user.id,
+            amount: totalAmount / 100,
+            refundError: refundError.message
+          });
         }
-        
+
         return res.status(500).json({
           success: false,
           message: 'Job creation failed after payment - refund initiated',
           paymentIntentId: paymentIntent.id
         });
+      }
+
+      // Link payment to job if payment record was created
+      if (paymentRecord && createdJob) {
+        try {
+          await storage.updatePayment(paymentRecord.id, { jobId: createdJob.id });
+          console.log(`Payment ${paymentRecord.id} linked to job ${createdJob.id}`);
+        } catch (linkError) {
+          console.error('Failed to link payment to job:', linkError);
+          // Non-critical error, continue
+        }
       }
       
       // Step 6: Create tasks if provided
@@ -230,14 +322,27 @@ export async function createJobWithPaymentFirst(req: Request, res: Response) {
       }
       
       console.log(`Job created successfully: ${createdJob.id} with payment: ${paymentIntent.id}`);
-      
-      // Step 7: Success - Job posted and payment processed
+
+      // Step 8: Success - Job posted and payment processed
       res.status(201).json({
         success: true,
         message: 'Job posted successfully',
         job: createdJob,
-        paymentIntentId: paymentIntent.id,
-        amountCharged: totalAmount / 100
+        payment: {
+          paymentIntentId: paymentIntent.id,
+          paymentRecordId: paymentRecord?.id,
+          amountCharged: totalAmount / 100,
+          serviceFee: 2.5,
+          jobAmount: validatedData.paymentAmount,
+          status: 'completed'
+        },
+        summary: {
+          jobId: createdJob.id,
+          title: createdJob.title,
+          totalPaid: totalAmount / 100,
+          paymentMethod: 'card',
+          transactionId: paymentIntent.id
+        }
       });
       
     } catch (jobCreationError) {

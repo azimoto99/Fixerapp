@@ -95,55 +95,84 @@ const extractPaymentMetadata = (paymentIntent: Stripe.PaymentIntent) => {
   let userId = null;
   let jobId = null;
   let workerId = null;
-  
+
   if (paymentIntent.metadata) {
-    userId = paymentIntent.metadata.userId ? parseInt(paymentIntent.metadata.userId) : null;
-    jobId = paymentIntent.metadata.jobId ? parseInt(paymentIntent.metadata.jobId) : null;
-    workerId = paymentIntent.metadata.workerId ? parseInt(paymentIntent.metadata.workerId) : null;
+    // Handle different metadata key formats
+    userId = paymentIntent.metadata.userId ? parseInt(paymentIntent.metadata.userId) :
+             paymentIntent.metadata.user_id ? parseInt(paymentIntent.metadata.user_id) : null;
+
+    jobId = paymentIntent.metadata.jobId ? parseInt(paymentIntent.metadata.jobId) :
+            paymentIntent.metadata.job_id ? parseInt(paymentIntent.metadata.job_id) : null;
+
+    workerId = paymentIntent.metadata.workerId ? parseInt(paymentIntent.metadata.workerId) :
+               paymentIntent.metadata.worker_id ? parseInt(paymentIntent.metadata.worker_id) : null;
   }
-  
+
   return { userId, jobId, workerId };
 };
 
 // Handler for payment_intent.succeeded event
 async function handlePaymentIntentSucceeded(paymentIntent: Stripe.PaymentIntent) {
   const { userId, jobId, workerId } = extractPaymentMetadata(paymentIntent);
-  
-  console.log(`PaymentIntent succeeded: ${paymentIntent.id}`);
-  
+
+  console.log(`PaymentIntent succeeded: ${paymentIntent.id}, metadata:`, paymentIntent.metadata);
+
   // Record the successful payment in our database
   try {
     // Check if this payment was already recorded (to avoid duplicates)
     const existingPayment = await storage.getPaymentByTransactionId(paymentIntent.id);
-    
+
     if (existingPayment) {
       // Update existing payment if status has changed
-      if (existingPayment.status !== 'succeeded') {
-        await storage.updatePaymentStatus(existingPayment.id, 'succeeded', paymentIntent.id);
+      if (existingPayment.status !== 'completed' && existingPayment.status !== 'succeeded') {
+        await storage.updatePaymentStatus(existingPayment.id, 'completed', paymentIntent.id);
+        console.log(`Updated existing payment ${existingPayment.id} to completed`);
+      }
+
+      // Handle job posting payments specifically
+      if (existingPayment.type === 'job_posting_fee' && existingPayment.jobId) {
+        const job = await storage.getJob(existingPayment.jobId);
+        if (job && job.status === 'pending') {
+          await storage.updateJob(existingPayment.jobId, { status: 'open' });
+          console.log(`Job ${existingPayment.jobId} activated after payment confirmation`);
+        }
       }
       return;
     }
-    
+
+    // Determine payment type from metadata
+    const paymentType = paymentIntent.metadata?.purpose || 'job_payment';
+
     // Create new payment record
     const paymentData = {
       userId: userId,
       jobId: jobId,
       workerId: workerId,
-      amount: paymentIntent.amount,
-      description: paymentIntent.description || 'Job payment',
+      amount: paymentIntent.amount / 100, // Convert from cents to dollars
+      type: paymentType,
+      description: paymentIntent.description || 'Payment from webhook',
       transactionId: paymentIntent.id,
       paymentMethod: paymentIntent.payment_method_types[0] || 'card',
-      status: 'succeeded',
-      datePaid: new Date().toISOString(),
-      metadata: JSON.stringify(paymentIntent.metadata || {}),
+      status: 'completed',
+      stripePaymentIntentId: paymentIntent.id,
+      metadata: paymentIntent.metadata || {},
     };
-    
-    await storage.createPayment(paymentData);
-    
-    // If this is a job payment, update the job status
-    if (jobId) {
+
+    const newPayment = await storage.createPayment(paymentData);
+    console.log(`Created payment record ${newPayment.id} from webhook`);
+
+    // Handle different payment types
+    if (paymentType === 'job_posting_fee' && jobId) {
+      // For job posting payments, activate the job
+      const job = await storage.getJob(jobId);
+      if (job && job.status === 'pending') {
+        await storage.updateJob(jobId, { status: 'open' });
+        console.log(`Job ${jobId} activated after job posting payment`);
+      }
+    } else if (jobId) {
+      // For regular job payments, update payment status
       await storage.updateJob(jobId, { paymentStatus: 'paid' });
-      
+
       // Create notification for the worker if assigned
       if (workerId) {
         await storage.createNotification({

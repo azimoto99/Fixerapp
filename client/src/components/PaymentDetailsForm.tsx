@@ -33,49 +33,86 @@ const PaymentForm = ({ amount, jobTitle, onPaymentSuccess, onPaymentCancel }: Pa
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (!stripe || !elements) {
-      // Stripe.js has not loaded yet
+      toast({
+        title: 'Payment Error',
+        description: 'Payment system is still loading. Please wait a moment and try again.',
+        variant: 'destructive'
+      });
       return;
     }
 
     const cardElement = elements.getElement(CardElement);
     if (!cardElement) {
+      toast({
+        title: 'Payment Error',
+        description: 'Card information is missing. Please refresh the page and try again.',
+        variant: 'destructive'
+      });
+      return;
+    }
+
+    // Validate required fields
+    if (!cardholderName.trim()) {
+      toast({
+        title: 'Validation Error',
+        description: 'Please enter the cardholder name.',
+        variant: 'destructive'
+      });
+      return;
+    }
+
+    if (!cardholderEmail.trim() || !cardholderEmail.includes('@')) {
+      toast({
+        title: 'Validation Error',
+        description: 'Please enter a valid email address.',
+        variant: 'destructive'
+      });
       return;
     }
 
     setLoading(true);
 
     try {
+      // First validate the card
+      const { error: cardError } = await stripe.createToken(cardElement);
+      if (cardError) {
+        throw new Error(cardError.message);
+      }
+
       // Create a payment method using the card element
       const { error, paymentMethod } = await stripe.createPaymentMethod({
         type: 'card',
         card: cardElement,
         billing_details: {
-          name: cardholderName,
-          email: cardholderEmail
+          name: cardholderName.trim(),
+          email: cardholderEmail.trim()
         }
       });
 
       if (error) {
-        toast({
-          title: 'Payment Error',
-          description: error.message || 'An error occurred with your payment',
-          variant: 'destructive'
-        });
-        setLoading(false);
-        return;
+        throw new Error(error.message || 'Failed to create payment method');
+      }
+
+      if (!paymentMethod) {
+        throw new Error('Payment method creation failed');
       }
 
       // Payment method was created successfully
+      toast({
+        title: 'Payment Method Created',
+        description: 'Processing your payment...',
+      });
+
       onPaymentSuccess(paymentMethod.id);
     } catch (error: any) {
+      console.error('Payment method creation error:', error);
       toast({
         title: 'Payment Error',
-        description: error.message || 'An error occurred with your payment',
+        description: error.message || 'An error occurred with your payment. Please check your card details and try again.',
         variant: 'destructive'
       });
-    } finally {
       setLoading(false);
     }
   };

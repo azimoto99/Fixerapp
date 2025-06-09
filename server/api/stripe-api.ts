@@ -1,6 +1,7 @@
 import { Router, Request, Response } from "express";
 import Stripe from "stripe";
 import { storage } from "../storage";
+import { isAuthenticated } from "../auth-helpers";
 
 if (!process.env.STRIPE_SECRET_KEY) {
   throw new Error('Missing required Stripe secret: STRIPE_SECRET_KEY');
@@ -134,6 +135,7 @@ stripeRouter.post('/create-payment-intent', async (req, res) => {
     await storage.createPayment({
       userId: req.user?.id,
       amount: payAmount,
+      type: 'job_payment',
       status: 'pending',
       jobId,
       transactionId: paymentIntent.id,
@@ -603,3 +605,60 @@ async function handleFailedPayment(paymentIntent: Stripe.PaymentIntent) {
     }
   }
 }
+
+// Confirm payment completion (called by client after successful payment)
+stripeRouter.post('/confirm-payment', isAuthenticated, async (req, res) => {
+  try {
+    const { paymentId, paymentIntentId } = req.body;
+
+    if (!paymentIntentId) {
+      return res.status(400).json({ message: 'Payment intent ID is required' });
+    }
+
+    // Retrieve the payment intent from Stripe to verify status
+    const paymentIntent = await stripe.paymentIntents.retrieve(paymentIntentId);
+
+    if (paymentIntent.status !== 'succeeded') {
+      return res.status(400).json({
+        message: 'Payment has not succeeded yet',
+        status: paymentIntent.status
+      });
+    }
+
+    // Find and update payment record if it exists
+    let payment = null;
+    if (paymentId) {
+      payment = await storage.getPayment(paymentId);
+    } else {
+      payment = await storage.getPaymentByTransactionId(paymentIntentId);
+    }
+
+    if (payment) {
+      await storage.updatePaymentStatus(payment.id, 'completed', paymentIntentId);
+
+      // If this is a job posting payment, ensure job is activated
+      if (payment.type === 'job_posting_fee' && payment.jobId) {
+        const job = await storage.getJob(payment.jobId);
+        if (job && job.status === 'pending') {
+          await storage.updateJob(payment.jobId, { status: 'open' });
+        }
+      }
+    }
+
+    res.json({
+      success: true,
+      message: 'Payment confirmed successfully',
+      paymentStatus: 'completed',
+      paymentIntentId
+    });
+
+  } catch (error: any) {
+    console.error('Error confirming payment:', error);
+    res.status(500).json({
+      message: 'Failed to confirm payment',
+      error: error.message
+    });
+  }
+});
+
+export default stripeRouter;
