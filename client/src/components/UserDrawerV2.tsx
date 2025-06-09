@@ -321,26 +321,7 @@ const UserDrawerV2: React.FC<UserDrawerProps> = ({
 
                     <Separator className="my-1 w-12 opacity-30" />
 
-                    {/* Quick Actions */}
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                        <button
-                          onClick={() => navigate('/dashboard')}
-                          className={cn(
-                            "flex flex-col items-center justify-center w-14 h-14 rounded-lg transition-all duration-200",
-                            "hover:bg-primary/5 hover:shadow-sm text-foreground dark:text-foreground/90"
-                          )}
-                        >
-                          <LayoutDashboard className="h-5 w-5 mb-1 stroke-[1.5px]" />
-                          <span className="text-xs font-medium">Dashboard</span>
-                        </button>
-                      </TooltipTrigger>
-                      <TooltipContent side="right">
-                        <p>Go to your dashboard</p>
-                      </TooltipContent>
-                    </Tooltip>
 
-                    <Separator className="my-1 w-12 opacity-30" />
 
                     {/* User sections - clean vector design */}
                     <Tooltip>

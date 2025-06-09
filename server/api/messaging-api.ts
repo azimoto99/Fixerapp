@@ -194,6 +194,44 @@ export function registerMessagingRoutes(app: Express) {
   });
 
   /**
+   * Get messages between current user and a contact
+   * @route GET /api/messages
+   * @middleware isAuthenticated - User must be logged in
+   * @query contactId - ID of the contact to get messages with
+   * @returns Array of messages
+   */
+  app.get("/api/messages", async (req: Request, res: Response) => {
+    if (!req.isAuthenticated()) {
+      return res.status(401).json({ message: "Unauthorized - Please login again" });
+    }
+
+    try {
+      const { contactId } = req.query;
+      const userId = req.user?.id;
+
+      if (!userId) {
+        return res.status(401).json({ message: "User ID not found" });
+      }
+
+      if (!contactId) {
+        return res.status(400).json({ message: "Contact ID is required" });
+      }
+
+      const contactIdNum = parseInt(contactId as string);
+      if (isNaN(contactIdNum)) {
+        return res.status(400).json({ message: "Invalid contact ID" });
+      }
+
+      // Get messages between the two users
+      const messages = await storage.getMessagesBetweenUsers(userId, contactIdNum);
+      res.json(messages);
+    } catch (error) {
+      console.error("Error fetching messages:", error);
+      res.status(500).json({ message: "Failed to retrieve messages" });
+    }
+  });
+
+  /**
    * Search for users to add as contacts
    * @route GET /api/users/search
    * @middleware isAuthenticated - User must be logged in

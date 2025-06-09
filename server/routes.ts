@@ -353,8 +353,90 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Register the admin API routes
   registerAdminRoutes(app);
 
+  // Register messaging API routes
+  const { registerMessagingRoutes } = await import('./api/messaging-api');
+  registerMessagingRoutes(app);
+
   // Add missing API routes that are being called by the frontend
   
+  // Update job endpoint
+  apiRouter.put("/jobs/:id", isAuthenticated, async (req: Request, res: Response) => {
+    try {
+      const jobId = parseInt(req.params.id);
+      const userId = req.user?.id;
+
+      if (!userId) {
+        return res.status(401).json({ message: "User not authenticated" });
+      }
+
+      if (isNaN(jobId)) {
+        return res.status(400).json({ message: "Invalid job ID" });
+      }
+
+      // Get the existing job to verify ownership
+      const existingJob = await storage.getJob(jobId);
+      if (!existingJob) {
+        return res.status(404).json({ message: "Job not found" });
+      }
+
+      // Verify the user owns this job
+      if (existingJob.posterId !== userId) {
+        return res.status(403).json({ message: "You can only edit your own jobs" });
+      }
+
+      // Only allow editing if job is still open
+      if (existingJob.status !== 'open') {
+        return res.status(400).json({ message: "You can only edit open jobs" });
+      }
+
+      // Update the job
+      const updatedJob = await storage.updateJob(jobId, req.body);
+      res.json(updatedJob);
+    } catch (error) {
+      console.error("Error updating job:", error);
+      res.status(500).json({ message: "Error updating job" });
+    }
+  });
+
+  // Update job endpoint
+  apiRouter.put("/jobs/:id", isAuthenticated, async (req: Request, res: Response) => {
+    try {
+      const jobId = parseInt(req.params.id);
+      const userId = req.user?.id;
+
+      if (!userId) {
+        return res.status(401).json({ message: "User not authenticated" });
+      }
+
+      if (isNaN(jobId)) {
+        return res.status(400).json({ message: "Invalid job ID" });
+      }
+
+      // Get the existing job to verify ownership
+      const existingJob = await storage.getJob(jobId);
+      if (!existingJob) {
+        return res.status(404).json({ message: "Job not found" });
+      }
+
+      // Verify the user owns this job
+      if (existingJob.posterId !== userId) {
+        return res.status(403).json({ message: "You can only edit your own jobs" });
+      }
+
+      // Only allow editing if job is still open
+      if (existingJob.status !== 'open') {
+        return res.status(400).json({ message: "You can only edit open jobs" });
+      }
+
+      // Update the job
+      const updatedJob = await storage.updateJob(jobId, req.body);
+      res.json(updatedJob);
+    } catch (error) {
+      console.error("Error updating job:", error);
+      res.status(500).json({ message: "Error updating job" });
+    }
+  });
+
   // Jobs routes
   apiRouter.get("/jobs", async (req: Request, res: Response) => {
     try {

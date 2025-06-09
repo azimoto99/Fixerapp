@@ -27,6 +27,7 @@ import { useAuth } from '@/hooks/use-auth';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Loader2, X, Briefcase, MapPin, Calendar, DollarSign, Clock, ExternalLink, Edit, Trash2 } from 'lucide-react';
+import { EditJobModal } from '@/components/EditJobModal';
 import { 
   AlertDialog,
   AlertDialogAction,
@@ -319,6 +320,8 @@ export default function Home() {
   const [showMessaging, setShowMessaging] = useState(false);
   const [showJobDetails, setShowJobDetails] = useState(false);
   const [selectedJob, setSelectedJob] = useState<Job | null>(null);
+  const [showEditJob, setShowEditJob] = useState(false);
+  const [jobToEdit, setJobToEdit] = useState<Job | null>(null);
   const { toast } = useToast();
   const queryClient = useQueryClient();
   
@@ -543,7 +546,19 @@ export default function Home() {
         open={showMessaging}
         onOpenChange={setShowMessaging}
       />
-      
+
+      {/* Edit Job Modal */}
+      <EditJobModal
+        job={jobToEdit}
+        open={showEditJob}
+        onOpenChange={(open) => {
+          setShowEditJob(open);
+          if (!open) {
+            setJobToEdit(null);
+          }
+        }}
+      />
+
       {/* Posted Jobs Drawer */}
       {showPostedJobs && user && (
         <div className="fixed top-0 right-0 h-full w-80 bg-background/95 backdrop-blur-xl shadow-2xl z-50 transform transition-transform duration-300 animate-in slide-in-from-right border-l border-border/50">
@@ -647,8 +662,9 @@ export default function Home() {
                             className="h-8 w-8 p-0 hover:bg-blue-50 dark:hover:bg-blue-950"
                             onClick={(e) => {
                               e.stopPropagation();
-                              // Navigate to job management page
-                              window.open(`/job/${job.id}`, '_blank');
+                              // Open job details in the job card modal
+                              setSelectedJob(job);
+                              setShowJobDetails(true);
                             }}
                             title="View job details"
                           >
@@ -662,11 +678,8 @@ export default function Home() {
                               className="h-8 w-8 p-0 hover:bg-green-50 dark:hover:bg-green-950"
                               onClick={(e) => {
                                 e.stopPropagation();
-                                // Edit job functionality
-                                toast({
-                                  title: "Edit Job",
-                                  description: "Job editing feature coming soon!",
-                                });
+                                setJobToEdit(job);
+                                setShowEditJob(true);
                               }}
                               title="Edit job"
                             >
