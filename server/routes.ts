@@ -359,20 +359,40 @@ export async function registerRoutes(app: Express): Promise<Server> {
   apiRouter.get("/jobs", async (req: Request, res: Response) => {
     try {
       const { status, posterId, workerId, hasCoordinates } = req.query;
-      
+
       let filters: any = {};
       if (status) filters.status = status;
       if (posterId) filters.posterId = parseInt(posterId as string);
       if (workerId) filters.workerId = parseInt(workerId as string);
-      
+
+      // Security check: If filtering by posterId, ensure the requesting user owns those jobs
+      if (posterId && req.isAuthenticated()) {
+        const requestedPosterId = parseInt(posterId as string);
+        const currentUserId = req.user?.id;
+
+        if (currentUserId !== requestedPosterId) {
+          console.warn(`User ${currentUserId} attempted to access jobs for user ${requestedPosterId}`);
+          return res.status(403).json({
+            message: "You can only access your own posted jobs"
+          });
+        }
+      }
+
       const jobs = await storage.getJobs(filters);
-      
+
       // Filter jobs with coordinates if requested
       let filteredJobs = jobs;
       if (hasCoordinates === 'true') {
         filteredJobs = jobs.filter(job => job.latitude && job.longitude);
       }
-      
+
+      // Additional security: If user is authenticated and filtering by posterId,
+      // double-check that all returned jobs belong to the requesting user
+      if (posterId && req.isAuthenticated()) {
+        const currentUserId = req.user?.id;
+        filteredJobs = filteredJobs.filter(job => job.posterId === currentUserId);
+      }
+
       res.json(filteredJobs);
     } catch (error) {
       console.error("Error fetching jobs:", error);
@@ -805,8 +825,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       
       const query = req.query.q as string;
-      if (!query || query.length < 2) {
-        return res.status(400).json({ message: "Search query must be at least 2 characters" });
+      if (!query || query.length < 3) {
+        return res.status(400).json({ message: "Search query must be at least 3 characters" });
+      }
+
+      // Sanitize search query to prevent injection attacks
+      const sanitizedQuery = query.replace(/[^a-zA-Z0-9._-]/g, '');
+      if (sanitizedQuery !== query) {
+        return res.status(400).json({ message: "Search query contains invalid characters" });
+      }
+
+      if (sanitizedQuery.length > 50) {
+        return res.status(400).json({ message: "Search query too long" });
       }
       
       const currentUserId = req.user?.id;
@@ -824,36 +854,46 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: "Invalid user ID format" });
       }
       
-      console.log(`API - Searching users with query: "${query}" for user ID: ${userId}`);
-      
-      // Get users by search query (username, email, or fullName)
+      console.log(`API - Searching users with query: "${sanitizedQuery}" for user ID: ${userId}`);
+
+      // Get users by search query (username and fullName only for privacy)
       const { and, or, sql, ne } = await import('drizzle-orm');
       const { db } = await import('./db');
       const { users } = await import('@shared/schema');
-      
+
       const searchResults = await db.select()
         .from(users)
         .where(
           and(
             // Don't include the current user in results
             ne(users.id, userId),
-            // Search by username, email or fullName
+            // Search by username and fullName only (removed email for privacy)
             or(
-              sql`LOWER(${users.username}) LIKE ${`%${query.toLowerCase()}%`}`,
-              sql`LOWER(${users.email}) LIKE ${`%${query.toLowerCase()}%`}`,
-              sql`LOWER(COALESCE(${users.fullName}, '')) LIKE ${`%${query.toLowerCase()}%`}`
+              sql`LOWER(${users.username}) LIKE ${`%${sanitizedQuery.toLowerCase()}%`}`,
+              sql`LOWER(COALESCE(${users.fullName}, '')) LIKE ${`%${sanitizedQuery.toLowerCase()}%`}`
             )
           )
         )
-        .limit(10);
+        .limit(5); // Reduced limit for better performance
       
-      console.log(`API - Found ${searchResults.length} results for query "${query}"`);
+      console.log(`API - Found ${searchResults.length} results for query "${sanitizedQuery}"`);
       
-      // Map results to remove sensitive information
+      // Map results to remove sensitive information and limit exposure
       const sanitizedResults = searchResults.map((user: any) => {
-        // Exclude password from response
-        const { password, ...userData } = user;
-        return userData;
+        // Only return essential, non-sensitive information
+        return {
+          id: user.id,
+          username: user.username,
+          fullName: user.fullName,
+          avatarUrl: user.avatarUrl,
+          // Explicitly exclude sensitive fields
+          // email: removed for privacy
+          // phone: removed for privacy
+          // address: removed for privacy
+          // dateOfBirth: removed for privacy
+          // stripeCustomerId: removed for security
+          // stripeConnectAccountId: removed for security
+        };
       });
       
       res.json(sanitizedResults);

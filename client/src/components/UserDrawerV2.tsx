@@ -60,6 +60,18 @@ const UserDrawerV2: React.FC<UserDrawerProps> = ({
       setIsOpen(false);
     }
   }, [externalCloseState, isOpen]);
+
+  // Listen for tab switching events from other components
+  useEffect(() => {
+    const handleTabSwitch = (event: CustomEvent) => {
+      setActiveTab(event.detail);
+    };
+
+    window.addEventListener('switch-user-drawer-tab', handleTabSwitch as EventListener);
+    return () => {
+      window.removeEventListener('switch-user-drawer-tab', handleTabSwitch as EventListener);
+    };
+  }, []);
   
   // Listen for external isOpen changes
   useEffect(() => {
@@ -309,6 +321,27 @@ const UserDrawerV2: React.FC<UserDrawerProps> = ({
 
                     <Separator className="my-1 w-12 opacity-30" />
 
+                    {/* Quick Actions */}
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <button
+                          onClick={() => navigate('/dashboard')}
+                          className={cn(
+                            "flex flex-col items-center justify-center w-14 h-14 rounded-lg transition-all duration-200",
+                            "hover:bg-primary/5 hover:shadow-sm text-foreground dark:text-foreground/90"
+                          )}
+                        >
+                          <LayoutDashboard className="h-5 w-5 mb-1 stroke-[1.5px]" />
+                          <span className="text-xs font-medium">Dashboard</span>
+                        </button>
+                      </TooltipTrigger>
+                      <TooltipContent side="right">
+                        <p>Go to your dashboard</p>
+                      </TooltipContent>
+                    </Tooltip>
+
+                    <Separator className="my-1 w-12 opacity-30" />
+
                     {/* User sections - clean vector design */}
                     <Tooltip>
                       <TooltipTrigger asChild>
@@ -470,18 +503,18 @@ const UserDrawerV2: React.FC<UserDrawerProps> = ({
                 {/* Title bar for current section */}
                 <div className="mb-6 pb-4 border-b">
                   <h2 className="text-xl font-bold text-foreground">
-                    {activeTab === "profile" ? "Your Profile" : 
+                    {activeTab === "profile" ? "Your Profile" :
                      activeTab === "reviews" ? "Reviews & Ratings" :
-                     activeTab === "payments" ? "Payment Management" :
-                     activeTab === "earnings" ? "Earnings & Analytics" :
-                     activeTab === "settings" ? "Account Settings" : "Profile"}
+                     activeTab === "wallet" ? "Wallet & Earnings" :
+                     activeTab === "settings" ? "Account Settings" :
+                     activeTab === "support" ? "Help & Support" : "Profile"}
                   </h2>
                   <p className="text-sm text-muted-foreground mt-1">
-                    {activeTab === "profile" ? "View and update your personal information" : 
+                    {activeTab === "profile" ? "View and update your personal information" :
                      activeTab === "reviews" ? "See what others are saying about your work" :
-                     activeTab === "payments" ? "Manage your payment methods and transactions" :
-                     activeTab === "earnings" ? "Track your earnings and financial performance" :
-                     activeTab === "settings" ? "Customize your account settings and preferences" : ""}
+                     activeTab === "wallet" ? "Manage your earnings, payments, and withdrawals" :
+                     activeTab === "settings" ? "Customize your account settings and preferences" :
+                     activeTab === "support" ? "Get help and contact support" : ""}
                   </p>
                 </div>
                 

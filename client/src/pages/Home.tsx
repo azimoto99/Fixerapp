@@ -26,7 +26,7 @@ import { useGeolocation } from '@/lib/geolocation';
 import { useAuth } from '@/hooks/use-auth';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Loader2, X, Briefcase, MapPin, Calendar, DollarSign } from 'lucide-react';
+import { Loader2, X, Briefcase, MapPin, Calendar, DollarSign, Clock, ExternalLink, Edit, Trash2 } from 'lucide-react';
 import { 
   AlertDialog,
   AlertDialogAction,
@@ -388,26 +388,40 @@ export default function Home() {
     }
   }, []);
   
-  // Get jobs posted by this user (if any) - use the proper useJobs hook with poster filter
-  // Enhanced with real-time updates for posted jobs drawer
-  const { jobs: postedJobs, isLoading: postedJobsLoading } = useJobs({ poster: true });
-  
-  // Add real-time polling for posted jobs when drawer is open
-  const { data: realtimePostedJobs, refetch: refetchPostedJobs } = useQuery({
-    queryKey: ['/api/jobs', 'poster-realtime', user?.id],
+  // Get jobs posted by this user with enhanced security and real-time updates
+  const { data: postedJobs, isLoading: postedJobsLoading, refetch: refetchPostedJobs } = useQuery({
+    queryKey: ['/api/jobs/my-posted-jobs', user?.id],
     queryFn: async () => {
-      if (!user) return [];
-      const response = await apiRequest('GET', `/api/jobs?posterId=${user.id}`);
-      return response.json();
+      if (!user?.id) {
+        console.warn('No user ID available for fetching posted jobs');
+        return [];
+      }
+
+      try {
+        const response = await apiRequest('GET', `/api/jobs?posterId=${user.id}`);
+        if (!response.ok) {
+          throw new Error(`Failed to fetch posted jobs: ${response.status}`);
+        }
+        const jobs = await response.json();
+
+        // Client-side security check - ensure all jobs belong to current user
+        const userJobs = jobs.filter((job: Job) => job.posterId === user.id);
+        if (userJobs.length !== jobs.length) {
+          console.error('Security warning: Server returned jobs not belonging to current user');
+        }
+
+        return userJobs;
+      } catch (error) {
+        console.error('Error fetching posted jobs:', error);
+        throw error;
+      }
     },
-    enabled: showPostedJobs && !!user, // Only fetch when drawer is open and user exists
-    refetchInterval: showPostedJobs ? 3000 : false, // Poll every 3 seconds when drawer is open
+    enabled: !!user?.id, // Only fetch when user is authenticated
+    refetchInterval: showPostedJobs ? 5000 : false, // Poll every 5 seconds when drawer is open
     refetchOnWindowFocus: true,
     refetchOnMount: true,
+    staleTime: 30000, // Consider data stale after 30 seconds
   });
-  
-  // Use realtime data when available, fallback to regular hook data
-  const finalPostedJobs = showPostedJobs && realtimePostedJobs ? realtimePostedJobs : postedJobs;
 
   // Delete job mutation
   const deleteJobMutation = useMutation({
@@ -452,7 +466,7 @@ export default function Home() {
         onRoleChange={setSelectedRole}
         onTogglePostedJobs={togglePostedJobs}
         onToggleMessaging={toggleMessaging}
-        postedJobsCount={finalPostedJobs?.length || 0}
+        postedJobsCount={postedJobs?.length || 0}
       />
 
       <main className="flex-1 container max-w-7xl mx-auto px-2 sm:px-4">
@@ -531,94 +545,169 @@ export default function Home() {
       />
       
       {/* Posted Jobs Drawer */}
-      {showPostedJobs && (
+      {showPostedJobs && user && (
         <div className="fixed top-0 right-0 h-full w-80 bg-background/95 backdrop-blur-xl shadow-2xl z-50 transform transition-transform duration-300 animate-in slide-in-from-right border-l border-border/50">
           {/* Close button with modern design */}
-          <button 
+          <button
             onClick={togglePostedJobs}
             className="absolute -left-12 top-4 bg-primary hover:bg-primary/90 text-primary-foreground shadow-lg rounded-full w-10 h-10 flex items-center justify-center transform transition-all hover:scale-105 active:scale-95 p-0"
             aria-label="Close posted jobs panel"
           >
             <X className="h-5 w-5" />
           </button>
-          
+
           {/* Modern header with gradient and icons */}
           <div className="bg-gradient-to-r from-primary to-primary/80 text-primary-foreground px-6 py-4 border-b border-primary/20">
-            <div className="flex items-center gap-3">
-              <div className="p-2 bg-primary-foreground/20 rounded-lg backdrop-blur-sm">
-                <Briefcase className="h-5 w-5" />
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="p-2 bg-primary-foreground/20 rounded-lg backdrop-blur-sm">
+                  <Briefcase className="h-5 w-5" />
+                </div>
+                <div>
+                  <h3 className="text-lg font-semibold">My Posted Jobs</h3>
+                  <p className="text-primary-foreground/80 text-sm">
+                    {postedJobs?.length || 0} job{(postedJobs?.length || 0) !== 1 ? 's' : ''} posted
+                  </p>
+                </div>
               </div>
-              <div>
-                <h3 className="text-lg font-semibold">My Posted Jobs</h3>
-                <p className="text-primary-foreground/80 text-sm">Manage your job listings</p>
-              </div>
+              {postedJobsLoading && (
+                <div className="animate-spin rounded-full h-4 w-4 border-2 border-primary-foreground/30 border-t-primary-foreground"></div>
+              )}
             </div>
           </div>
           
           {/* Jobs list */}
           <div className="overflow-y-auto h-[calc(100%-4rem)]">
-            {finalPostedJobs?.length > 0 ? (
+            {postedJobsLoading ? (
+              <div className="flex flex-col items-center justify-center h-64 px-8 text-center">
+                <div className="animate-spin rounded-full h-8 w-8 border-2 border-primary/30 border-t-primary mb-4"></div>
+                <p className="text-muted-foreground">Loading your posted jobs...</p>
+              </div>
+            ) : postedJobs && postedJobs.length > 0 ? (
               <div className="divide-y divide-border">
-                {finalPostedJobs.map((job: Job) => (
-                  <div 
-                    key={job.id} 
-                    className="p-4 hover:bg-accent/50 transition-colors"
+                {postedJobs.map((job: Job) => (
+                  <div
+                    key={job.id}
+                    className="p-4 hover:bg-accent/50 transition-colors border-l-4 border-l-transparent hover:border-l-primary/50"
                   >
                     <div className="flex items-start justify-between">
-                      <div 
+                      <div
                         className="flex-1 cursor-pointer"
                         onClick={() => {
                           setSelectedJob(job);
                           setShowJobDetails(true);
                         }}
                       >
-                        <h4 className="font-medium mb-1">{job.title}</h4>
-                        <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                          <span className="flex items-center gap-1">
-                            <MapPin className="h-3 w-3" />
-                            {job.location}
-                          </span>
-                          <span className="flex items-center gap-1">
-                            <DollarSign className="h-3 w-3" />
-                            ${job.paymentAmount}
-                          </span>
+                        <div className="flex items-start justify-between mb-2">
+                          <h4 className="font-medium text-foreground line-clamp-2">{job.title}</h4>
+                          <Badge
+                            variant={
+                              job.status === 'open' ? 'default' :
+                              job.status === 'in_progress' ? 'secondary' :
+                              job.status === 'completed' ? 'outline' : 'destructive'
+                            }
+                            className="ml-2 shrink-0"
+                          >
+                            {job.status.replace('_', ' ')}
+                          </Badge>
+                        </div>
+
+                        <div className="space-y-2">
+                          <div className="flex items-center gap-3 text-sm text-muted-foreground">
+                            <span className="flex items-center gap-1">
+                              <MapPin className="h-3 w-3" />
+                              {job.location}
+                            </span>
+                            <span className="flex items-center gap-1">
+                              <DollarSign className="h-3 w-3" />
+                              ${job.paymentAmount?.toFixed(2) || '0.00'}
+                            </span>
+                          </div>
+
+                          <div className="flex items-center gap-3 text-xs text-muted-foreground">
+                            <span className="flex items-center gap-1">
+                              <Calendar className="h-3 w-3" />
+                              Posted {new Date(job.datePosted).toLocaleDateString()}
+                            </span>
+                            {job.dateNeeded && (
+                              <span className="flex items-center gap-1">
+                                <Clock className="h-3 w-3" />
+                                Due {new Date(job.dateNeeded).toLocaleDateString()}
+                              </span>
+                            )}
+                          </div>
                         </div>
                       </div>
-                      <div className="flex items-center gap-2">
-                        <Badge variant={job.status === 'open' ? 'default' : 'secondary'}>
-                          {job.status}
-                        </Badge>
-                        <AlertDialog>
-                          <AlertDialogTrigger asChild>
+                      <div className="flex flex-col items-end gap-2 ml-3">
+                        {/* Action buttons */}
+                        <div className="flex items-center gap-1">
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="h-8 w-8 p-0 hover:bg-blue-50 dark:hover:bg-blue-950"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              // Navigate to job management page
+                              window.open(`/job/${job.id}`, '_blank');
+                            }}
+                            title="View job details"
+                          >
+                            <ExternalLink className="h-3 w-3 text-blue-600" />
+                          </Button>
+
+                          {job.status === 'open' && (
                             <Button
                               variant="ghost"
                               size="sm"
-                              className="text-red-600 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-950"
-                              disabled={deleteJobMutation.isPending}
+                              className="h-8 w-8 p-0 hover:bg-green-50 dark:hover:bg-green-950"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                // Edit job functionality
+                                toast({
+                                  title: "Edit Job",
+                                  description: "Job editing feature coming soon!",
+                                });
+                              }}
+                              title="Edit job"
                             >
-                              <X className="h-4 w-4" />
+                              <Edit className="h-3 w-3 text-green-600" />
                             </Button>
-                          </AlertDialogTrigger>
-                          <AlertDialogContent>
-                            <AlertDialogHeader>
-                              <AlertDialogTitle>Delete Job</AlertDialogTitle>
-                              <AlertDialogDescription>
-                                Are you sure you want to delete "{job.title}"? This action cannot be undone.
-                                {job.status !== 'open' && ' Note: This job has applications or is in progress.'}
-                              </AlertDialogDescription>
-                            </AlertDialogHeader>
-                            <AlertDialogFooter>
-                              <AlertDialogCancel>Cancel</AlertDialogCancel>
-                              <AlertDialogAction
-                                onClick={() => deleteJobMutation.mutate(job.id)}
-                                className="bg-red-600 hover:bg-red-700"
+                          )}
+
+                          <AlertDialog>
+                            <AlertDialogTrigger asChild>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                className="h-8 w-8 p-0 text-red-600 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-950"
                                 disabled={deleteJobMutation.isPending}
+                                onClick={(e) => e.stopPropagation()}
+                                title="Delete job"
                               >
-                                {deleteJobMutation.isPending ? 'Deleting...' : 'Delete'}
-                              </AlertDialogAction>
-                            </AlertDialogFooter>
-                          </AlertDialogContent>
-                        </AlertDialog>
+                                <Trash2 className="h-3 w-3" />
+                              </Button>
+                            </AlertDialogTrigger>
+                            <AlertDialogContent>
+                              <AlertDialogHeader>
+                                <AlertDialogTitle>Delete Job</AlertDialogTitle>
+                                <AlertDialogDescription>
+                                  Are you sure you want to delete "{job.title}"? This action cannot be undone.
+                                  {job.status !== 'open' && ' Note: This job has applications or is in progress.'}
+                                </AlertDialogDescription>
+                              </AlertDialogHeader>
+                              <AlertDialogFooter>
+                                <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                <AlertDialogAction
+                                  onClick={() => deleteJobMutation.mutate(job.id)}
+                                  className="bg-red-600 hover:bg-red-700"
+                                  disabled={deleteJobMutation.isPending}
+                                >
+                                  {deleteJobMutation.isPending ? 'Deleting...' : 'Delete'}
+                                </AlertDialogAction>
+                              </AlertDialogFooter>
+                            </AlertDialogContent>
+                          </AlertDialog>
+                        </div>
                       </div>
                     </div>
                   </div>
@@ -626,26 +715,34 @@ export default function Home() {
               </div>
             ) : (
               <div className="flex flex-col items-center justify-center h-64 px-8 text-center">
-                <div className="w-16 h-16 bg-primary/10 rounded-full flex items-center justify-center mb-4">
-                  <Briefcase className="h-8 w-8 text-primary" />
+                <div className="w-20 h-20 bg-gradient-to-br from-primary/20 to-primary/10 rounded-full flex items-center justify-center mb-6 shadow-lg">
+                  <Briefcase className="h-10 w-10 text-primary" />
                 </div>
-                <h3 className="text-xl font-semibold mb-2">No Jobs Posted Yet</h3>
-                <p className="text-muted-foreground mb-6 max-w-sm">Ready to find skilled workers? Create your first job listing and connect with talented professionals in your area.</p>
-                <Button 
-                  className="bg-primary hover:bg-primary/90 shadow-md"
-                  onClick={() => {
-                    togglePostedJobs(); // Close the drawer first
-                    setTimeout(() => {
-                      // Use the existing NewJobButton functionality
-                      const newJobBtn = document.querySelector('[aria-label="Post a new job"]');
-                      if (newJobBtn) {
-                        (newJobBtn as HTMLElement).click();
-                      }
-                    }, 300);
-                  }}
-                >
-                  Post Your First Job
-                </Button>
+                <h3 className="text-xl font-semibold mb-3 text-foreground">No Jobs Posted Yet</h3>
+                <p className="text-muted-foreground mb-6 max-w-sm leading-relaxed">
+                  Ready to find skilled workers? Create your first job listing and connect with talented professionals in your area.
+                </p>
+                <div className="space-y-3">
+                  <Button
+                    className="bg-primary hover:bg-primary/90 shadow-md transition-all hover:scale-105"
+                    onClick={() => {
+                      togglePostedJobs(); // Close the drawer first
+                      setTimeout(() => {
+                        // Use the existing NewJobButton functionality
+                        const newJobBtn = document.querySelector('[aria-label="Post a new job"]');
+                        if (newJobBtn) {
+                          (newJobBtn as HTMLElement).click();
+                        }
+                      }, 300);
+                    }}
+                  >
+                    <Briefcase className="h-4 w-4 mr-2" />
+                    Post Your First Job
+                  </Button>
+                  <p className="text-xs text-muted-foreground">
+                    It only takes a few minutes to get started
+                  </p>
+                </div>
               </div>
             )}
           </div>

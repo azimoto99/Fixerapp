@@ -231,9 +231,12 @@ const PaymentContent: React.FC<PaymentContentProps> = ({ user }) => {
               ))}
             </RadioGroup>
           ) : (
-            <div className="text-center py-8 space-y-2 border border-dashed rounded-md p-6">
-              <CreditCard className="mx-auto h-8 w-8 opacity-30" />
-              <p className="text-muted-foreground">No payment methods saved yet</p>
+            <div className="text-center py-8 space-y-3 border border-dashed rounded-md p-6">
+              <CreditCard className="mx-auto h-12 w-12 text-muted-foreground/30" />
+              <div>
+                <p className="font-medium text-muted-foreground">No payment methods saved</p>
+                <p className="text-sm text-muted-foreground/70">Add a payment method to make job payments easier</p>
+              </div>
             </div>
           )}
         </CardContent>

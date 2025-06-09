@@ -228,9 +228,14 @@ const EarningsContent: React.FC<EarningsContentProps> = ({ user }) => {
                 ))}
               </ul>
             ) : (
-              <div className="text-center py-6 text-gray-500">
-                <TrendingUp className="h-8 w-8 mx-auto mb-2 opacity-50" />
-                <p className="text-sm">No earnings yet</p>
+              <div className="text-center py-8 space-y-3">
+                <div className="p-3 rounded-full bg-muted/30 w-fit mx-auto">
+                  <TrendingUp className="h-8 w-8 text-muted-foreground/50" />
+                </div>
+                <div>
+                  <p className="font-medium text-muted-foreground">No earnings yet</p>
+                  <p className="text-sm text-muted-foreground/70">Complete jobs to start earning money</p>
+                </div>
               </div>
             )}
           </CardContent>

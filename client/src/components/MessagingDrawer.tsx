@@ -16,7 +16,25 @@ import { Separator } from "@/components/ui/separator";
 import { apiRequest } from "@/lib/queryClient";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { useToast } from "@/hooks/use-toast";
-import { Search, X, Send, MessageSquare, UserPlus } from "lucide-react";
+import { Search, X, Send, MessageSquare, UserPlus, Shield, AlertTriangle, CheckCircle, Clock, ArrowLeft, MoreVertical, Trash2, Users } from "lucide-react";
+import { useAuth } from '@/hooks/use-auth';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 type Contact = {
   id: number;
@@ -48,54 +66,101 @@ export type MessagingDrawerProps = {
 export function MessagingDrawer({ open, onOpenChange }: MessagingDrawerProps) {
   const { toast } = useToast();
   const queryClient = useQueryClient();
-  const [currentUser, setCurrentUser] = useState<any>(null);
+  const { user: currentUser } = useAuth(); // Use proper auth hook
   const [selectedContactId, setSelectedContactId] = useState<number | null>(null);
   const [newMessage, setNewMessage] = useState("");
   const [searchQuery, setSearchQuery] = useState("");
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const [tab, setTab] = useState("contacts");
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+  const [contactToDelete, setContactToDelete] = useState<number | null>(null);
 
-  const { data: contacts = [] } = useQuery({
-    queryKey: ['/api/contacts'],
-    enabled: open,
+  const { data: contacts = [], isLoading: contactsLoading, error: contactsError } = useQuery({
+    queryKey: ['/api/contacts', currentUser?.id],
+    queryFn: async () => {
+      if (!currentUser?.id) {
+        throw new Error('User not authenticated');
+      }
+      const response = await apiRequest('GET', '/api/contacts');
+      if (!response.ok) {
+        throw new Error('Failed to fetch contacts');
+      }
+      return response.json();
+    },
+    enabled: open && !!currentUser?.id,
+    staleTime: 30000,
+    refetchOnWindowFocus: true,
   });
 
   // Debounced search reference
   const searchTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
-  // Enhanced search with debounce
-  const { 
-    data: searchResults = [], 
+  // Enhanced search with debounce and security
+  const {
+    data: searchResults = [],
     isError: isSearchError,
     isLoading: isSearchLoading,
     refetch: refetchSearch
   } = useQuery({
-    queryKey: ['/api/users/search', searchQuery],
+    queryKey: ['/api/users/search', searchQuery, currentUser?.id],
     queryFn: async () => {
+      if (!currentUser?.id) {
+        throw new Error('User not authenticated');
+      }
+
+      if (searchQuery.length < 3) {
+        throw new Error('Search query too short');
+      }
+
       try {
-        console.log(`Searching for users with query: ${searchQuery}`);
         const res = await apiRequest('GET', `/api/users/search?q=${encodeURIComponent(searchQuery)}`);
         if (!res.ok) {
-          const errorText = await res.text();
-          console.error('Search API error:', errorText);
+          if (res.status === 403) {
+            throw new Error('Not authorized to search users');
+          }
           throw new Error('Failed to search users');
         }
         const data = await res.json();
-        console.log('Search results:', data);
-        return data;
+
+        // Client-side filtering to ensure no sensitive data leaks
+        const sanitizedResults = data.map((user: any) => ({
+          id: user.id,
+          username: user.username,
+          fullName: user.fullName,
+          avatarUrl: user.avatarUrl,
+          // Remove sensitive fields
+          email: undefined, // Don't expose emails in search
+          phone: undefined,
+          address: undefined
+        }));
+
+        return sanitizedResults;
       } catch (error) {
         console.error('Error in search query:', error);
         throw error;
       }
     },
-    enabled: open && searchQuery.length > 1 && tab === "search",
+    enabled: open && searchQuery.length >= 3 && tab === "search" && !!currentUser?.id,
     refetchOnWindowFocus: false,
-    staleTime: 30000 // Cache results for 30 seconds
+    staleTime: 60000, // Cache results for 1 minute
+    retry: 1 // Only retry once on failure
   });
 
-  const { data: messages = [] } = useQuery({
-    queryKey: ['/api/messages', selectedContactId],
-    enabled: open && selectedContactId !== null,
+  const { data: messages = [], isLoading: messagesLoading } = useQuery({
+    queryKey: ['/api/messages', selectedContactId, currentUser?.id],
+    queryFn: async () => {
+      if (!currentUser?.id || !selectedContactId) {
+        throw new Error('Missing authentication or contact ID');
+      }
+      const response = await apiRequest('GET', `/api/messages?contactId=${selectedContactId}`);
+      if (!response.ok) {
+        throw new Error('Failed to fetch messages');
+      }
+      return response.json();
+    },
+    enabled: open && selectedContactId !== null && !!currentUser?.id,
+    refetchInterval: 5000, // Refresh messages every 5 seconds
+    staleTime: 10000,
   });
 
   const sendMessageMutation = useMutation({
@@ -118,58 +183,85 @@ export function MessagingDrawer({ open, onOpenChange }: MessagingDrawerProps) {
   });
 
   const addContactMutation = useMutation({
-    mutationFn: (contactId: number) => 
-      apiRequest('POST', '/api/contacts/add', { contactId }),
+    mutationFn: async (contactId: number) => {
+      if (!currentUser?.id) {
+        throw new Error('User not authenticated');
+      }
+      if (contactId === currentUser.id) {
+        throw new Error('Cannot add yourself as a contact');
+      }
+      const response = await apiRequest('POST', '/api/contacts/add', { contactId });
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.message || 'Failed to add contact');
+      }
+      return response.json();
+    },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['/api/contacts'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/contacts', currentUser?.id] });
       toast({
         title: "Contact Added",
-        description: "User has been added to your contacts",
+        description: "User has been added to your contacts successfully",
+        duration: 3000,
       });
       setTab("contacts");
+      setSearchQuery(""); // Clear search after adding
     },
-    onError: (error) => {
+    onError: (error: Error) => {
       toast({
-        title: "Error",
-        description: "Failed to add contact",
+        title: "Failed to Add Contact",
+        description: error.message || "An error occurred while adding the contact",
         variant: "destructive",
       });
     }
   });
 
   const removeContactMutation = useMutation({
-    mutationFn: (contactId: number) => 
-      apiRequest('DELETE', `/api/contacts/${contactId}`),
+    mutationFn: async (contactId: number) => {
+      if (!currentUser?.id) {
+        throw new Error('User not authenticated');
+      }
+      const response = await apiRequest('DELETE', `/api/contacts/${contactId}`);
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.message || 'Failed to remove contact');
+      }
+      return response.json();
+    },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['/api/contacts'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/contacts', currentUser?.id] });
+      queryClient.invalidateQueries({ queryKey: ['/api/messages'] });
       setSelectedContactId(null);
+      setShowDeleteDialog(false);
+      setContactToDelete(null);
       toast({
         title: "Contact Removed",
         description: "User has been removed from your contacts",
+        duration: 3000,
       });
     },
-    onError: (error) => {
+    onError: (error: Error) => {
       toast({
-        title: "Error",
-        description: "Failed to remove contact",
+        title: "Failed to Remove Contact",
+        description: error.message || "An error occurred while removing the contact",
         variant: "destructive",
       });
+      setShowDeleteDialog(false);
+      setContactToDelete(null);
     }
   });
 
-  // Get current user
+  // Show authentication warning if user is not logged in
   useEffect(() => {
-    if (open) {
-      apiRequest('GET', '/api/user')
-        .then(res => res.json())
-        .then(data => {
-          setCurrentUser(data);
-        })
-        .catch(err => {
-          console.error('Failed to fetch user:', err);
-        });
+    if (open && !currentUser) {
+      toast({
+        title: "Authentication Required",
+        description: "Please log in to access messaging features",
+        variant: "destructive",
+      });
+      onOpenChange(false);
     }
-  }, [open]);
+  }, [open, currentUser, toast, onOpenChange]);
 
   // Scroll to bottom of messages when new ones arrive
   useEffect(() => {
@@ -202,8 +294,13 @@ export function MessagingDrawer({ open, onOpenChange }: MessagingDrawerProps) {
   };
 
   const handleRemoveContact = (contactId: number) => {
-    if (window.confirm("Are you sure you want to remove this contact?")) {
-      removeContactMutation.mutate(contactId);
+    setContactToDelete(contactId);
+    setShowDeleteDialog(true);
+  };
+
+  const confirmRemoveContact = () => {
+    if (contactToDelete) {
+      removeContactMutation.mutate(contactToDelete);
     }
   };
 
@@ -229,25 +326,45 @@ export function MessagingDrawer({ open, onOpenChange }: MessagingDrawerProps) {
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetContent side="left" className="flex flex-col w-[400px] sm:max-w-md p-0">
-        <div className="px-4 py-3 border-b flex justify-between items-center sticky top-0 bg-background z-10">
-          <div className="flex flex-col space-y-1">
-            <h2 className="text-lg font-semibold tracking-tight">Messages</h2>
-            <p className="text-sm text-muted-foreground">Connect with other users</p>
+        {/* Enhanced header with security indicators */}
+        <div className="px-4 py-3 border-b flex justify-between items-center sticky top-0 bg-background/95 backdrop-blur-xl z-10 shadow-sm">
+          <div className="flex items-center gap-3">
+            <div className="p-2 bg-primary/10 rounded-lg">
+              <MessageSquare className="h-5 w-5 text-primary" />
+            </div>
+            <div className="flex flex-col space-y-1">
+              <h2 className="text-lg font-semibold tracking-tight">Messages</h2>
+              <div className="flex items-center gap-2">
+                <p className="text-sm text-muted-foreground">Secure messaging</p>
+                <Shield className="h-3 w-3 text-green-500" />
+              </div>
+            </div>
           </div>
-          <Button 
-            variant="ghost" 
+          <Button
+            variant="ghost"
             size="icon"
             onClick={() => onOpenChange(false)}
-            className="h-8 w-8 p-0 rounded-full"
+            className="h-8 w-8 p-0 rounded-full hover:bg-accent"
           >
             <X className="h-4 w-4" />
           </Button>
         </div>
 
         <Tabs value={tab} onValueChange={setTab} className="flex flex-col flex-grow h-full">
-          <TabsList className="grid grid-cols-2 mx-4 mt-3 mb-2">
-            <TabsTrigger value="contacts">Contacts</TabsTrigger>
-            <TabsTrigger value="search">Find Users</TabsTrigger>
+          <TabsList className="grid grid-cols-2 mx-4 mt-3 mb-2 bg-muted/50">
+            <TabsTrigger value="contacts" className="flex items-center gap-2">
+              <Users className="h-4 w-4" />
+              <span className="hidden sm:inline">Contacts</span>
+              {contacts.length > 0 && (
+                <Badge variant="secondary" className="ml-1 h-5 px-1.5 text-xs">
+                  {contacts.length}
+                </Badge>
+              )}
+            </TabsTrigger>
+            <TabsTrigger value="search" className="flex items-center gap-2">
+              <Search className="h-4 w-4" />
+              <span className="hidden sm:inline">Find Users</span>
+            </TabsTrigger>
           </TabsList>
 
           <TabsContent value="contacts" className="flex flex-col flex-grow h-full m-0 p-0">
@@ -348,62 +465,105 @@ export function MessagingDrawer({ open, onOpenChange }: MessagingDrawerProps) {
                 <div className="flex justify-between items-center mb-3">
                   <h3 className="text-sm font-medium text-foreground">Your contacts</h3>
                   <Badge variant="outline" className="text-xs">
-                    {contacts.length} {contacts.length === 1 ? 'contact' : 'contacts'}
+                    {contactsLoading ? '...' : `${contacts.length} ${contacts.length === 1 ? 'contact' : 'contacts'}`}
                   </Badge>
                 </div>
-                <div className="space-y-2 rounded-md">
-                  {contacts.length === 0 ? (
-                    <div className="text-center p-6 border rounded-md bg-muted/30">
-                      <MessageSquare className="h-10 w-10 mx-auto text-muted-foreground mb-2" />
-                      <p className="text-muted-foreground font-medium">No contacts yet</p>
-                      <p className="text-sm text-muted-foreground mt-1">
-                        Use the Find Users tab to add contacts
-                      </p>
-                    </div>
-                  ) : (
-                    contacts.map((contact: Contact) => (
-                      <div 
-                        key={contact.id} 
-                        className={`p-3 cursor-pointer hover:bg-accent/50 border rounded-md transition-colors ${
-                          selectedContactId === contact.id ? 'bg-accent border-accent' : 'bg-card'
-                        }`}
-                        onClick={() => handleContactSelect(contact.id)}
-                      >
-                        <div className="flex items-center gap-3">
-                          <Avatar className="h-10 w-10 border">
-                            <AvatarImage src={contact.avatarUrl || ""} alt={contact.username} />
-                            <AvatarFallback>{getInitials(contact.fullName)}</AvatarFallback>
-                          </Avatar>
-                          <div className="flex-grow min-w-0">
-                            <h4 className="font-medium">{contact.fullName || contact.username}</h4>
-                            <p className="text-sm text-muted-foreground truncate">{contact.lastMessage || 'No messages yet'}</p>
-                          </div>
-                          <Button 
-                            variant="ghost" 
-                            size="icon"
-                            className="h-8 w-8 rounded-full opacity-70 hover:opacity-100"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              handleRemoveContact(contact.id);
-                            }}
-                          >
-                            <X className="h-4 w-4" />
-                          </Button>
+
+                {contactsLoading ? (
+                  <div className="space-y-3">
+                    {[1, 2, 3].map((i) => (
+                      <div key={i} className="flex items-center gap-3 p-3 border rounded-md">
+                        <div className="h-10 w-10 bg-muted rounded-full animate-pulse" />
+                        <div className="flex-1 space-y-2">
+                          <div className="h-4 bg-muted rounded animate-pulse" />
+                          <div className="h-3 bg-muted rounded w-2/3 animate-pulse" />
                         </div>
                       </div>
-                    ))
-                  )}
-                </div>
+                    ))}
+                  </div>
+                ) : contactsError ? (
+                  <div className="text-center p-6 border rounded-md bg-destructive/10 border-destructive/20">
+                    <AlertTriangle className="h-10 w-10 mx-auto text-destructive mb-2" />
+                    <p className="text-destructive font-medium">Failed to load contacts</p>
+                    <p className="text-sm text-muted-foreground mt-1">
+                      Please try refreshing the page
+                    </p>
+                  </div>
+                ) : (
+                  <div className="space-y-2 rounded-md">
+                    {contacts.length === 0 ? (
+                      <div className="text-center p-6 border rounded-md bg-muted/30">
+                        <MessageSquare className="h-10 w-10 mx-auto text-muted-foreground mb-2" />
+                        <p className="text-muted-foreground font-medium">No contacts yet</p>
+                        <p className="text-sm text-muted-foreground mt-1">
+                          Use the Find Users tab to add contacts
+                        </p>
+                      </div>
+                    ) : (
+                      contacts.map((contact: Contact) => (
+                        <div
+                          key={contact.id}
+                          className={`group p-3 cursor-pointer hover:bg-accent/50 border rounded-md transition-all duration-200 ${
+                            selectedContactId === contact.id ? 'bg-accent border-accent shadow-sm' : 'bg-card hover:shadow-sm'
+                          }`}
+                          onClick={() => handleContactSelect(contact.id)}
+                        >
+                          <div className="flex items-center gap-3">
+                            <Avatar className="h-10 w-10 border-2 border-background shadow-sm">
+                              <AvatarImage src={contact.avatarUrl || ""} alt={contact.username} />
+                              <AvatarFallback className="bg-primary/10 text-primary font-medium">
+                                {getInitials(contact.fullName)}
+                              </AvatarFallback>
+                            </Avatar>
+                            <div className="flex-grow min-w-0">
+                              <h4 className="font-medium text-foreground">{contact.fullName || contact.username}</h4>
+                              <p className="text-sm text-muted-foreground truncate">
+                                {contact.lastMessage || 'No messages yet'}
+                              </p>
+                            </div>
+                            <DropdownMenu>
+                              <DropdownMenuTrigger asChild>
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  className="h-8 w-8 rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
+                                  onClick={(e) => e.stopPropagation()}
+                                >
+                                  <MoreVertical className="h-4 w-4" />
+                                </Button>
+                              </DropdownMenuTrigger>
+                              <DropdownMenuContent align="end">
+                                <DropdownMenuItem
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    handleRemoveContact(contact.id);
+                                  }}
+                                  className="text-destructive focus:text-destructive"
+                                >
+                                  <Trash2 className="h-4 w-4 mr-2" />
+                                  Remove Contact
+                                </DropdownMenuItem>
+                              </DropdownMenuContent>
+                            </DropdownMenu>
+                          </div>
+                        </div>
+                      ))
+                    )}
+                  </div>
+                )}
               </div>
             )}
           </TabsContent>
 
           <TabsContent value="search" className="flex flex-col h-full m-0 p-4">
             <div className="flex justify-between items-center mb-3">
-              <h3 className="text-sm font-medium text-foreground">Find users</h3>
+              <div className="flex items-center gap-2">
+                <h3 className="text-sm font-medium text-foreground">Find users</h3>
+                <Shield className="h-3 w-3 text-green-500" title="Secure search" />
+              </div>
               <Badge variant="outline" className="text-xs">
-                {searchQuery.length > 1 && !isSearchLoading ? 
-                  `${searchResults.length} ${searchResults.length === 1 ? 'result' : 'results'}` : 
+                {searchQuery.length >= 3 && !isSearchLoading ?
+                  `${searchResults.length} ${searchResults.length === 1 ? 'result' : 'results'}` :
                   'Search users'}
               </Badge>
             </div>
@@ -412,23 +572,25 @@ export function MessagingDrawer({ open, onOpenChange }: MessagingDrawerProps) {
               <div className="relative flex-grow">
                 <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
                 <Input
-                  placeholder="Search by username or email..."
+                  placeholder="Search by username (min 3 characters)..."
                   value={searchQuery}
                   onChange={(e) => {
                     const value = e.target.value;
-                    setSearchQuery(value);
-                    
+                    // Sanitize input - only allow alphanumeric and basic characters
+                    const sanitizedValue = value.replace(/[^a-zA-Z0-9._-]/g, '');
+                    setSearchQuery(sanitizedValue);
+
                     // Clear any existing timeout
                     if (searchTimeoutRef.current) {
                       clearTimeout(searchTimeoutRef.current);
                     }
-                    
+
                     // Only trigger search if query is long enough
-                    if (value.length > 1) {
+                    if (sanitizedValue.length >= 3) {
                       // Set a timeout to avoid too many requests
                       searchTimeoutRef.current = setTimeout(() => {
                         refetchSearch();
-                      }, 300);
+                      }, 500); // Increased debounce time
                     }
                   }}
                   className="pl-9"
@@ -479,11 +641,17 @@ export function MessagingDrawer({ open, onOpenChange }: MessagingDrawerProps) {
             </div>
             
             <ScrollArea className="flex-grow">
-              {searchQuery.length <= 1 ? (
+              {searchQuery.length < 3 ? (
                 <div className="text-center p-8">
                   <Search className="h-10 w-10 mx-auto text-muted-foreground mb-2" />
-                  <p className="text-muted-foreground">Enter a username or email to search</p>
-                  <p className="text-xs text-muted-foreground mt-1">Press Enter or click the search icon to search</p>
+                  <p className="text-muted-foreground">Enter at least 3 characters to search</p>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Search by username only for privacy protection
+                  </p>
+                  <div className="flex items-center justify-center gap-1 mt-2">
+                    <Shield className="h-3 w-3 text-green-500" />
+                    <span className="text-xs text-green-600">Secure search</span>
+                  </div>
                 </div>
               ) : isSearchLoading ? (
                 <div className="text-center p-8">
@@ -509,44 +677,97 @@ export function MessagingDrawer({ open, onOpenChange }: MessagingDrawerProps) {
                   <p className="text-sm text-muted-foreground mt-1">Try a different username or email</p>
                 </div>
               ) : (
-                <div className="space-y-2">
-                  {searchResults.map((user: any) => (
-                    <div key={user.id} className="p-3 hover:bg-accent/50 border rounded-md transition-colors">
-                      <div className="flex items-center gap-3">
-                        <Avatar className="h-10 w-10 border">
-                          <AvatarImage src={user.avatarUrl || user.profileImage || ""} alt={user.username} />
-                          <AvatarFallback>{getInitials(user.fullName)}</AvatarFallback>
-                        </Avatar>
-                        <div className="flex-grow min-w-0">
-                          <h4 className="font-medium">{user.fullName || user.username}</h4>
-                          <div className="flex flex-col xs:flex-row xs:items-center gap-1 xs:gap-2">
+                <div className="space-y-3">
+                  {searchResults.map((user: any) => {
+                    const isAlreadyContact = contacts.some((contact: Contact) => contact.id === user.id);
+                    const isCurrentUser = user.id === currentUser?.id;
+
+                    return (
+                      <div key={user.id} className="group p-3 hover:bg-accent/50 border rounded-md transition-all duration-200 hover:shadow-sm">
+                        <div className="flex items-center gap-3">
+                          <Avatar className="h-10 w-10 border-2 border-background shadow-sm">
+                            <AvatarImage src={user.avatarUrl || ""} alt={user.username} />
+                            <AvatarFallback className="bg-primary/10 text-primary font-medium">
+                              {getInitials(user.fullName)}
+                            </AvatarFallback>
+                          </Avatar>
+                          <div className="flex-grow min-w-0">
+                            <h4 className="font-medium text-foreground">{user.fullName || user.username}</h4>
                             <p className="text-sm text-muted-foreground">@{user.username}</p>
-                            {user.email && (
-                              <>
-                                <span className="hidden xs:inline text-muted-foreground">•</span>
-                                <p className="text-sm text-muted-foreground truncate max-w-[150px]">{user.email}</p>
-                              </>
-                            )}
+                            {/* Removed email display for privacy */}
                           </div>
+                          {isCurrentUser ? (
+                            <Badge variant="secondary" className="text-xs">
+                              You
+                            </Badge>
+                          ) : isAlreadyContact ? (
+                            <Badge variant="outline" className="text-xs">
+                              <CheckCircle className="h-3 w-3 mr-1" />
+                              Contact
+                            </Badge>
+                          ) : (
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => handleAddContact(user.id)}
+                              disabled={addContactMutation.isPending}
+                              className="ml-auto hover:bg-primary hover:text-primary-foreground transition-colors"
+                            >
+                              {addContactMutation.isPending ? (
+                                <Clock className="h-4 w-4 mr-2 animate-spin" />
+                              ) : (
+                                <UserPlus className="h-4 w-4 mr-2" />
+                              )}
+                              Add
+                            </Button>
+                          )}
                         </div>
-                        <Button 
-                          size="sm"
-                          variant="outline"
-                          onClick={() => handleAddContact(user.id)}
-                          className="ml-auto"
-                        >
-                          <UserPlus className="h-4 w-4 mr-2" />
-                          Add
-                        </Button>
                       </div>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
               )}
             </ScrollArea>
           </TabsContent>
         </Tabs>
       </SheetContent>
+
+      {/* Delete Contact Confirmation Dialog */}
+      <AlertDialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Remove Contact</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to remove this contact? This will also delete your message history with them. This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={() => {
+              setShowDeleteDialog(false);
+              setContactToDelete(null);
+            }}>
+              Cancel
+            </AlertDialogCancel>
+            <AlertDialogAction
+              onClick={confirmRemoveContact}
+              className="bg-destructive hover:bg-destructive/90"
+              disabled={removeContactMutation.isPending}
+            >
+              {removeContactMutation.isPending ? (
+                <>
+                  <Clock className="h-4 w-4 mr-2 animate-spin" />
+                  Removing...
+                </>
+              ) : (
+                <>
+                  <Trash2 className="h-4 w-4 mr-2" />
+                  Remove Contact
+                </>
+              )}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </Sheet>
   );
 }

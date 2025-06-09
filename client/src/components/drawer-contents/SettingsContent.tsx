@@ -32,21 +32,21 @@ const SettingsContent: React.FC<SettingsContentProps> = ({ user }) => {
   const { toast } = useToast();
   const [activeTab, setActiveTab] = useState('profile');
   
-  // Notification settings
+  // Notification settings - these should be fetched from user preferences
   const [notificationSettings, setNotificationSettings] = useState({
-    emailNotifications: true,
-    pushNotifications: true,
-    newJobAlerts: true,
-    paymentUpdates: true,
-    marketingEmails: false,
+    emailNotifications: user.emailNotifications ?? true,
+    pushNotifications: user.pushNotifications ?? true,
+    newJobAlerts: user.newJobAlerts ?? true,
+    paymentUpdates: user.paymentUpdates ?? true,
+    marketingEmails: user.marketingEmails ?? false,
   });
 
-  // Privacy settings
+  // Privacy settings - these should be fetched from user preferences
   const [privacySettings, setPrivacySettings] = useState({
-    profileVisibility: 'all', // 'all', 'contacts', 'none'
-    showOnlineStatus: true,
-    shareActivityStatus: true,
-    allowLocationAccess: true,
+    profileVisibility: user.profileVisibility || 'all', // 'all', 'contacts', 'none'
+    showOnlineStatus: user.showOnlineStatus ?? true,
+    shareActivityStatus: user.shareActivityStatus ?? true,
+    allowLocationAccess: user.allowLocationAccess ?? true,
   });
 
   const handleToggle = (setting: string) => {
@@ -105,30 +105,30 @@ const SettingsContent: React.FC<SettingsContentProps> = ({ user }) => {
         onValueChange={setActiveTab}
         className="space-y-4"
       >
-        <TabsList className="grid grid-cols-6 w-full">
-          <TabsTrigger value="profile" className="text-xs">
-            <UserIcon className="h-4 w-4 mr-1" />
-            Profile
+        <TabsList className="grid grid-cols-3 lg:grid-cols-6 w-full">
+          <TabsTrigger value="profile" className="text-xs flex-col h-auto py-2">
+            <UserIcon className="h-4 w-4 mb-1" />
+            <span className="hidden sm:inline">Profile</span>
           </TabsTrigger>
-          <TabsTrigger value="account" className="text-xs">
-            <Shield className="h-4 w-4 mr-1" />
-            Account
+          <TabsTrigger value="account" className="text-xs flex-col h-auto py-2">
+            <Shield className="h-4 w-4 mb-1" />
+            <span className="hidden sm:inline">Account</span>
           </TabsTrigger>
-          <TabsTrigger value="notifications" className="text-xs">
-            <Bell className="h-4 w-4 mr-1" />
-            Alerts
+          <TabsTrigger value="notifications" className="text-xs flex-col h-auto py-2">
+            <Bell className="h-4 w-4 mb-1" />
+            <span className="hidden sm:inline">Alerts</span>
           </TabsTrigger>
-          <TabsTrigger value="privacy" className="text-xs">
-            <Shield className="h-4 w-4 mr-1" />
-            Privacy
+          <TabsTrigger value="privacy" className="text-xs flex-col h-auto py-2">
+            <Shield className="h-4 w-4 mb-1" />
+            <span className="hidden sm:inline">Privacy</span>
           </TabsTrigger>
-          <TabsTrigger value="appearance" className="text-xs">
-            <Palette className="h-4 w-4 mr-1" />
-            Theme
+          <TabsTrigger value="appearance" className="text-xs flex-col h-auto py-2">
+            <Palette className="h-4 w-4 mb-1" />
+            <span className="hidden sm:inline">Theme</span>
           </TabsTrigger>
-          <TabsTrigger value="data" className="text-xs">
-            <Download className="h-4 w-4 mr-1" />
-            Data
+          <TabsTrigger value="data" className="text-xs flex-col h-auto py-2">
+            <Download className="h-4 w-4 mb-1" />
+            <span className="hidden sm:inline">Data</span>
           </TabsTrigger>
         </TabsList>
 
