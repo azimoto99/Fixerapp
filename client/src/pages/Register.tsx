@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { useLocation } from 'wouter';
 import { useForm } from 'react-hook-form';
 import { z } from 'zod';
@@ -28,12 +29,18 @@ import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 
 const formSchema = z.object({
-  username: z.string().min(3, 'Username must be at least 3 characters'),
+  username: z.string()
+    .min(3, 'Username must be at least 3 characters')
+    .max(30, 'Username must be less than 30 characters')
+    .regex(/^[a-zA-Z0-9_-]+$/, 'Username can only contain letters, numbers, underscores, and hyphens'),
   password: z.string()
     .min(8, 'Password must be at least 8 characters')
     .regex(/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)/, 'Password must contain at least one uppercase letter, one lowercase letter, and one number'),
   confirmPassword: z.string(),
-  fullName: z.string().min(1, 'Full name is required'),
+  fullName: z.string()
+    .min(2, 'Full name must be at least 2 characters')
+    .max(100, 'Full name must be less than 100 characters')
+    .regex(/^[a-zA-Z\s'-]+$/, 'Full name can only contain letters, spaces, apostrophes, and hyphens'),
   email: z.string().email('Invalid email address'),
   phone: z.string().optional(),
   bio: z.string().optional(),
@@ -47,8 +54,10 @@ interface RegisterProps {
 }
 
 export default function Register({ onModeChange }: RegisterProps) {
-  const [_, navigate] = useLocation();
+  const [_] = useLocation();
   const { registerMutation } = useAuth();
+  const [usernameSuggestions, setUsernameSuggestions] = useState<string[]>([]);
+  const [showSuggestions, setShowSuggestions] = useState(false);
 
   const form = useForm<FormData>({
     resolver: zodResolver(formSchema.refine(
@@ -88,10 +97,20 @@ export default function Register({ onModeChange }: RegisterProps) {
         onSuccess: () => {
           // Navigation is now handled in the mutation's onSuccess in use-auth.tsx
           // This ensures the session is properly established first
+          setShowSuggestions(false);
+          setUsernameSuggestions([]);
         },
         onError: (error: any) => {
           console.error('Registration error:', error);
-          // The error will be handled by the form's error display
+
+          // Handle username suggestions
+          if (error.suggestions && error.suggestions.length > 0) {
+            setUsernameSuggestions(error.suggestions);
+            setShowSuggestions(true);
+          } else {
+            setShowSuggestions(false);
+            setUsernameSuggestions([]);
+          }
         }
       });
     } catch (error) {
@@ -134,6 +153,29 @@ export default function Register({ onModeChange }: RegisterProps) {
                         <Input placeholder="username" {...field} />
                       </FormControl>
                       <FormMessage />
+                      {showSuggestions && usernameSuggestions.length > 0 && (
+                        <div className="mt-2 p-3 bg-blue-50 border border-blue-200 rounded-md">
+                          <p className="text-sm text-blue-800 font-medium mb-2">
+                            Try these available usernames:
+                          </p>
+                          <div className="flex flex-wrap gap-2">
+                            {usernameSuggestions.map((suggestion, index) => (
+                              <button
+                                key={index}
+                                type="button"
+                                onClick={() => {
+                                  field.onChange(suggestion);
+                                  setShowSuggestions(false);
+                                  setUsernameSuggestions([]);
+                                }}
+                                className="px-3 py-1 text-sm bg-blue-100 hover:bg-blue-200 text-blue-800 rounded-full transition-colors"
+                              >
+                                {suggestion}
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+                      )}
                     </FormItem>
                   )}
                 />

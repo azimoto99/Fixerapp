@@ -19,6 +19,7 @@ import {
 } from "@/components/ui/select";
 import { Checkbox } from "@/components/ui/checkbox";
 import { useToast } from '@/hooks/use-toast';
+import { useAuth } from '@/hooks/use-auth';
 import { apiRequest } from '@/lib/queryClient';
 import { Job } from '@shared/types';
 import { Edit, Save, X } from 'lucide-react';
@@ -43,6 +44,7 @@ const JOB_CATEGORIES = [
 
 export function EditJobModal({ job, open, onOpenChange }: EditJobModalProps) {
   const { toast } = useToast();
+  const { user } = useAuth();
   const queryClient = useQueryClient();
   
   const [formData, setFormData] = useState({
@@ -90,7 +92,7 @@ export function EditJobModal({ job, open, onOpenChange }: EditJobModalProps) {
       return response.json();
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['/api/jobs/my-posted-jobs'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/jobs/my-posted-jobs', user?.id] });
       queryClient.invalidateQueries({ queryKey: ['/api/jobs'] });
       toast({
         title: "Job Updated",

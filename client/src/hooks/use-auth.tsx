@@ -134,7 +134,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         // Check if response is ok before parsing
         if (!res.ok) {
           const errorData = await res.json().catch(() => ({ message: 'Registration failed' }));
-          throw new Error(errorData.message || 'Registration failed');
+          const error = new Error(errorData.message || 'Registration failed') as any;
+          // Attach suggestions if available for username issues
+          if (errorData.suggestions) {
+            error.suggestions = errorData.suggestions;
+          }
+          if (errorData.severity) {
+            error.severity = errorData.severity;
+          }
+          throw error;
         }
         
         const userData = await res.json();
