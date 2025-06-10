@@ -16,7 +16,7 @@ import { Separator } from "@/components/ui/separator";
 import { apiRequest } from "@/lib/queryClient";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { useToast } from "@/hooks/use-toast";
-import { Search, X, Send, MessageSquare, UserPlus, Shield, AlertTriangle, CheckCircle, Clock, ArrowLeft, MoreVertical, Trash2, Users } from "lucide-react";
+import { Search, X, Send, MessageSquare, UserPlus, Shield, AlertTriangle, CheckCircle, Clock, ArrowLeft, MoreVertical, Trash2, Users, UserCheck, UserX, Mail } from "lucide-react";
 import { useAuth } from '@/hooks/use-auth';
 import {
   AlertDialog,
@@ -92,59 +92,7 @@ export function MessagingDrawer({ open, onOpenChange }: MessagingDrawerProps) {
     refetchOnWindowFocus: true,
   });
 
-  // Debounced search reference
-  const searchTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
-  // Enhanced search with debounce and security
-  const {
-    data: searchResults = [],
-    isError: isSearchError,
-    isLoading: isSearchLoading,
-    refetch: refetchSearch
-  } = useQuery({
-    queryKey: ['/api/users/search', searchQuery, currentUser?.id],
-    queryFn: async () => {
-      if (!currentUser?.id) {
-        throw new Error('User not authenticated');
-      }
-
-      if (searchQuery.length < 3) {
-        throw new Error('Search query too short');
-      }
-
-      try {
-        const res = await apiRequest('GET', `/api/users/search?q=${encodeURIComponent(searchQuery)}`);
-        if (!res.ok) {
-          if (res.status === 403) {
-            throw new Error('Not authorized to search users');
-          }
-          throw new Error('Failed to search users');
-        }
-        const data = await res.json();
-
-        // Client-side filtering to ensure no sensitive data leaks
-        const sanitizedResults = data.map((user: any) => ({
-          id: user.id,
-          username: user.username,
-          fullName: user.fullName,
-          avatarUrl: user.avatarUrl,
-          // Remove sensitive fields
-          email: undefined, // Don't expose emails in search
-          phone: undefined,
-          address: undefined
-        }));
-
-        return sanitizedResults;
-      } catch (error) {
-        console.error('Error in search query:', error);
-        throw error;
-      }
-    },
-    enabled: open && searchQuery.length >= 3 && tab === "search" && !!currentUser?.id,
-    refetchOnWindowFocus: false,
-    staleTime: 60000, // Cache results for 1 minute
-    retry: 1 // Only retry once on failure
-  });
 
   const { data: messages = [], isLoading: messagesLoading } = useQuery({
     queryKey: ['/api/messages', selectedContactId, currentUser?.id],
@@ -163,54 +111,128 @@ export function MessagingDrawer({ open, onOpenChange }: MessagingDrawerProps) {
     staleTime: 10000,
   });
 
+  // Contact requests queries
+  const { data: receivedRequests = [], isLoading: receivedRequestsLoading } = useQuery({
+    queryKey: ['/api/contact-requests', 'received', currentUser?.id],
+    queryFn: async () => {
+      if (!currentUser?.id) {
+        throw new Error('User not authenticated');
+      }
+      const response = await apiRequest('GET', '/api/contact-requests?type=received');
+      if (!response.ok) {
+        throw new Error('Failed to fetch received requests');
+      }
+      return response.json();
+    },
+    enabled: open && !!currentUser?.id,
+    staleTime: 30000,
+    refetchOnWindowFocus: true,
+  });
+
+  const { data: sentRequests = [], isLoading: sentRequestsLoading } = useQuery({
+    queryKey: ['/api/contact-requests', 'sent', currentUser?.id],
+    queryFn: async () => {
+      if (!currentUser?.id) {
+        throw new Error('User not authenticated');
+      }
+      const response = await apiRequest('GET', '/api/contact-requests?type=sent');
+      if (!response.ok) {
+        throw new Error('Failed to fetch sent requests');
+      }
+      return response.json();
+    },
+    enabled: open && !!currentUser?.id,
+    staleTime: 30000,
+    refetchOnWindowFocus: true,
+  });
+
   const sendMessageMutation = useMutation({
-    mutationFn: (messageData: { recipientId: number; content: string }) => 
-      apiRequest('POST', '/api/messages/send', messageData),
+    mutationFn: async (messageData: { recipientId: number; content: string }) => {
+      if (!currentUser?.id) {
+        throw new Error('User not authenticated');
+      }
+      const response = await apiRequest('POST', '/api/messages/send', messageData);
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.message || 'Failed to send message');
+      }
+      return response.json();
+    },
     onSuccess: () => {
       setNewMessage("");
       if (selectedContactId) {
-        queryClient.invalidateQueries({ queryKey: ['/api/messages', selectedContactId] });
-        queryClient.invalidateQueries({ queryKey: ['/api/contacts'] });
+        queryClient.invalidateQueries({ queryKey: ['/api/messages', selectedContactId, currentUser?.id] });
+        queryClient.invalidateQueries({ queryKey: ['/api/contacts', currentUser?.id] });
       }
     },
-    onError: (error) => {
+    onError: (error: Error) => {
       toast({
-        title: "Error",
-        description: "Failed to send message",
+        title: "Failed to Send Message",
+        description: error.message || "An error occurred while sending the message",
         variant: "destructive",
       });
     }
   });
 
-  const addContactMutation = useMutation({
-    mutationFn: async (contactId: number) => {
+  const sendContactRequestMutation = useMutation({
+    mutationFn: async ({ receiverId, message }: { receiverId: number; message?: string }) => {
       if (!currentUser?.id) {
         throw new Error('User not authenticated');
       }
-      if (contactId === currentUser.id) {
-        throw new Error('Cannot add yourself as a contact');
+      if (receiverId === currentUser.id) {
+        throw new Error('Cannot send contact request to yourself');
       }
-      const response = await apiRequest('POST', '/api/contacts/add', { contactId });
+      const response = await apiRequest('POST', '/api/contact-requests/send', { receiverId, message });
       if (!response.ok) {
         const error = await response.json();
-        throw new Error(error.message || 'Failed to add contact');
+        throw new Error(error.message || 'Failed to send contact request');
       }
       return response.json();
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['/api/contacts', currentUser?.id] });
+      queryClient.invalidateQueries({ queryKey: ['/api/contact-requests', 'sent', currentUser?.id] });
       toast({
-        title: "Contact Added",
-        description: "User has been added to your contacts successfully",
+        title: "Contact Request Sent",
+        description: "Your contact request has been sent successfully",
         duration: 3000,
       });
-      setTab("contacts");
-      setSearchQuery(""); // Clear search after adding
+      setTab("requests");
+      setSearchQuery(""); // Clear search after sending
     },
     onError: (error: Error) => {
       toast({
-        title: "Failed to Add Contact",
-        description: error.message || "An error occurred while adding the contact",
+        title: "Failed to Send Request",
+        description: error.message || "An error occurred while sending the contact request",
+        variant: "destructive",
+      });
+    }
+  });
+
+  const respondToRequestMutation = useMutation({
+    mutationFn: async ({ requestId, status }: { requestId: number; status: 'accepted' | 'rejected' }) => {
+      if (!currentUser?.id) {
+        throw new Error('User not authenticated');
+      }
+      const response = await apiRequest('PUT', `/api/contact-requests/${requestId}`, { status });
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.message || 'Failed to respond to contact request');
+      }
+      return response.json();
+    },
+    onSuccess: (data, variables) => {
+      queryClient.invalidateQueries({ queryKey: ['/api/contact-requests', 'received', currentUser?.id] });
+      queryClient.invalidateQueries({ queryKey: ['/api/contacts', currentUser?.id] });
+      toast({
+        title: variables.status === 'accepted' ? "Request Accepted" : "Request Rejected",
+        description: `Contact request has been ${variables.status} successfully`,
+        duration: 3000,
+      });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Failed to Respond",
+        description: error.message || "An error occurred while responding to the request",
         variant: "destructive",
       });
     }
@@ -289,8 +311,92 @@ export function MessagingDrawer({ open, onOpenChange }: MessagingDrawerProps) {
     });
   };
 
-  const handleAddContact = (contactId: number) => {
-    addContactMutation.mutate(contactId);
+  const handleSendContactRequest = (receiverId: number) => {
+    sendContactRequestMutation.mutate({ receiverId });
+  };
+
+  const handleDirectContactRequest = async () => {
+    const trimmedQuery = searchQuery.trim();
+    if (!trimmedQuery) {
+      toast({
+        title: "Username Required",
+        description: "Please enter a username",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (trimmedQuery.length < 3) {
+      toast({
+        title: "Username Too Short",
+        description: "Username must be at least 3 characters",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    try {
+      // First, try to find the user by username
+      const response = await apiRequest('GET', `/api/users/search?username=${encodeURIComponent(trimmedQuery)}`);
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        toast({
+          title: "User Not Found",
+          description: errorData.message || "No user found with that username",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      const users = await response.json();
+      if (!users || users.length === 0) {
+        toast({
+          title: "User Not Found",
+          description: "No user found with that username",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      const user = users[0];
+
+      // Check if it's the current user
+      if (user.id === currentUser?.id) {
+        toast({
+          title: "Cannot Add Yourself",
+          description: "You cannot send a contact request to yourself",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      // Check if already a contact
+      const isAlreadyContact = contacts.some((contact: Contact) => contact.id === user.id);
+      if (isAlreadyContact) {
+        toast({
+          title: "Already a Contact",
+          description: "This user is already in your contacts",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      // Send contact request
+      handleSendContactRequest(user.id);
+      setSearchQuery(""); // Clear the input after sending
+
+    } catch (error) {
+      console.error('Error finding user:', error);
+      toast({
+        title: "Error",
+        description: "Failed to find user. Please try again.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleRespondToRequest = (requestId: number, status: 'accepted' | 'rejected') => {
+    respondToRequestMutation.mutate({ requestId, status });
   };
 
   const handleRemoveContact = (contactId: number) => {
@@ -351,8 +457,8 @@ export function MessagingDrawer({ open, onOpenChange }: MessagingDrawerProps) {
         </div>
 
         <Tabs value={tab} onValueChange={setTab} className="flex flex-col flex-grow h-full">
-          <TabsList className="grid grid-cols-2 mx-4 mt-3 mb-2 bg-muted/50">
-            <TabsTrigger value="contacts" className="flex items-center gap-2">
+          <TabsList className="grid grid-cols-3 mx-4 mt-3 mb-2 bg-muted/50">
+            <TabsTrigger value="contacts" className="flex items-center gap-1">
               <Users className="h-4 w-4" />
               <span className="hidden sm:inline">Contacts</span>
               {contacts.length > 0 && (
@@ -361,9 +467,18 @@ export function MessagingDrawer({ open, onOpenChange }: MessagingDrawerProps) {
                 </Badge>
               )}
             </TabsTrigger>
-            <TabsTrigger value="search" className="flex items-center gap-2">
-              <Search className="h-4 w-4" />
-              <span className="hidden sm:inline">Find Users</span>
+            <TabsTrigger value="requests" className="flex items-center gap-1">
+              <Mail className="h-4 w-4" />
+              <span className="hidden sm:inline">Requests</span>
+              {receivedRequests.length > 0 && (
+                <Badge variant="destructive" className="ml-1 h-5 px-1.5 text-xs">
+                  {receivedRequests.length}
+                </Badge>
+              )}
+            </TabsTrigger>
+            <TabsTrigger value="add" className="flex items-center gap-1">
+              <UserPlus className="h-4 w-4" />
+              <span className="hidden sm:inline">Add</span>
             </TabsTrigger>
           </TabsList>
 
@@ -555,179 +670,194 @@ export function MessagingDrawer({ open, onOpenChange }: MessagingDrawerProps) {
             )}
           </TabsContent>
 
-          <TabsContent value="search" className="flex flex-col h-full m-0 p-4">
+          <TabsContent value="requests" className="flex flex-col h-full m-0 p-4">
             <div className="flex justify-between items-center mb-3">
               <div className="flex items-center gap-2">
-                <h3 className="text-sm font-medium text-foreground">Find users</h3>
-                <Shield className="h-3 w-3 text-green-500" title="Secure search" />
+                <h3 className="text-sm font-medium text-foreground">Contact Requests</h3>
+                <Shield className="h-3 w-3 text-green-500" title="Secure requests" />
               </div>
               <Badge variant="outline" className="text-xs">
-                {searchQuery.length >= 3 && !isSearchLoading ?
-                  `${searchResults.length} ${searchResults.length === 1 ? 'result' : 'results'}` :
-                  'Search users'}
+                {receivedRequestsLoading ? '...' : `${receivedRequests.length} pending`}
               </Badge>
             </div>
-            
-            <div className="relative flex gap-2 mb-4">
-              <div className="relative flex-grow">
-                <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-                <Input
-                  placeholder="Search by username (min 3 characters)..."
-                  value={searchQuery}
-                  onChange={(e) => {
-                    const value = e.target.value;
-                    // Sanitize input - only allow alphanumeric and basic characters
-                    const sanitizedValue = value.replace(/[^a-zA-Z0-9._-]/g, '');
-                    setSearchQuery(sanitizedValue);
 
-                    // Clear any existing timeout
-                    if (searchTimeoutRef.current) {
-                      clearTimeout(searchTimeoutRef.current);
-                    }
-
-                    // Only trigger search if query is long enough
-                    if (sanitizedValue.length >= 3) {
-                      // Set a timeout to avoid too many requests
-                      searchTimeoutRef.current = setTimeout(() => {
-                        refetchSearch();
-                      }, 500); // Increased debounce time
-                    }
-                  }}
-                  className="pl-9"
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter') {
-                      e.preventDefault();
-                      // Force refetch when Enter is pressed
-                      if (searchQuery.length > 1) {
-                        if (searchTimeoutRef.current) {
-                          clearTimeout(searchTimeoutRef.current);
-                        }
-                        refetchSearch();
-                      }
-                    }
-                  }}
-                />
-                {searchQuery && (
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="absolute right-1 top-1 h-8 w-8 p-0 rounded-full opacity-70 hover:opacity-100"
-                    onClick={() => setSearchQuery("")}
-                  >
-                    <X className="h-4 w-4" />
-                  </Button>
-                )}
-              </div>
-              <Button 
-                variant="outline" 
-                size="icon"
-                onClick={() => {
-                  if (searchQuery.length > 1) {
-                    // Clear any existing timeout
-                    if (searchTimeoutRef.current) {
-                      clearTimeout(searchTimeoutRef.current);
-                    }
-                    refetchSearch();
-                  }
-                }}
-                disabled={isSearchLoading}
-              >
-                {isSearchLoading ? (
-                  <div className="h-4 w-4 border-2 border-current border-t-transparent rounded-full animate-spin" />
-                ) : (
-                  <Search className="h-4 w-4" />
-                )}
-              </Button>
-            </div>
-            
             <ScrollArea className="flex-grow">
-              {searchQuery.length < 3 ? (
-                <div className="text-center p-8">
-                  <Search className="h-10 w-10 mx-auto text-muted-foreground mb-2" />
-                  <p className="text-muted-foreground">Enter at least 3 characters to search</p>
-                  <p className="text-xs text-muted-foreground mt-1">
-                    Search by username only for privacy protection
+              {receivedRequestsLoading ? (
+                <div className="space-y-3">
+                  {[1, 2, 3].map((i) => (
+                    <div key={i} className="flex items-center gap-3 p-3 border rounded-md">
+                      <div className="h-10 w-10 bg-muted rounded-full animate-pulse" />
+                      <div className="flex-1 space-y-2">
+                        <div className="h-4 bg-muted rounded animate-pulse" />
+                        <div className="h-3 bg-muted rounded w-2/3 animate-pulse" />
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : receivedRequests.length === 0 ? (
+                <div className="text-center p-6 border rounded-md bg-muted/30">
+                  <Mail className="h-10 w-10 mx-auto text-muted-foreground mb-2" />
+                  <p className="text-muted-foreground font-medium">No pending requests</p>
+                  <p className="text-sm text-muted-foreground mt-1">
+                    Contact requests from other users will appear here
                   </p>
-                  <div className="flex items-center justify-center gap-1 mt-2">
-                    <Shield className="h-3 w-3 text-green-500" />
-                    <span className="text-xs text-green-600">Secure search</span>
-                  </div>
-                </div>
-              ) : isSearchLoading ? (
-                <div className="text-center p-8">
-                  <div className="h-10 w-10 border-4 border-primary border-t-transparent rounded-full animate-spin mx-auto mb-2" />
-                  <p className="text-muted-foreground">Searching users...</p>
-                </div>
-              ) : isSearchError ? (
-                <div className="text-center p-8">
-                  <p className="text-destructive">Error searching users</p>
-                  <p className="text-sm text-muted-foreground mt-1">Please try again later</p>
-                  <Button 
-                    variant="outline" 
-                    size="sm"
-                    onClick={() => refetchSearch()}
-                    className="mt-4"
-                  >
-                    Try again
-                  </Button>
-                </div>
-              ) : searchResults.length === 0 ? (
-                <div className="text-center p-8">
-                  <p className="text-muted-foreground">No users found</p>
-                  <p className="text-sm text-muted-foreground mt-1">Try a different username or email</p>
                 </div>
               ) : (
                 <div className="space-y-3">
-                  {searchResults.map((user: any) => {
-                    const isAlreadyContact = contacts.some((contact: Contact) => contact.id === user.id);
-                    const isCurrentUser = user.id === currentUser?.id;
-
-                    return (
-                      <div key={user.id} className="group p-3 hover:bg-accent/50 border rounded-md transition-all duration-200 hover:shadow-sm">
-                        <div className="flex items-center gap-3">
-                          <Avatar className="h-10 w-10 border-2 border-background shadow-sm">
-                            <AvatarImage src={user.avatarUrl || ""} alt={user.username} />
-                            <AvatarFallback className="bg-primary/10 text-primary font-medium">
-                              {getInitials(user.fullName)}
-                            </AvatarFallback>
-                          </Avatar>
-                          <div className="flex-grow min-w-0">
-                            <h4 className="font-medium text-foreground">{user.fullName || user.username}</h4>
-                            <p className="text-sm text-muted-foreground">@{user.username}</p>
-                            {/* Removed email display for privacy */}
-                          </div>
-                          {isCurrentUser ? (
-                            <Badge variant="secondary" className="text-xs">
-                              You
-                            </Badge>
-                          ) : isAlreadyContact ? (
-                            <Badge variant="outline" className="text-xs">
-                              <CheckCircle className="h-3 w-3 mr-1" />
-                              Contact
-                            </Badge>
-                          ) : (
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              onClick={() => handleAddContact(user.id)}
-                              disabled={addContactMutation.isPending}
-                              className="ml-auto hover:bg-primary hover:text-primary-foreground transition-colors"
-                            >
-                              {addContactMutation.isPending ? (
-                                <Clock className="h-4 w-4 mr-2 animate-spin" />
-                              ) : (
-                                <UserPlus className="h-4 w-4 mr-2" />
-                              )}
-                              Add
-                            </Button>
+                  {receivedRequests.map((request: any) => (
+                    <div key={request.id} className="p-3 border rounded-md bg-card hover:shadow-sm transition-all">
+                      <div className="flex items-start gap-3">
+                        <Avatar className="h-10 w-10 border-2 border-background shadow-sm">
+                          <AvatarImage src={request.avatarUrl || ""} alt={request.username} />
+                          <AvatarFallback className="bg-primary/10 text-primary font-medium">
+                            {getInitials(request.fullName)}
+                          </AvatarFallback>
+                        </Avatar>
+                        <div className="flex-1 min-w-0">
+                          <h4 className="font-medium text-foreground">{request.fullName || request.username}</h4>
+                          <p className="text-sm text-muted-foreground">@{request.username}</p>
+                          {request.message && (
+                            <p className="text-sm text-foreground mt-1 p-2 bg-muted/50 rounded">
+                              "{request.message}"
+                            </p>
                           )}
+                          <p className="text-xs text-muted-foreground mt-1">
+                            {new Date(request.createdAt).toLocaleDateString()}
+                          </p>
                         </div>
                       </div>
-                    );
-                  })}
+                      <div className="flex gap-2 mt-3">
+                        <Button
+                          size="sm"
+                          onClick={() => handleRespondToRequest(request.id, 'accepted')}
+                          disabled={respondToRequestMutation.isPending}
+                          className="flex-1 bg-green-600 hover:bg-green-700"
+                        >
+                          <UserCheck className="h-4 w-4 mr-1" />
+                          Accept
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => handleRespondToRequest(request.id, 'rejected')}
+                          disabled={respondToRequestMutation.isPending}
+                          className="flex-1 hover:bg-red-50 hover:text-red-600 hover:border-red-200"
+                        >
+                          <UserX className="h-4 w-4 mr-1" />
+                          Decline
+                        </Button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              {/* Sent Requests Section */}
+              {sentRequests.length > 0 && (
+                <div className="mt-6">
+                  <div className="flex items-center gap-2 mb-3">
+                    <h4 className="text-sm font-medium text-muted-foreground">Sent Requests</h4>
+                    <Badge variant="outline" className="text-xs">
+                      {sentRequests.length} pending
+                    </Badge>
+                  </div>
+                  <div className="space-y-2">
+                    {sentRequests.map((request: any) => (
+                      <div key={request.id} className="p-2 border rounded bg-muted/30">
+                        <div className="flex items-center gap-2">
+                          <Avatar className="h-8 w-8">
+                            <AvatarImage src={request.avatarUrl || ""} alt={request.username} />
+                            <AvatarFallback className="text-xs">
+                              {getInitials(request.fullName)}
+                            </AvatarFallback>
+                          </Avatar>
+                          <div className="flex-1 min-w-0">
+                            <p className="text-sm font-medium">{request.fullName || request.username}</p>
+                            <p className="text-xs text-muted-foreground">Pending response</p>
+                          </div>
+                          <Clock className="h-4 w-4 text-muted-foreground" />
+                        </div>
+                      </div>
+                    ))}
+                  </div>
                 </div>
               )}
             </ScrollArea>
+          </TabsContent>
+
+          <TabsContent value="add" className="flex flex-col h-full m-0 p-4">
+            <div className="flex justify-between items-center mb-3">
+              <div className="flex items-center gap-2">
+                <h3 className="text-sm font-medium text-foreground">Add Contact</h3>
+                <Shield className="h-3 w-3 text-green-500" title="Secure contact requests" />
+              </div>
+            </div>
+
+            <div className="mb-4">
+              <div className="space-y-3">
+                <div>
+                  <label className="text-sm font-medium text-foreground mb-2 block">
+                    Enter Username
+                  </label>
+                  <div className="relative">
+                    <UserPlus className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                    <Input
+                      placeholder="Enter exact username..."
+                      value={searchQuery}
+                      onChange={(e) => {
+                        const value = e.target.value;
+                        // Sanitize input - only allow alphanumeric and basic characters
+                        const sanitizedValue = value.replace(/[^a-zA-Z0-9._-]/g, '');
+                        setSearchQuery(sanitizedValue);
+                      }}
+                      className="pl-10"
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter' && searchQuery.trim()) {
+                          handleDirectContactRequest();
+                        }
+                      }}
+                    />
+                  </div>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Enter the exact username of the person you want to add
+                  </p>
+                </div>
+
+                <Button
+                  onClick={handleDirectContactRequest}
+                  disabled={!searchQuery.trim() || sendContactRequestMutation.isPending}
+                  className="w-full"
+                >
+                  {sendContactRequestMutation.isPending ? (
+                    <>
+                      <Clock className="h-4 w-4 mr-2 animate-spin" />
+                      Sending Request...
+                    </>
+                  ) : (
+                    <>
+                      <UserPlus className="h-4 w-4 mr-2" />
+                      Send Contact Request
+                    </>
+                  )}
+                </Button>
+              </div>
+            </div>
+
+            <div className="flex-grow">
+              <div className="text-center p-6 border rounded-md bg-muted/30">
+                <UserPlus className="h-10 w-10 mx-auto text-muted-foreground mb-2" />
+                <p className="text-muted-foreground font-medium">Add contacts by username</p>
+                <p className="text-sm text-muted-foreground mt-1">
+                  Enter the exact username to send a contact request
+                </p>
+                <div className="mt-4 p-3 bg-blue-50 border border-blue-200 rounded-md">
+                  <p className="text-xs text-blue-800">
+                    <strong>Privacy Note:</strong> Users can only be added by their exact username.
+                    No search or browsing functionality is available.
+                  </p>
+                </div>
+              </div>
+            </div>
           </TabsContent>
         </Tabs>
       </SheetContent>
