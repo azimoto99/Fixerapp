@@ -84,8 +84,44 @@ export function WebSocketProvider({
         queryClient.invalidateQueries({ queryKey: ['/api/messages'] });
         break;
       case 'notification':
+        // Only show notification if it's for this user
+        if (message.data.userId === user?.id) {
+          toast({
+            title: message.data.title,
+            description: message.data.message,
+          });
+        }
         // Invalidate notification queries
         queryClient.invalidateQueries({ queryKey: ['/api/notifications'] });
+        break;
+
+      case 'instant_application':
+        // Only show to job poster
+        if (message.posterId === user?.id) {
+          toast({
+            title: "⚡ New Application!",
+            description: `${message.workerName} just applied for your job!`,
+            duration: 6000,
+          });
+
+          // Refresh applications
+          queryClient.invalidateQueries({ queryKey: [`/api/applications/job/${message.jobId}`] });
+        }
+        break;
+
+      case 'application_accepted':
+        // Only show to the worker whose application was accepted
+        if (message.workerId === user?.id) {
+          toast({
+            title: "🎉 Application Accepted!",
+            description: "Your application has been accepted!",
+            duration: 5000,
+          });
+
+          // Refresh applications and jobs
+          queryClient.invalidateQueries({ queryKey: ['/api/applications'] });
+          queryClient.invalidateQueries({ queryKey: ['/api/jobs'] });
+        }
         break;
       case 'job_pin_update':
         console.log('📍 Job pin update:', message.data);
@@ -105,7 +141,7 @@ export function WebSocketProvider({
     
     // Call custom handler if provided
     onMessage?.(message);
-  }, [queryClient, onMessage]);
+  }, [queryClient, onMessage, user, toast]);
 
   const handleConnect = useCallback(() => {
     console.log('WebSocket Context - Connected');

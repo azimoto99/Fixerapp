@@ -371,7 +371,10 @@ export class ConnectionManager {
     if (client) {
       this.sendMessage(client.ws, {
         type: 'notification',
-        data: notificationData
+        data: {
+          ...notificationData,
+          userId // Ensure userId is included in the data
+        }
       });
     }
   }

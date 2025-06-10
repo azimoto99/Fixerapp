@@ -27,6 +27,8 @@ import {
   Clock,
   DollarSign,
   CheckCircle2,
+  CheckCircle,
+  XCircle,
   User,
   ChevronDown,
   ChevronUp,
@@ -50,7 +52,9 @@ import {
   FileText,
   Save,
   Star,
-  TrendingUp
+  TrendingUp,
+  Users,
+  Bell
 } from 'lucide-react';
 import {
   AlertDialog,
@@ -143,13 +147,14 @@ const JobDetailsCard: React.FC<JobDetailsCardProps> = ({ jobId, isOpen, onClose 
   
   // Fetch all applications for the job if user is the job poster
   const { data: applications = [] } = useQuery({
-    queryKey: ['/api/jobs', jobId, 'applications'],
+    queryKey: [`/api/applications/job/${jobId}`],
     queryFn: async () => {
-      const response = await apiRequest('GET', `/api/jobs/${jobId}/applications`);
+      const response = await apiRequest('GET', `/api/applications/job/${jobId}`);
       if (!response.ok) {
         return [];
       }
-      return response.json();
+      const data = await response.json();
+      return data.applications || [];
     },
     enabled: isOpen && !!jobId && !!user && (user.accountType === 'poster' || user.id === job?.posterId),
   });
@@ -254,6 +259,70 @@ const JobDetailsCard: React.FC<JobDetailsCardProps> = ({ jobId, isOpen, onClose 
   });
   
 
+
+  // Application management mutations
+  const acceptApplicationMutation = useMutation({
+    mutationFn: async (applicationId: number) => {
+      const response = await apiRequest('PATCH', `/api/applications/${applicationId}/status`, {
+        status: 'accepted'
+      });
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.message || 'Failed to accept application');
+      }
+      return response.json();
+    },
+    onSuccess: (data, applicationId) => {
+      const application = applications.find(app => app.id === applicationId);
+      if (application) {
+        toast({
+          title: "🎉 Application Accepted!",
+          description: `You've selected ${application.worker?.fullName || application.worker?.username} for this job!`,
+          duration: 5000,
+        });
+      }
+
+      // Refresh data
+      queryClient.invalidateQueries({ queryKey: [`/api/applications/job/${jobId}`] });
+      queryClient.invalidateQueries({ queryKey: ['/api/jobs'] });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Failed to Accept",
+        description: error.message,
+        variant: "destructive",
+      });
+    }
+  });
+
+  const rejectApplicationMutation = useMutation({
+    mutationFn: async (applicationId: number) => {
+      const response = await apiRequest('PATCH', `/api/applications/${applicationId}/status`, {
+        status: 'rejected'
+      });
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.message || 'Failed to reject application');
+      }
+      return response.json();
+    },
+    onSuccess: (data, applicationId) => {
+      toast({
+        title: "Application Rejected",
+        description: "The application has been rejected.",
+      });
+
+      // Refresh data
+      queryClient.invalidateQueries({ queryKey: [`/api/applications/job/${jobId}`] });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Failed to Reject",
+        description: error.message,
+        variant: "destructive",
+      });
+    }
+  });
 
   // Initialize edit form data when job loads
   useEffect(() => {
@@ -842,7 +911,161 @@ const JobDetailsCard: React.FC<JobDetailsCardProps> = ({ jobId, isOpen, onClose 
                 
                 {/* Applications Tab Content */}
                 {activeTab === 'applications' && isJobPoster && (
-                  <RealTimeApplicationsDashboard jobId={job.id} className="w-full" />
+                  <div className="space-y-4">
+                    <div className="flex items-center justify-between">
+                      <h3 className="text-lg font-semibold flex items-center gap-2">
+                        <Users className="h-5 w-5" />
+                        Applications
+                        {applications.length > 0 && (
+                          <Badge variant="secondary">{applications.length}</Badge>
+                        )}
+                      </h3>
+
+                      {applications.filter(app => app.status === 'pending').length > 0 && (
+                        <Badge className="bg-blue-100 text-blue-800">
+                          <Bell className="h-3 w-3 mr-1" />
+                          {applications.filter(app => app.status === 'pending').length} pending
+                        </Badge>
+                      )}
+                    </div>
+
+                    {applications.length === 0 ? (
+                      <div className="text-center py-8">
+                        <Users className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+                        <h3 className="font-medium mb-2">No applications yet</h3>
+                        <p className="text-sm text-muted-foreground">
+                          Applications will appear here as workers apply for your job.
+                        </p>
+                      </div>
+                    ) : (
+                      <div className="space-y-3">
+                        {/* Pending Applications */}
+                        {applications.filter(app => app.status === 'pending').map((application) => (
+                          <Card key={application.id} className="border-l-4 border-l-blue-400">
+                            <CardContent className="p-4">
+                              <div className="flex items-start justify-between">
+                                <div className="flex items-center gap-3 flex-1">
+                                  <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center">
+                                    <User className="h-6 w-6 text-primary" />
+                                  </div>
+                                  <div className="flex-1">
+                                    <div className="flex items-center gap-2 mb-1">
+                                      <h4 className="font-medium">
+                                        {application.worker?.fullName || application.worker?.username || 'Worker'}
+                                      </h4>
+                                      {application.worker?.rating && (
+                                        <div className="flex items-center gap-1">
+                                          <Star className="h-3 w-3 fill-yellow-400 text-yellow-400" />
+                                          <span className="text-xs text-muted-foreground">
+                                            {application.worker.rating.toFixed(1)}
+                                          </span>
+                                        </div>
+                                      )}
+                                    </div>
+                                    <p className="text-sm text-muted-foreground mb-2">
+                                      {application.coverLetter || application.message || 'No message provided'}
+                                    </p>
+                                    <div className="flex items-center gap-4 text-xs text-muted-foreground">
+                                      <span className="flex items-center gap-1">
+                                        <DollarSign className="h-3 w-3" />
+                                        ${application.hourlyRate}/hour
+                                      </span>
+                                      <span className="flex items-center gap-1">
+                                        <Clock className="h-3 w-3" />
+                                        {application.expectedDuration}
+                                      </span>
+                                      <span>
+                                        Applied {format(new Date(application.dateApplied), 'MMM d, h:mm a')}
+                                      </span>
+                                    </div>
+                                  </div>
+                                </div>
+                                <div className="flex gap-2 ml-4">
+                                  <Button
+                                    size="sm"
+                                    onClick={() => acceptApplicationMutation.mutate(application.id)}
+                                    disabled={acceptApplicationMutation.isPending}
+                                    className="bg-green-600 hover:bg-green-700"
+                                  >
+                                    <CheckCircle className="h-4 w-4 mr-1" />
+                                    Accept
+                                  </Button>
+                                  <Button
+                                    size="sm"
+                                    variant="outline"
+                                    onClick={() => rejectApplicationMutation.mutate(application.id)}
+                                    disabled={rejectApplicationMutation.isPending}
+                                    className="border-red-200 text-red-600 hover:bg-red-50"
+                                  >
+                                    <XCircle className="h-4 w-4 mr-1" />
+                                    Reject
+                                  </Button>
+                                </div>
+                              </div>
+                            </CardContent>
+                          </Card>
+                        ))}
+
+                        {/* Accepted Applications */}
+                        {applications.filter(app => app.status === 'accepted').length > 0 && (
+                          <div className="pt-4">
+                            <h4 className="font-medium text-green-700 mb-2 flex items-center gap-2">
+                              <CheckCircle className="h-4 w-4" />
+                              Accepted
+                            </h4>
+                            {applications.filter(app => app.status === 'accepted').map((application) => (
+                              <Card key={application.id} className="border-l-4 border-l-green-400">
+                                <CardContent className="p-4">
+                                  <div className="flex items-center gap-3">
+                                    <div className="w-10 h-10 rounded-full bg-green-100 flex items-center justify-center">
+                                      <CheckCircle className="h-5 w-5 text-green-600" />
+                                    </div>
+                                    <div>
+                                      <h4 className="font-medium">
+                                        {application.worker?.fullName || application.worker?.username || 'Worker'}
+                                      </h4>
+                                      <p className="text-sm text-muted-foreground">
+                                        Accepted • ${application.hourlyRate}/hour
+                                      </p>
+                                    </div>
+                                  </div>
+                                </CardContent>
+                              </Card>
+                            ))}
+                          </div>
+                        )}
+
+                        {/* Rejected Applications */}
+                        {applications.filter(app => app.status === 'rejected').length > 0 && (
+                          <div className="pt-4">
+                            <h4 className="font-medium text-muted-foreground mb-2 flex items-center gap-2">
+                              <XCircle className="h-4 w-4" />
+                              Rejected
+                            </h4>
+                            {applications.filter(app => app.status === 'rejected').map((application) => (
+                              <Card key={application.id} className="border-l-4 border-l-gray-300 opacity-60">
+                                <CardContent className="p-4">
+                                  <div className="flex items-center gap-3">
+                                    <div className="w-10 h-10 rounded-full bg-gray-100 flex items-center justify-center">
+                                      <XCircle className="h-5 w-5 text-gray-500" />
+                                    </div>
+                                    <div>
+                                      <h4 className="font-medium text-muted-foreground">
+                                        {application.worker?.fullName || application.worker?.username || 'Worker'}
+                                      </h4>
+                                      <p className="text-sm text-muted-foreground">
+                                        Rejected • ${application.hourlyRate}/hour
+                                      </p>
+                                    </div>
+                                  </div>
+                                </CardContent>
+                              </Card>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    )}
+                  </div>
                 )}
                 
                 {/* Messages Tab Content - Real-time job conversations */}

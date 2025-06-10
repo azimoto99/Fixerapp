@@ -287,8 +287,27 @@ applicationsRouter.get('/job/:jobId', isAuthenticated, async (req, res) => {
 
     const applications = await storage.getApplicationsByJobId(jobId);
 
+    // Enhance applications with worker details
+    const enhancedApplications = await Promise.all(
+      applications.map(async (app) => {
+        const worker = await storage.getUser(app.workerId);
+        return {
+          ...app,
+          worker: worker ? {
+            id: worker.id,
+            username: worker.username,
+            fullName: worker.fullName,
+            avatarUrl: worker.avatarUrl,
+            skills: worker.skills || [],
+            rating: worker.rating || 0,
+            completedJobs: worker.completedJobs || 0
+          } : null
+        };
+      })
+    );
+
     return res.status(200).json({
-      applications
+      applications: enhancedApplications
     });
   } catch (error) {
     console.error('Application list error:', error);
