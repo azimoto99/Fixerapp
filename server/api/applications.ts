@@ -151,7 +151,7 @@ applicationsRouter.patch('/:id/status', isAuthenticated, async (req, res) => {
 
     // Create notification for worker
     await storage.createNotification({
-      userId: application.userId,
+      userId: application.workerId,
       title: 'Application Status Updated',
       message: `Your application for "${job.title}" has been ${status}.`,
       type: 'application_status_updated',
@@ -169,7 +169,7 @@ applicationsRouter.patch('/:id/status', isAuthenticated, async (req, res) => {
     if (status === 'accepted') {
       await storage.updateJob(job.id, {
         status: 'assigned',
-        workerId: application.userId,
+        workerId: application.workerId,
         updatedAt: new Date()
       });
     }
@@ -190,7 +190,7 @@ applicationsRouter.patch('/:id/status', isAuthenticated, async (req, res) => {
 // Add application list endpoint
 applicationsRouter.get('/job/:jobId', isAuthenticated, async (req, res) => {
   try {
-    const jobId = parseInt(req.params.id);
+    const jobId = parseInt(req.params.jobId);
     const job = await storage.getJob(jobId);
 
     if (!job) {
@@ -202,7 +202,7 @@ applicationsRouter.get('/job/:jobId', isAuthenticated, async (req, res) => {
       return res.status(403).json({ message: 'You are not authorized to view these applications' });
     }
 
-    const applications = await storage.getApplicationsByJob(jobId);
+    const applications = await storage.getApplicationsByJobId(jobId);
 
     return res.status(200).json({
       applications
@@ -214,4 +214,6 @@ applicationsRouter.get('/job/:jobId', isAuthenticated, async (req, res) => {
       error: error
     });
   }
-}); 
+});
+
+export default applicationsRouter;

@@ -823,14 +823,7 @@ export class UnifiedStorage implements IStorage {
     return this.getConversation(userId1, userId2);
   }
 
-  async markMessagesAsRead(recipientId: number, senderId: number): Promise<boolean> {
-    return this.safeExecute(async () => {
-      await db.update(messages)
-        .set({ isRead: true })
-        .where(and(eq(messages.recipientId, recipientId), eq(messages.senderId, senderId)));
-      return true;
-    }, false, `markMessagesAsRead(${recipientId}, ${senderId})`);
-  }
+
 
   async markMessageAsRead(messageId: number, userId: number): Promise<any> {
     return this.safeExecute(async () => {
