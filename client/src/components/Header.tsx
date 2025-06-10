@@ -75,40 +75,45 @@ const Header: React.FC<HeaderProps> = ({
         </div>
         
         {/* Right side elements */}
-        <div className="flex items-center space-x-4">
-          <div className="relative hidden md:block">
-            {user && <NotificationPopover />}
-          </div>
-          
-          {/* Messaging Button - placed to the left of Posted Jobs button */}
-          {user && onToggleMessaging && (
-            <div>
-              <Button 
-                onClick={onToggleMessaging}
-                className="bg-emerald-600 text-white shadow hover:bg-emerald-700 rounded-full flex items-center justify-center transition-all hover:scale-105 active:scale-95 p-2 md:p-2"
-                aria-label="Messages"
-              >
-                <MessageSquare className="h-5 w-5" />
-                <span className="ml-1 hidden md:inline">Messages</span>
-              </Button>
+        <div className="flex items-center space-x-2 md:space-x-4">
+          {/* Notifications - now visible on mobile */}
+          {user && (
+            <div className="relative">
+              <NotificationPopover />
             </div>
           )}
           
-          {/* Posted Jobs Button - always visible when user is logged in */}
+          {/* Messaging Button - compact on mobile */}
+          {user && onToggleMessaging && (
+            <div>
+              <Button
+                onClick={onToggleMessaging}
+                size="sm"
+                className="bg-emerald-600 text-white shadow hover:bg-emerald-700 rounded-full flex items-center justify-center transition-all hover:scale-105 active:scale-95 p-2"
+                aria-label="Messages"
+              >
+                <MessageSquare className="h-4 w-4 md:h-5 md:w-5" />
+                <span className="ml-1 hidden lg:inline text-sm">Messages</span>
+              </Button>
+            </div>
+          )}
+
+          {/* Posted Jobs Button - compact on mobile */}
           {user && onTogglePostedJobs && (
             <div className="relative">
-              <Button 
+              <Button
                 onClick={onTogglePostedJobs}
-                className="bg-blue-600 text-white shadow hover:bg-blue-700 rounded-full flex items-center justify-center transition-all hover:scale-105 active:scale-95 p-2 md:p-2"
+                size="sm"
+                className="bg-blue-600 text-white shadow hover:bg-blue-700 rounded-full flex items-center justify-center transition-all hover:scale-105 active:scale-95 p-2"
                 aria-label="My Posted Jobs"
               >
-                <Briefcase className="h-5 w-5" />
-                <span className="ml-1 hidden md:inline">My Jobs</span>
+                <Briefcase className="h-4 w-4 md:h-5 md:w-5" />
+                <span className="ml-1 hidden lg:inline text-sm">My Jobs</span>
               </Button>
               {postedJobsCount > 0 && (
                 <div className="absolute -top-1 -right-1 z-10 pointer-events-none">
-                  <span className="bg-red-500 text-white rounded-full w-5 h-5 flex items-center justify-center text-xs">
-                    {postedJobsCount}
+                  <span className="bg-red-500 text-white rounded-full w-4 h-4 md:w-5 md:h-5 flex items-center justify-center text-xs">
+                    {postedJobsCount > 9 ? '9+' : postedJobsCount}
                   </span>
                 </div>
               )}

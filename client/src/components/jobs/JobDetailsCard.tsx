@@ -1517,9 +1517,10 @@ const JobDetailsCard: React.FC<JobDetailsCardProps> = ({ jobId, isOpen, onClose 
                     
                     {job.workerId === user.id && job.status === 'assigned' && (
                       <Button
-                        className="flex-1"
+                        className="flex-1 relative z-10 bg-green-600 hover:bg-green-700 text-white font-semibold"
                         onClick={handleStartJob}
                         disabled={isCheckingLocation}
+                        size="lg"
                       >
                         {isCheckingLocation ? (
                           <>
@@ -1528,7 +1529,7 @@ const JobDetailsCard: React.FC<JobDetailsCardProps> = ({ jobId, isOpen, onClose 
                           </>
                         ) : (
                           <>
-                            <PlayCircle className="h-4 w-4 mr-2" />
+                            <PlayCircle className="h-5 w-5 mr-2" />
                             Clock In & Start Job
                           </>
                         )}
