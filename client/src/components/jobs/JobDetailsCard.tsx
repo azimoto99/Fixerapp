@@ -253,49 +253,7 @@ const JobDetailsCard: React.FC<JobDetailsCardProps> = ({ jobId, isOpen, onClose 
     },
   });
   
-  // Apply for job mutation
-  const applyMutation = useMutation({
-    mutationFn: async () => {
-      // Use the same endpoint and payload as ApplicationForm
-      const response = await apiRequest('POST', '/api/applications', {
-        jobId,
-        workerId: user?.id,
-        message: applicationMessage,
-        hourlyRate: parseFloat(proposedRate),
-        expectedDuration: expectedDuration
-      });
-      
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.message || 'Failed to apply for job');
-      }
-      
-      return response.json();
-    },
-    onSuccess: () => {
-      toast({
-        title: 'Application Submitted',
-        description: 'Your application has been sent to the job poster',
-      });
-      setShowApplyDialog(false);
-      setApplicationMessage('');
-      setProposedRate('');
-      setExpectedDuration('');
-      
-      // Invalidate all relevant queries to refresh the UI
-      queryClient.invalidateQueries({ queryKey: [`/api/jobs/${jobId}/applications/worker/${user?.id}`] });
-      queryClient.invalidateQueries({ queryKey: [`/api/jobs/${jobId}/applications`] });
-      queryClient.invalidateQueries({ queryKey: ['/api/jobs'] });
-      queryClient.invalidateQueries({ queryKey: [`/api/jobs/${jobId}`] });
-    },
-    onError: (error: Error) => {
-      toast({
-        variant: 'destructive',
-        title: 'Application Failed',
-        description: error.message || 'Failed to apply for this job',
-      });
-    }
-  });
+
 
   // Initialize edit form data when job loads
   useEffect(() => {
@@ -349,12 +307,7 @@ const JobDetailsCard: React.FC<JobDetailsCardProps> = ({ jobId, isOpen, onClose 
     editJobMutation.mutate(updatedData);
   };
 
-// No duplicate mutations
 
-  // Handle applying for job
-  const handleApply = () => {
-    applyMutation.mutate();
-  };
 
   // Get user's current location
   const refreshLocation = (): Promise<{latitude: number, longitude: number}> => {
@@ -473,7 +426,6 @@ const JobDetailsCard: React.FC<JobDetailsCardProps> = ({ jobId, isOpen, onClose 
   // Clear state when component unmounts or job changes
   useEffect(() => {
     if (!isOpen) {
-      setApplicationMessage('');
       setIsExpanded(true);
       setActiveTab('details');
     }
