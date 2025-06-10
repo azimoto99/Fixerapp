@@ -45,13 +45,19 @@ export async function isAuthenticated(req: Request, res: Response, next: NextFun
     // Method 1: Standard Passport authentication
     if (req.isAuthenticated() && req.user) {
       try {
-        // Verify user still exists and is active
-        const currentUser = await storage.getUser(req.user.id);
+        // Verify user still exists and is active (with timeout protection)
+        const currentUser = await Promise.race([
+          storage.getUser(req.user.id),
+          new Promise<undefined>((_, reject) =>
+            setTimeout(() => reject(new Error('User lookup timeout')), 5000)
+          )
+        ]);
+
         if (!currentUser || !currentUser.isActive) {
           req.logout((err) => {
             if (err) console.error('Error during logout:', err);
           });
-          return res.status(401).json({ 
+          return res.status(401).json({
             success: false,
             message: 'User account no longer active',
             code: 'USER_INACTIVE'
@@ -61,9 +67,15 @@ export async function isAuthenticated(req: Request, res: Response, next: NextFun
         // Refresh session to prevent premature expiration
         req.session.touch();
         return next();
-      } catch (error) {
+      } catch (error: any) {
+        // Handle timeout errors gracefully
+        if (error.message?.includes('timeout')) {
+          console.warn(`⏰ User validation timeout for user ${req.user.id}, allowing access`);
+          return next(); // Allow access on timeout to prevent lockouts
+        }
+
         console.error('Error validating authenticated user:', error);
-        return res.status(500).json({ 
+        return res.status(500).json({
           success: false,
           message: 'Error validating authentication',
           code: 'AUTH_VALIDATION_ERROR'

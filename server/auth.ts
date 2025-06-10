@@ -135,9 +135,16 @@ export function setupAuth(app: Express) {
   passport.deserializeUser(async (id: number, done) => {
     try {
       const user = await storage.getUser(id);
+      if (!user) {
+        // User not found or database timeout - destroy session
+        console.log(`User ${id} no longer exists, destroying session`);
+        return done(null, false);
+      }
       done(null, user);
     } catch (err) {
-      done(err);
+      console.error(`Error deserializing user ${id}:`, err);
+      // On database errors, fail authentication but don't crash
+      done(null, false);
     }
   });
 

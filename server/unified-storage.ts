@@ -39,6 +39,11 @@ function getRandomMarkerColor(): string {
 export class UnifiedStorage implements IStorage {
   public sessionStore: session.Store;
   public db = db; // Expose database connection for admin queries
+
+  // User cache to reduce database lookups for authentication
+  private userCache = new Map<number, { user: User; timestamp: number }>();
+  private readonly USER_CACHE_TTL = 60000; // 1 minute cache
+
   constructor() {
     if (!pool) {
       throw new Error('Database pool not initialized');
@@ -170,10 +175,23 @@ export class UnifiedStorage implements IStorage {
   }
 
   async getUser(id: number): Promise<User | undefined> {
-    return this.safeExecute(async () => {
+    // Check cache first
+    const cached = this.userCache.get(id);
+    if (cached && Date.now() - cached.timestamp < this.USER_CACHE_TTL) {
+      return cached.user;
+    }
+
+    const user = await this.safeExecute(async () => {
       const result = await db.select().from(users).where(eq(users.id, id));
       return result[0] || undefined;
-    }, undefined, `getUser(${id})`);
+    }, undefined, `getUser(${id})`, 8000); // Shorter timeout for user lookups
+
+    // Cache the result if user exists
+    if (user) {
+      this.userCache.set(id, { user, timestamp: Date.now() });
+    }
+
+    return user;
   }
 
   async getUserByUsername(username: string): Promise<User | undefined> {
@@ -197,8 +215,8 @@ export class UnifiedStorage implements IStorage {
     }, null as any, 'createUser');
   }
 
-  async updateUser(id: number, userData: Partial<InsertUser> & { 
-    stripeConnectAccountId?: string, 
+  async updateUser(id: number, userData: Partial<InsertUser> & {
+    stripeConnectAccountId?: string,
     stripeConnectAccountStatus?: string,
     stripeCustomerId?: string,
     stripeTermsAccepted?: boolean,
@@ -206,10 +224,15 @@ export class UnifiedStorage implements IStorage {
     stripeRepresentativeName?: string,
     stripeRepresentativeTitle?: string
   }): Promise<User | undefined> {
-    return this.safeExecute(async () => {
+    const result = await this.safeExecute(async () => {
       const result = await db.update(users).set(userData).where(eq(users.id, id)).returning();
       return result[0] || undefined;
     }, undefined, `updateUser(${id})`);
+
+    // Clear cache for updated user
+    this.userCache.delete(id);
+
+    return result;
   }
 
   async deleteUser(id: number): Promise<boolean> {
