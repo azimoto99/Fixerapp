@@ -199,6 +199,127 @@ export function registerMessagingRoutes(app: Express) {
   });
 
   /**
+   * Send a contact request to another user
+   * @route POST /api/contact-requests/send
+   * @middleware isAuthenticated - User must be logged in
+   * @body { receiverId: number, message?: string } - ID of user to send request to
+   * @returns Success message and request details
+   */
+  app.post("/api/contact-requests/send", async (req: Request, res: Response) => {
+    if (!req.isAuthenticated()) {
+      return res.status(401).json({ message: "Unauthorized - Please login again" });
+    }
+
+    try {
+      const { receiverId, message } = req.body;
+      if (!receiverId) {
+        return res.status(400).json({ message: "Receiver ID is required" });
+      }
+
+      const senderId = req.user?.id;
+      if (!senderId) {
+        return res.status(401).json({ message: "User ID not found" });
+      }
+
+      if (senderId === receiverId) {
+        return res.status(400).json({ message: "Cannot send contact request to yourself" });
+      }
+
+      // Create contact request
+      const request = await storage.createContactRequest(senderId, receiverId, message);
+
+      res.status(201).json({
+        message: "Contact request sent successfully",
+        request
+      });
+    } catch (error) {
+      console.error("Error sending contact request:", error);
+      if (error instanceof Error) {
+        res.status(400).json({ message: error.message });
+      } else {
+        res.status(500).json({ message: "Failed to send contact request" });
+      }
+    }
+  });
+
+  /**
+   * Get contact requests (sent or received)
+   * @route GET /api/contact-requests
+   * @middleware isAuthenticated - User must be logged in
+   * @query type - 'sent' or 'received'
+   * @returns Array of contact requests
+   */
+  app.get("/api/contact-requests", async (req: Request, res: Response) => {
+    if (!req.isAuthenticated()) {
+      return res.status(401).json({ message: "Unauthorized - Please login again" });
+    }
+
+    try {
+      const { type } = req.query;
+      const userId = req.user?.id;
+
+      if (!userId) {
+        return res.status(401).json({ message: "User ID not found" });
+      }
+
+      if (!type || (type !== 'sent' && type !== 'received')) {
+        return res.status(400).json({ message: "Type must be 'sent' or 'received'" });
+      }
+
+      const requests = await storage.getContactRequests(userId, type as 'sent' | 'received');
+      res.json(requests);
+    } catch (error) {
+      console.error("Error fetching contact requests:", error);
+      res.status(500).json({ message: "Failed to fetch contact requests" });
+    }
+  });
+
+  /**
+   * Respond to a contact request (accept or reject)
+   * @route PUT /api/contact-requests/:requestId
+   * @middleware isAuthenticated - User must be logged in
+   * @body { status: 'accepted' | 'rejected' }
+   * @returns Updated request details
+   */
+  app.put("/api/contact-requests/:requestId", async (req: Request, res: Response) => {
+    if (!req.isAuthenticated()) {
+      return res.status(401).json({ message: "Unauthorized - Please login again" });
+    }
+
+    try {
+      const requestId = parseInt(req.params.requestId);
+      const { status } = req.body;
+      const userId = req.user?.id;
+
+      if (!userId) {
+        return res.status(401).json({ message: "User ID not found" });
+      }
+
+      if (isNaN(requestId)) {
+        return res.status(400).json({ message: "Invalid request ID" });
+      }
+
+      if (!status || (status !== 'accepted' && status !== 'rejected')) {
+        return res.status(400).json({ message: "Status must be 'accepted' or 'rejected'" });
+      }
+
+      const updatedRequest = await storage.updateContactRequestStatus(requestId, status, userId);
+
+      res.json({
+        message: `Contact request ${status} successfully`,
+        request: updatedRequest
+      });
+    } catch (error) {
+      console.error("Error updating contact request:", error);
+      if (error instanceof Error) {
+        res.status(400).json({ message: error.message });
+      } else {
+        res.status(500).json({ message: "Failed to update contact request" });
+      }
+    }
+  });
+
+  /**
    * Get messages between current user and a contact
    * @route GET /api/messages
    * @middleware isAuthenticated - User must be logged in

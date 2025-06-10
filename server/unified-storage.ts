@@ -2,7 +2,7 @@ import { eq, and, like, notLike, desc, or, asc, gte, lte, count, sum, avg, sql }
 import { db, pool } from './db';
 import { IStorage } from './storage';
 import {
-  users, jobs, applications, reviews, tasks, earnings, payments, badges, userBadges, notifications, messages, supportTickets,
+  users, jobs, applications, reviews, tasks, earnings, payments, badges, userBadges, notifications, contacts, contactRequests, messages, supportTickets,
   User, InsertUser,
   Job, InsertJob,
   Application, InsertApplication,
@@ -10,7 +10,7 @@ import {
   Task, InsertTask,
   Earning, InsertEarning,
   Payment, InsertPayment,
-  Badge, InsertBadge, 
+  Badge, InsertBadge,
   UserBadge, InsertUserBadge,
   Notification, InsertNotification
 } from '@shared/schema';
@@ -935,6 +935,136 @@ export class UnifiedStorage implements IStorage {
 
       return result.length > 0;
     }, false, `removeContact(${userId}, ${contactId})`);
+  }
+
+  // Contact Request Methods
+  async createContactRequest(senderId: number, receiverId: number, message?: string): Promise<any> {
+    return this.safeExecute(async () => {
+      // Check if request already exists
+      const existingRequest = await db
+        .select()
+        .from(contactRequests)
+        .where(
+          and(
+            eq(contactRequests.senderId, senderId),
+            eq(contactRequests.receiverId, receiverId),
+            eq(contactRequests.status, 'pending')
+          )
+        )
+        .limit(1);
+
+      if (existingRequest.length > 0) {
+        throw new Error('Contact request already sent');
+      }
+
+      // Check if they're already contacts
+      const existingContact = await db
+        .select()
+        .from(contacts)
+        .where(and(eq(contacts.userId, senderId), eq(contacts.contactId, receiverId)))
+        .limit(1);
+
+      if (existingContact.length > 0) {
+        throw new Error('User is already a contact');
+      }
+
+      // Create the request
+      const result = await db
+        .insert(contactRequests)
+        .values({
+          senderId,
+          receiverId,
+          message: message || null,
+          status: 'pending'
+        })
+        .returning();
+
+      return result[0];
+    }, null as any, `createContactRequest(${senderId}, ${receiverId})`);
+  }
+
+  async getContactRequests(userId: number, type: 'sent' | 'received'): Promise<any[]> {
+    return this.safeExecute(async () => {
+      const isReceived = type === 'received';
+      const userIdField = isReceived ? contactRequests.receiverId : contactRequests.senderId;
+      const otherUserIdField = isReceived ? contactRequests.senderId : contactRequests.receiverId;
+
+      const result = await db
+        .select({
+          id: contactRequests.id,
+          senderId: contactRequests.senderId,
+          receiverId: contactRequests.receiverId,
+          status: contactRequests.status,
+          message: contactRequests.message,
+          createdAt: contactRequests.createdAt,
+          updatedAt: contactRequests.updatedAt,
+          // User details
+          userId: users.id,
+          username: users.username,
+          fullName: users.fullName,
+          avatarUrl: users.avatarUrl
+        })
+        .from(contactRequests)
+        .innerJoin(users, eq(otherUserIdField, users.id))
+        .where(eq(userIdField, userId))
+        .orderBy(desc(contactRequests.createdAt));
+
+      return result;
+    }, [], `getContactRequests(${userId}, ${type})`);
+  }
+
+  async updateContactRequestStatus(requestId: number, status: 'accepted' | 'rejected', userId: number): Promise<any> {
+    return this.safeExecute(async () => {
+      // Get the request to verify ownership
+      const request = await db
+        .select()
+        .from(contactRequests)
+        .where(eq(contactRequests.id, requestId))
+        .limit(1);
+
+      if (request.length === 0) {
+        throw new Error('Contact request not found');
+      }
+
+      const contactRequest = request[0];
+
+      // Only the receiver can accept/reject requests
+      if (contactRequest.receiverId !== userId) {
+        throw new Error('You can only respond to requests sent to you');
+      }
+
+      if (contactRequest.status !== 'pending') {
+        throw new Error('This request has already been responded to');
+      }
+
+      // Update the request status
+      const updatedRequest = await db
+        .update(contactRequests)
+        .set({
+          status,
+          updatedAt: new Date()
+        })
+        .where(eq(contactRequests.id, requestId))
+        .returning();
+
+      // If accepted, create the contact relationship (both ways)
+      if (status === 'accepted') {
+        await db.insert(contacts).values([
+          {
+            userId: contactRequest.senderId,
+            contactId: contactRequest.receiverId,
+            status: 'active'
+          },
+          {
+            userId: contactRequest.receiverId,
+            contactId: contactRequest.senderId,
+            status: 'active'
+          }
+        ]);
+      }
+
+      return updatedRequest[0];
+    }, null as any, `updateContactRequestStatus(${requestId}, ${status}, ${userId})`);
   }
 
   async addUserContact(userId: number, contactId: number): Promise<any> {
