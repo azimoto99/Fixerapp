@@ -187,7 +187,19 @@ export class UnifiedWebSocketService {
         case 'heartbeat':
           await this.handleHeartbeat(socket, message);
           break;
-          
+
+        case 'instant_application':
+          await this.handleInstantApplication(socket, message);
+          break;
+
+        case 'application_accepted':
+          await this.handleApplicationAccepted(socket, message);
+          break;
+
+        case 'application_rejected':
+          await this.handleApplicationRejected(socket, message);
+          break;
+
         default:
           console.log(`❓ Unknown message type: ${message.type}`);
           this.sendError(socket, `Unknown message type: ${message.type}`, connectionId);
@@ -670,6 +682,129 @@ export class UnifiedWebSocketService {
     }
   }
 
+  private async handleInstantApplication(socket: WebSocket, message: WebSocketMessage) {
+    const userConnection = this.connectionsBySocket.get(socket);
+    if (!userConnection) {
+      this.sendError(socket, 'Authentication required');
+      return;
+    }
+
+    const { posterId, jobId, workerId, workerName, applicationId } = message;
+
+    if (!posterId || !jobId || !workerId || !applicationId) {
+      this.sendError(socket, 'Missing required application data');
+      return;
+    }
+
+    try {
+      // Send real-time notification to job poster
+      const posterConnection = this.connectedUsers.get(posterId);
+      if (posterConnection && posterConnection.socket.readyState === WebSocket.OPEN) {
+        this.sendMessage(posterConnection.socket, {
+          type: 'instant_application_received',
+          jobId,
+          workerId,
+          workerName,
+          applicationId,
+          timestamp: new Date().toISOString()
+        });
+
+        console.log(`⚡ Instant application notification sent to poster ${posterId} for job ${jobId}`);
+      }
+
+      // Broadcast to job room if applicable
+      this.broadcastToRoom(jobId, {
+        type: 'new_application_in_room',
+        jobId,
+        workerId,
+        workerName,
+        applicationId,
+        timestamp: new Date().toISOString()
+      }, workerId);
+
+    } catch (error) {
+      console.error('❌ Error handling instant application:', error);
+      this.sendError(socket, 'Failed to process instant application');
+    }
+  }
+
+  private async handleApplicationAccepted(socket: WebSocket, message: WebSocketMessage) {
+    const userConnection = this.connectionsBySocket.get(socket);
+    if (!userConnection) {
+      this.sendError(socket, 'Authentication required');
+      return;
+    }
+
+    const { workerId, jobId, applicationId } = message;
+
+    if (!workerId || !jobId || !applicationId) {
+      this.sendError(socket, 'Missing required acceptance data');
+      return;
+    }
+
+    try {
+      // Send real-time notification to worker
+      const workerConnection = this.connectedUsers.get(workerId);
+      if (workerConnection && workerConnection.socket.readyState === WebSocket.OPEN) {
+        this.sendMessage(workerConnection.socket, {
+          type: 'application_accepted_notification',
+          jobId,
+          applicationId,
+          timestamp: new Date().toISOString()
+        });
+
+        console.log(`🎉 Application acceptance notification sent to worker ${workerId} for job ${jobId}`);
+      }
+
+      // Broadcast to job room
+      this.broadcastToRoom(jobId, {
+        type: 'job_assigned',
+        jobId,
+        workerId,
+        applicationId,
+        timestamp: new Date().toISOString()
+      });
+
+    } catch (error) {
+      console.error('❌ Error handling application acceptance:', error);
+      this.sendError(socket, 'Failed to process application acceptance');
+    }
+  }
+
+  private async handleApplicationRejected(socket: WebSocket, message: WebSocketMessage) {
+    const userConnection = this.connectionsBySocket.get(socket);
+    if (!userConnection) {
+      this.sendError(socket, 'Authentication required');
+      return;
+    }
+
+    const { workerId, jobId, applicationId } = message;
+
+    if (!workerId || !jobId || !applicationId) {
+      this.sendError(socket, 'Missing required rejection data');
+      return;
+    }
+
+    try {
+      // Send real-time notification to worker
+      const workerConnection = this.connectedUsers.get(workerId);
+      if (workerConnection && workerConnection.socket.readyState === WebSocket.OPEN) {
+        this.sendMessage(workerConnection.socket, {
+          type: 'application_rejected_notification',
+          jobId,
+          applicationId,
+          timestamp: new Date().toISOString()
+        });
+
+        console.log(`❌ Application rejection notification sent to worker ${workerId} for job ${jobId}`);
+      }
+
+    } catch (error) {
+      console.error('❌ Error handling application rejection:', error);
+      this.sendError(socket, 'Failed to process application rejection');
+    }
+  }
+
   private sendError(socket: WebSocket, error: string, connectionId?: string) {
     this.sendMessage(socket, {
       type: 'error',
@@ -786,6 +921,19 @@ export class UnifiedWebSocketService {
     this.connectedUsers.forEach((userConnection) => {
       if (userConnection.socket.readyState === WebSocket.OPEN) {
         this.sendMessage(userConnection.socket, message);
+      }
+    });
+  }
+
+  public broadcastJobPinUpdate(action: 'added' | 'updated' | 'removed', jobData: any) {
+    console.log(`📍 Broadcasting job pin ${action} for job ${jobData.id}`);
+
+    this.broadcastToAll({
+      type: 'job_pin_update',
+      data: {
+        action,
+        job: jobData,
+        timestamp: new Date().toISOString()
       }
     });
   }

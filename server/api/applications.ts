@@ -103,6 +103,89 @@ applicationsRouter.post('/', isAuthenticated, async (req: AuthenticatedRequest, 
   }
 });
 
+// Instant application endpoint for one-click apply
+applicationsRouter.post('/instant', isAuthenticated, async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const {
+      jobId,
+      workerId,
+      message,
+      hourlyRate,
+      expectedDuration,
+      instantApply
+    } = req.body;
+
+    // Validate required fields
+    if (!jobId || !workerId || !message || !hourlyRate || !expectedDuration) {
+      return res.status(400).json({ message: 'Missing required fields for instant application' });
+    }
+
+    // Verify the worker is the authenticated user
+    if (workerId !== req.user.id) {
+      return res.status(403).json({ message: 'You can only apply for jobs as yourself' });
+    }
+
+    // Get the job
+    const job = await storage.getJob(jobId);
+    if (!job) {
+      return res.status(404).json({ message: 'Job not found' });
+    }
+
+    // Check if job is open for applications
+    if (job.status !== 'open') {
+      return res.status(400).json({ message: 'This job is not accepting applications' });
+    }
+
+    // Check if user has already applied
+    const existingApplication = await storage.getApplicationsByJobId(jobId)
+      .then(apps => apps.find(app => app.workerId === req.user.id));
+
+    if (existingApplication) {
+      return res.status(400).json({ message: 'You have already applied for this job' });
+    }
+
+    // Create the instant application
+    const application = await storage.createApplication({
+      workerId: req.user.id,
+      jobId,
+      coverLetter: message,
+      hourlyRate,
+      expectedDuration,
+      status: 'pending',
+      message: null,
+      dateApplied: new Date()
+    });
+
+    // Create notification for job poster
+    await storage.createNotification({
+      userId: job.posterId,
+      title: '⚡ Instant Application!',
+      message: `${req.user.fullName || req.user.username} just applied instantly for your job "${job.title}".`,
+      type: 'instant_application',
+      sourceId: application.id,
+      sourceType: 'application',
+      metadata: {
+        jobId,
+        applicationId: application.id,
+        workerId: req.user.id,
+        instantApply: true
+      }
+    });
+
+    return res.status(201).json({
+      message: 'Instant application submitted successfully',
+      application,
+      instant: true
+    });
+  } catch (error) {
+    console.error('Instant application submission error:', error);
+    return res.status(500).json({
+      message: error instanceof Error ? error.message : 'Failed to submit instant application',
+      error: error
+    });
+  }
+});
+
 // Add application status update endpoint
 applicationsRouter.patch('/:id/status', isAuthenticated, async (req, res) => {
   try {

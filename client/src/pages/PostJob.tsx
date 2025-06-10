@@ -34,6 +34,7 @@ import {
 } from '@/components/ui/select';
 import { Checkbox } from '@/components/ui/checkbox';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
+import { Badge } from '@/components/ui/badge';
 import { JOB_CATEGORIES, SKILLS } from '@shared/schema';
 import { Dialog, DialogContent } from '@/components/ui/dialog';
 import { Card, CardContent } from '@/components/ui/card';
@@ -484,7 +485,7 @@ export default function PostJob() {
                 <FormField
                   control={form.control}
                   name="requiredSkills"
-                  render={() => (
+                  render={({ field }) => (
                     <FormItem>
                       <div className="mb-4">
                         <FormLabel className="text-base">Required Skills</FormLabel>
@@ -494,39 +495,64 @@ export default function PostJob() {
                       </div>
                       <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
                         {SKILLS.map((skill) => (
-                          <FormField
+                          <div
                             key={skill}
-                            control={form.control}
-                            name="requiredSkills"
-                            render={({ field }) => {
-                              return (
-                                <FormItem
-                                  key={skill}
-                                  className="flex flex-row items-start space-x-3 space-y-0"
-                                >
-                                  <FormControl>
-                                    <Checkbox
-                                      checked={field.value?.includes(skill)}
-                                      onCheckedChange={(checked) => {
-                                        return checked
-                                          ? field.onChange([...(field.value || []), skill])
-                                          : field.onChange(
-                                              field.value?.filter?.(
-                                                (value) => value !== skill
-                                              ) || []
-                                            )
-                                      }}
-                                    />
-                                  </FormControl>
-                                  <FormLabel className="font-normal">
-                                    {skill}
-                                  </FormLabel>
-                                </FormItem>
-                              )
-                            }}
-                          />
+                            className="flex flex-row items-start space-x-3 space-y-0"
+                          >
+                            <Checkbox
+                              checked={field.value?.includes(skill) || false}
+                              onCheckedChange={(checked) => {
+                                const currentSkills = field.value || [];
+                                if (checked) {
+                                  // Add skill if not already present
+                                  if (!currentSkills.includes(skill)) {
+                                    field.onChange([...currentSkills, skill]);
+                                  }
+                                } else {
+                                  // Remove skill
+                                  field.onChange(currentSkills.filter(s => s !== skill));
+                                }
+                              }}
+                            />
+                            <label className="font-normal text-sm cursor-pointer" onClick={() => {
+                              const currentSkills = field.value || [];
+                              const isChecked = currentSkills.includes(skill);
+                              if (isChecked) {
+                                field.onChange(currentSkills.filter(s => s !== skill));
+                              } else {
+                                field.onChange([...currentSkills, skill]);
+                              }
+                            }}>
+                              {skill}
+                            </label>
+                          </div>
                         ))}
                       </div>
+
+                      {/* Display selected skills */}
+                      {field.value && field.value.length > 0 && (
+                        <div className="mt-3">
+                          <p className="text-sm text-muted-foreground mb-2">Selected skills:</p>
+                          <div className="flex flex-wrap gap-2">
+                            {field.value.map((skill, index) => (
+                              <Badge key={index} variant="secondary" className="flex items-center gap-1">
+                                {skill}
+                                <button
+                                  type="button"
+                                  className="ml-1 rounded-full hover:bg-secondary h-4 w-4 inline-flex items-center justify-center text-xs"
+                                  onClick={() => {
+                                    const newSkills = field.value?.filter((_, i) => i !== index) || [];
+                                    field.onChange(newSkills);
+                                  }}
+                                >
+                                  ✕
+                                </button>
+                              </Badge>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+
                       <FormMessage />
                     </FormItem>
                   )}

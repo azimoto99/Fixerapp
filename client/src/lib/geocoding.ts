@@ -12,22 +12,27 @@ const MAPBOX_ACCESS_TOKEN = import.meta.env.VITE_MAPBOX_ACCESS_TOKEN;
  * @returns Promise resolving to coordinates or null if geocoding failed
  */
 export async function geocodeAddress(address: string): Promise<{
-  latitude: number;
-  longitude: number;
-  formattedAddress: string;
-} | null> {
+  success: boolean;
+  latitude?: number;
+  longitude?: number;
+  displayName?: string;
+  error?: string;
+}> {
   if (!address || !MAPBOX_ACCESS_TOKEN) {
     console.error('Cannot geocode: Missing address or Mapbox token');
-    return null;
+    return {
+      success: false,
+      error: 'Missing address or Mapbox access token'
+    };
   }
 
   try {
     // Encode the address for URL
     const encodedAddress = encodeURIComponent(address);
-    
+
     // Call the Mapbox Geocoding API
     const response = await fetch(
-      `https://api.mapbox.com/geocoding/v5/mapbox.places/${encodedAddress}.json?access_token=${MAPBOX_ACCESS_TOKEN}&limit=1`
+      `https://api.mapbox.com/geocoding/v5/mapbox.places/${encodedAddress}.json?access_token=${MAPBOX_ACCESS_TOKEN}&limit=1&country=us`
     );
 
     if (!response.ok) {
@@ -35,29 +40,57 @@ export async function geocodeAddress(address: string): Promise<{
     }
 
     const data = await response.json();
-    
+
     // Check if we got any results
     if (!data.features || data.features.length === 0) {
       console.warn('No geocoding results found for address:', address);
-      return null;
+      return {
+        success: false,
+        error: 'No results found for this address'
+      };
     }
 
     // Get the first result (most relevant)
     const location = data.features[0];
-    
+
     // Mapbox returns coordinates as [longitude, latitude]
     const [longitude, latitude] = location.center;
-    
+
     // Return formatted result
     return {
+      success: true,
       latitude,
       longitude,
-      formattedAddress: location.place_name
+      displayName: location.place_name
     };
   } catch (error) {
     console.error('Error geocoding address:', error);
-    return null;
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'Geocoding failed'
+    };
   }
+}
+
+/**
+ * Legacy function for backward compatibility
+ * @param address The address to geocode
+ * @returns Promise resolving to coordinates or null if geocoding failed
+ */
+export async function geocodeAddressLegacy(address: string): Promise<{
+  latitude: number;
+  longitude: number;
+  formattedAddress: string;
+} | null> {
+  const result = await geocodeAddress(address);
+  if (result.success && result.latitude && result.longitude) {
+    return {
+      latitude: result.latitude,
+      longitude: result.longitude,
+      formattedAddress: result.displayName || address
+    };
+  }
+  return null;
 }
 
 /**

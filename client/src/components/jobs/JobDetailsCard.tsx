@@ -68,6 +68,8 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 // Import application management tab
 import JobApplicationsTab from './JobApplicationsTab';
+import { InstantApplyButton } from '../applications/InstantApplyButton';
+import { RealTimeApplicationsDashboard } from '../applications/RealTimeApplicationsDashboard';
 import '../jobcard-fix.css';
 import { useEffect as useWindowEffect } from 'react';
 import { cn } from '@/lib/utils';
@@ -84,10 +86,7 @@ const JobDetailsCard: React.FC<JobDetailsCardProps> = ({ jobId, isOpen, onClose 
   const queryClient = useQueryClient();
   const { userLocation } = useGeolocation();
   const [isExpanded, setIsExpanded] = useState(true);
-  const [applicationMessage, setApplicationMessage] = useState('');
-  const [proposedRate, setProposedRate] = useState('');
-  const [expectedDuration, setExpectedDuration] = useState('');
-  const [showApplyDialog, setShowApplyDialog] = useState(false);
+
   const [showCompleteDialog, setShowCompleteDialog] = useState(false);
   const [activeTab, setActiveTab] = useState('details');
   const [showLocationVerificationError, setShowLocationVerificationError] = useState(false);
@@ -891,7 +890,7 @@ const JobDetailsCard: React.FC<JobDetailsCardProps> = ({ jobId, isOpen, onClose 
                 
                 {/* Applications Tab Content */}
                 {activeTab === 'applications' && isJobPoster && (
-                  <JobApplicationsTab applications={applications} jobId={job.id} />
+                  <RealTimeApplicationsDashboard jobId={job.id} className="w-full" />
                 )}
                 
                 {/* Messages Tab Content - Real-time job conversations */}
@@ -1332,13 +1331,13 @@ const JobDetailsCard: React.FC<JobDetailsCardProps> = ({ jobId, isOpen, onClose 
                   <>
                     {/* Worker Actions */}
                     {!hasApplied && job.status === 'open' && (
-                      <Button
-                        className="flex-1"
-                        onClick={() => setShowApplyDialog(true)}
-                      >
-                        <Send className="h-4 w-4 mr-2" />
-                        Apply Now
-                      </Button>
+                      <div className="flex-1">
+                        <InstantApplyButton
+                          job={job}
+                          variant="default"
+                          className="w-full"
+                        />
+                      </div>
                     )}
                     
                     {job.workerId === user.id && job.status === 'assigned' && (
@@ -1420,120 +1419,7 @@ const JobDetailsCard: React.FC<JobDetailsCardProps> = ({ jobId, isOpen, onClose 
             </div>
           </CardFooter>
           
-          {/* Custom Application Modal (renders outside the DOM hierarchy) */}
-          {showApplyDialog && (
-            <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-[500]" 
-                 onClick={() => setShowApplyDialog(false)}>
-              <div className="bg-background rounded-lg shadow-lg max-w-md w-full p-6" 
-                   onClick={(e) => e.stopPropagation()}>
-                <div className="flex justify-between items-center mb-4">
-                  <h2 className="text-xl font-semibold">Apply for Job</h2>
-                  <Button variant="ghost" size="icon" onClick={() => setShowApplyDialog(false)}>
-                    <X className="h-5 w-5" />
-                  </Button>
-                </div>
-                
-                <p className="text-muted-foreground mb-6">Submit your application for "{job.title}"</p>
-                
-                <div className="grid gap-4 py-2">
-                  <div className="bg-muted/50 p-3 rounded-md mb-2">
-                    <p className="text-sm font-medium text-muted-foreground mb-1">Job Details</p>
-                    {job.paymentType === 'hourly' ? (
-                      <div>
-                        <p className="font-medium">${job.paymentAmount?.toFixed(2)}/hour <span className="text-xs text-muted-foreground">(hourly rate)</span></p>
-                        {job.shiftStartTime && job.shiftEndTime && (
-                          <p className="text-sm mt-1">
-                            <span className="text-muted-foreground">Shift Hours:</span> {job.shiftStartTime} - {job.shiftEndTime}
-                          </p>
-                        )}
-                      </div>
-                    ) : (
-                      <p className="font-medium">${job.paymentAmount?.toFixed(2)} <span className="text-xs text-muted-foreground">(fixed price job)</span></p>
-                    )}
-                    {job.estimatedHours && (
-                      <p className="text-sm mt-1">Estimated time: {job.estimatedHours} hours</p>
-                    )}
-                  </div>
-                  
-                  <div className="grid gap-2">
-                    <label htmlFor="equipment" className="text-sm font-medium">
-                      Do you have the necessary equipment for this job?
-                    </label>
-                    <select 
-                      id="equipment" 
-                      className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
-                      value={expectedDuration}
-                      onChange={(e) => setExpectedDuration(e.target.value)}
-                    >
-                      <option value="">Please select...</option>
-                      <option value="Yes, I have all equipment">Yes, I have all required equipment</option>
-                      <option value="Yes, but may need some items">Yes, but I may need some additional items</option>
-                      <option value="No, will need equipment">No, I'll need the job poster to provide equipment</option>
-                    </select>
-                  </div>
-                  
-                  <div className="grid gap-2">
-                    <label htmlFor="availability" className="text-sm font-medium">
-                      Your Availability
-                    </label>
-                    <Input
-                      id="availability"
-                      placeholder="e.g. Available weekdays after 3pm"
-                      value={proposedRate}
-                      onChange={(e) => setProposedRate(e.target.value)}
-                    />
-                  </div>
-                  
-                  <div className="grid gap-2">
-                    <label htmlFor="message" className="text-sm font-medium">
-                      Experience & Qualifications
-                    </label>
-                    <Textarea
-                      id="message"
-                      placeholder="Describe your relevant experience and qualifications for this job..."
-                      value={applicationMessage}
-                      onChange={(e) => setApplicationMessage(e.target.value)}
-                      rows={3}
-                    />
-                  </div>
-                  
-                  <div className="mt-2 bg-muted/30 p-3 rounded-md border border-border">
-                    <label className="flex items-start gap-2 cursor-pointer">
-                      <input 
-                        type="checkbox" 
-                        className="mt-1" 
-                        required
-                      />
-                      <span className="text-sm text-muted-foreground">
-                        I agree that I am honestly representing my qualifications and will not attempt to 
-                        defraud the job poster. I understand that misrepresentation may result in 
-                        account termination and potential legal action.
-                      </span>
-                    </label>
-                  </div>
-                </div>
-                
-                <div className="flex justify-end gap-2 mt-6">
-                  <Button variant="outline" onClick={() => setShowApplyDialog(false)}>
-                    Cancel
-                  </Button>
-                  <Button onClick={handleApply} disabled={applyMutation.isPending}>
-                    {applyMutation.isPending ? (
-                      <>
-                        <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                        Submitting...
-                      </>
-                    ) : (
-                      <>
-                        <Send className="h-4 w-4 mr-2" />
-                        Submit Application
-                      </>
-                    )}
-                  </Button>
-                </div>
-              </div>
-            </div>
-          )}
+
           
           {/* Location Verification Error Dialog */}
           <AlertDialog open={showLocationVerificationError} onOpenChange={setShowLocationVerificationError}>

@@ -12,6 +12,7 @@ import { Button } from '@/components/ui/button';
 import { useAuth } from '@/hooks/use-auth';
 import { useToast } from '@/hooks/use-toast';
 import { apiRequest, queryClient } from '@/lib/queryClient';
+import { useQueryClient } from '@tanstack/react-query';
 import { StripeConnectRequired } from '@/components/stripe';
 import JobDetailsCard from './jobs/JobDetailsCard';
 import { useAllJobsForMap } from '@/hooks/useAllJobsForMap';
@@ -29,9 +30,29 @@ const MapSection: React.FC<MapSectionProps> = ({ jobs, selectedJob, onSelectJob,
   const [showJobDetail, setShowJobDetail] = useState<boolean>(false);
   const [mapReady, setMapReady] = useState(false);
   const [isApplying, setIsApplying] = useState(false);
+  const queryClient = useQueryClient();
   
   // Fetch ALL jobs with coordinates for map display, regardless of search filters
   const { jobs: allJobsWithCoordinates } = useAllJobsForMap();
+
+  // Listen for real-time job pin updates
+  useEffect(() => {
+    const handleJobPinUpdate = (event: CustomEvent) => {
+      const { action, job } = event.detail;
+      console.log('📍 Map received job pin update:', action, job);
+
+      // Invalidate queries to refresh job data
+      queryClient.invalidateQueries({ queryKey: ['/api/jobs'] });
+    };
+
+    // Add event listener for job pin updates
+    window.addEventListener('jobPinUpdate', handleJobPinUpdate as EventListener);
+
+    return () => {
+      window.removeEventListener('jobPinUpdate', handleJobPinUpdate as EventListener);
+    };
+  }, [queryClient]);
+
   // Control drawer state with debouncing to prevent rapid toggling
   const [isUserDrawerOpen, setIsUserDrawerOpen] = useState(false);
   // State for the new job details card

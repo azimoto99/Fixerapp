@@ -87,6 +87,20 @@ export function WebSocketProvider({
         // Invalidate notification queries
         queryClient.invalidateQueries({ queryKey: ['/api/notifications'] });
         break;
+      case 'job_pin_update':
+        console.log('📍 Job pin update:', message.data);
+
+        // Invalidate jobs query to update the map pins
+        queryClient.invalidateQueries({ queryKey: ['/api/jobs'] });
+
+        // Emit custom event for map components to listen to
+        window.dispatchEvent(new CustomEvent('jobPinUpdate', {
+          detail: {
+            action: message.data.action,
+            job: message.data.job
+          }
+        }));
+        break;
     }
     
     // Call custom handler if provided

@@ -444,6 +444,8 @@ export default function PostJobDrawer({ isOpen, onOpenChange }: PostJobDrawerPro
                     render={({ field }) => (
                       <FormItem>
                         <FormLabel>Required Skills (Optional)</FormLabel>
+
+                        {/* Text input for custom skills */}
                         <FormControl>
                           <Input
                             placeholder="e.g. Plumbing, Electrical, Carpentry (separate with commas)"
@@ -468,13 +470,46 @@ export default function PostJobDrawer({ isOpen, onOpenChange }: PostJobDrawerPro
                             }}
                           />
                         </FormControl>
-                        
+
+                        {/* Quick select common skills */}
+                        <div className="mt-3">
+                          <p className="text-sm text-muted-foreground mb-2">Or select from common skills:</p>
+                          <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
+                            {SKILLS.slice(0, 12).map((skill) => (
+                              <button
+                                key={skill}
+                                type="button"
+                                className={`text-xs px-2 py-1 rounded border transition-colors ${
+                                  field.value?.includes(skill)
+                                    ? 'bg-primary text-primary-foreground border-primary'
+                                    : 'bg-background border-border hover:bg-accent'
+                                }`}
+                                onClick={() => {
+                                  const currentSkills = field.value || [];
+                                  if (currentSkills.includes(skill)) {
+                                    // Remove skill
+                                    field.onChange(currentSkills.filter(s => s !== skill));
+                                  } else {
+                                    // Add skill if under limit
+                                    if (currentSkills.length < 10) {
+                                      field.onChange([...currentSkills, skill]);
+                                    }
+                                  }
+                                }}
+                              >
+                                {skill}
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+
+                        {/* Display selected skills */}
                         {field.value && field.value.length > 0 && (
-                          <div className="flex flex-wrap gap-2 mt-2">
+                          <div className="flex flex-wrap gap-2 mt-3">
                             {field.value.map((skill, index) => (
                               <Badge key={index} variant="secondary" className="flex items-center gap-1">
                                 {skill}
-                                <button 
+                                <button
                                   type="button"
                                   className="ml-1 rounded-full hover:bg-secondary h-4 w-4 inline-flex items-center justify-center text-xs"
                                   onClick={() => {
@@ -488,9 +523,9 @@ export default function PostJobDrawer({ isOpen, onOpenChange }: PostJobDrawerPro
                             ))}
                           </div>
                         )}
-                        
+
                         <FormDescription>
-                          Enter skills separated by commas. Maximum 10 skills, 50 characters each.
+                          Enter skills separated by commas or select from common skills. Maximum 10 skills, 50 characters each.
                         </FormDescription>
                         <FormMessage />
                       </FormItem>

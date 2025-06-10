@@ -13,6 +13,8 @@ import PaymentNotification from './PaymentNotification';
 import JobPayment from './JobPayment';
 import ApplicationForm from './applications/ApplicationForm';
 import WorkerHistory from './applications/WorkerHistory';
+import { InstantApplyButton } from './applications/InstantApplyButton';
+import { RealTimeApplicationsDashboard } from './applications/RealTimeApplicationsDashboard';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { Loader2, CheckCircle2, MessageCircle, Star, X, BriefcaseBusiness, UserCheck, ClipboardCheck, XCircle, Send } from 'lucide-react';
 import { useMutation, useQuery } from '@tanstack/react-query';
@@ -521,102 +523,24 @@ const JobDetail: React.FC<JobDetailProps> = ({ job, distance = 0.5, onClose }) =
                 </div>
               )}
               
-              {/* Applications Manager for job poster */}
+              {/* Real-Time Applications Dashboard for job poster */}
               {isJobPoster && status === 'open' && (
                 <div className="mb-4">
-                  <h4 className="text-sm font-semibold text-foreground mb-2">Applications</h4>
-                  
-                  {jobApplications && Array.isArray(jobApplications) && jobApplications.length > 0 ? (
-                    <div className="space-y-3">
-                      {jobApplications.map((application: any) => (
-                        <div 
-                          key={application.id} 
-                          className="p-3 border border-border rounded-md bg-card/50"
-                        >
-                          <div className="flex justify-between items-start">
-                            <div>
-                              <div className="font-medium">{application.workerName || 'Anonymous Worker'}</div>
-                              <div className="text-sm text-muted-foreground mt-1">{application.message || 'No message provided'}</div>
-                            </div>
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              onClick={() => handleViewWorkerHistory(application.workerId)}
-                            >
-                              <ClipboardCheck className="h-3 w-3 mr-1" />
-                              View History
-                            </Button>
-                          </div>
-                          
-                          <div className="flex gap-2 mt-3">
-                            <Button
-                              size="sm"
-                              className="flex-1"
-                              onClick={() => updateApplicationStatus.mutate({
-                                applicationId: application.id,
-                                status: 'accepted'
-                              })}
-                              disabled={updateApplicationStatus.isPending}
-                            >
-                              <CheckCircle2 className="h-3 w-3 mr-1" />
-                              Accept
-                            </Button>
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              className="flex-1"
-                              onClick={() => updateApplicationStatus.mutate({
-                                applicationId: application.id,
-                                status: 'rejected'
-                              })}
-                              disabled={updateApplicationStatus.isPending}
-                            >
-                              <XCircle className="h-3 w-3 mr-1" />
-                              Decline
-                            </Button>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  ) : (
-                    <div className="text-center py-4 text-sm text-muted-foreground">
-                      No applications yet. Workers will apply to your job soon!
-                    </div>
-                  )}
+                  <RealTimeApplicationsDashboard
+                    jobId={job.id}
+                    className="w-full"
+                  />
                 </div>
               )}
               
-              {/* Apply button for workers */}
+              {/* Instant Apply button for workers */}
               {!isJobPoster && !isAssignedWorker && status === 'open' && user?.accountType === 'worker' && (
                 <div className="mb-4">
-                  <Button 
+                  <InstantApplyButton
+                    job={job}
+                    variant="default"
                     className="w-full"
-                    onClick={openApplicationForm}
-                    disabled={isApplying || hasAlreadyApplied}
-                  >
-                    {isApplying ? (
-                      <>
-                        <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                        Applying...
-                      </>
-                    ) : hasAlreadyApplied ? (
-                      <>
-                        <CheckCircle2 className="h-4 w-4 mr-2" />
-                        Already Applied
-                      </>
-                    ) : (
-                      <>
-                        <Send className="h-4 w-4 mr-2" />
-                        Apply for this Job
-                      </>
-                    )}
-                  </Button>
-                  
-                  {hasAlreadyApplied && (
-                    <p className="text-xs text-muted-foreground text-center mt-1">
-                      You've already applied to this job. The job poster will review your application soon.
-                    </p>
-                  )}
+                  />
                 </div>
               )}
               

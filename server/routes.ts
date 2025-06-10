@@ -904,26 +904,27 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Find user by exact username (for direct contact requests only)
+  // Search users by username or full name (for contact requests)
   apiRouter.get("/users/search", async (req: Request, res: Response) => {
     try {
       if (!req.isAuthenticated()) {
         return res.status(401).json({ message: "Unauthorized - Please login again" });
       }
 
-      const { username } = req.query;
-      if (!username || typeof username !== 'string') {
-        return res.status(400).json({ message: "Username is required" });
+      // Accept both 'q' and 'username' parameters for backward compatibility
+      const query = req.query.q || req.query.username;
+      if (!query || typeof query !== 'string') {
+        return res.status(400).json({ message: "Search query is required" });
       }
 
-      // Sanitize username to prevent injection attacks
-      const sanitizedUsername = username.trim().replace(/[^a-zA-Z0-9._-]/g, '');
-      if (sanitizedUsername !== username.trim()) {
-        return res.status(400).json({ message: "Username contains invalid characters" });
+      // Sanitize query to prevent injection attacks
+      const sanitizedQuery = query.trim().replace(/[^a-zA-Z0-9._\s-]/g, '');
+      if (sanitizedQuery !== query.trim()) {
+        return res.status(400).json({ message: "Search query contains invalid characters" });
       }
 
-      if (sanitizedUsername.length < 3 || sanitizedUsername.length > 30) {
-        return res.status(400).json({ message: "Username must be between 3 and 30 characters" });
+      if (sanitizedQuery.length < 3 || sanitizedQuery.length > 50) {
+        return res.status(400).json({ message: "Search query must be between 3 and 50 characters" });
       }
 
       const currentUserId = req.user?.id;
@@ -931,8 +932,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(401).json({ message: "User ID not found" });
       }
 
-      // Find user by exact username match
-      const { eq, ne } = await import('drizzle-orm');
+      // Search users by partial username or full name match
+      const { like, or, ne } = await import('drizzle-orm');
       const { db } = await import('./db');
       const { users } = await import('@shared/schema');
 
@@ -944,17 +945,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
       })
         .from(users)
         .where(
-          eq(users.username, sanitizedUsername)
+          or(
+            like(users.username, `%${sanitizedQuery}%`),
+            like(users.fullName, `%${sanitizedQuery}%`)
+          )
         )
-        .limit(1);
+        .limit(10);
 
       // Don't return the current user
       const filteredResults = searchResults.filter(user => user.id !== currentUserId);
 
       res.json(filteredResults);
     } catch (error) {
-      console.error("Error in username lookup:", error);
-      res.status(500).json({ message: "An error occurred while finding user" });
+      console.error("Error in user search:", error);
+      res.status(500).json({ message: "An error occurred while searching users" });
     }
   });
 

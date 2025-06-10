@@ -302,6 +302,17 @@ jobsRouter.post('/test', isAuthenticated, async (req: JobRequest, res: Response)
       }
     });
 
+    // Broadcast job pin update for real-time map updates
+    try {
+      const { webSocketService } = await import('../websocket-unified');
+      if (webSocketService) {
+        webSocketService.broadcastJobPinUpdate('added', job);
+      }
+    } catch (wsError) {
+      console.error('Failed to broadcast job pin update:', wsError);
+      // Don't fail the job creation if WebSocket broadcast fails
+    }
+
     return res.status(201).json({
       message: 'Test job created successfully - no payment required',
       job,

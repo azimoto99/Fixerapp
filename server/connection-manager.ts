@@ -315,17 +315,21 @@ export class ConnectionManager {
 
   public broadcastJobUpdate(jobId: number, jobData: any) {
     console.log(`Broadcasting job update for job ${jobId}`);
-    
+
     this.broadcastToRoom(`job-${jobId}`, {
       type: 'job_update',
       data: { jobId, ...jobData }
     });
 
-    // Also notify all connected users if it's a new job
+    // For new jobs, only broadcast to map viewers for real-time pin updates
     if (jobData.status === 'open' && jobData.isNew) {
       this.broadcastToAllUsers({
-        type: 'new_job_posted',
-        data: { jobId, ...jobData }
+        type: 'job_pin_update',
+        data: {
+          jobId,
+          action: 'added',
+          job: jobData
+        }
       });
     }
   }
@@ -362,7 +366,7 @@ export class ConnectionManager {
 
   public broadcastNotification(userId: number, notificationData: any) {
     console.log(`Broadcasting notification to user ${userId}`);
-    
+
     const client = this.clients.get(userId);
     if (client) {
       this.sendMessage(client.ws, {
@@ -370,6 +374,19 @@ export class ConnectionManager {
         data: notificationData
       });
     }
+  }
+
+  public broadcastJobPinUpdate(action: 'added' | 'updated' | 'removed', jobData: any) {
+    console.log(`Broadcasting job pin ${action} for job ${jobData.id}`);
+
+    this.broadcastToAllUsers({
+      type: 'job_pin_update',
+      data: {
+        action,
+        job: jobData,
+        timestamp: new Date().toISOString()
+      }
+    });
   }
 
   private broadcastToAllUsers(message: WebSocketMessage) {
