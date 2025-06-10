@@ -7,8 +7,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { PaymentDialogProvider } from "@/components/payments/PaymentDialogManager";
 import Home from "@/pages/Home";
 import PostJob from "@/pages/PostJob";
-// Using JobDetailPage as the primary job details component
-import JobDetailPage from "@/pages/job-detail-page";
+// JobDetailPage removed - using unified JobDetailsCard via JobCardFix
 
 import AuthPage from "@/pages/auth-page";
 import NotFound from "@/pages/not-found";
@@ -91,7 +90,7 @@ function RouterWithAuth() {
       <ProtectedRoute path="/" component={Home} />
       <ProtectedRoute path="/post-job" component={PostJob} />
       <ProtectedRoute path="/jobs/post" component={PostJob} />
-      <ProtectedRoute path="/job/:id" component={JobDetailPage} />
+      {/* Job detail route removed - using unified JobDetailsCard modal */}
 
       <ProtectedRoute path="/transactions" component={TransactionHistory} />
       <ProtectedRoute path="/checkout/:amount/:jobId" component={Checkout} />

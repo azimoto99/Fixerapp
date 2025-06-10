@@ -81,6 +81,10 @@ div[role="dialog"] {
   --z-index-payment-modal: 99999;
   --z-index-debug: 9000;
   --z-index-emergency: 9999;
+
+  /* Critical dialog layers - above emergency */
+  --z-index-critical-dialog: 10000;
+  --z-index-critical-dialog-backdrop: 9999;
 }
 
 /* Blur overlay */
@@ -302,4 +306,38 @@ form * {
 /* Ensure select dropdown content inside portal gets the highest priority */
 [data-radix-portal] [data-radix-select-content] {
   z-index: var(--z-index-emergency) !important;
+}
+
+/* AlertDialog components - critical dialogs that must appear above job cards */
+[data-radix-alert-dialog-overlay] {
+  z-index: var(--z-index-critical-dialog-backdrop) !important;
+  position: fixed !important;
+  inset: 0 !important;
+  pointer-events: auto !important;
+}
+
+[data-radix-alert-dialog-content] {
+  z-index: var(--z-index-critical-dialog) !important;
+  position: relative !important;
+  pointer-events: auto !important;
+}
+
+/* Specific fix for location verification and job completion dialogs */
+[data-radix-alert-dialog-overlay][data-state="open"] {
+  z-index: var(--z-index-critical-dialog-backdrop) !important;
+}
+
+[data-radix-alert-dialog-content][data-state="open"] {
+  z-index: var(--z-index-critical-dialog) !important;
+}
+
+/* Critical dialog class for job-related dialogs that must appear above job cards */
+.critical-dialog {
+  z-index: var(--z-index-critical-dialog) !important;
+  position: relative !important;
+}
+
+/* Ensure critical dialog backdrop is also above job cards */
+[data-radix-alert-dialog-overlay]:has(.critical-dialog) {
+  z-index: var(--z-index-critical-dialog-backdrop) !important;
 }

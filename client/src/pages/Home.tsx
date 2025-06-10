@@ -4,21 +4,12 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import Header from '@/components/Header';
 import MobileNav from '@/components/MobileNav';
 import JobSearch from '@/components/JobSearch';
-import ViewToggle from '@/components/ViewToggle';
-import JobListSection from '@/components/JobListSection';
+// ViewToggle and JobListSection removed - using unified modal approach
 import MapSection from '@/components/MapSection';
 import NewJobButton from '@/components/NewJobButton';
 import PostJobDrawer from '@/components/PostJobDrawer';
 import { MessagingDrawer } from '@/components/MessagingDrawer';
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-  DialogClose
-} from "@/components/ui/dialog";
+// Dialog imports removed - using unified JobDetailsCard modal
 
 import { useJobs } from '@/hooks/useJobs';
 import { Job } from '@shared/schema';
@@ -318,8 +309,7 @@ export default function Home() {
   const [selectedRole, setSelectedRole] = useState<'worker' | 'poster'>('worker');
   const [showPostedJobs, setShowPostedJobs] = useState(false);
   const [showMessaging, setShowMessaging] = useState(false);
-  const [showJobDetails, setShowJobDetails] = useState(false);
-  const [selectedJob, setSelectedJob] = useState<Job | null>(null);
+  // showJobDetails and selectedJob removed - using unified JobDetailsCard modal
   const [showEditJob, setShowEditJob] = useState(false);
   const [jobToEdit, setJobToEdit] = useState<Job | null>(null);
   const { toast } = useToast();
@@ -480,54 +470,7 @@ export default function Home() {
         )}
       </main>
 
-      {/* Job Details Dialog */}
-      <Dialog open={showJobDetails} onOpenChange={setShowJobDetails}>
-        <DialogContent className="sm:max-w-md">
-          <DialogHeader>
-            <DialogTitle>{selectedJob?.title}</DialogTitle>
-            <DialogDescription>
-              Posted on {selectedJob?.datePosted ? new Date(selectedJob.datePosted).toLocaleDateString() : 'Unknown date'}
-            </DialogDescription>
-          </DialogHeader>
-          <div className="space-y-4">
-            <div>
-              <h4 className="text-sm font-medium mb-1">Location</h4>
-              <p className="text-sm">{selectedJob?.location}</p>
-            </div>
-            <div>
-              <h4 className="text-sm font-medium mb-1">Description</h4>
-              <p className="text-sm">{selectedJob?.description}</p>
-            </div>
-            <div>
-              <h4 className="text-sm font-medium mb-1">Payment</h4>
-              <p className="text-sm">${selectedJob?.paymentAmount?.toFixed(2)} ({selectedJob?.paymentType})</p>
-            </div>
-            <div>
-              <h4 className="text-sm font-medium mb-1">Status</h4>
-              <p className="text-sm capitalize">{selectedJob?.status}</p>
-            </div>
-          </div>
-          <DialogFooter className="sm:justify-between">
-            <DialogClose asChild>
-              <Button type="button" variant="secondary">Close</Button>
-            </DialogClose>
-            <Button 
-              type="button" 
-              variant="default"
-              onClick={() => {
-                // Use our new JobDetailsCard component for a modern vector UI
-                window.dispatchEvent(new CustomEvent('open-job-details', { 
-                  detail: { jobId: selectedJob?.id }
-                }));
-                // Close the current dialog
-                setShowJobDetails(false);
-              }}
-            >
-              View Job Card
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      {/* Job Details Dialog removed - using unified JobDetailsCard modal */}
 
       {/* Only show mobile nav when not in worker map view to avoid cluttering the map interface */}
       {!(selectedRole === 'worker') && (
@@ -609,8 +552,10 @@ export default function Home() {
                       <div
                         className="flex-1 cursor-pointer"
                         onClick={() => {
-                          setSelectedJob(job);
-                          setShowJobDetails(true);
+                          // Use unified JobDetailsCard modal directly
+                          window.dispatchEvent(new CustomEvent('open-job-details', {
+                            detail: { jobId: job.id }
+                          }));
                         }}
                       >
                         <div className="flex items-start justify-between mb-2">
@@ -642,7 +587,7 @@ export default function Home() {
                           <div className="flex items-center gap-3 text-xs text-muted-foreground">
                             <span className="flex items-center gap-1">
                               <Calendar className="h-3 w-3" />
-                              Posted {new Date(job.datePosted).toLocaleDateString()}
+                              Posted {job.datePosted ? new Date(job.datePosted).toLocaleDateString() : 'Recently'}
                             </span>
                             {job.dateNeeded && (
                               <span className="flex items-center gap-1">
@@ -662,9 +607,10 @@ export default function Home() {
                             className="h-8 w-8 p-0 hover:bg-blue-50 dark:hover:bg-blue-950"
                             onClick={(e) => {
                               e.stopPropagation();
-                              // Open job details in the job card modal
-                              setSelectedJob(job);
-                              setShowJobDetails(true);
+                              // Use unified JobDetailsCard modal directly
+                              window.dispatchEvent(new CustomEvent('open-job-details', {
+                                detail: { jobId: job.id }
+                              }));
                             }}
                             title="View job details"
                           >

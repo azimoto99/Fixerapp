@@ -69,6 +69,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 // Import application management tab
 import JobApplicationsTab from './JobApplicationsTab';
 import '../jobcard-fix.css';
+import '../ui/dialog-fix.css';
 import { useEffect as useWindowEffect } from 'react';
 import { cn } from '@/lib/utils';
 
@@ -1537,7 +1538,7 @@ const JobDetailsCard: React.FC<JobDetailsCardProps> = ({ jobId, isOpen, onClose 
           
           {/* Location Verification Error Dialog */}
           <AlertDialog open={showLocationVerificationError} onOpenChange={setShowLocationVerificationError}>
-            <AlertDialogContent>
+            <AlertDialogContent className="critical-dialog">
               <AlertDialogHeader>
                 <AlertDialogTitle className="flex items-center">
                   <AlertCircle className="h-5 w-5 mr-2 text-destructive" />
@@ -1564,7 +1565,7 @@ const JobDetailsCard: React.FC<JobDetailsCardProps> = ({ jobId, isOpen, onClose 
           
           {/* Job Completion Confirmation Dialog */}
           <AlertDialog open={showCompleteDialog} onOpenChange={setShowCompleteDialog}>
-            <AlertDialogContent>
+            <AlertDialogContent className="critical-dialog">
               <AlertDialogHeader>
                 <AlertDialogTitle className="flex items-center">
                   <CheckCircle2 className="h-5 w-5 mr-2 text-green-600" />
