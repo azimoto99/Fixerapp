@@ -108,8 +108,8 @@ export function useGeolocation(): GeolocationHook {
           },
           {
             enableHighAccuracy: highAccuracy,
-            timeout: highAccuracy ? 5000 : 3000, // Shorter timeout for mobile
-            maximumAge: 300000 // Accept cached location up to 5 minutes old
+            timeout: highAccuracy ? 10000 : 5000, // Increased timeout for better accuracy
+            maximumAge: highAccuracy ? 30000 : 120000 // Fresh location for high accuracy, 2min cache for low accuracy
           }
         );
       };

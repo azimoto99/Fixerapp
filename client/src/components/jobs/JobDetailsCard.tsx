@@ -408,7 +408,11 @@ const JobDetailsCard: React.FC<JobDetailsCardProps> = ({ jobId, isOpen, onClose 
           }
           reject(new Error(errorMessage));
         },
-        { enableHighAccuracy: true, timeout: 15000, maximumAge: 60000 }
+        {
+          enableHighAccuracy: true,
+          timeout: 12000, // Reduced from 15s
+          maximumAge: 30000 // Reduced cache time for more accurate location
+        }
       );
     });
   };

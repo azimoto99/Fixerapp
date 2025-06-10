@@ -63,8 +63,8 @@ export function useGeolocation() {
           },
           {
             enableHighAccuracy: highAccuracy,
-            timeout: highAccuracy ? 5000 : 3000, // Shorter timeout for mobile
-            maximumAge: 300000 // Accept cached location up to 5 minutes old
+            timeout: highAccuracy ? 10000 : 5000, // Increased timeout for better accuracy
+            maximumAge: highAccuracy ? 30000 : 120000 // Fresh location for high accuracy, 2min cache for low accuracy
           }
         );
       };
@@ -77,7 +77,7 @@ export function useGeolocation() {
     updateLocation();
 
     // Set up a regular polling for updates when the component is active
-    const intervalId = setInterval(updateLocation, 60000); // update every minute
+    const intervalId = setInterval(updateLocation, 300000); // update every 5 minutes (reduced frequency)
 
     return () => {
       clearInterval(intervalId);
@@ -129,7 +129,7 @@ export function useGeolocation() {
           },
           {
             enableHighAccuracy: highAccuracy,
-            timeout: highAccuracy ? 5000 : 3000, // Shorter timeout for mobile
+            timeout: highAccuracy ? 15000 : 8000, // Longer timeout for manual refresh
             maximumAge: 0 // Don't use cached position for manual refresh
           }
         );

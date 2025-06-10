@@ -1,22 +1,24 @@
 import * as React from 'react';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, lazy, Suspense } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import Header from '@/components/Header';
 import MobileNav from '@/components/MobileNav';
 import JobSearch from '@/components/JobSearch';
 // ViewToggle and JobListSection removed - using unified modal approach
-import MapSection from '@/components/MapSection';
 import NewJobButton from '@/components/NewJobButton';
 import PostJobDrawer from '@/components/PostJobDrawer';
 import { MessagingDrawer } from '@/components/MessagingDrawer';
+
+// Lazy load heavy components
+const MapSection = lazy(() => import('@/components/MapSection'));
 // Dialog imports removed - using unified JobDetailsCard modal
 
 import { useJobs } from '@/hooks/useJobs';
 import { Job } from '@shared/schema';
-import { useGeolocation } from '@/lib/geolocation';
+
 import { useAuth } from '@/hooks/use-auth';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Loader2, X, Briefcase, MapPin, Calendar, DollarSign, Clock, ExternalLink, Edit, Trash2 } from 'lucide-react';
 import { EditJobModal } from '@/components/EditJobModal';
 import { 
@@ -34,13 +36,11 @@ import { apiRequest } from '@/lib/queryClient';
 import { useToast } from '@/hooks/use-toast';
 import { Badge } from '@/components/ui/badge';
 
-// Import the new connection system
-import { useAppConnections } from '@/hooks/useAppConnections';
+
 
 // Worker Dashboard Component
 const WorkerDashboard = () => {
   // Keep all useState calls together and in the same order every render
-  const [view, setView] = useState<'list' | 'map'>('map');
   const [selectedJob, setSelectedJob] = useState<Job | undefined>(undefined);
   const [cancelJobId, setCancelJobId] = useState<number | null>(null);
   const [showCancelDialog, setShowCancelDialog] = useState(false);
@@ -49,10 +49,8 @@ const WorkerDashboard = () => {
     searchMode: 'description' as 'location' | 'description',
     coordinates: undefined as { latitude: number; longitude: number } | undefined
   });
-  
+
   // Keep all custom hook calls after useState hooks
-  const { user } = useAuth();
-  const { userLocation } = useGeolocation();
   // When in worker view, we want to show all available jobs EXCEPT our own
   // This ensures workers see jobs from other users on the map
   const { jobs, isLoading } = useJobs({
@@ -114,20 +112,10 @@ const WorkerDashboard = () => {
     setSelectedJob(job);
   };
   
-  // Handle job cancellation
-  const handleCancelJobClick = (jobId: number) => {
-    setCancelJobId(jobId);
-    setShowCancelDialog(true);
-  };
-  
   const handleCancelJob = () => {
     if (cancelJobId) {
       cancelJobMutation.mutate(cancelJobId);
     }
-  };
-
-  const handleViewChange = (newView: 'list' | 'map') => {
-    setView(newView);
   };
 
   if (isLoading) {
@@ -144,12 +132,18 @@ const WorkerDashboard = () => {
         {/* DoorDash-style layout with map as primary interface */}
         <div className="h-full relative">
           {/* Map takes the full screen in this view */}
-          <MapSection 
-            jobs={jobs || []}
-            selectedJob={selectedJob}
-            onSelectJob={handleSelectJob}
-            searchCoordinates={searchParams.coordinates}
-          />
+          <Suspense fallback={
+            <div className="flex justify-center items-center h-full">
+              <Loader2 className="h-8 w-8 animate-spin text-primary" />
+            </div>
+          }>
+            <MapSection
+              jobs={jobs || []}
+              selectedJob={selectedJob}
+              onSelectJob={handleSelectJob}
+              searchCoordinates={searchParams.coordinates}
+            />
+          </Suspense>
           
           {/* Post Job Button positioned beneath UserDrawerV2 with lower z-index */}
           <div className="fixed top-20 right-4 z-[30]">
@@ -320,63 +314,25 @@ export default function Home() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   
-  // Initialize the comprehensive connection system
-  const {
-    isConnected,
-    connectionStatus,
-    notifications,
-    unreadCount,
-    jobLifecycle,
-    paymentFlow,
-    joinJobRoom,
-    leaveJobRoom,
-    handleJobCreated,
-    handleJobCompleted
-  } = useAppConnections();
+  // Connection system available but not used in this component
   
-  // Check for wallet query parameter and auto-open wallet drawer
+  // Check for wallet query parameter and auto-open wallet drawer (fixed duplicate)
   useEffect(() => {
     const urlParams = new URLSearchParams(window.location.search);
     const shouldOpenWallet = urlParams.get('wallet') === 'true';
-    
+
     if (shouldOpenWallet) {
       // Clear the query parameter from URL
       const newUrl = window.location.pathname;
       window.history.replaceState({}, '', newUrl);
-      
+
       // Open the wallet drawer after a short delay to ensure components are mounted
       setTimeout(() => {
         // First, find and click a UserDrawerV2 trigger to open the drawer
         const drawerTrigger = document.querySelector('.user-drawer-trigger');
         if (drawerTrigger) {
           (drawerTrigger as HTMLElement).click();
-          
-          // Then switch to wallet tab after drawer is open
-          setTimeout(() => {
-            window.dispatchEvent(new CustomEvent('switch-user-drawer-tab', { detail: 'wallet' }));
-          }, 300);
-        }
-      }, 500);
-    }
-  }, []);
-  
-  // Check for wallet query parameter and auto-open wallet drawer
-  useEffect(() => {
-    const urlParams = new URLSearchParams(window.location.search);
-    const shouldOpenWallet = urlParams.get('wallet') === 'true';
-    
-    if (shouldOpenWallet) {
-      // Clear the query parameter from URL
-      const newUrl = window.location.pathname;
-      window.history.replaceState({}, '', newUrl);
-      
-      // Open the wallet drawer after a short delay to ensure components are mounted
-      setTimeout(() => {
-        // First, find and click a UserDrawerV2 trigger to open the drawer
-        const drawerTrigger = document.querySelector('.user-drawer-trigger');
-        if (drawerTrigger) {
-          (drawerTrigger as HTMLElement).click();
-          
+
           // Then switch to wallet tab after drawer is open
           setTimeout(() => {
             window.dispatchEvent(new CustomEvent('switch-user-drawer-tab', { detail: 'wallet' }));
@@ -415,10 +371,10 @@ export default function Home() {
       }
     },
     enabled: !!user?.id, // Only fetch when user is authenticated
-    refetchInterval: showPostedJobs ? 5000 : false, // Poll every 5 seconds when drawer is open
+    refetchInterval: showPostedJobs ? 30000 : false, // Poll every 30 seconds when drawer is open (reduced from 5s)
     refetchOnWindowFocus: true,
     refetchOnMount: true,
-    staleTime: 30000, // Consider data stale after 30 seconds
+    staleTime: 60000, // Consider data stale after 60 seconds (increased from 30s)
   });
 
   // Delete job mutation
