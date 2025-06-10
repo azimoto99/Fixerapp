@@ -162,11 +162,15 @@ export function registerMessagingRoutes(app: Express) {
     }
 
     try {
-      const messageSchema = insertMessageSchema.extend({
+      const messageSchema = z.object({
         recipientId: z.number().positive("Recipient ID is required"),
-        content: z.string().min(1, "Message content is required")
+        content: z.string().min(1, "Message content is required"),
+        messageType: z.string().optional(),
+        attachmentUrl: z.string().optional(),
+        attachmentType: z.string().optional(),
+        jobId: z.number().optional()
       });
-      
+
       const validatedData = messageSchema.parse(req.body);
       
       const senderId = req.user?.id;

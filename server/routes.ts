@@ -904,90 +904,61 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Find user by exact username (for direct contact requests only)
   apiRouter.get("/users/search", async (req: Request, res: Response) => {
     try {
       if (!req.isAuthenticated()) {
         return res.status(401).json({ message: "Unauthorized - Please login again" });
       }
-      
-      const query = req.query.q as string;
-      if (!query || query.length < 3) {
-        return res.status(400).json({ message: "Search query must be at least 3 characters" });
+
+      const { username } = req.query;
+      if (!username || typeof username !== 'string') {
+        return res.status(400).json({ message: "Username is required" });
       }
 
-      // Sanitize search query to prevent injection attacks
-      const sanitizedQuery = query.replace(/[^a-zA-Z0-9._-]/g, '');
-      if (sanitizedQuery !== query) {
-        return res.status(400).json({ message: "Search query contains invalid characters" });
+      // Sanitize username to prevent injection attacks
+      const sanitizedUsername = username.trim().replace(/[^a-zA-Z0-9._-]/g, '');
+      if (sanitizedUsername !== username.trim()) {
+        return res.status(400).json({ message: "Username contains invalid characters" });
       }
 
-      if (sanitizedQuery.length > 50) {
-        return res.status(400).json({ message: "Search query too long" });
+      if (sanitizedUsername.length < 3 || sanitizedUsername.length > 30) {
+        return res.status(400).json({ message: "Username must be between 3 and 30 characters" });
       }
-      
+
       const currentUserId = req.user?.id;
       if (!currentUserId) {
         return res.status(401).json({ message: "User ID not found" });
       }
-      
-      // Make sure currentUserId is a number
-      const userId = typeof currentUserId === 'string' 
-        ? parseInt(currentUserId, 10) 
-        : currentUserId;
-        
-      if (isNaN(userId)) {
-        console.error("Invalid user ID in search request:", currentUserId);
-        return res.status(400).json({ message: "Invalid user ID format" });
-      }
-      
-      console.log(`API - Searching users with query: "${sanitizedQuery}" for user ID: ${userId}`);
 
-      // Get users by search query (username and fullName only for privacy)
-      const { and, or, sql, ne } = await import('drizzle-orm');
+      // Find user by exact username match
+      const { eq, ne } = await import('drizzle-orm');
       const { db } = await import('./db');
       const { users } = await import('@shared/schema');
 
-      const searchResults = await db.select()
+      const searchResults = await db.select({
+        id: users.id,
+        username: users.username,
+        fullName: users.fullName,
+        avatarUrl: users.avatarUrl
+      })
         .from(users)
         .where(
-          and(
-            // Don't include the current user in results
-            ne(users.id, userId),
-            // Search by username and fullName only (removed email for privacy)
-            or(
-              sql`LOWER(${users.username}) LIKE ${`%${sanitizedQuery.toLowerCase()}%`}`,
-              sql`LOWER(COALESCE(${users.fullName}, '')) LIKE ${`%${sanitizedQuery.toLowerCase()}%`}`
-            )
-          )
+          eq(users.username, sanitizedUsername)
         )
-        .limit(5); // Reduced limit for better performance
-      
-      console.log(`API - Found ${searchResults.length} results for query "${sanitizedQuery}"`);
-      
-      // Map results to remove sensitive information and limit exposure
-      const sanitizedResults = searchResults.map((user: any) => {
-        // Only return essential, non-sensitive information
-        return {
-          id: user.id,
-          username: user.username,
-          fullName: user.fullName,
-          avatarUrl: user.avatarUrl,
-          // Explicitly exclude sensitive fields
-          // email: removed for privacy
-          // phone: removed for privacy
-          // address: removed for privacy
-          // dateOfBirth: removed for privacy
-          // stripeCustomerId: removed for security
-          // stripeConnectAccountId: removed for security
-        };
-      });
-      
-      res.json(sanitizedResults);
+        .limit(1);
+
+      // Don't return the current user
+      const filteredResults = searchResults.filter(user => user.id !== currentUserId);
+
+      res.json(filteredResults);
     } catch (error) {
-      console.error("Error in user search API:", error);
-      res.status(500).json({ message: "An error occurred while searching users" });
+      console.error("Error in username lookup:", error);
+      res.status(500).json({ message: "An error occurred while finding user" });
     }
   });
+
+
 
   apiRouter.get("/users/:id", async (req: Request, res: Response) => {
     try {
@@ -1025,10 +996,37 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Parse the user data, but allow the requiresProfileCompletion flag
       const { requiresProfileCompletion, ...standardFields } = req.body;
       const userData = insertUserSchema.partial().parse(standardFields);
-      
+
+      // Content moderation for username and fullName updates
+      if (userData.username || userData.fullName) {
+        const { validateUsername, validateFullName, logModerationEvent } = await import('./utils/contentModeration');
+
+        if (userData.username) {
+          const usernameValidation = validateUsername(userData.username);
+          if (!usernameValidation.isValid) {
+            logModerationEvent('username', userData.username, usernameValidation, user.id, req.ip);
+            return res.status(400).json({
+              message: usernameValidation.reason,
+              severity: usernameValidation.severity
+            });
+          }
+        }
+
+        if (userData.fullName) {
+          const fullNameValidation = validateFullName(userData.fullName);
+          if (!fullNameValidation.isValid) {
+            logModerationEvent('fullName', userData.fullName, fullNameValidation, user.id, req.ip);
+            return res.status(400).json({
+              message: fullNameValidation.reason,
+              severity: fullNameValidation.severity
+            });
+          }
+        }
+      }
+
       // Merge back the profileCompletion flag if it exists
-      const dataToUpdate = requiresProfileCompletion !== undefined 
-        ? { ...userData, requiresProfileCompletion } 
+      const dataToUpdate = requiresProfileCompletion !== undefined
+        ? { ...userData, requiresProfileCompletion }
         : userData;
       
       // Handle null to undefined conversion for all fields to ensure type compatibility

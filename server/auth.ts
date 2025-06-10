@@ -148,14 +148,39 @@ export function setupAuth(app: Express) {
 
       // Validate required fields
       if (!username || !email || !rawPassword || !fullName) {
-        return res.status(400).json({ 
-          message: "Missing required fields. Username, email, password, and full name are required." 
+        return res.status(400).json({
+          message: "Missing required fields. Username, email, password, and full name are required."
         });
       }
 
-      // Validate username length
-      if (username.length < 3) {
-        return res.status(400).json({ message: "Username must be at least 3 characters long" });
+      // Import content moderation
+      const { validateUsername, validateFullName, logModerationEvent, suggestAlternativeUsernames } = await import('./utils/contentModeration');
+
+      // Validate username content
+      const usernameValidation = validateUsername(username);
+      if (!usernameValidation.isValid) {
+        // Log the moderation event
+        logModerationEvent('username', username, usernameValidation, undefined, req.ip);
+
+        // Provide suggestions for inappropriate usernames
+        const suggestions = suggestAlternativeUsernames(username);
+        return res.status(400).json({
+          message: usernameValidation.reason,
+          suggestions: suggestions.length > 0 ? suggestions : undefined,
+          severity: usernameValidation.severity
+        });
+      }
+
+      // Validate full name content
+      const fullNameValidation = validateFullName(fullName);
+      if (!fullNameValidation.isValid) {
+        // Log the moderation event
+        logModerationEvent('fullName', fullName, fullNameValidation, undefined, req.ip);
+
+        return res.status(400).json({
+          message: fullNameValidation.reason,
+          severity: fullNameValidation.severity
+        });
       }
 
       // Validate email format

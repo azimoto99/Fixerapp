@@ -815,7 +815,7 @@ export class UnifiedStorage implements IStorage {
         query = query.where(eq(messages.jobId, jobId));
       }
       
-      return await query.orderBy(asc(messages.createdAt));
+      return await query.orderBy(asc(messages.sentAt));
     }, [], `getConversation(${userId1}, ${userId2})`);
   }
 
