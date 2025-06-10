@@ -687,6 +687,20 @@ export const adminAuditLog = pgTable("admin_audit_log", {
   timestamp: timestamp("timestamp").defaultNow(),
 });
 
+// General audit logs table for all system actions
+export const auditLogs = pgTable("audit_logs", {
+  id: serial("id").primaryKey(),
+  adminId: integer("admin_id"), // Can be null for system actions
+  action: text("action").notNull(),
+  resourceType: text("resource_type").notNull(),
+  resourceId: text("resource_id"), // String to handle various ID types
+  details: jsonb("details").default({}),
+  success: boolean("success").notNull().default(true),
+  ipAddress: text("ip_address"),
+  userAgent: text("user_agent"),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
 // Platform analytics data for dashboard
 export const platformAnalytics = pgTable("platform_analytics", {
   id: serial("id").primaryKey(),

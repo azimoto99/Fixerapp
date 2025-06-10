@@ -44,10 +44,9 @@ const WorkerDashboard = () => {
   const [selectedJob, setSelectedJob] = useState<Job | undefined>(undefined);
   const [cancelJobId, setCancelJobId] = useState<number | null>(null);
   const [showCancelDialog, setShowCancelDialog] = useState(false);
-  const [searchParams, setSearchParams] = useState({ 
-    query: '', 
-    category: '', 
-    searchMode: 'location' as 'location' | 'description',
+  const [searchParams, setSearchParams] = useState({
+    query: '',
+    searchMode: 'description' as 'location' | 'description',
     coordinates: undefined as { latitude: number; longitude: number } | undefined
   });
   
@@ -95,18 +94,17 @@ const WorkerDashboard = () => {
     }
   });
 
-  const handleSearch = (params: { 
-    query: string; 
-    category: string; 
+  const handleSearch = (params: {
+    query: string;
     searchMode?: 'location' | 'description';
-    coordinates?: { latitude: number; longitude: number }
+    coordinates?: { latitude: number; longitude: number };
+    radiusMiles?: number;
   }) => {
     // Preserve existing searchMode if not provided
     const newSearchMode = params.searchMode || searchParams.searchMode;
-    
+
     setSearchParams({
       query: params.query,
-      category: params.category,
       searchMode: newSearchMode,
       coordinates: params.coordinates
     });
@@ -158,10 +156,10 @@ const WorkerDashboard = () => {
             <NewJobButton />
           </div>
           
-          {/* Search Bar at bottom with lower z-index than UserDrawerV2 */}
+          {/* Search Bar at bottom with proper mobile spacing */}
           <div className="fixed bottom-0 left-0 right-0 z-[30] w-full">
-            <div className="bg-card border-t border-border shadow-lg">
-              <div className="p-2">
+            <div className="bg-card border-t border-border shadow-lg mb-16 md:mb-0">
+              <div className="p-2 md:p-4">
                 <JobSearch onSearch={handleSearch} />
               </div>
             </div>

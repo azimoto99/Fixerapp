@@ -11,9 +11,9 @@ interface JobListSectionProps {
   selectedJobId?: number;
   searchParams?: {
     query?: string;
-    category?: string;
     searchMode?: 'location' | 'description';
     coordinates?: { latitude: number; longitude: number };
+    radiusMiles?: number;
   };
 }
 

@@ -2,10 +2,11 @@ import { useState, useCallback, memo, useRef } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Slider } from '@/components/ui/slider';
-import { JOB_CATEGORIES } from '@shared/schema';
+
 import { useToast } from '@/hooks/use-toast';
 import { geocodeAddress } from '@/lib/geocoding';
-import { Loader2, MapPin, Book, RotateCcw, Search, Filter, Ruler } from 'lucide-react';
+import MapboxAutocomplete from './MapboxAutocomplete';
+import { Loader2, MapPin, Book, RotateCcw, Search, Ruler } from 'lucide-react';
 import {
   Popover,
   PopoverContent,
@@ -13,9 +14,8 @@ import {
 } from "@/components/ui/popover";
 
 interface JobSearchProps {
-  onSearch: (params: { 
-    query: string; 
-    category: string; 
+  onSearch: (params: {
+    query: string;
     searchMode?: 'location' | 'description';
     coordinates?: { latitude: number; longitude: number };
     radiusMiles?: number;
@@ -39,11 +39,9 @@ const useDebounce = (fn: Function, delay: number) => {
 // Use memo to prevent unnecessary re-renders
 const JobSearch: React.FC<JobSearchProps> = memo(({ onSearch }) => {
   const [query, setQuery] = useState('');
-  const [category, setCategory] = useState('');
-  const [searchMode, setSearchMode] = useState<'location' | 'description'>('location');
+  const [searchMode, setSearchMode] = useState<'location' | 'description'>('description'); // Default to description search
   const [isSearching, setIsSearching] = useState(false);
   const [lastSearchLocation, setLastSearchLocation] = useState<string | null>(null);
-  const [showCategories, setShowCategories] = useState(false);
   const [radiusMiles, setRadiusMiles] = useState<number>(10); // Default 10 mile radius
   const [showRadiusFilter, setShowRadiusFilter] = useState(false);
   const [locationCoordinates, setLocationCoordinates] = useState<{latitude: number, longitude: number} | null>(null);
@@ -51,34 +49,31 @@ const JobSearch: React.FC<JobSearchProps> = memo(({ onSearch }) => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    // If category is 'all', pass empty string to search all categories
-    const searchCategory = category === 'all' ? '' : category;
-    
+
     // If in location mode and there's a query, geocode the address
     if (searchMode === 'location' && query.trim()) {
       setIsSearching(true);
       try {
         const geocodeResult = await geocodeAddress(query);
-        
+
         if (geocodeResult.success) {
           toast({
             title: "Location found",
             description: `Searching near ${geocodeResult.displayName?.split(',')[0] || query}`,
           });
-          
+
           // Store the location name for displaying to user
           setLastSearchLocation(geocodeResult.displayName?.split(',')[0] || query);
-          
+
           // Store coordinates for radius filter to use
           const coordinates = {
             latitude: geocodeResult.latitude,
             longitude: geocodeResult.longitude
           };
           setLocationCoordinates(coordinates);
-          
-          onSearch({ 
-            query, 
-            category: searchCategory, 
+
+          onSearch({
+            query,
             searchMode,
             coordinates,
             radiusMiles: searchMode === 'location' ? radiusMiles : undefined
@@ -102,7 +97,7 @@ const JobSearch: React.FC<JobSearchProps> = memo(({ onSearch }) => {
       }
     } else {
       // For description search, just pass the query directly
-      onSearch({ query, category: searchCategory, searchMode });
+      onSearch({ query, searchMode });
     }
   };
   
@@ -110,12 +105,11 @@ const JobSearch: React.FC<JobSearchProps> = memo(({ onSearch }) => {
   const handleRadiusChange = (value: number[]) => {
     const newRadius = value[0];
     setRadiusMiles(newRadius);
-    
+
     // Only trigger a search if we have coordinates and are in location mode
     if (locationCoordinates && searchMode === 'location') {
       onSearch({
         query,
-        category,
         searchMode,
         coordinates: locationCoordinates,
         radiusMiles: newRadius
@@ -138,14 +132,25 @@ const JobSearch: React.FC<JobSearchProps> = memo(({ onSearch }) => {
     }
   }, 800);
 
-  // Handle input change with debounced geolocation
+  // Debounced search function for real-time filtering
+  const debouncedSearch = useDebounce((searchQuery: string) => {
+    if (searchMode === 'description') {
+      // For description search, trigger search immediately for real-time filtering
+      onSearch({ query: searchQuery, searchMode });
+    }
+  }, 300); // 300ms delay for real-time search
+
+  // Handle input change with debounced geolocation and real-time search
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value;
     setQuery(value);
-    
+
     // If in location mode and typing has paused, try to geocode
     if (searchMode === 'location' && value.length > 3) {
       debouncedGeolocation(value);
+    } else if (searchMode === 'description') {
+      // For description mode, trigger real-time search
+      debouncedSearch(value);
     }
   };
 
@@ -157,24 +162,7 @@ const JobSearch: React.FC<JobSearchProps> = memo(({ onSearch }) => {
     }
   };
 
-  const handleCategorySelect = (selectedCategory: string) => {
-    setCategory(selectedCategory);
-    // Auto-submit search when category changes
-    setTimeout(() => {
-      onSearch({ 
-        query, 
-        category: selectedCategory, 
-        searchMode,
-        // Pass existing coordinates if we have them and are in location mode
-        ...(searchMode === 'location' && lastSearchLocation && {
-          coordinates: {
-            latitude: 0, // We'd use stored coordinates in a real implementation
-            longitude: 0
-          }
-        })
-      });
-    }, 100);
-  };
+
 
   return (
     <div className="w-full">
@@ -187,21 +175,49 @@ const JobSearch: React.FC<JobSearchProps> = memo(({ onSearch }) => {
               {searchMode === 'location' ? <MapPin size={16} /> : <Book size={16} />}
             </div>
 
-            {/* Input field */}
-            <Input
-              type="text"
-              placeholder={searchMode === 'location' ? "Enter location..." : "Search keywords..."}
-              className="flex-1 border-0 shadow-none bg-transparent focus-visible:ring-0 h-8 px-1 text-foreground placeholder:text-muted-foreground"
-              value={query}
-              onChange={handleInputChange}
-              onKeyDown={(e) => {
-                if (e.key === 'Enter') {
-                  e.preventDefault();
-                  handleSubmit(e as any);
-                }
-              }}
-              autoComplete="off"
-            />
+            {/* Input field - conditionally render MapboxAutocomplete for location search */}
+            {searchMode === 'location' ? (
+              <div className="flex-1">
+                <MapboxAutocomplete
+                  onSelect={(result) => {
+                    setQuery(result.place_name);
+                    setLastSearchLocation(result.text);
+                    setLocationCoordinates({
+                      latitude: result.center[1],
+                      longitude: result.center[0]
+                    });
+                    // Trigger search with the selected location
+                    onSearch({
+                      query: result.place_name,
+                      searchMode: 'location',
+                      coordinates: {
+                        latitude: result.center[1],
+                        longitude: result.center[0]
+                      },
+                      radiusMiles
+                    });
+                  }}
+                  placeholder="Enter location..."
+                  className="flex-1 border-0 shadow-none bg-transparent focus-visible:ring-0 h-8 px-1 text-foreground placeholder:text-muted-foreground"
+                  defaultValue={query}
+                />
+              </div>
+            ) : (
+              <Input
+                type="text"
+                placeholder="Search keywords..."
+                className="flex-1 border-0 shadow-none bg-transparent focus-visible:ring-0 h-8 px-1 text-foreground placeholder:text-muted-foreground"
+                value={query}
+                onChange={handleInputChange}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') {
+                    e.preventDefault();
+                    handleSubmit(e as any);
+                  }
+                }}
+                autoComplete="off"
+              />
+            )}
 
             {/* Clear button - only show when there's text */}
             {query && (
@@ -210,7 +226,11 @@ const JobSearch: React.FC<JobSearchProps> = memo(({ onSearch }) => {
                 size="sm"
                 variant="ghost"
                 className="w-8 h-8 p-0"
-                onClick={() => setQuery('')}
+                onClick={() => {
+                  setQuery('');
+                  // Trigger search with empty query to show all jobs
+                  onSearch({ query: '', searchMode });
+                }}
                 title="Clear search"
               >
                 <RotateCcw size={14} className="text-muted-foreground" />
@@ -245,18 +265,7 @@ const JobSearch: React.FC<JobSearchProps> = memo(({ onSearch }) => {
               }
             </Button>
 
-            {/* Filter button */}
-            <Button
-              type="button"
-              size="sm"
-              variant={category ? "default" : "ghost"}
-              className={`w-8 h-8 p-0 ml-1 
-                ${category ? 'bg-primary hover:bg-primary/90' : 'hover:bg-secondary'}`}
-              onClick={() => setShowCategories(!showCategories)}
-              title="Filter by category"
-            >
-              <Filter size={14} />
-            </Button>
+
             
             {/* Radius filter button - only show in location mode */}
             {searchMode === 'location' && (
@@ -301,38 +310,7 @@ const JobSearch: React.FC<JobSearchProps> = memo(({ onSearch }) => {
             )}
           </div>
           
-          {/* Categories horizontal pill bar - only show when filter is active */}
-          {showCategories && (
-            <div 
-              className="flex items-center space-x-1 overflow-x-auto py-2 my-1 px-1 
-                scrollbar-thin scrollbar-thumb-primary/10 scrollbar-track-transparent
-                animate-in slide-in-from-top duration-300 ease-in-out"
-            >
-              <div 
-                className={`px-2 py-1 text-xs cursor-pointer whitespace-nowrap transition-all ${
-                  category === '' 
-                    ? 'bg-primary text-primary-foreground font-medium shadow-sm' 
-                    : 'bg-secondary/50 text-secondary-foreground hover:bg-secondary'
-                }`}
-                onClick={() => handleCategorySelect('')}
-              >
-                All Categories
-              </div>
-              {JOB_CATEGORIES.map((cat) => (
-                <div
-                  key={cat}
-                  className={`px-2 py-1 text-xs cursor-pointer whitespace-nowrap transition-all ${
-                    category === cat 
-                      ? 'bg-primary text-primary-foreground font-medium shadow-sm' 
-                      : 'bg-secondary/50 text-secondary-foreground hover:bg-secondary'
-                  }`}
-                  onClick={() => handleCategorySelect(cat)}
-                >
-                  {cat}
-                </div>
-              ))}
-            </div>
-          )}
+
         </div>
         
         {/* Location indicator - subtle toast-like message */}

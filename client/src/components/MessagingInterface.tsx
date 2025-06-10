@@ -93,25 +93,33 @@ export function MessagingInterface({
   // Send message mutation
   const sendMessageMutation = useMutation({
     mutationFn: async (content: string) => {
-      const response = await apiRequest('POST', '/api/messages', {
+      const response = await apiRequest('POST', '/api/messages/send', {
         content,
         recipientId,
         jobId
       });
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.message || 'Failed to send message');
+      }
       return response.json();
-    },    onSuccess: (data) => {
+    },
+    onSuccess: (data) => {
       // Send via WebSocket for real-time delivery
-      sendMessage(data.content, recipientId, jobId);
-      
+      if (sendMessage) {
+        sendMessage(data.content, recipientId, jobId);
+      }
+
       // Update local cache
       queryClient.invalidateQueries({
         queryKey: ['/api/messages/conversation', recipientId, jobId]
       });
     },
     onError: (error) => {
+      console.error('Send message error:', error);
       toast({
         title: "Failed to send message",
-        description: "Please check your connection and try again.",
+        description: error instanceof Error ? error.message : "Please check your connection and try again.",
         variant: "destructive"
       });
     }

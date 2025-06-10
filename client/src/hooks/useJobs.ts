@@ -1,4 +1,5 @@
 import { useQuery } from '@tanstack/react-query';
+import { useMemo } from 'react';
 import { Job } from '@shared/schema';
 import { useGeolocation } from '@/lib/geolocation';
 import { useAuth } from '@/hooks/use-auth';
@@ -13,11 +14,11 @@ interface UseJobsOptions {
 
 export function useJobs(
   options?: UseJobsOptions,
-  searchParams?: { 
-    query?: string; 
-    category?: string; 
+  searchParams?: {
+    query?: string;
     searchMode?: 'location' | 'description';
-    coordinates?: { latitude: number; longitude: number }
+    coordinates?: { latitude: number; longitude: number };
+    radiusMiles?: number;
   }
 ) {
   const { userLocation } = useGeolocation();
@@ -56,9 +57,7 @@ export function useJobs(
       }
     }
     
-    if (searchParams?.category) {
-      queryParams.push(`category=${encodeURIComponent(searchParams.category)}`);
-    }
+
     
     // For job poster view, filter by poster ID
     if (poster && user) {
@@ -92,9 +91,7 @@ export function useJobs(
       queryParams.push(`search=${encodeURIComponent(searchParams.query)}`);
     }
     
-    if (searchParams?.category) {
-      queryParams.push(`category=${encodeURIComponent(searchParams.category)}`);
-    }
+
     
     // Always limit to open jobs for nearby view unless explicitly showing all
     if (!includeAll) {
@@ -119,12 +116,37 @@ export function useJobs(
   }
   
   // Get jobs query
-  const { data: jobs, isLoading, error } = useQuery<Job[]>({
+  const { data: allJobs, isLoading, error } = useQuery<Job[]>({
     queryKey: [queryPath, searchMode],
   });
-  
+
+  // Client-side filtering for real-time search
+  const filteredJobs = useMemo(() => {
+    if (!allJobs) return allJobs;
+
+    // If no search query, return all jobs
+    if (!searchParams?.query || searchParams.query.trim() === '') {
+      return allJobs;
+    }
+
+    const query = searchParams.query.toLowerCase().trim();
+
+    // Filter jobs based on search query (description mode)
+    if (searchMode === 'description') {
+      return allJobs.filter(job =>
+        job.title.toLowerCase().includes(query) ||
+        job.description.toLowerCase().includes(query) ||
+        job.category.toLowerCase().includes(query) ||
+        (job.location && job.location.toLowerCase().includes(query))
+      );
+    }
+
+    // For location mode, the filtering is already done server-side
+    return allJobs;
+  }, [allJobs, searchParams?.query, searchMode]);
+
   return {
-    jobs,
+    jobs: filteredJobs,
     isLoading,
     error
   };

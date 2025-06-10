@@ -323,7 +323,18 @@ export async function createJobWithPaymentFirst(req: Request, res: Response) {
       
       console.log(`Job created successfully: ${createdJob.id} with payment: ${paymentIntent.id}`);
 
-      // Step 8: Success - Job posted and payment processed
+      // Step 8: Broadcast job pin update for real-time map updates
+      try {
+        const { webSocketService } = await import('./websocket-unified');
+        if (webSocketService) {
+          webSocketService.broadcastJobPinUpdate('added', createdJob);
+        }
+      } catch (wsError) {
+        console.error('Failed to broadcast job pin update:', wsError);
+        // Don't fail the job creation if WebSocket broadcast fails
+      }
+
+      // Step 9: Success - Job posted and payment processed
       res.status(201).json({
         success: true,
         message: 'Job posted successfully',
