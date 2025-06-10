@@ -26,10 +26,16 @@ export class FixedDatabaseStorage implements IStorage {
       pool,
       tableName: 'sessions', // Default is "session"
       createTableIfMissing: true, // Create the table if it doesn't exist
-      pruneSessionInterval: 60 * 15, // Prune every 15 minutes
-      errorLog: console.error, // Log errors for easier debugging
-      // Add a TTL for the session that matches the cookie maxAge
-      ttl: 30 * 24 * 60 * 60 // 30 days in seconds
+      pruneSessionInterval: 60 * 60, // Prune every hour (reduced frequency)
+      errorLog: (error) => {
+        // Only log non-timeout errors to reduce noise
+        if (!error.message.includes('timeout') && !error.message.includes('57014')) {
+          console.error('Session store error:', error);
+        }
+      },
+      ttl: 7 * 24 * 60 * 60, // 7 days (reduced from 30 days)
+      disableTouch: true, // Disable touch to reduce database writes
+      queryTimeout: 10000, // 10 seconds max for session queries
     });
     
     console.log("PostgreSQL session store initialized");

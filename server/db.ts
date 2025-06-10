@@ -38,16 +38,21 @@ if (process.env.SUPABASE_DATABASE_URL) {
   const connectionString = process.env.SUPABASE_DATABASE_URL;
   const dbUrl = new URL(connectionString);
   
-  // Create the connection pool with improved settings
+  // Create the connection pool with optimized settings for production
   pool = new Pool({
     connectionString,
     ssl: { rejectUnauthorized: false },
-    max: 20,
-    min: 5, // Maintain minimum connections
-    idleTimeoutMillis: 60000, // Increased idle timeout
-    connectionTimeoutMillis: 15000, // Increased connection timeout
+    max: 15, // Reduced max connections to prevent overwhelming the database
+    min: 3, // Maintain minimum connections
+    idleTimeoutMillis: 30000, // 30 seconds - shorter idle timeout
+    connectionTimeoutMillis: 10000, // 10 seconds connection timeout
+    acquireTimeoutMillis: 8000, // 8 seconds to acquire connection
+    allowExitOnIdle: false,
     keepAlive: true,
-    keepAliveInitialDelayMillis: 10000,
+    keepAliveInitialDelayMillis: 5000,
+    // Add statement timeout to prevent long-running queries
+    statement_timeout: 30000, // 30 seconds max for any statement
+    query_timeout: 25000, // 25 seconds max for queries
   });
 
   // Add error handling for the pool
@@ -73,7 +78,7 @@ if (process.env.SUPABASE_DATABASE_URL) {
     });
   });
 
-  // Create the postgres client with enhanced configuration
+  // Create the postgres client with optimized configuration
   client = postgres({
     host: dbUrl.hostname,
     port: parseInt(dbUrl.port) || 5432,
@@ -81,16 +86,22 @@ if (process.env.SUPABASE_DATABASE_URL) {
     username: dbUrl.username,
     password: dbUrl.password,
     ssl: 'require',
-    max: 10,
-    idle_timeout: 30, // Increased idle timeout
-    connect_timeout: 15, // Increased connect timeout
+    max: 8, // Reduced max connections
+    idle_timeout: 20, // Shorter idle timeout
+    connect_timeout: 10, // Shorter connect timeout
+    statement_timeout: 25000, // 25 seconds statement timeout
+    query_timeout: 20000, // 20 seconds query timeout
     connection: {
       application_name: 'fixer-app',
+      statement_timeout: '25s', // PostgreSQL setting
     },
     onnotice: () => {}, // Suppress notices
     transform: {
       undefined: null
-    }
+    },
+    // Add error handling
+    onparameter: () => {},
+    debug: false
   });
   
   db = drizzle(client, { schema });

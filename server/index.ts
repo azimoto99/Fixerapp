@@ -13,8 +13,12 @@ import { sessionRecoveryMiddleware } from './middleware/session-recovery';
 import { systemMonitor } from './system-monitor';
 import { DatabaseResilience } from './utils/database-resilience';
 import { storage } from './storage';
+import { globalErrorHandler } from './utils/global-error-handler';
 // Import seed script to create initial data
 import "./seed";
+
+// Initialize global error handler early
+globalErrorHandler.setupGlobalHandlers();
 
 // Log environment variables (excluding sensitive ones)
 log('Environment check:');

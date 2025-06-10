@@ -50,18 +50,28 @@ export class UnifiedStorage implements IStorage {
       pool,
       tableName: 'sessions',
       createTableIfMissing: true,
-      pruneSessionInterval: 60 * 15, // 15 minutes
-      errorLog: console.error,
-      ttl: 30 * 24 * 60 * 60, // 30 days
+      pruneSessionInterval: 60 * 60, // 1 hour (reduced frequency to prevent timeouts)
+      errorLog: (error) => {
+        // Only log non-timeout errors to reduce noise
+        if (!error.message.includes('timeout') && !error.message.includes('57014')) {
+          console.error('Session store error:', error);
+        }
+      },
+      ttl: 7 * 24 * 60 * 60, // 7 days (reduced from 30 days)
       // Enhanced configuration for better resilience
-      disableTouch: false, // Ensure session expiry is updated on access
-      touchAfter: 24 * 3600, // Only update expiry if 24h have passed
-      retries: 3, // Number of retries for failed operations
-      reconnectDelay: 1000 * 5, // 5 seconds delay between retries
-      // Handle session store errors
+      disableTouch: true, // Disable touch to reduce database writes
+      touchAfter: 0, // Don't update expiry on access
+      retries: 2, // Reduced retries to fail faster
+      reconnectDelay: 1000 * 3, // 3 seconds delay between retries
+      // Add query timeout protection
+      queryTimeout: 15000, // 15 seconds max for session queries
+      // Handle session store errors gracefully
       onError: (error) => {
+        // Silently handle timeout errors to prevent log spam
+        if (error.message.includes('timeout') || error.code === '57014') {
+          return; // Don't log timeout errors
+        }
         console.error('Session store error:', error);
-        // Implement your error reporting/monitoring here
       }
     });
     
@@ -117,10 +127,27 @@ export class UnifiedStorage implements IStorage {
   }
 
   // Enhanced error wrapper for all database operations with connection handling
-  private async safeExecute<T>(operation: () => Promise<T>, fallback: T, operationName: string): Promise<T> {
+  private async safeExecute<T>(
+    operation: () => Promise<T>,
+    fallback: T,
+    operationName: string,
+    timeout: number = 15000 // 15 second default timeout
+  ): Promise<T> {
     try {
-      return await operation();
-    } catch (error) {
+      // Wrap operation with timeout
+      const timeoutPromise = new Promise<never>((_, reject) => {
+        setTimeout(() => reject(new Error(`Operation timeout: ${operationName}`)), timeout);
+      });
+
+      const result = await Promise.race([operation(), timeoutPromise]);
+      return result;
+    } catch (error: any) {
+      // Handle timeout errors gracefully
+      if (error.message.includes('timeout') || error.code === '57014' || error.message.includes('canceling statement')) {
+        console.warn(`⏰ Timeout in ${operationName}, using fallback`);
+        return fallback;
+      }
+
       await this.handleDatabaseError(error, operationName);
       console.error(`Error in ${operationName}:`, error);
       return fallback;
