@@ -341,3 +341,12 @@ form * {
 [data-radix-alert-dialog-overlay]:has(.critical-dialog) {
   z-index: var(--z-index-critical-dialog-backdrop) !important;
 }
+
+/* Force portal-rendered critical dialogs to highest z-index */
+body > [data-radix-alert-dialog-overlay] {
+  z-index: 10001 !important;
+}
+
+body > [data-radix-alert-dialog-overlay] [data-radix-alert-dialog-content] {
+  z-index: 10002 !important;
+}

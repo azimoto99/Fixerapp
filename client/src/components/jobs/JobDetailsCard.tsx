@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import Portal from '@/components/Portal';
+import { createPortal } from 'react-dom';
 import { MessagingInterface } from '@/components/MessagingInterface';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '@/hooks/use-auth';
@@ -616,14 +617,15 @@ const JobDetailsCard: React.FC<JobDetailsCardProps> = ({ jobId, isOpen, onClose 
   }
 
   return (
-    <AnimatePresence>
-      <motion.div
-        className="fixed bottom-0 left-0 right-0 z-50 p-4 sm:p-6 flex justify-center"
-        initial="hidden"
-        animate="visible"
-        exit="exit"
-        variants={variants}
-      >
+    <>
+      <AnimatePresence>
+        <motion.div
+          className="fixed bottom-0 left-0 right-0 z-50 p-4 sm:p-6 flex justify-center"
+          initial="hidden"
+          animate="visible"
+          exit="exit"
+          variants={variants}
+        >
         <Card className="w-full max-w-3xl shadow-lg border rounded-xl overflow-hidden relative">
           {/* Single Close Button */}
           <div 
@@ -1597,57 +1599,7 @@ const JobDetailsCard: React.FC<JobDetailsCardProps> = ({ jobId, isOpen, onClose 
           </CardFooter>
           
 
-          
-          {/* Location Verification Error Dialog */}
-          <AlertDialog open={showLocationVerificationError} onOpenChange={setShowLocationVerificationError}>
-            <AlertDialogContent className="critical-dialog">
-              <AlertDialogHeader>
-                <AlertDialogTitle className="flex items-center">
-                  <AlertCircle className="h-5 w-5 mr-2 text-destructive" />
-                  Location Verification Failed
-                </AlertDialogTitle>
-                <AlertDialogDescription>
-                  You need to be physically at the job location to start work. 
-                  {distanceToJob && (
-                    <div className="mt-2">
-                      <span className="font-medium">You are currently:</span> {distanceToJob} feet away
-                      <br/>
-                      <span className="font-medium">Required distance:</span> Within 500 feet
-                    </div>
-                  )}
-                </AlertDialogDescription>
-              </AlertDialogHeader>
-              <AlertDialogFooter>
-                <AlertDialogAction onClick={() => setShowLocationVerificationError(false)}>
-                  OK
-                </AlertDialogAction>
-              </AlertDialogFooter>
-            </AlertDialogContent>
-          </AlertDialog>
-          
-          {/* Job Completion Confirmation Dialog */}
-          <AlertDialog open={showCompleteDialog} onOpenChange={setShowCompleteDialog}>
-            <AlertDialogContent className="critical-dialog">
-              <AlertDialogHeader>
-                <AlertDialogTitle className="flex items-center">
-                  <CheckCircle2 className="h-5 w-5 mr-2 text-green-600" />
-                  Complete Job
-                </AlertDialogTitle>
-                <AlertDialogDescription>
-                  Are you sure you want to mark this job as completed? This will notify the job poster and initiate the payment process.
-                </AlertDialogDescription>
-              </AlertDialogHeader>
-              <AlertDialogFooter>
-                <AlertDialogCancel>Cancel</AlertDialogCancel>
-                <AlertDialogAction 
-                  className="bg-green-600 hover:bg-green-700"
-                  onClick={confirmCompleteJob}
-                >
-                  Yes, Complete Job
-                </AlertDialogAction>
-              </AlertDialogFooter>
-            </AlertDialogContent>
-          </AlertDialog>
+
           
           {/* Worker Location Map Component (would need to be implemented with a mapping library) */}
           {showWorkerMap && job?.status === 'in_progress' && (
@@ -1672,6 +1624,64 @@ const JobDetailsCard: React.FC<JobDetailsCardProps> = ({ jobId, isOpen, onClose 
         </Card>
       </motion.div>
     </AnimatePresence>
+
+    {/* Render AlertDialogs using portals to ensure they appear above job card */}
+    {showLocationVerificationError && createPortal(
+      <AlertDialog open={showLocationVerificationError} onOpenChange={setShowLocationVerificationError}>
+        <AlertDialogContent className="critical-dialog" style={{ zIndex: 10000 }}>
+          <AlertDialogHeader>
+            <AlertDialogTitle className="flex items-center">
+              <AlertCircle className="h-5 w-5 mr-2 text-destructive" />
+              Location Verification Failed
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              You need to be physically at the job location to start work.
+              {distanceToJob && (
+                <div className="mt-2">
+                  <span className="font-medium">You are currently:</span> {distanceToJob} feet away
+                  <br/>
+                  <span className="font-medium">Required distance:</span> Within 500 feet
+                </div>
+              )}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogAction onClick={() => setShowLocationVerificationError(false)}>
+              OK
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>,
+      document.body
+    )}
+
+    {/* Job Completion Confirmation Dialog */}
+    {showCompleteDialog && createPortal(
+      <AlertDialog open={showCompleteDialog} onOpenChange={setShowCompleteDialog}>
+        <AlertDialogContent className="critical-dialog" style={{ zIndex: 10000 }}>
+          <AlertDialogHeader>
+            <AlertDialogTitle className="flex items-center">
+              <CheckCircle2 className="h-5 w-5 mr-2 text-green-600" />
+              Complete Job
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to mark this job as completed? This will notify the job poster and initiate the payment process.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              className="bg-green-600 hover:bg-green-700"
+              onClick={confirmCompleteJob}
+            >
+              Yes, Complete Job
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>,
+      document.body
+    )}
+  </>
   );
 };
 

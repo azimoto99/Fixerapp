@@ -360,7 +360,7 @@ export class UnifiedWebSocketService {
         content: message.content,
         jobId: message.jobId || null,
         isRead: false,
-        createdAt: new Date()
+        sentAt: new Date()
       });
 
       const messageData = {
@@ -370,7 +370,7 @@ export class UnifiedWebSocketService {
         recipientId: message.recipientId,
         content: message.content,
         jobId: message.jobId,
-        timestamp: savedMessage.createdAt.toISOString(),
+        timestamp: (savedMessage.sentAt || savedMessage.createdAt || new Date()).toISOString(),
         isRead: false,
         senderName: userConnection.username
       };
@@ -624,7 +624,7 @@ export class UnifiedWebSocketService {
             recipientId: message.recipientId,
             content: message.content,
             jobId: message.jobId,
-            timestamp: message.createdAt.toISOString(),
+            timestamp: (message.sentAt || message.createdAt || new Date()).toISOString(),
             isRead: message.isRead
           });
         }
