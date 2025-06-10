@@ -8,27 +8,34 @@ import { Request, Response, NextFunction } from 'express';
 
 // SQL Injection Detection Patterns
 const SQL_INJECTION_PATTERNS = [
-  // Basic SQL injection attempts
-  /(\b(SELECT|INSERT|UPDATE|DELETE|DROP|CREATE|ALTER|EXEC|EXECUTE|UNION|SCRIPT)\b)/gi,
-  // SQL comments and terminators
-  /(--|\/\*|\*\/|;|'|"|`)/g,
-  // SQL functions and operators
-  /(\b(OR|AND|NOT|LIKE|IN|BETWEEN|IS|NULL|TRUE|FALSE)\s*[=<>!]+)/gi,
+  // Basic SQL injection attempts with context
+  /(\b(SELECT|INSERT|UPDATE|DELETE|DROP|CREATE|ALTER|EXEC|EXECUTE|UNION|SCRIPT)\b.*\b(FROM|INTO|SET|WHERE|VALUES)\b)/gi,
+  // SQL comments and terminators (but not single quotes in normal text)
+  /(--|\/\*|\*\/|;)/g,
+  // SQL injection specific patterns (quotes with SQL keywords)
+  /('.*\b(OR|AND|UNION|SELECT|INSERT|UPDATE|DELETE)\b.*')/gi,
+  /(\".*\b(OR|AND|UNION|SELECT|INSERT|UPDATE|DELETE)\b.*\")/gi,
+  // SQL functions and operators with suspicious context
+  /(\b(OR|AND|NOT|LIKE|IN|BETWEEN|IS|NULL|TRUE|FALSE)\s*[=<>!]+.*\b(OR|AND)\b)/gi,
   // Hex encoding attempts
   /(0x[0-9a-f]+)/gi,
   // SQL injection with encoding
   /(%27|%22|%2D%2D|%2F%2A|%2A%2F)/gi,
-  // Database specific functions
-  /(\b(CONCAT|SUBSTRING|ASCII|CHAR|CAST|CONVERT|COUNT|SUM|AVG|MIN|MAX)\b)/gi,
+  // Database specific functions in suspicious context
+  /(\b(CONCAT|SUBSTRING|ASCII|CHAR|CAST|CONVERT|COUNT|SUM|AVG|MIN|MAX)\b.*\(.*\))/gi,
   // Time-based injection patterns
-  /(\b(SLEEP|DELAY|WAITFOR|BENCHMARK)\b)/gi,
+  /(\b(SLEEP|DELAY|WAITFOR|BENCHMARK)\b.*\()/gi,
   // Information schema access
-  /(\b(INFORMATION_SCHEMA|SYS\.|\$\$)\b)/gi
+  /(\b(INFORMATION_SCHEMA|SYS\.|\$\$)\b)/gi,
+  // Multiple quotes or suspicious quote patterns
+  /('.*'.*')|(".*".*")/g,
+  // SQL injection with equals and quotes
+  /('.*=.*'|".*=.*")/g
 ];
 
-// Dangerous characters that should be escaped or blocked
+// Dangerous characters that should be escaped or blocked (reduced to avoid false positives)
 const DANGEROUS_CHARS = [
-  "'", '"', ';', '--', '/*', '*/', '\\', '`',
+  ';', '--', '/*', '*/', '\\', '`',
   '0x', '%27', '%22', '%2D%2D', '%2F%2A', '%2A%2F'
 ];
 
@@ -67,10 +74,8 @@ export function sanitizeSqlInput(input: any): string {
   
   let sanitized = String(input);
   
-  // Remove/escape dangerous characters
+  // Remove/escape only truly dangerous characters (preserve quotes for normal text)
   sanitized = sanitized
-    .replace(/'/g, "''")  // Escape single quotes
-    .replace(/"/g, '""')  // Escape double quotes
     .replace(/;/g, '')    // Remove semicolons
     .replace(/--/g, '')   // Remove SQL comments
     .replace(/\/\*/g, '') // Remove block comment start
@@ -78,8 +83,6 @@ export function sanitizeSqlInput(input: any): string {
     .replace(/\\/g, '\\\\') // Escape backslashes
     .replace(/`/g, '')    // Remove backticks
     .replace(/0x/gi, '')  // Remove hex prefixes
-    .replace(/%27/gi, '') // Remove URL encoded single quotes
-    .replace(/%22/gi, '') // Remove URL encoded double quotes
     .replace(/%2D%2D/gi, '') // Remove URL encoded comments
     .replace(/%2F%2A/gi, '') // Remove URL encoded block comments
     .replace(/%2A%2F/gi, ''); // Remove URL encoded block comments
@@ -107,25 +110,27 @@ export function sqlInjectionProtection(req: Request, res: Response, next: NextFu
       if (typeof value === 'string') {
         if (detectSqlInjection(value)) {
           console.error(`🚨 SQL injection attempt detected in ${currentPath}:`, value);
-          return res.status(400).json({
+          res.status(400).json({
             message: 'Invalid input detected',
             error: 'Security violation: Potential SQL injection attempt'
           });
+          return false; // Signal that we should stop processing
         }
-        
+
         // Sanitize the input
         obj[key] = sanitizeSqlInput(value);
       } else if (typeof value === 'object' && value !== null) {
-        checkInput(value, currentPath);
+        const result = checkInput(value, currentPath);
+        if (result === false) return false; // Propagate the stop signal
       }
     }
   };
   
   // Check all input sources
-  checkInput(req.body, 'body');
-  checkInput(req.query, 'query');
-  checkInput(req.params, 'params');
-  
+  if (checkInput(req.body, 'body') === false) return;
+  if (checkInput(req.query, 'query') === false) return;
+  if (checkInput(req.params, 'params') === false) return;
+
   next();
 }
 
