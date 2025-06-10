@@ -73,7 +73,6 @@ const formSchema = z.object({
   shiftEndTime: z.string().optional(),
   paymentMethodId: z.string().optional(),
   autoAcceptApplicants: z.boolean().default(false),
-  isTestJob: z.boolean().default(false),
 });
 
 interface PostJobDrawerProps {
@@ -112,8 +111,7 @@ export default function PostJobDrawer({ isOpen, onOpenChange }: PostJobDrawerPro
       dateNeeded: new Date(Date.now() + 86400000).toISOString().split('T')[0],
       requiredSkills: [],
       equipmentProvided: false,
-      posterId: user?.id || 0,
-      isTestJob: false
+      posterId: user?.id || 0
     }
   });
 
@@ -176,12 +174,7 @@ export default function PostJobDrawer({ isOpen, onOpenChange }: PostJobDrawerPro
         posterId: user.id,
       };
       
-      // Check if this is a test job
-      if (data.isTestJob) {
 
-        await processTestJob(jobDataToSubmit);
-        return;
-      }
       
       // Store the pending job data
       setPendingJobData(jobDataToSubmit);
@@ -222,62 +215,7 @@ export default function PostJobDrawer({ isOpen, onOpenChange }: PostJobDrawerPro
     }
   };
   
-  // Function to process test job without payment
-  const processTestJob = async (data: z.infer<typeof formSchema>) => {
-    setIsSubmitting(true);
-    try {
-      // Calculate total amount (payment amount + service fee)
-      const serviceFee = 2.5; // Default service fee
-      const totalAmount = data.paymentAmount + serviceFee;
-      
-      // Create test job without payment processing
-      const payload = { 
-        ...data, 
-        tasks, 
-        isTestJob: true,
-        serviceFee,
-        totalAmount
-      };
-      const response = await apiRequest('POST', '/api/jobs/test', payload);
-      
-      if (!response.ok) {
-        const result = await response.json();
-        throw new Error(result.message || 'Failed to post test job');
-      }
-      
-      const result = await response.json();
-      
-      // Show success
-      toast({ 
-        title: 'Test Job Posted', 
-        description: 'Your test job has been posted successfully (no payment required)' 
-      });
-      
-      // Reset form and close drawer
-      form.reset();
-      setTasks([]);
-      onOpenChange(false);
-      
-      // Show success modal
-      setShowSuccessModal(true);
-      setCreatedJobId(result.job.id);
-      setCreatedJobTitle(result.job.title);
-      
-      // Invalidate queries to refresh data
-      queryClient.invalidateQueries({ queryKey: ['jobs'] });
-      
-    } catch (error) {
-      console.error('Error posting test job:', error);
-      const msg = error instanceof Error ? error.message : 'Error posting test job';
-      toast({ 
-        title: 'Error', 
-        description: msg, 
-        variant: 'destructive' 
-      });
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
+
   
   // Function to process payment and create job
   const processPaymentAndCreateJob = async (data: z.infer<typeof formSchema>) => {
@@ -792,28 +730,7 @@ export default function PostJobDrawer({ isOpen, onOpenChange }: PostJobDrawerPro
                   )}
                 />
                 
-                <FormField
-                  control={form.control}
-                  name="isTestJob"
-                  render={({ field }) => (
-                    <FormItem className="flex flex-row items-start space-x-3 space-y-0 rounded-md border p-4 mb-4 bg-yellow-50 border-yellow-200">
-                      <FormControl>
-                        <Checkbox
-                          checked={field.value}
-                          onCheckedChange={field.onChange}
-                        />
-                      </FormControl>
-                      <div className="space-y-1 leading-none">
-                        <FormLabel className="cursor-pointer text-yellow-800">
-                          Test Job (No Payment Required)
-                        </FormLabel>
-                        <FormDescription className="text-yellow-700">
-                          Post this job for testing purposes without payment processing. Test jobs are marked clearly and can be used to test functionality.
-                        </FormDescription>
-                      </div>
-                    </FormItem>
-                  )}
-                />
+
 
                 <div className="bg-muted/30 p-3 rounded-md border border-border mb-4">
                   <div className="flex items-center mb-2">

@@ -29,7 +29,6 @@ const jobPostingSchema = z.object({
   shiftStartTime: z.string().optional(),
   shiftEndTime: z.string().optional(),
   tasks: z.array(z.any()).optional().default([]), // Allow tasks to be passed
-  isTestJob: z.boolean().optional().default(false),
 });
 
 /**
