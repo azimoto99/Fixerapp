@@ -102,14 +102,29 @@
   /* Mobile search container improvements */
   .mobile-search-container {
     position: fixed;
-    bottom: 0;
+    bottom: 4rem; /* Above mobile nav */
     left: 0;
     right: 0;
-    z-index: 30;
-    padding-bottom: 4rem; /* Space for mobile nav */
-    background: linear-gradient(to top, rgba(255,255,255,0.95) 0%, rgba(255,255,255,0.9) 100%);
-    backdrop-filter: blur(8px);
-    border-top: 1px solid rgba(0,0,0,0.1);
+    z-index: 25; /* Below mobile nav but above map */
+    background: transparent;
+    pointer-events: none; /* Allow map interaction */
+  }
+
+  .mobile-search-container > div {
+    pointer-events: auto; /* Re-enable interaction for search box */
+    background: rgba(255, 255, 255, 0.95);
+    backdrop-filter: blur(12px);
+    border: 1px solid rgba(0, 0, 0, 0.1);
+    border-radius: 12px;
+    margin: 0 1rem;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+  }
+
+  /* Dark mode support for mobile search */
+  .dark .mobile-search-container > div {
+    background: rgba(0, 0, 0, 0.85);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
   }
   
   /* Mobile utility classes */

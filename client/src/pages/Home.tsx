@@ -156,9 +156,9 @@ const WorkerDashboard = () => {
             <NewJobButton />
           </div>
           
-          {/* Search Bar at bottom with proper mobile spacing */}
+          {/* Search Bar at bottom for mobile */}
           <div className="mobile-search-container md:hidden">
-            <div className="p-3 pb-4">
+            <div className="p-3">
               <JobSearch onSearch={handleSearch} />
             </div>
           </div>
