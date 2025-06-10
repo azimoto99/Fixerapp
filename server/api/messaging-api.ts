@@ -65,7 +65,7 @@ export function registerMessagingRoutes(app: Express) {
       }
       
       // Add contact
-      await storage.addUserContact(userId, contactId);
+      await storage.addContact(userId, contactId);
       
       // Get updated contact list
       const updatedContacts = await storage.getUserContacts(userId);
@@ -102,7 +102,7 @@ export function registerMessagingRoutes(app: Express) {
         return res.status(401).json({ message: "User ID not found" });
       }
       
-      const result = await storage.removeUserContact(userId, contactId);
+      const result = await storage.removeContact(userId, contactId);
       if (result) {
         res.json({ message: "Contact removed successfully" });
       } else {
@@ -174,13 +174,18 @@ export function registerMessagingRoutes(app: Express) {
         return res.status(401).json({ message: "User ID not found" });
       }
       
-      const message = await storage.createMessage({
+      const messageData = {
         senderId,
         recipientId: validatedData.recipientId,
         content: validatedData.content,
-        attachmentUrl: validatedData.attachmentUrl,
-        attachmentType: validatedData.attachmentType
-      });
+        messageType: validatedData.messageType || 'text',
+        isRead: false,
+        ...(validatedData.attachmentUrl && { attachmentUrl: validatedData.attachmentUrl }),
+        ...(validatedData.attachmentType && { attachmentType: validatedData.attachmentType }),
+        ...(validatedData.jobId && { jobId: validatedData.jobId })
+      };
+
+      const message = await storage.createMessage(messageData);
       
       res.status(201).json(message);
     } catch (error) {

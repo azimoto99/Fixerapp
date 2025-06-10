@@ -763,6 +763,24 @@ export class UnifiedStorage implements IStorage {
     }, null as any, 'createMessage');
   }
 
+  async markMessagesAsRead(userId: number, otherUserId: number): Promise<void> {
+    return this.safeExecute(async () => {
+      await db
+        .update(messages)
+        .set({
+          isRead: true,
+          readAt: new Date()
+        })
+        .where(
+          and(
+            eq(messages.recipientId, userId),
+            eq(messages.senderId, otherUserId),
+            eq(messages.isRead, false)
+          )
+        );
+    }, undefined, `markMessagesAsRead(${userId}, ${otherUserId})`);
+  }
+
   async getMessageById(messageId: number): Promise<any> {
     return this.safeExecute(async () => {
       const result = await db.select().from(messages).where(eq(messages.id, messageId));
@@ -845,10 +863,78 @@ export class UnifiedStorage implements IStorage {
 
   async getUserContacts(userId: number): Promise<any[]> {
     return this.safeExecute(async () => {
-      // Explicitly reference the contacts table from the schema
-      const { contacts: contactsTable } = await import('@shared/schema');
-      return await db.select().from(contactsTable).where(eq(contactsTable.userId, userId));
+      // Join contacts table with users table to get contact details
+      const result = await db
+        .select({
+          id: users.id,
+          username: users.username,
+          fullName: users.fullName,
+          avatarUrl: users.avatarUrl,
+          email: users.email,
+          lastMessage: sql<string | null>`NULL`.as('lastMessage'),
+          contactCreatedAt: contacts.createdAt
+        })
+        .from(contacts)
+        .innerJoin(users, eq(contacts.contactId, users.id))
+        .where(eq(contacts.userId, userId))
+        .orderBy(desc(contacts.createdAt));
+
+      return result;
     }, [], `getUserContacts(${userId})`);
+  }
+
+  async addContact(userId: number, contactId: number): Promise<any> {
+    return this.safeExecute(async () => {
+      // Check if contact already exists
+      const existingContact = await db
+        .select()
+        .from(contacts)
+        .where(and(eq(contacts.userId, userId), eq(contacts.contactId, contactId)))
+        .limit(1);
+
+      if (existingContact.length > 0) {
+        throw new Error('Contact already exists');
+      }
+
+      // Check if trying to add self
+      if (userId === contactId) {
+        throw new Error('Cannot add yourself as a contact');
+      }
+
+      // Check if the contact user exists
+      const contactUser = await db
+        .select()
+        .from(users)
+        .where(eq(users.id, contactId))
+        .limit(1);
+
+      if (contactUser.length === 0) {
+        throw new Error('User not found');
+      }
+
+      // Add the contact
+      const result = await db
+        .insert(contacts)
+        .values({
+          userId,
+          contactId,
+          status: 'active'
+        })
+        .returning();
+
+      return result[0];
+    }, null as any, `addContact(${userId}, ${contactId})`);
+  }
+
+  async removeContact(userId: number, contactId: number): Promise<boolean> {
+    return this.safeExecute(async () => {
+      const result = await db
+        .delete(contacts)
+        .where(and(eq(contacts.userId, userId), eq(contacts.contactId, contactId)))
+        .returning();
+
+      return result.length > 0;
+    }, false, `removeContact(${userId}, ${contactId})`);
   }
 
   async addUserContact(userId: number, contactId: number): Promise<any> {

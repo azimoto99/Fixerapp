@@ -357,6 +357,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
   const { registerMessagingRoutes } = await import('./api/messaging-api');
   registerMessagingRoutes(app);
 
+  // Register applications API routes
+  const applicationsRouter = await import('./api/applications');
+  apiRouter.use('/applications', applicationsRouter.default);
+
   // Add missing API routes that are being called by the frontend
   
   // Update job endpoint
