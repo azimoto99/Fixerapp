@@ -25,22 +25,34 @@ class AuditService {
       };
 
       console.log('[AUDIT]', JSON.stringify(auditEntry, null, 2));
-      
-      // Store in database audit table (if it exists)
+
+      // Store in database audit table
       try {
+        // Check if database connection is available
+        if (!db) {
+          console.log('[AUDIT] Database not available, using console only');
+          return auditEntry;
+        }
+
         await db.execute(sql`
           INSERT INTO audit_logs (admin_id, action, resource_type, resource_id, details, success, created_at, ip_address, user_agent)
           VALUES (${entry.adminId}, ${entry.action}, ${entry.resourceType}, ${entry.resourceId}, ${JSON.stringify(entry.details)}, ${entry.success}, ${new Date()}, ${entry.ipAddress || ''}, ${entry.userAgent || ''})
         `);
+        console.log('[AUDIT] Successfully logged to database');
       } catch (dbError) {
-        // If audit table doesn't exist, just log to console
+        // If audit logging fails, don't break the application flow
         console.log('[AUDIT] Database logging failed, using console only:', dbError);
       }
 
       return auditEntry;
     } catch (error) {
       console.error('Audit logging error:', error);
-      return null;
+      // Always return something to prevent null reference errors
+      return {
+        ...entry,
+        timestamp: entry.timestamp || new Date(),
+        id: Date.now() + Math.random()
+      };
     }
   }
 
@@ -101,24 +113,75 @@ class AuditService {
     }
   }
 
+  async logFinancialTransaction(entry: {
+    userId: number;
+    action: string;
+    entityType: string;
+    entityId: number | string;
+    amount?: number;
+    ipAddress?: string;
+    userAgent?: string;
+    metadata?: any;
+  }) {
+    // Map financial transaction to admin action format
+    return this.logAdminAction({
+      adminId: entry.userId,
+      action: entry.action,
+      resourceType: entry.entityType,
+      resourceId: entry.entityId,
+      details: {
+        amount: entry.amount,
+        ...entry.metadata
+      },
+      success: true,
+      ipAddress: entry.ipAddress,
+      userAgent: entry.userAgent
+    });
+  }
+
+  async getAllAuditEntries(limit: number = 100, offset: number = 0) {
+    try {
+      if (!db) {
+        console.log('[AUDIT] Database not available for audit entries');
+        return [];
+      }
+
+      const result = await db.execute(sql`
+        SELECT * FROM audit_logs
+        ORDER BY created_at DESC
+        LIMIT ${limit} OFFSET ${offset}
+      `);
+
+      return result.rows || [];
+    } catch (error) {
+      console.error('Error getting audit entries:', error);
+      return [];
+    }
+  }
+
   async getAdminActionSummary(adminId: number, days: number = 30) {
     try {
+      if (!db) {
+        console.log('[AUDIT] Database not available for admin action summary');
+        return [];
+      }
+
       const startDate = new Date();
       startDate.setDate(startDate.getDate() - days);
-      
+
       const result = await db.execute(sql`
-        SELECT 
+        SELECT
           action,
           COUNT(*) as count,
           COUNT(CASE WHEN success = true THEN 1 END) as successful,
           COUNT(CASE WHEN success = false THEN 1 END) as failed
-        FROM audit_logs 
-        WHERE admin_id = ${adminId} 
+        FROM audit_logs
+        WHERE admin_id = ${adminId}
         AND created_at >= ${startDate}
         GROUP BY action
         ORDER BY count DESC
       `);
-      
+
       return result.rows || [];
     } catch (error) {
       console.error('Error getting admin action summary:', error);
