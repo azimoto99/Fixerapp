@@ -157,9 +157,16 @@ const WorkerDashboard = () => {
           </div>
           
           {/* Search Bar at bottom with proper mobile spacing */}
-          <div className="fixed bottom-0 left-0 right-0 z-[30] w-full">
-            <div className="bg-card border-t border-border shadow-lg mb-16 md:mb-0">
-              <div className="p-2 md:p-4">
+          <div className="mobile-search-container md:hidden">
+            <div className="p-3 pb-4">
+              <JobSearch onSearch={handleSearch} />
+            </div>
+          </div>
+
+          {/* Desktop search positioning */}
+          <div className="hidden md:block fixed bottom-4 left-4 right-4 z-[30] max-w-md mx-auto">
+            <div className="bg-card border border-border shadow-lg rounded-lg">
+              <div className="p-4">
                 <JobSearch onSearch={handleSearch} />
               </div>
             </div>

@@ -394,9 +394,21 @@ const JobDetailsCard: React.FC<JobDetailsCardProps> = ({ jobId, isOpen, onClose 
           resolve({ latitude, longitude });
         },
         (error) => {
-          reject(error);
+          let errorMessage = "Unable to get your current location.";
+          switch(error.code) {
+            case error.PERMISSION_DENIED:
+              errorMessage = "Location access denied. Please enable location services and try again.";
+              break;
+            case error.POSITION_UNAVAILABLE:
+              errorMessage = "Location information is unavailable. Please try again.";
+              break;
+            case error.TIMEOUT:
+              errorMessage = "Location request timed out. Please try again.";
+              break;
+          }
+          reject(new Error(errorMessage));
         },
-        { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
+        { enableHighAccuracy: true, timeout: 15000, maximumAge: 60000 }
       );
     });
   };
@@ -423,7 +435,7 @@ const JobDetailsCard: React.FC<JobDetailsCardProps> = ({ jobId, isOpen, onClose 
   const verifyWorkerLocation = async (): Promise<boolean> => {
     if (!job || !job.latitude || !job.longitude) {
       toast({
-        title: "Location Error", 
+        title: "Location Error",
         description: "Job location information is missing",
         variant: "destructive"
       });
@@ -432,17 +444,19 @@ const JobDetailsCard: React.FC<JobDetailsCardProps> = ({ jobId, isOpen, onClose 
 
     try {
       const location = await refreshLocation();
-      const distance = calculateDistance(
-        location.latitude, 
-        location.longitude, 
-        job.latitude, 
+      const distanceInMiles = calculateDistance(
+        location.latitude,
+        location.longitude,
+        job.latitude,
         job.longitude
       );
-      
-      setDistanceToJob(distance);
-      
+
+      // Convert miles to feet for comparison
+      const distanceInFeet = Math.round(distanceInMiles * 5280);
+      setDistanceToJob(distanceInFeet);
+
       // Worker must be within 500 feet of the job location
-      if (distance <= 500) {
+      if (distanceInFeet <= 500) {
         return true;
       } else {
         setShowLocationVerificationError(true);
@@ -450,7 +464,7 @@ const JobDetailsCard: React.FC<JobDetailsCardProps> = ({ jobId, isOpen, onClose 
       }
     } catch (error) {
       toast({
-        title: "Location Error", 
+        title: "Location Error",
         description: "Unable to get your current location. Please enable location services.",
         variant: "destructive"
       });
@@ -1637,17 +1651,35 @@ const JobDetailsCard: React.FC<JobDetailsCardProps> = ({ jobId, isOpen, onClose 
             <AlertDialogDescription>
               You need to be physically at the job location to start work.
               {distanceToJob && (
-                <div className="mt-2">
-                  <span className="font-medium">You are currently:</span> {distanceToJob} feet away
-                  <br/>
-                  <span className="font-medium">Required distance:</span> Within 500 feet
+                <div className="mt-2 p-3 bg-muted rounded-lg">
+                  <div className="flex items-center justify-between text-sm">
+                    <span className="font-medium">Current distance:</span>
+                    <span className="text-destructive font-bold">{distanceToJob.toLocaleString()} feet</span>
+                  </div>
+                  <div className="flex items-center justify-between text-sm mt-1">
+                    <span className="font-medium">Required distance:</span>
+                    <span className="text-green-600 font-bold">Within 500 feet</span>
+                  </div>
                 </div>
               )}
+              <div className="mt-3 text-sm text-muted-foreground">
+                Please move closer to the job location and try again.
+              </div>
             </AlertDialogDescription>
           </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogAction onClick={() => setShowLocationVerificationError(false)}>
-              OK
+          <AlertDialogFooter className="flex gap-2">
+            <AlertDialogCancel onClick={() => setShowLocationVerificationError(false)}>
+              Cancel
+            </AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => {
+                setShowLocationVerificationError(false);
+                // Retry location verification
+                setTimeout(() => handleStartJob(), 500);
+              }}
+              className="bg-primary hover:bg-primary/90"
+            >
+              Try Again
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

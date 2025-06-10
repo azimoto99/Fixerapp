@@ -89,13 +89,27 @@
     gap: 1rem;
   }
   
-  /* Mobile search positioning */
+  /* Mobile search positioning - ensure it's at the very bottom */
   .responsive-search {
     position: fixed;
-    bottom: 1rem;
-    left: 1rem;
-    right: 1rem;
+    bottom: 0;
+    left: 0;
+    right: 0;
     z-index: var(--z-index-header);
+    margin-bottom: 4rem; /* Space for mobile nav */
+  }
+
+  /* Mobile search container improvements */
+  .mobile-search-container {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    z-index: 30;
+    padding-bottom: 4rem; /* Space for mobile nav */
+    background: linear-gradient(to top, rgba(255,255,255,0.95) 0%, rgba(255,255,255,0.9) 100%);
+    backdrop-filter: blur(8px);
+    border-top: 1px solid rgba(0,0,0,0.1);
   }
   
   /* Mobile utility classes */
