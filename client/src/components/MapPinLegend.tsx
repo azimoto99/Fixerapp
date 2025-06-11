@@ -52,55 +52,64 @@ export function MapPinLegend({ className = '' }: MapPinLegendProps) {
   };
 
   return (
-    <Card className={`absolute bottom-4 left-4 z-30 w-80 ${className}`}>
-      <CardHeader className="pb-2">
+    <Card className={`absolute top-4 left-4 z-30 w-72 bg-background/95 backdrop-blur-sm border-border/50 shadow-lg ${className}`}>
+      <CardHeader className="pb-2 px-3 py-2">
         <div className="flex items-center justify-between">
-          <CardTitle className="text-sm font-medium flex items-center gap-2">
-            <Info className="w-4 h-4" />
-            Map Pin Guide
+          <CardTitle className="text-sm font-semibold flex items-center gap-2 text-foreground">
+            <div className="w-5 h-5 rounded-full bg-primary/10 flex items-center justify-center">
+              <Info className="w-3 h-3 text-primary" />
+            </div>
+            Pin Guide
           </CardTitle>
           <Button
             variant="ghost"
             size="sm"
             onClick={() => setIsExpanded(!isExpanded)}
-            className="h-6 w-6 p-0"
+            className="h-7 w-7 p-0 hover:bg-primary/10 rounded-full"
           >
-            {isExpanded ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+            {isExpanded ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />}
           </Button>
         </div>
       </CardHeader>
       
       {isExpanded && (
-        <CardContent className="pt-0 space-y-4">
+        <CardContent className="pt-0 px-3 pb-3 space-y-3">
           {/* Job Categories */}
           <div>
-            <h4 className="text-xs font-semibold mb-2 text-muted-foreground">Job Categories</h4>
-            <div className="grid grid-cols-2 gap-2">
-              {legendItems.map(({ category, config }) => (
-                <div key={category} className="flex items-center gap-2">
-                  <PinPreview config={config} size={20} />
-                  <span className="text-xs truncate">{category}</span>
+            <h4 className="text-xs font-semibold mb-2 text-muted-foreground uppercase tracking-wide">Categories</h4>
+            <div className="grid grid-cols-2 gap-1.5">
+              {legendItems.slice(0, 8).map(({ category, config }) => (
+                <div key={category} className="flex items-center gap-1.5 p-1 rounded hover:bg-muted/50 transition-colors">
+                  <PinPreview config={config} size={18} />
+                  <span className="text-xs truncate font-medium">{category}</span>
                 </div>
               ))}
             </div>
+            {legendItems.length > 8 && (
+              <div className="text-xs text-muted-foreground mt-1 text-center">
+                +{legendItems.length - 8} more categories
+              </div>
+            )}
           </div>
 
           {/* Payment Tiers */}
           <div>
-            <h4 className="text-xs font-semibold mb-2 text-muted-foreground">Payment Tiers</h4>
-            <div className="space-y-1">
+            <h4 className="text-xs font-semibold mb-2 text-muted-foreground uppercase tracking-wide">Pay Levels</h4>
+            <div className="flex items-center justify-between">
               {paymentTiers.map(({ label, amount }) => (
-                <div key={label} className="flex items-center gap-2">
-                  <PinPreview 
+                <div key={label} className="flex flex-col items-center gap-1 p-1 rounded hover:bg-muted/50 transition-colors">
+                  <PinPreview
                     config={{
                       category: 'Other',
                       paymentAmount: amount,
                       requiredSkills: [],
                       status: 'open'
                     }}
-                    size={amount <= 50 ? 16 : amount <= 150 ? 20 : 24}
+                    size={amount <= 50 ? 14 : amount <= 150 ? 18 : 22}
                   />
-                  <span className="text-xs">{label}</span>
+                  <span className="text-xs font-medium text-center leading-tight">
+                    {amount <= 50 ? 'Low' : amount <= 150 ? 'Med' : 'High'}
+                  </span>
                 </div>
               ))}
             </div>
@@ -108,53 +117,38 @@ export function MapPinLegend({ className = '' }: MapPinLegendProps) {
 
           {/* Skill Indicators */}
           <div>
-            <h4 className="text-xs font-semibold mb-2 text-muted-foreground">Skill Indicators</h4>
-            <div className="space-y-1">
+            <h4 className="text-xs font-semibold mb-2 text-muted-foreground uppercase tracking-wide">Skill Types</h4>
+            <div className="flex items-center justify-between">
               {skillExamples.map(({ label, skills, border }) => (
-                <div key={label} className="flex items-center gap-2">
-                  <PinPreview 
+                <div key={label} className="flex flex-col items-center gap-1 p-1 rounded hover:bg-muted/50 transition-colors">
+                  <PinPreview
                     config={{
                       category: 'Other',
                       paymentAmount: 75,
                       requiredSkills: skills,
                       status: 'open'
                     }}
-                    size={20}
+                    size={16}
                   />
-                  <div className="flex flex-col">
-                    <span className="text-xs">{label}</span>
-                    <span className="text-xs text-muted-foreground">{border}</span>
-                  </div>
+                  <span className="text-xs font-medium text-center leading-tight">
+                    {label === 'Premium Skills' ? 'Premium' : label === 'Physical Skills' ? 'Physical' : 'Creative'}
+                  </span>
                 </div>
               ))}
             </div>
           </div>
 
-          {/* Status Indicators */}
-          <div>
-            <h4 className="text-xs font-semibold mb-2 text-muted-foreground">Job Status</h4>
-            <div className="flex flex-wrap gap-2">
-              <Badge variant="outline" className="text-xs">
-                <div className="w-2 h-2 bg-green-500 rounded-full mr-1"></div>
-                Open
-              </Badge>
-              <Badge variant="outline" className="text-xs">
-                <div className="w-2 h-2 bg-gray-500 rounded-full mr-1"></div>
-                Assigned
-              </Badge>
-              <Badge variant="outline" className="text-xs">
-                <div className="w-2 h-2 bg-blue-500 rounded-full mr-1"></div>
-                In Progress
-              </Badge>
-            </div>
-          </div>
-
           {/* Quick Tips */}
-          <div className="pt-2 border-t">
-            <div className="text-xs text-muted-foreground space-y-1">
-              <p>• Larger pins = higher pay</p>
-              <p>• Hover pins for details</p>
-              <p>• Gold border = premium skills</p>
+          <div className="pt-2 border-t border-border/50">
+            <div className="flex items-center justify-between text-xs text-muted-foreground">
+              <div className="flex items-center gap-1">
+                <div className="w-1.5 h-1.5 bg-primary rounded-full"></div>
+                <span>Size = Pay Level</span>
+              </div>
+              <div className="flex items-center gap-1">
+                <div className="w-1.5 h-1.5 bg-yellow-500 rounded-full"></div>
+                <span>Gold = Premium</span>
+              </div>
             </div>
           </div>
         </CardContent>

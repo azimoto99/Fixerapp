@@ -227,8 +227,12 @@ export const generatePinCSS = (style: PinStyle): Record<string, string> => {
     fontSize: `${Math.max(12, style.size * 0.3)}px`,
     fontWeight: "bold",
     cursor: "pointer",
-    transition: "all 0.2s ease-in-out",
+    transition: "all 0.25s cubic-bezier(0.4, 0, 0.2, 1)",
     position: "relative",
-    zIndex: "1"
+    zIndex: "1",
+    transformOrigin: "center center",
+    userSelect: "none",
+    pointerEvents: "auto",
+    willChange: "transform, filter"
   };
 };

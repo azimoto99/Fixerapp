@@ -221,15 +221,19 @@ export default function MapboxMap({
         // Set the icon content
         el.innerHTML = pinStyle.icon;
 
-        // Add hover effects
+        // Add hover effects with proper transform origin
         el.addEventListener('mouseenter', () => {
-          el.style.transform = 'scale(1.1)';
+          el.style.transformOrigin = 'center center';
+          el.style.transform = 'scale(1.15)';
           el.style.zIndex = '20';
+          el.style.filter = 'brightness(1.1) drop-shadow(0 4px 8px rgba(0,0,0,0.3))';
         });
 
         el.addEventListener('mouseleave', () => {
+          el.style.transformOrigin = 'center center';
           el.style.transform = 'scale(1)';
           el.style.zIndex = '1';
+          el.style.filter = 'none';
         });
       }
       
