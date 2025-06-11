@@ -732,15 +732,16 @@ const JobDetailsCard: React.FC<JobDetailsCardProps> = ({ jobId, isOpen, onClose 
                   {/* Enhanced worker view tabs */}
                   {!isJobPoster && user?.accountType === 'worker' && (
                     <>
-                      {(hasApplied || (job?.workerId && job.workerId === user?.id)) && (
-                        <button
-                          className={`px-3 py-2 ${activeTab === 'messages' ? 'border-b-2 border-primary text-primary' : 'text-muted-foreground'} transition-colors`}
-                          onClick={() => setActiveTab('messages')}
-                        >
-                          <MessageSquare className="h-4 w-4 mr-1" />
-                          Messages
-                        </button>
-                      )}
+                      {/* Messages tab available to all workers */}
+                      <button
+                        className={`px-3 py-2 ${activeTab === 'messages' ? 'border-b-2 border-primary text-primary' : 'text-muted-foreground'} transition-colors`}
+                        onClick={() => setActiveTab('messages')}
+                      >
+                        <MessageSquare className="h-4 w-4 mr-1" />
+                        Messages
+                      </button>
+
+                      {/* Worker info tab only for applied/assigned workers */}
                       {(hasApplied || (job?.workerId && job.workerId === user?.id)) && (
                         <button
                           className={`px-3 py-2 ${activeTab === 'worker-info' ? 'border-b-2 border-primary text-primary' : 'text-muted-foreground'} transition-colors`}
@@ -852,13 +853,8 @@ const JobDetailsCard: React.FC<JobDetailsCardProps> = ({ jobId, isOpen, onClose 
                             size="sm"
                             variant="outline"
                             onClick={() => {
-                              // Open messaging drawer with this poster
-                              window.dispatchEvent(new CustomEvent('open-messaging', {
-                                detail: { 
-                                  contactId: job.posterId,
-                                  contactName: poster?.fullName || poster?.username || `User #${job.posterId}`
-                                }
-                              }));
+                              // Switch to messages tab to enable job-based messaging
+                              setActiveTab('messages');
                             }}
                             className="text-xs"
                           >
@@ -1089,8 +1085,8 @@ const JobDetailsCard: React.FC<JobDetailsCardProps> = ({ jobId, isOpen, onClose 
                   </div>
                 )}
                 
-                {/* Messages Tab Content - Real-time job conversations */}
-                {activeTab === 'messages' && user && !isJobPoster && (
+                {/* Messages Tab Content - Real-time job conversations for all workers */}
+                {activeTab === 'messages' && user && !isJobPoster && user.accountType === 'worker' && (
                   <div className="h-96 border rounded-lg overflow-hidden">
                     <MessagingInterface
                       jobId={job.id}

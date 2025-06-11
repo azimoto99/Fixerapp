@@ -35,6 +35,7 @@ import { OnboardingProvider } from "@/components/onboarding/OnboardingProvider";
 import ContextualTips from "@/components/onboarding/ContextualTips";
 import { SimpleToastProvider } from "@/hooks/use-simple-toast";
 import { MessagingDrawer } from "@/components/MessagingDrawer";
+import { MessagingDrawer } from "@/components/MessagingDrawer";
 import ExpoConnectGuide from "@/components/ExpoConnectGuide";
 import JobCardFix from "@/components/JobCardFix";
 import { useState, useEffect } from "react";
@@ -137,13 +138,15 @@ function AuthenticatedContent() {
   useEffect(() => {
     const handleOpenMessaging = (event: CustomEvent) => {
       setIsMessagingOpen(true);
-      if (event.detail?.userId) {
-        setSelectedUserId(event.detail.userId);
+      // Handle both userId (from UserProfile) and contactId (from JobDetailsCard)
+      const targetUserId = event.detail?.userId || event.detail?.contactId;
+      if (targetUserId) {
+        setSelectedUserId(targetUserId);
       }
     };
-    
+
     window.addEventListener('open-messaging' as any, handleOpenMessaging);
-    
+
     return () => {
       window.removeEventListener('open-messaging' as any, handleOpenMessaging);
     };
@@ -168,7 +171,8 @@ function AuthenticatedContent() {
       {/* Contextual tips will track user actions and show tooltips at the right moments */}
       {user && <ContextualTips />}
       {/* ExpoConnectGuide button removed from UI - use ./expo-connect.sh in console instead */}
-      {/* Messaging drawer is now handled in Home.tsx */}
+      {/* Global Messaging Drawer - Disabled in favor of job-based messaging */}
+
       {/* JobCardFix ensures job details card appears on top of other UI elements */}
       {user && <JobCardFix />}
       
