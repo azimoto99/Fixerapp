@@ -236,7 +236,7 @@ const UserDrawerV2: React.FC<UserDrawerProps> = ({
         <div className="fixed inset-0 bg-black/50 backdrop-blur-sm user-drawer-backdrop">
           <div
             ref={drawerRef}
-            className="fixed top-0 right-0 bottom-0 w-[360px] bg-background shadow-xl transform transition-transform duration-300 animate-in slide-in-from-right overflow-hidden user-drawer"
+            className="fixed top-0 right-0 bottom-0 w-[480px] max-w-[90vw] bg-background shadow-xl transform transition-transform duration-300 animate-in slide-in-from-right overflow-hidden user-drawer"
           >
             {/* Modernized drawer header with cleaner design */}
             <div className="bg-primary/95 text-primary-foreground shadow-md">
@@ -296,10 +296,10 @@ const UserDrawerV2: React.FC<UserDrawerProps> = ({
               </div>
             </div>
 
-            <div className="flex h-[calc(100vh-150px)] overflow-hidden">
+            <div className="flex h-[calc(100vh-140px)] overflow-hidden">
               {/* Modern sidebar navigation with vector styling */}
               <TooltipProvider>
-                <div className="w-[80px] border-r border-border/40 bg-background/95 dark:bg-background py-4 flex flex-col items-center h-full overflow-y-auto">
+                <div className="w-[90px] border-r border-border/40 bg-background/95 dark:bg-background py-4 flex flex-col items-center h-full overflow-y-auto">
                   <div className="flex flex-col items-center space-y-2">
                     {/* Main sections */}
                     <div className="mb-2 px-2 py-1 w-full">
@@ -307,7 +307,7 @@ const UserDrawerV2: React.FC<UserDrawerProps> = ({
                         <TooltipTrigger asChild>
                           <button
                             onClick={() => navigateTo('/')}
-                            className="flex flex-col items-center justify-center w-full h-14 rounded-lg hover:bg-primary/5 hover:shadow-sm transition-all duration-200 text-foreground dark:text-foreground/90"
+                            className="flex flex-col items-center justify-center w-16 h-16 rounded-lg hover:bg-primary/5 hover:shadow-sm transition-all duration-200 text-foreground dark:text-foreground/90"
                           >
                             <Home className="h-5 w-5 mb-1 stroke-[1.5px]" />
                             <span className="text-xs font-medium">Home</span>
@@ -326,12 +326,12 @@ const UserDrawerV2: React.FC<UserDrawerProps> = ({
                     {/* User sections - clean vector design */}
                     <Tooltip>
                       <TooltipTrigger asChild>
-                        <button 
+                        <button
                           onClick={() => handleTabChange("profile")}
                           className={cn(
-                            "flex flex-col items-center justify-center w-14 h-14 rounded-lg transition-all duration-200",
-                            activeTab === "profile" 
-                              ? "bg-primary/10 text-primary shadow-sm" 
+                            "flex flex-col items-center justify-center w-16 h-16 rounded-lg transition-all duration-200",
+                            activeTab === "profile"
+                              ? "bg-primary/10 text-primary shadow-sm"
                               : "hover:bg-primary/5 hover:shadow-sm text-foreground dark:text-foreground/90"
                           )}
                         >
@@ -347,12 +347,12 @@ const UserDrawerV2: React.FC<UserDrawerProps> = ({
                     {/* Reviews with notification badge */}
                     <Tooltip>
                       <TooltipTrigger asChild>
-                        <button 
+                        <button
                           onClick={() => handleTabChange("reviews")}
                           className={cn(
-                            "flex flex-col items-center justify-center w-14 h-14 rounded-lg relative transition-all duration-200",
-                            activeTab === "reviews" 
-                              ? "bg-primary/10 text-primary shadow-sm" 
+                            "flex flex-col items-center justify-center w-16 h-16 rounded-lg relative transition-all duration-200",
+                            activeTab === "reviews"
+                              ? "bg-primary/10 text-primary shadow-sm"
                               : "hover:bg-primary/5 hover:shadow-sm text-foreground dark:text-foreground/90"
                           )}
                         >
@@ -374,12 +374,12 @@ const UserDrawerV2: React.FC<UserDrawerProps> = ({
                     {/* Unified Wallet section - clean vector design */}
                     <Tooltip>
                       <TooltipTrigger asChild>
-                        <button 
+                        <button
                           onClick={() => handleTabChange("wallet")}
                           className={cn(
-                            "flex flex-col items-center justify-center w-14 h-14 rounded-lg transition-all duration-200",
-                            activeTab === "wallet" 
-                              ? "bg-primary/10 text-primary shadow-sm" 
+                            "flex flex-col items-center justify-center w-16 h-16 rounded-lg transition-all duration-200",
+                            activeTab === "wallet"
+                              ? "bg-primary/10 text-primary shadow-sm"
                               : "hover:bg-primary/5 hover:shadow-sm text-foreground dark:text-foreground/90"
                           )}
                         >
@@ -397,9 +397,9 @@ const UserDrawerV2: React.FC<UserDrawerProps> = ({
                     {user.accountType === 'poster' && (
                       <Tooltip>
                         <TooltipTrigger asChild>
-                          <button 
+                          <button
                             onClick={() => navigateTo('/payment-dashboard')}
-                            className="flex flex-col items-center justify-center w-14 h-14 rounded-lg hover:bg-primary/5 hover:shadow-sm transition-all duration-200 text-foreground dark:text-foreground/90"
+                            className="flex flex-col items-center justify-center w-16 h-16 rounded-lg hover:bg-primary/5 hover:shadow-sm transition-all duration-200 text-foreground dark:text-foreground/90"
                           >
                             <LayoutDashboard className="h-5 w-5 mb-1 stroke-[1.5px]" />
                             <span className="text-xs font-medium">Dashboard</span>
@@ -416,13 +416,13 @@ const UserDrawerV2: React.FC<UserDrawerProps> = ({
                     {/* Settings */}
                     <Tooltip>
                       <TooltipTrigger asChild>
-                        <button 
+                        <button
                           onClick={() => handleTabChange("settings")}
                           className={cn(
-                            "flex flex-col items-center justify-center w-14 h-14 rounded-lg",
-                            activeTab === "settings" 
-                              ? "bg-primary/10 text-primary dark:bg-primary/20 dark:text-primary" 
-                              : "hover:bg-accent dark:hover:bg-accent/20 text-foreground dark:text-foreground/80"
+                            "flex flex-col items-center justify-center w-16 h-16 rounded-lg transition-all duration-200",
+                            activeTab === "settings"
+                              ? "bg-primary/10 text-primary shadow-sm"
+                              : "hover:bg-primary/5 hover:shadow-sm text-foreground dark:text-foreground/90"
                           )}
                         >
                           <Settings className="h-5 w-5 mb-1" />
@@ -439,12 +439,12 @@ const UserDrawerV2: React.FC<UserDrawerProps> = ({
                     {/* Help & Support */}
                     <Tooltip>
                       <TooltipTrigger asChild>
-                        <button 
+                        <button
                           onClick={() => handleTabChange("support")}
                           className={cn(
-                            "flex flex-col items-center justify-center w-14 h-14 rounded-lg transition-all duration-200",
-                            activeTab === "support" 
-                              ? "bg-primary/10 text-primary shadow-sm" 
+                            "flex flex-col items-center justify-center w-16 h-16 rounded-lg transition-all duration-200",
+                            activeTab === "support"
+                              ? "bg-primary/10 text-primary shadow-sm"
                               : "hover:bg-primary/5 hover:shadow-sm text-foreground dark:text-foreground/90"
                           )}
                         >
@@ -462,9 +462,9 @@ const UserDrawerV2: React.FC<UserDrawerProps> = ({
                   <div className="mt-auto pb-4">
                     <Tooltip>
                       <TooltipTrigger asChild>
-                        <Button 
-                          variant="ghost" 
-                          className="flex flex-col items-center justify-center w-14 h-14 rounded-lg hover:bg-red-50 hover:text-red-600 dark:hover:bg-red-900/20 dark:hover:text-red-400"
+                        <Button
+                          variant="ghost"
+                          className="flex flex-col items-center justify-center w-16 h-16 rounded-lg hover:bg-red-50 hover:text-red-600 dark:hover:bg-red-900/20 dark:hover:text-red-400"
                           onClick={handleLogout}
                         >
                           <LogOut className="h-5 w-5 mb-1" />
@@ -479,18 +479,18 @@ const UserDrawerV2: React.FC<UserDrawerProps> = ({
                 </div>
               </TooltipProvider>
               
-              {/* Enhanced tab content with better styling */}
-              <div className="flex-1 overflow-y-auto p-6 bg-card dark:bg-card">
-                {/* Title bar for current section */}
-                <div className="mb-6 pb-4 border-b">
-                  <h2 className="text-xl font-bold text-foreground">
+              {/* Enhanced tab content with better styling and improved spacing */}
+              <div className="flex-1 overflow-y-auto p-4 bg-card dark:bg-card min-h-0">
+                {/* Title bar for current section - more compact */}
+                <div className="mb-4 pb-3 border-b">
+                  <h2 className="text-lg font-bold text-foreground">
                     {activeTab === "profile" ? "Your Profile" :
                      activeTab === "reviews" ? "Reviews & Ratings" :
                      activeTab === "wallet" ? "Wallet & Earnings" :
                      activeTab === "settings" ? "Account Settings" :
                      activeTab === "support" ? "Help & Support" : "Profile"}
                   </h2>
-                  <p className="text-sm text-muted-foreground mt-1">
+                  <p className="text-xs text-muted-foreground mt-1">
                     {activeTab === "profile" ? "View and update your personal information" :
                      activeTab === "reviews" ? "See what others are saying about your work" :
                      activeTab === "wallet" ? "Manage your earnings, payments, and withdrawals" :
