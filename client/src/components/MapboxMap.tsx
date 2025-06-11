@@ -1,6 +1,7 @@
 import React, { useRef, useEffect, useState } from 'react';
 import mapboxgl from 'mapbox-gl';
 import 'mapbox-gl/dist/mapbox-gl.css';
+import { generatePinStyle, generatePinCSS, type PinConfig } from '@/lib/mapPinStyles';
 
 // Set the access token from environment variable
 mapboxgl.accessToken = process.env.VITE_MAPBOX_ACCESS_TOKEN;
@@ -17,7 +18,12 @@ interface MapboxMapProps {
     description?: string;
     onClick?: () => void;
     isHighlighted?: boolean; // Add flag to highlight special markers
-    markerColor?: string; // Custom color for job markers
+    markerColor?: string; // Custom color for job markers (legacy)
+    // New contextual styling properties
+    category?: string;
+    paymentAmount?: number;
+    requiredSkills?: string[];
+    status?: string;
   }>;
   onMapClick?: (lngLat: { lng: number; lat: number }) => void;
   interactive?: boolean;
@@ -177,50 +183,55 @@ export default function MapboxMap({
       
       // Create a DOM element for the marker
       const el = document.createElement('div');
-        // Style based on marker type
       const isDark = document.documentElement.classList.contains('dark');
+
       if (marker.title === 'Current Location') {
+        // Special styling for user location marker
         el.innerHTML = `📍`;
-        el.style.backgroundColor = isDark ? '#60a5fa' : '#3b82f6'; // Lighter blue in dark mode
+        el.style.backgroundColor = isDark ? '#60a5fa' : '#3b82f6';
+        el.style.width = '32px';
+        el.style.height = '32px';
+        el.style.borderRadius = '50%';
+        el.style.border = '2px solid white';
+        el.style.boxShadow = '0 4px 12px rgba(59, 130, 246, 0.4), 0 2px 4px rgba(0,0,0,0.1)';
+        el.style.display = 'flex';
+        el.style.alignItems = 'center';
+        el.style.justifyContent = 'center';
+        el.style.fontSize = '16px';
+        el.style.cursor = 'pointer';
+        el.style.zIndex = '10';
       } else {
-        // Extract job payment amount from the description if available
-        const paymentMatch = marker.description?.match(/\$(\d+)/);
-        const paymentAmount = paymentMatch ? paymentMatch[1] : '';
-        
-        if (paymentAmount) {
-          el.innerHTML = `$${paymentAmount}`;
-          // Make the marker bigger to fit the payment amount
-          el.style.width = '40px';
-          el.style.height = '40px';
-          el.style.fontSize = '14px';
-        } else {
-          el.innerHTML = `$`;
-        }
-        
-        // Use the marker's custom color if available, otherwise default to amber/gold
-        // Adjust color for dark mode
-        const defaultColor = isDark ? '#fbbf24' : '#f59e0b';
-        el.style.backgroundColor = marker.markerColor || defaultColor;
+        // Use new contextual styling system for job markers
+        const pinConfig: PinConfig = {
+          category: marker.category || 'Other',
+          paymentAmount: marker.paymentAmount || 0,
+          requiredSkills: marker.requiredSkills || [],
+          status: marker.status || 'open',
+          isHighlighted: marker.isHighlighted
+        };
+
+        const pinStyle = generatePinStyle(pinConfig, isDark);
+        const cssStyles = generatePinCSS(pinStyle);
+
+        // Apply all CSS styles
+        Object.entries(cssStyles).forEach(([property, value]) => {
+          el.style.setProperty(property, value);
+        });
+
+        // Set the icon content
+        el.innerHTML = pinStyle.icon;
+
+        // Add hover effects
+        el.addEventListener('mouseenter', () => {
+          el.style.transform = 'scale(1.1)';
+          el.style.zIndex = '20';
+        });
+
+        el.addEventListener('mouseleave', () => {
+          el.style.transform = 'scale(1)';
+          el.style.zIndex = '1';
+        });
       }
-      
-      // Add dark mode specific class
-      if (isDark) {
-        el.classList.add('dark-marker');
-      }
-      
-      // Apply styles to marker element
-      el.style.width = '30px';
-      el.style.height = '30px';
-      el.style.borderRadius = '50%';
-      el.style.border = '2px solid white';
-      el.style.boxShadow = '0 2px 4px rgba(0,0,0,0.5)';
-      el.style.display = 'flex';
-      el.style.alignItems = 'center';
-      el.style.justifyContent = 'center';
-      el.style.color = 'white';
-      el.style.fontWeight = 'bold';
-      el.style.fontSize = '16px';
-      el.style.cursor = 'pointer';
       
       // Create popup if there's a title or description
       let popup: mapboxgl.Popup | undefined;

@@ -55,7 +55,7 @@ export default function JobLocationMap({
     }
   }, [selectedJobId, jobs]);
 
-  // Create markers from jobs
+  // Create markers from jobs with contextual styling
   const markers = jobs.map(job => ({
     latitude: job.latitude || 0,
     longitude: job.longitude || 0,
@@ -67,6 +67,12 @@ export default function JobLocationMap({
         onJobSelect(job.id);
       }
     },
+    // Add contextual styling data
+    category: job.category,
+    paymentAmount: job.paymentAmount || 0,
+    requiredSkills: job.requiredSkills || [],
+    status: job.status || 'open',
+    isHighlighted: selectedJob?.id === job.id
   })).filter(marker => marker.latitude && marker.longitude); // Filter out jobs without coordinates
 
   // Handle map click to view job details

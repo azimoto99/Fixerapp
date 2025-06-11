@@ -16,6 +16,7 @@ import { useQueryClient } from '@tanstack/react-query';
 import { StripeConnectRequired } from '@/components/stripe';
 import JobDetailsCard from './jobs/JobDetailsCard';
 import { useAllJobsForMap } from '@/hooks/useAllJobsForMap';
+import { MapPinLegend } from '@/components/MapPinLegend';
 
 interface MapSectionProps {
   jobs: Job[];
@@ -287,7 +288,12 @@ const MapSection: React.FC<MapSectionProps> = ({ jobs, selectedJob, onSelectJob,
       description: string;
       onClick: () => void;
       isHighlighted?: boolean;
-      markerColor?: string; // Added support for custom marker colors
+      markerColor?: string; // Legacy support
+      // New contextual styling properties
+      category?: string;
+      paymentAmount?: number;
+      requiredSkills?: string[];
+      status?: string;
     }[] = [];
 
     if (sourceJobs && sourceJobs.length > 0) {
@@ -312,7 +318,12 @@ const MapSection: React.FC<MapSectionProps> = ({ jobs, selectedJob, onSelectJob,
           description: `$${job.paymentAmount?.toFixed(2)} - ${job.paymentType}`,
           onClick: () => handleMarkerClick(job),
           isHighlighted: isHighlighted,
-          markerColor: job.markerColor || '#f59e0b', // Use the job's marker color or default to amber
+          markerColor: job.markerColor || '#f59e0b', // Legacy fallback
+          // New contextual styling data
+          category: job.category,
+          paymentAmount: job.paymentAmount || 0,
+          requiredSkills: job.requiredSkills || [],
+          status: job.status || 'open'
         });
       });
     }
@@ -460,6 +471,9 @@ const MapSection: React.FC<MapSectionProps> = ({ jobs, selectedJob, onSelectJob,
             </div>
           </div>
         </div>
+
+        {/* Map Pin Legend */}
+        <MapPinLegend />
         
         {/* Bottom card for job details - DoorDash-style slide-up panel */}
         {showJobDetail && selectedJob && (
