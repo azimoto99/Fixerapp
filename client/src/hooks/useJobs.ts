@@ -120,7 +120,7 @@ export function useJobs(
     queryKey: [queryPath, searchMode],
   });
 
-  // Client-side filtering for real-time search
+  // Enhanced client-side filtering for real-time search
   const filteredJobs = useMemo(() => {
     if (!allJobs) return allJobs;
 
@@ -131,18 +131,34 @@ export function useJobs(
 
     const query = searchParams.query.toLowerCase().trim();
 
-    // Filter jobs based on search query (description mode)
-    if (searchMode === 'description') {
-      return allJobs.filter(job =>
-        job.title.toLowerCase().includes(query) ||
-        job.description.toLowerCase().includes(query) ||
-        job.category.toLowerCase().includes(query) ||
-        (job.location && job.location.toLowerCase().includes(query))
-      );
-    }
+    // Real-time filtering for all search modes
+    return allJobs.filter(job => {
+      // Location-based search
+      if (searchMode === 'location') {
+        return (job.location && job.location.toLowerCase().includes(query)) ||
+               (job.address && job.address.toLowerCase().includes(query));
+      }
 
-    // For location mode, the filtering is already done server-side
-    return allJobs;
+      // Description-based search - comprehensive search across job fields
+      if (searchMode === 'description') {
+        return job.title.toLowerCase().includes(query) ||
+               job.description.toLowerCase().includes(query) ||
+               job.category.toLowerCase().includes(query) ||
+               (job.location && job.location.toLowerCase().includes(query)) ||
+               (job.requiredSkills && job.requiredSkills.some(skill =>
+                 skill.toLowerCase().includes(query)
+               ));
+      }
+
+      // Fallback to general search across all available fields
+      return job.title.toLowerCase().includes(query) ||
+             job.description.toLowerCase().includes(query) ||
+             job.category.toLowerCase().includes(query) ||
+             (job.location && job.location.toLowerCase().includes(query)) ||
+             (job.requiredSkills && job.requiredSkills.some(skill =>
+               skill.toLowerCase().includes(query)
+             ));
+    });
   }, [allJobs, searchParams?.query, searchMode]);
 
   return {

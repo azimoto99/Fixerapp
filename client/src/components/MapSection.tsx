@@ -284,9 +284,10 @@ const MapSection: React.FC<MapSectionProps> = ({ jobs, selectedJob, onSelectJob,
       isHighlighted?: boolean;
       markerColor?: string; // Added support for custom marker colors
     }[] = [];
-    
-    // Decide which job list to use: the filtered list (jobs prop) or all jobs with coordinates
-    const sourceJobs = (jobs && jobs.length > 0) ? jobs : (allJobsWithCoordinates || []);
+
+    // Always use the filtered jobs from the search/filter system
+    // This ensures map pins hide/show based on search filters
+    const sourceJobs = jobs && jobs.length > 0 ? jobs : [];
 
     if (sourceJobs && sourceJobs.length > 0) {
       // Only keep jobs that have coordinates
@@ -426,17 +427,17 @@ const MapSection: React.FC<MapSectionProps> = ({ jobs, selectedJob, onSelectJob,
         {position && (
           <MapboxMap
             latitude={
-              focusMapCoordinates 
-              ? focusMapCoordinates.latitude 
-              : (allJobsWithCoordinates?.length > 0 && allJobsWithCoordinates[0].latitude) 
-                ? allJobsWithCoordinates[0].latitude 
+              focusMapCoordinates
+              ? focusMapCoordinates.latitude
+              : (jobs?.length > 0 && jobs[0].latitude)
+                ? jobs[0].latitude
                 : position.latitude
             }
             longitude={
-              focusMapCoordinates 
-              ? focusMapCoordinates.longitude 
-              : (allJobsWithCoordinates?.length > 0 && allJobsWithCoordinates[0].longitude) 
-                ? allJobsWithCoordinates[0].longitude 
+              focusMapCoordinates
+              ? focusMapCoordinates.longitude
+              : (jobs?.length > 0 && jobs[0].longitude)
+                ? jobs[0].longitude
                 : position.longitude
             }
             zoom={focusMapCoordinates ? 18 : 10}
@@ -453,7 +454,7 @@ const MapSection: React.FC<MapSectionProps> = ({ jobs, selectedJob, onSelectJob,
             <div className="flex items-center space-x-2">
               <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
               <span className="text-sm font-medium">
-                {allJobsWithCoordinates.filter(job => job.status === 'open').length} Open Jobs
+                {jobs.filter(job => job.status === 'open').length} Open Jobs
               </span>
             </div>
           </div>

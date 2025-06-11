@@ -132,25 +132,23 @@ const JobSearch: React.FC<JobSearchProps> = memo(({ onSearch }) => {
     }
   }, 800);
 
-  // Debounced search function for real-time filtering
+  // Debounced search function for real-time filtering - now handles all search modes
   const debouncedSearch = useDebounce((searchQuery: string) => {
-    if (searchMode === 'description') {
-      // For description search, trigger search immediately for real-time filtering
-      onSearch({ query: searchQuery, searchMode });
-    }
-  }, 300); // 300ms delay for real-time search
+    // Trigger search for all modes to enable real-time filtering
+    onSearch({ query: searchQuery, searchMode });
+  }, 150); // Reduced delay for more responsive search
 
-  // Handle input change with debounced geolocation and real-time search
+  // Handle input change with debounced search for all modes
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value;
     setQuery(value);
 
-    // If in location mode and typing has paused, try to geocode
+    // Always trigger real-time search for immediate filtering
+    debouncedSearch(value);
+
+    // Additionally, for location mode, try to geocode for future location-based searches
     if (searchMode === 'location' && value.length > 3) {
       debouncedGeolocation(value);
-    } else if (searchMode === 'description') {
-      // For description mode, trigger real-time search
-      debouncedSearch(value);
     }
   };
 
