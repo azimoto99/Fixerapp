@@ -272,6 +272,11 @@ const MapSection: React.FC<MapSectionProps> = ({ jobs, selectedJob, onSelectJob,
     }
   }, [selectedJob, previousSelectedJobId]);
   
+  // Determine which jobs to show: filtered jobs if search is active, otherwise all jobs
+  const sourceJobs = useMemo(() => {
+    return (jobs && jobs.length > 0) ? jobs : (allJobsWithCoordinates || []);
+  }, [jobs, allJobsWithCoordinates]);
+
   // Create markers for Mapbox map
   const jobMarkers = useMemo(() => {
     // Create a typed array to avoid TypeScript errors
@@ -284,10 +289,6 @@ const MapSection: React.FC<MapSectionProps> = ({ jobs, selectedJob, onSelectJob,
       isHighlighted?: boolean;
       markerColor?: string; // Added support for custom marker colors
     }[] = [];
-
-    // Always use the filtered jobs from the search/filter system
-    // This ensures map pins hide/show based on search filters
-    const sourceJobs = jobs && jobs.length > 0 ? jobs : [];
 
     if (sourceJobs && sourceJobs.length > 0) {
       // Only keep jobs that have coordinates
@@ -342,7 +343,7 @@ const MapSection: React.FC<MapSectionProps> = ({ jobs, selectedJob, onSelectJob,
     }
     
     return markers;
-  }, [jobs, allJobsWithCoordinates, handleMarkerClick, position, focusMapCoordinates, highlightedJobId]);
+  }, [sourceJobs, handleMarkerClick, position, focusMapCoordinates, highlightedJobId]);
   
   // If no user location yet, show loading
   if (!position) {
@@ -454,7 +455,7 @@ const MapSection: React.FC<MapSectionProps> = ({ jobs, selectedJob, onSelectJob,
             <div className="flex items-center space-x-2">
               <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
               <span className="text-sm font-medium">
-                {jobs.filter(job => job.status === 'open').length} Open Jobs
+                {sourceJobs.filter(job => job.status === 'open').length} Open Jobs
               </span>
             </div>
           </div>

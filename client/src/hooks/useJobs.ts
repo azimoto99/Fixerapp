@@ -124,7 +124,7 @@ export function useJobs(
   const filteredJobs = useMemo(() => {
     if (!allJobs) return allJobs;
 
-    // If no search query, return all jobs
+    // If no search query, return all jobs (Google Instant behavior)
     if (!searchParams?.query || searchParams.query.trim() === '') {
       return allJobs;
     }
