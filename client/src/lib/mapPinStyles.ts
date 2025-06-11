@@ -78,9 +78,9 @@ const CATEGORY_STYLES: Record<string, Partial<PinStyle>> = {
 
 // Payment tier sizing
 const getPaymentTierSize = (amount: number): number => {
-  if (amount <= 50) return 32; // Small
-  if (amount <= 150) return 40; // Medium  
-  return 48; // Large
+  if (amount <= 50) return 44; // Small - increased from 32
+  if (amount <= 150) return 52; // Medium - increased from 40
+  return 60; // Large - increased from 48
 };
 
 // Skill-based border styling
@@ -224,15 +224,13 @@ export const generatePinCSS = (style: PinStyle): Record<string, string> => {
     display: "flex",
     alignItems: "center",
     justifyContent: "center",
-    fontSize: `${Math.max(12, style.size * 0.3)}px`,
+    fontSize: `${Math.max(18, style.size * 0.4)}px`,
     fontWeight: "bold",
     cursor: "pointer",
-    transition: "all 0.25s cubic-bezier(0.4, 0, 0.2, 1)",
+    transition: "filter 0.2s ease, box-shadow 0.2s ease",
     position: "relative",
     zIndex: "1",
-    transformOrigin: "center center",
     userSelect: "none",
-    pointerEvents: "auto",
-    willChange: "transform, filter"
+    pointerEvents: "auto"
   };
 };

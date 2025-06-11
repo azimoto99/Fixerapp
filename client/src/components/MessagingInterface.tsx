@@ -66,7 +66,28 @@ export function MessagingInterface({
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const typingTimeoutRef = useRef<NodeJS.Timeout>();
   const { toast } = useToast();
-  const queryClient = useQueryClient();  // WebSocket connection
+  const queryClient = useQueryClient();  // WebSocket connection with error handling
+  let webSocketState;
+  try {
+    webSocketState = useWebSocket();
+  } catch (error) {
+    console.error('WebSocket context error:', error);
+    // Fallback state when WebSocket is not available
+    webSocketState = {
+      isConnected: false,
+      status: 'disconnected',
+      messages: [],
+      typingUsers: [],
+      onlineUsers: [],
+      sendMessage: () => false,
+      joinRoom: () => false,
+      leaveRoom: () => false,
+      startTyping: () => false,
+      stopTyping: () => false,
+      markMessageAsRead: () => false
+    };
+  }
+
   const {
     isConnected,
     status,
@@ -79,41 +100,60 @@ export function MessagingInterface({
     startTyping,
     stopTyping,
     markMessageAsRead
-  } = useWebSocket();
+  } = webSocketState;
 
   // Fetch conversation history
-  const { data: conversationData = [], isLoading } = useQuery({
+  const { data: conversationData = [], isLoading, error: conversationError } = useQuery({
     queryKey: ['/api/messages/conversation', recipientId, jobId],
     queryFn: async () => {
-      const response = await apiRequest('GET', `/api/messages/conversation?recipientId=${recipientId}${jobId ? `&jobId=${jobId}` : ''}`);
-      return response.json();
-    }
+      try {
+        const response = await apiRequest('GET', `/api/messages/conversation?recipientId=${recipientId}${jobId ? `&jobId=${jobId}` : ''}`);
+        if (!response.ok) {
+          throw new Error('Failed to fetch conversation');
+        }
+        return response.json();
+      } catch (error) {
+        console.error('Error fetching conversation:', error);
+        return []; // Return empty array on error
+      }
+    },
+    retry: 1,
+    retryDelay: 1000
   });
 
   // Send message mutation
   const sendMessageMutation = useMutation({
     mutationFn: async (content: string) => {
-      const response = await apiRequest('POST', '/api/messages/send', {
-        content,
-        recipientId,
-        jobId
-      });
-      if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.message || 'Failed to send message');
+      try {
+        const response = await apiRequest('POST', '/api/messages/send', {
+          content,
+          recipientId,
+          jobId
+        });
+        if (!response.ok) {
+          const errorData = await response.json().catch(() => ({}));
+          throw new Error(errorData.message || 'Failed to send message');
+        }
+        return response.json();
+      } catch (error) {
+        console.error('Send message mutation error:', error);
+        throw error;
       }
-      return response.json();
     },
     onSuccess: (data) => {
-      // Send via WebSocket for real-time delivery
-      if (sendMessage) {
-        sendMessage(data.content, recipientId, jobId);
-      }
+      try {
+        // Send via WebSocket for real-time delivery
+        if (sendMessage && typeof sendMessage === 'function') {
+          sendMessage(data.content, recipientId, jobId);
+        }
 
-      // Update local cache
-      queryClient.invalidateQueries({
-        queryKey: ['/api/messages/conversation', recipientId, jobId]
-      });
+        // Update local cache
+        queryClient.invalidateQueries({
+          queryKey: ['/api/messages/conversation', recipientId, jobId]
+        });
+      } catch (error) {
+        console.error('Error in onSuccess handler:', error);
+      }
     },
     onError: (error) => {
       console.error('Send message error:', error);
@@ -126,36 +166,54 @@ export function MessagingInterface({
   });
   // Join job room on mount
   useEffect(() => {
-    if (jobId && isConnected) {
-      joinRoom(jobId);
-      return () => {
-        leaveRoom(jobId);
-      };
+    try {
+      if (jobId && isConnected && typeof joinRoom === 'function') {
+        joinRoom(jobId);
+        return () => {
+          if (typeof leaveRoom === 'function') {
+            leaveRoom(jobId);
+          }
+        };
+      }
+    } catch (error) {
+      console.error('Error joining/leaving room:', error);
     }
   }, [jobId, isConnected, joinRoom, leaveRoom]);
 
   // Auto-scroll to bottom when new messages arrive
   useEffect(() => {
-    scrollToBottom();
+    try {
+      scrollToBottom();
+    } catch (error) {
+      console.error('Error scrolling to bottom:', error);
+    }
   }, [conversationData, wsMessages]);
 
   // Handle typing indicators
   const handleTypingStart = useCallback(() => {
-    if (!isTyping) {
-      setIsTyping(true);
-      startTyping(recipientId, jobId);
-    }
+    try {
+      if (!isTyping) {
+        setIsTyping(true);
+        if (typeof startTyping === 'function') {
+          startTyping(recipientId, jobId);
+        }
+      }
 
-    // Clear existing timeout
-    if (typingTimeoutRef.current) {
-      clearTimeout(typingTimeoutRef.current);
-    }
+      // Clear existing timeout
+      if (typingTimeoutRef.current) {
+        clearTimeout(typingTimeoutRef.current);
+      }
 
-    // Set timeout to stop typing
-    typingTimeoutRef.current = setTimeout(() => {
-      setIsTyping(false);
-      stopTyping(recipientId, jobId);
-    }, 2000);
+      // Set timeout to stop typing
+      typingTimeoutRef.current = setTimeout(() => {
+        setIsTyping(false);
+        if (typeof stopTyping === 'function') {
+          stopTyping(recipientId, jobId);
+        }
+      }, 2000);
+    } catch (error) {
+      console.error('Error handling typing:', error);
+    }
   }, [isTyping, startTyping, stopTyping, recipientId, jobId]);
 
   const scrollToBottom = () => {
@@ -163,21 +221,25 @@ export function MessagingInterface({
   };
 
   const handleSendMessage = async () => {
-    if (!messageText.trim()) return;
-
-    const content = messageText.trim();
-    setMessageText('');
-    
-    // Stop typing indicator
-    if (isTyping) {
-      setIsTyping(false);
-      stopTyping(recipientId, jobId);
-    }
-
     try {
+      if (!messageText.trim()) return;
+
+      const content = messageText.trim();
+      setMessageText('');
+
+      // Stop typing indicator
+      if (isTyping) {
+        setIsTyping(false);
+        if (typeof stopTyping === 'function') {
+          stopTyping(recipientId, jobId);
+        }
+      }
+
       await sendMessageMutation.mutateAsync(content);
     } catch (error) {
       console.error('Failed to send message:', error);
+      // Restore message text on error
+      setMessageText(messageText);
     }
   };
 
@@ -220,12 +282,51 @@ export function MessagingInterface({
   };
 
   // Merge conversation data with WebSocket messages
-  const allMessages = [...conversationData, ...wsMessages].sort(
-    (a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
-  );
+  let allMessages = [];
+  try {
+    const safeConversationData = Array.isArray(conversationData) ? conversationData : [];
+    const safeWsMessages = Array.isArray(wsMessages) ? wsMessages : [];
 
-  const isRecipientOnline = onlineUsers.includes(recipientId);
-  const isRecipientTyping = typingUsers.includes(recipientId);
+    allMessages = [...safeConversationData, ...safeWsMessages].sort(
+      (a, b) => {
+        try {
+          return new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime();
+        } catch (error) {
+          console.error('Error sorting messages:', error);
+          return 0;
+        }
+      }
+    );
+  } catch (error) {
+    console.error('Error merging messages:', error);
+    allMessages = Array.isArray(conversationData) ? conversationData : [];
+  }
+
+  const isRecipientOnline = Array.isArray(onlineUsers) ? onlineUsers.includes(recipientId) : false;
+  const isRecipientTyping = Array.isArray(typingUsers) ? typingUsers.includes(recipientId) : false;
+
+  // Show error state if there's a conversation error
+  if (conversationError) {
+    return (
+      <div className={`flex flex-col h-full bg-background border rounded-lg ${className}`}>
+        <div className="flex items-center justify-center h-full p-4">
+          <div className="text-center">
+            <AlertCircle className="h-8 w-8 text-destructive mx-auto mb-2" />
+            <h3 className="font-medium mb-1">Unable to load messages</h3>
+            <p className="text-sm text-muted-foreground mb-4">
+              There was an error loading the conversation. Please try refreshing the page.
+            </p>
+            <Button
+              onClick={() => window.location.reload()}
+              size="sm"
+            >
+              Refresh Page
+            </Button>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className={`flex flex-col h-full bg-background border rounded-lg ${className}`}>

@@ -218,22 +218,32 @@ export default function MapboxMap({
           el.style.setProperty(property, value);
         });
 
-        // Set the icon content
-        el.innerHTML = pinStyle.icon;
+        // Create a pin-shaped container with icon
+        el.innerHTML = `
+          <div style="
+            width: 100%;
+            height: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: inherit;
+            position: relative;
+          ">
+            ${pinStyle.icon}
+          </div>
+        `;
 
-        // Add hover effects with proper transform origin
+        // Add hover effects without transform (to avoid Mapbox positioning conflicts)
         el.addEventListener('mouseenter', () => {
-          el.style.transformOrigin = 'center center';
-          el.style.transform = 'scale(1.15)';
           el.style.zIndex = '20';
-          el.style.filter = 'brightness(1.1) drop-shadow(0 4px 8px rgba(0,0,0,0.3))';
+          el.style.filter = 'brightness(1.2) drop-shadow(0 6px 12px rgba(0,0,0,0.4))';
+          el.style.boxShadow = `0 8px 16px ${pinStyle.shadowColor}, 0 4px 8px rgba(0,0,0,0.2)`;
         });
 
         el.addEventListener('mouseleave', () => {
-          el.style.transformOrigin = 'center center';
-          el.style.transform = 'scale(1)';
           el.style.zIndex = '1';
           el.style.filter = 'none';
+          el.style.boxShadow = `0 4px 12px ${pinStyle.shadowColor}, 0 2px 4px rgba(0,0,0,0.1)`;
         });
       }
       
@@ -256,7 +266,7 @@ export default function MapboxMap({
       try {
         const mapboxMarker = new mapboxgl.Marker({
           element: el,
-          anchor: 'center'
+          anchor: 'bottom'
         }).setLngLat([marker.longitude, marker.latitude]);
         
         // Add popup if available
