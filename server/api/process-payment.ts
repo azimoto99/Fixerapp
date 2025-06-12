@@ -99,8 +99,8 @@ export async function processPayment(req: Request, res: Response) {
         return res.status(404).json({ message: 'Application not found' });
       }
 
-      // Calculate service fee (10%)
-      const serviceFee = amount * 0.1;
+      // Calculate service fee (5%)
+      const serviceFee = amount * 0.05;
       const workerAmount = amount - serviceFee;
 
       paymentIntent = await stripe.paymentIntents.create({
@@ -177,7 +177,7 @@ export async function processPayment(req: Request, res: Response) {
       await storage.createPayment({
         userId: req.user.id,
         amount,
-        serviceFee: amount * 0.1, // 10% service fee
+        serviceFee: amount * 0.05, // 5% service fee
         type: 'job_payment',
         status: paymentIntent.status,
         paymentMethod: 'card',

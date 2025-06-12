@@ -16,7 +16,7 @@ const FAQContent: React.FC = () => {
     },
     {
       question: "What is the service fee?",
-      answer: "We charge a 10% service fee on each job to cover platform costs, payment processing, and ongoing improvements. This fee is automatically calculated when a job is created and is shown transparently to both parties."
+      answer: "We charge a 5% service fee on each job to cover platform costs, payment processing, and ongoing improvements. This fee is automatically calculated when a job is created and is shown transparently to both parties."
     },
     {
       question: "How do I set up my worker profile?",

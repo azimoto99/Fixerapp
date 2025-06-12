@@ -192,7 +192,7 @@ export default function MapboxMap({
         el.style.width = '32px';
         el.style.height = '32px';
         el.style.borderRadius = '50%';
-        el.style.border = '2px solid white';
+        el.style.border = '3px solid white';
         el.style.boxShadow = '0 4px 12px rgba(59, 130, 246, 0.4), 0 2px 4px rgba(0,0,0,0.1)';
         el.style.display = 'flex';
         el.style.alignItems = 'center';

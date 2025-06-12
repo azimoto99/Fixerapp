@@ -429,7 +429,7 @@ stripeConnectRouter.post('/transfer', isAuthenticated, async (req: Request, res:
       return res.status(400).json({ message: 'Worker does not have a payment account' });
     }
     
-    const serviceFee = Math.round(amount * 0.1);
+    const serviceFee = Math.round(amount * 0.05);
     const transferAmount = amount - serviceFee;
     
     const transfer = await stripe.transfers.create({

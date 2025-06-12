@@ -395,9 +395,9 @@ const ApplicationForm: React.FC<ApplicationFormProps> = ({
                   <p className="font-medium">{expectedDuration}</p>
                 </div>
                 <div>
-                  <p className="text-muted-foreground">Service Fee (10%)</p>
+                  <p className="text-muted-foreground">Service Fee (5%)</p>
                   <p className="font-medium">
-                    ${(calculateEstimatedCost(parseFloat(hourlyRate), expectedDuration) * 0.1).toFixed(2)}
+                    ${(calculateEstimatedCost(parseFloat(hourlyRate), expectedDuration) * 0.05).toFixed(2)}
                   </p>
                 </div>
                 <div>

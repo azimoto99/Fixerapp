@@ -180,7 +180,7 @@ export default function PaymentConfirmation({
   };
 
   const estimatedCost = application ? calculateEstimatedCost() : 0;
-  const serviceFee = estimatedCost * 0.1; // 10% service fee
+  const serviceFee = estimatedCost * 0.05; // 5% service fee
   const totalAmount = estimatedCost + serviceFee;
 
   const handleSubmit = async (e: React.FormEvent) => {

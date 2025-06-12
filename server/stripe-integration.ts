@@ -65,7 +65,7 @@ export async function processJobPayment(
     amount: Math.round(amount * 100),
     currency: 'usd',
     payment_method_types: ['card'],
-    application_fee_amount: Math.round(amount * 0.10 * 100), // e.g., 10% fee
+    application_fee_amount: Math.round(amount * 0.05 * 100), // e.g., 5% fee
     metadata: { posterId, workerId, jobId },
     transfer_data: { destination: workerConnectAccountId },
   });

@@ -119,7 +119,7 @@ const getSkillBorderStyle = (skills: string[]): { borderColor: string; borderWid
   
   return {
     borderColor: "#ffffff",
-    borderWidth: 2,
+    borderWidth: 3,
     borderStyle: "solid"
   };
 };

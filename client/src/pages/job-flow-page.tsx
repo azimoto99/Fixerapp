@@ -1,6 +1,5 @@
 import React from 'react';
 import { useAuth } from '@/hooks/use-auth';
-import JobFlowGuide from '@/components/JobFlowGuide';
 import { 
   Card, 
   CardHeader, 
@@ -22,7 +21,6 @@ import { Link } from 'wouter';
 
 const JobFlowPage: React.FC = () => {
   const { user } = useAuth();
-  const userType = user?.accountType === 'worker' ? 'worker' : user?.accountType === 'poster' ? 'poster' : undefined;
   
   return (
     <div className="container mx-auto py-6 px-4 md:px-6 max-w-6xl">
@@ -58,9 +56,7 @@ const JobFlowPage: React.FC = () => {
           </div>
         </CardContent>
       </Card>
-      
-      <JobFlowGuide userType={userType} />
-      
+
       <div className="mt-12 grid grid-cols-1 md:grid-cols-3 gap-6">
         <Card className="bg-primary-50 dark:bg-primary-950/20 border-primary-200 dark:border-primary-800">
           <CardHeader>
