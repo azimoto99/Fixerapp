@@ -34,14 +34,14 @@ export function useGeolocation(): GeolocationHook {
     getPosition
   } = useGeolocated({
     positionOptions: {
-      enableHighAccuracy: false,
-      timeout: 5000,
-      maximumAge: 120000, // 2 minutes cache for initial load
+      enableHighAccuracy: false, // Start with low accuracy for faster response
+      timeout: 8000, // Reasonable timeout for initial load
+      maximumAge: 300000, // 5 minute cache for initial load
     },
-    userDecisionTimeout: 10000,
+    userDecisionTimeout: 10000, // Give user time to allow location
     suppressLocationOnMount: false,
     watchPosition: false,
-    isOptimisticGeolocationEnabled: true,
+    isOptimisticGeolocationEnabled: true, // Enable for faster initial response
   });
 
   const [state, setState] = useState<GeolocationState>({
@@ -73,10 +73,10 @@ export function useGeolocation(): GeolocationHook {
         errorMessage = 'Location information is unavailable.';
       }
 
-      // Use fallback location in development or on timeout
+      // Only use fallback for permission denied in development
       const isDev = process.env.NODE_ENV === 'development';
-      if (isDev || positionError.code === positionError.TIMEOUT) {
-        console.log('Using fallback location');
+      if (isDev && positionError.code === positionError.PERMISSION_DENIED) {
+        console.log('Using fallback location (permission denied in dev)');
         setState({
           userLocation: DEFAULT_LOCATION,
           locationError: null,
@@ -93,12 +93,11 @@ export function useGeolocation(): GeolocationHook {
       }
     } else if (!isGeolocationAvailable) {
       const error = 'Geolocation is not supported by your browser';
-      const isDev = process.env.NODE_ENV === 'development';
       setState({
-        userLocation: isDev ? DEFAULT_LOCATION : null,
+        userLocation: null,
         locationError: error,
         isLoading: false,
-        isUsingFallback: isDev,
+        isUsingFallback: false,
       });
     } else if (!isGeolocationEnabled) {
       setState(prev => ({ ...prev, isLoading: true }));
@@ -114,9 +113,7 @@ export function useGeolocation(): GeolocationHook {
       }
 
       if (!isGeolocationAvailable) {
-        const isDev = process.env.NODE_ENV === 'development';
-        const fallback = isDev ? DEFAULT_LOCATION : null;
-        resolve(fallback);
+        resolve(null);
         return;
       }
 
@@ -134,8 +131,9 @@ export function useGeolocation(): GeolocationHook {
           };
           resolve(location);
         } else if (positionError) {
+          // Only use fallback for permission denied in development
           const isDev = process.env.NODE_ENV === 'development';
-          if (isDev || positionError.code === positionError.TIMEOUT) {
+          if (isDev && positionError.code === positionError.PERMISSION_DENIED) {
             resolve(DEFAULT_LOCATION);
           } else {
             resolve(null);
@@ -161,43 +159,55 @@ export function useGeolocation(): GeolocationHook {
 
       setState(prev => ({ ...prev, isLoading: true, locationError: null }));
 
-      // Use navigator.geolocation directly for refresh to get fresh position
-      navigator.geolocation.getCurrentPosition(
-        (position) => {
-          const newLocation = {
-            latitude: position.coords.latitude,
-            longitude: position.coords.longitude,
-          };
+      // Progressive fallback: try high accuracy first, then low accuracy
+      const tryGetLocation = (highAccuracy: boolean) => {
+        navigator.geolocation.getCurrentPosition(
+          (position) => {
+            const newLocation = {
+              latitude: position.coords.latitude,
+              longitude: position.coords.longitude,
+            };
 
-          setState(prev => ({
-            ...prev,
-            userLocation: newLocation,
-            locationError: null,
-            isLoading: false,
-            isUsingFallback: false
-          }));
+            setState(prev => ({
+              ...prev,
+              userLocation: newLocation,
+              locationError: null,
+              isLoading: false,
+              isUsingFallback: false
+            }));
 
-          resolve(newLocation);
-        },
-        (error) => {
-          let errorMessage = error.message;
-          if (error.code === error.TIMEOUT) {
-            errorMessage = 'Location request timed out. Please try again.';
-          } else if (error.code === error.PERMISSION_DENIED) {
-            errorMessage = 'Location access denied. Please enable location services and try again.';
-          } else if (error.code === error.POSITION_UNAVAILABLE) {
-            errorMessage = 'Location information is unavailable. Please try again.';
+            resolve(newLocation);
+          },
+          (error) => {
+            // If high accuracy fails and it's not permission denied, try low accuracy
+            if (highAccuracy && error.code !== error.PERMISSION_DENIED) {
+              console.log('High accuracy failed, trying low accuracy...');
+              tryGetLocation(false);
+              return;
+            }
+
+            let errorMessage = error.message;
+            if (error.code === error.TIMEOUT) {
+              errorMessage = 'Location request timed out. Please try again.';
+            } else if (error.code === error.PERMISSION_DENIED) {
+              errorMessage = 'Location access denied. Please enable location services and try again.';
+            } else if (error.code === error.POSITION_UNAVAILABLE) {
+              errorMessage = 'Location information is unavailable. Please try again.';
+            }
+
+            setState(prev => ({ ...prev, locationError: errorMessage, isLoading: false }));
+            reject(new Error(errorMessage));
+          },
+          {
+            enableHighAccuracy: highAccuracy,
+            timeout: highAccuracy ? 15000 : 10000, // Shorter timeout for low accuracy
+            maximumAge: 0 // Don't use cached position for manual refresh
           }
+        );
+      };
 
-          setState(prev => ({ ...prev, locationError: errorMessage, isLoading: false }));
-          reject(new Error(errorMessage));
-        },
-        {
-          enableHighAccuracy: true,
-          timeout: 15000, // Longer timeout for manual refresh
-          maximumAge: 0 // Don't use cached position for manual refresh
-        }
-      );
+      // Start with high accuracy
+      tryGetLocation(true);
     });
   }, [isGeolocationAvailable]);
 
