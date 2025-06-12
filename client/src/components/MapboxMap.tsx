@@ -44,6 +44,7 @@ export default function MapboxMap({
   const mapContainer = useRef<HTMLDivElement>(null);
   const map = useRef<mapboxgl.Map | null>(null);
   const [mapLoaded, setMapLoaded] = useState(false);
+  const [currentZoom, setCurrentZoom] = useState(zoom);
   const mapMarkers = useRef<mapboxgl.Marker[]>([]);
   
   // Initialize the map
@@ -130,6 +131,13 @@ export default function MapboxMap({
         console.warn('Could not set custom road colors:', error);
       }
     });
+
+    // Add zoom change listener to update pin sizes
+    map.current.on('zoom', () => {
+      if (map.current) {
+        setCurrentZoom(map.current.getZoom());
+      }
+    });
       // Theme change observer
     const darkModeObserver = new MutationObserver((mutations) => {
       mutations.forEach((mutation) => {
@@ -210,7 +218,7 @@ export default function MapboxMap({
           isHighlighted: marker.isHighlighted
         };
 
-        const pinStyle = generatePinStyle(pinConfig, isDark);
+        const pinStyle = generatePinStyle(pinConfig, isDark, currentZoom);
         const cssStyles = generatePinCSS(pinStyle);
 
         // Apply all CSS styles
@@ -292,7 +300,7 @@ export default function MapboxMap({
         console.error(`Failed to add marker at [${marker.longitude}, ${marker.latitude}]`, error);
       }
     });
-  }, [markers, mapLoaded]);
+  }, [markers, mapLoaded, currentZoom]);
   
   // Update map center when latitude/longitude props change
   useEffect(() => {

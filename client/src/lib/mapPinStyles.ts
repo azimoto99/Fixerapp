@@ -76,11 +76,27 @@ const CATEGORY_STYLES: Record<string, Partial<PinStyle>> = {
   }
 };
 
-// Payment tier sizing
-const getPaymentTierSize = (amount: number): number => {
-  if (amount <= 50) return 44; // Small - increased from 32
-  if (amount <= 150) return 52; // Medium - increased from 40
-  return 60; // Large - increased from 48
+// Payment tier sizing with zoom-based limits
+const getPaymentTierSize = (amount: number, zoomLevel?: number): number => {
+  let baseSize: number;
+  if (amount <= 50) baseSize = 44; // Small
+  else if (amount <= 150) baseSize = 52; // Medium
+  else baseSize = 60; // Large
+
+  // Apply zoom-based size limiting
+  if (zoomLevel !== undefined) {
+    // At zoom level 10 and below, cap the size to prevent pins from being too large
+    if (zoomLevel <= 8) {
+      baseSize = Math.min(baseSize, 32); // Very small for very zoomed out
+    } else if (zoomLevel <= 10) {
+      baseSize = Math.min(baseSize, 40); // Small for zoomed out
+    } else if (zoomLevel <= 12) {
+      baseSize = Math.min(baseSize, 48); // Medium for normal zoom
+    }
+    // At zoom 13+ use full size
+  }
+
+  return baseSize;
 };
 
 // Skill-based border styling
@@ -119,7 +135,7 @@ const getSkillBorderStyle = (skills: string[]): { borderColor: string; borderWid
   
   return {
     borderColor: "#ffffff",
-    borderWidth: 3,
+    borderWidth: 4,
     borderStyle: "solid"
   };
 };
@@ -176,11 +192,11 @@ const adjustColorBrightness = (hex: string, percent: number): string => {
 /**
  * Generate complete pin style based on job configuration
  */
-export const generatePinStyle = (config: PinConfig, isDark: boolean = false): PinStyle => {
+export const generatePinStyle = (config: PinConfig, isDark: boolean = false, zoomLevel?: number): PinStyle => {
   const categoryStyle = CATEGORY_STYLES[config.category] || CATEGORY_STYLES["Other"];
   const skillBorder = getSkillBorderStyle(config.requiredSkills);
   const statusMods = getStatusModifications(config.status);
-  const size = getPaymentTierSize(config.paymentAmount);
+  const size = getPaymentTierSize(config.paymentAmount, zoomLevel);
   
   let baseStyle: PinStyle = {
     backgroundColor: categoryStyle.backgroundColor || "#6b7280",
@@ -219,7 +235,7 @@ export const generatePinCSS = (style: PinStyle): Record<string, string> => {
     borderWidth: `${style.borderWidth}px`,
     borderStyle: style.borderStyle || "solid",
     color: style.textColor,
-    boxShadow: `0 4px 12px ${style.shadowColor}, 0 2px 4px rgba(0,0,0,0.1)`,
+    boxShadow: `0 4px 12px ${style.shadowColor}, 0 2px 4px rgba(0,0,0,0.1), inset 0 0 0 ${style.borderWidth}px ${style.borderColor}`,
     borderRadius: "50%",
     display: "flex",
     alignItems: "center",
