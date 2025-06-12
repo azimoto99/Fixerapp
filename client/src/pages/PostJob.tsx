@@ -402,13 +402,13 @@ export default function PostJob() {
                     <span>${parseFloat(String(form.watch('paymentAmount') || '0')).toFixed(2)}</span>
                   </div>
                   <div className="flex justify-between text-sm mb-2 text-foreground">
-                    <span>Service Fee:</span>
-                    <span>$2.50</span>
+                    <span>Service Fee (5%):</span>
+                    <span>${(parseFloat(String(form.watch('paymentAmount') || '0')) * 0.05).toFixed(2)}</span>
                   </div>
                   {form.watch('paymentType') === 'fixed' && (
                     <div className="flex justify-between font-medium border-t border-border pt-2 mt-2 text-foreground">
                       <span>Total Amount:</span>
-                      <span>${(parseFloat(String(form.watch('paymentAmount') || '0')) + 2.50).toFixed(2)}</span>
+                      <span>${(parseFloat(String(form.watch('paymentAmount') || '0')) * 1.05).toFixed(2)}</span>
                     </div>
                   )}
                   {form.watch('paymentType') === 'fixed' && (
@@ -420,7 +420,7 @@ export default function PostJob() {
                   {form.watch('paymentType') === 'hourly' && (
                     <div className="flex justify-between text-sm mt-2 text-muted-foreground">
                       <span>Note:</span>
-                      <span className="text-right">For hourly jobs, the $2.50 service fee<br/>is added to the total upon completion</span>
+                      <span className="text-right">For hourly jobs, the 5% service fee<br/>is added to the total upon completion</span>
                     </div>
                   )}
                 </div>

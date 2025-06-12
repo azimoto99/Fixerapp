@@ -122,7 +122,7 @@ export default function Register({ onModeChange }: RegisterProps) {
     <div className="w-full max-w-md">
       <div className="text-center mb-8">
         <div className="flex justify-center">
-          <div className="bg-gray-100 p-5 rounded-xl shadow-sm">
+          <div className="bg-muted p-5 rounded-xl shadow-sm">
             <img 
               src={logoImg} 
               alt="Fixer" 
@@ -154,8 +154,8 @@ export default function Register({ onModeChange }: RegisterProps) {
                       </FormControl>
                       <FormMessage />
                       {showSuggestions && usernameSuggestions.length > 0 && (
-                        <div className="mt-2 p-3 bg-blue-50 border border-blue-200 rounded-md">
-                          <p className="text-sm text-blue-800 font-medium mb-2">
+                        <div className="mt-2 p-3 bg-primary/10 border border-primary/20 rounded-md">
+                          <p className="text-sm text-primary font-medium mb-2">
                             Try these available usernames:
                           </p>
                           <div className="flex flex-wrap gap-2">
@@ -168,7 +168,7 @@ export default function Register({ onModeChange }: RegisterProps) {
                                   setShowSuggestions(false);
                                   setUsernameSuggestions([]);
                                 }}
-                                className="px-3 py-1 text-sm bg-blue-100 hover:bg-blue-200 text-blue-800 rounded-full transition-colors"
+                                className="px-3 py-1 text-sm bg-primary/20 hover:bg-primary/30 text-primary rounded-full transition-colors"
                               >
                                 {suggestion}
                               </button>
@@ -304,10 +304,10 @@ export default function Register({ onModeChange }: RegisterProps) {
 
         </CardContent>
         <CardFooter className="flex justify-center">
-          <p className="text-sm text-gray-600">
+          <p className="text-sm text-muted-foreground">
             Already have an account?{' '}
-            <span 
-              className="font-medium text-primary-600 hover:text-primary-500 cursor-pointer"
+            <span
+              className="font-medium text-primary hover:text-primary/80 cursor-pointer"
               onClick={onModeChange}
             >
               Log in

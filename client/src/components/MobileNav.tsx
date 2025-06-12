@@ -20,7 +20,7 @@ const MobileNav: React.FC<MobileNavProps> = ({
       <div className="max-w-md mx-auto px-4">
         <div className="flex justify-between">
           <Link href="/">
-            <div className={`group flex flex-col items-center py-3 px-2 cursor-pointer ${location === '/' ? 'text-emerald-600 border-t-2 border-emerald-600' : 'text-foreground'}`}>
+            <div className={`group flex flex-col items-center py-3 px-2 cursor-pointer ${location === '/' ? 'text-primary border-t-2 border-primary' : 'text-foreground'}`}>
               <i className="ri-compass-line text-xl"></i>
               <span className={`text-xs mt-1 ${location === '/' ? 'font-medium' : ''}`}>
                 {accountType === 'worker' ? 'Find Jobs' : 'Browse'}
@@ -30,14 +30,14 @@ const MobileNav: React.FC<MobileNavProps> = ({
           
           {/* Enhanced Post Job+ Button */}
           <Link href="/post-job">
-            <div className={`group flex flex-col items-center py-3 px-2 cursor-pointer ${location === '/post-job' ? 'text-emerald-600 border-t-2 border-emerald-600' : 'text-foreground'}`}>
+            <div className={`group flex flex-col items-center py-3 px-2 cursor-pointer ${location === '/post-job' ? 'text-primary border-t-2 border-primary' : 'text-foreground'}`}>
               <i className="ri-add-circle-line text-xl"></i>
               <span className={`text-xs mt-1 ${location === '/post-job' ? 'font-medium' : ''}`}>Post Job+</span>
             </div>
           </Link>
           
           <Link href={accountType === 'worker' ? '/saved-jobs' : '/my-jobs'}>
-            <div className={`group flex flex-col items-center py-3 px-2 cursor-pointer ${location === (accountType === 'worker' ? '/saved-jobs' : '/my-jobs') ? 'text-emerald-600 border-t-2 border-emerald-600' : 'text-foreground'}`}>
+            <div className={`group flex flex-col items-center py-3 px-2 cursor-pointer ${location === (accountType === 'worker' ? '/saved-jobs' : '/my-jobs') ? 'text-primary border-t-2 border-primary' : 'text-foreground'}`}>
               <i className={accountType === 'worker' ? "ri-bookmark-line text-xl" : "ri-briefcase-line text-xl"}></i>
               <span className={`text-xs mt-1 ${location === (accountType === 'worker' ? '/saved-jobs' : '/my-jobs') ? 'font-medium' : ''}`}>
                 {accountType === 'worker' ? 'Saved' : 'My Jobs'}
@@ -48,7 +48,7 @@ const MobileNav: React.FC<MobileNavProps> = ({
 
           
           <Link href="/profile">
-            <div className={`group flex flex-col items-center py-3 px-2 cursor-pointer ${location === '/profile' ? 'text-emerald-600 border-t-2 border-emerald-600' : 'text-foreground'}`}>
+            <div className={`group flex flex-col items-center py-3 px-2 cursor-pointer ${location === '/profile' ? 'text-primary border-t-2 border-primary' : 'text-foreground'}`}>
               <i className="ri-user-line text-xl"></i>
               <span className={`text-xs mt-1 ${location === '/profile' ? 'font-medium' : ''}`}>Profile</span>
             </div>

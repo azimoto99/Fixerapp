@@ -110,10 +110,10 @@ export default function Login({ onModeChange }: LoginProps) {
 
         </CardContent>
         <CardFooter className="flex justify-center">
-          <p className="text-sm text-gray-600">
+          <p className="text-sm text-muted-foreground">
             Don't have an account?{' '}
-            <span 
-              className="font-medium text-primary-600 hover:text-primary-500 cursor-pointer"
+            <span
+              className="font-medium text-primary hover:text-primary/80 cursor-pointer"
               onClick={onModeChange}
             >
               Sign up

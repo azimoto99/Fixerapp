@@ -30,8 +30,8 @@ const AccountTypeSwitch = () => {
           variant="tab"
           className={`rounded-l-md ${
             accountType === 'worker'
-              ? 'border-primary-600 bg-primary-600 text-white hover:bg-primary-700'
-              : 'border-gray-300 bg-white text-gray-700 hover:bg-gray-50'
+              ? 'border-primary bg-primary text-primary-foreground hover:bg-primary/90'
+              : 'border-border bg-background text-foreground hover:bg-accent'
           }`}
           onClick={handleWorkerClick}
         >
@@ -43,8 +43,8 @@ const AccountTypeSwitch = () => {
           variant="tab"
           className={`rounded-r-md ${
             accountType === 'poster'
-              ? 'border-primary-600 bg-primary-600 text-white hover:bg-primary-700'
-              : 'border-gray-300 bg-white text-gray-700 hover:bg-gray-50'
+              ? 'border-primary bg-primary text-primary-foreground hover:bg-primary/90'
+              : 'border-border bg-background text-foreground hover:bg-accent'
           }`}
           onClick={handlePosterClick}
         >

@@ -53,7 +53,7 @@ const Header: React.FC<HeaderProps> = ({
   // Create a reusable navigation link component for consistency
   const NavLink = ({ href, isActive, children }: { href: string; isActive: boolean; children: React.ReactNode }) => (
     <Link href={href}>
-      <div className={`text-gray-500 hover:text-gray-900 font-medium px-1 py-3 cursor-pointer transition-colors ${isActive ? 'text-emerald-600 font-semibold' : ''}`}>
+      <div className={`text-muted-foreground hover:text-foreground font-medium px-1 py-3 cursor-pointer transition-colors ${isActive ? 'text-primary font-semibold' : ''}`}>
         {children}
       </div>
     </Link>
@@ -67,7 +67,7 @@ const Header: React.FC<HeaderProps> = ({
           <Link href="/">
             <div className="flex-shrink-0 flex items-center cursor-pointer">
               <img src={fixerLogo} alt="Fixer" className="h-10 w-10 rounded-full" />
-              <span className="ml-2 text-xl font-bold text-emerald-600">Fixer</span>
+              <span className="ml-2 text-xl font-bold text-primary">Fixer</span>
             </div>
           </Link>
           
@@ -89,7 +89,7 @@ const Header: React.FC<HeaderProps> = ({
               <Button
                 onClick={onToggleMessaging}
                 size="sm"
-                className="bg-emerald-600 text-white shadow hover:bg-emerald-700 rounded-full flex items-center justify-center transition-all hover:scale-105 active:scale-95 p-2"
+                className="bg-primary text-primary-foreground shadow hover:bg-primary/90 rounded-full flex items-center justify-center transition-all hover:scale-105 active:scale-95 p-2"
                 aria-label="Messages"
               >
                 <MessageSquare className="h-4 w-4 md:h-5 md:w-5" />
@@ -104,7 +104,7 @@ const Header: React.FC<HeaderProps> = ({
               <Button
                 onClick={onTogglePostedJobs}
                 size="sm"
-                className="bg-blue-600 text-white shadow hover:bg-blue-700 rounded-full flex items-center justify-center transition-all hover:scale-105 active:scale-95 p-2"
+                className="bg-secondary text-secondary-foreground shadow hover:bg-secondary/90 rounded-full flex items-center justify-center transition-all hover:scale-105 active:scale-95 p-2"
                 aria-label="My Posted Jobs"
               >
                 <Briefcase className="h-4 w-4 md:h-5 md:w-5" />
@@ -112,7 +112,7 @@ const Header: React.FC<HeaderProps> = ({
               </Button>
               {postedJobsCount > 0 && (
                 <div className="absolute -top-1 -right-1 z-10 pointer-events-none">
-                  <span className="bg-red-500 text-white rounded-full w-4 h-4 md:w-5 md:h-5 flex items-center justify-center text-xs">
+                  <span className="bg-destructive text-destructive-foreground rounded-full w-4 h-4 md:w-5 md:h-5 flex items-center justify-center text-xs">
                     {postedJobsCount > 9 ? '9+' : postedJobsCount}
                   </span>
                 </div>
@@ -140,7 +140,7 @@ const Header: React.FC<HeaderProps> = ({
           {user ? (
             <div className="hidden md:block">
               <UserDrawerV2>
-                <button className="flex items-center text-sm rounded-full focus:outline-none">
+                <button className="flex items-center text-sm rounded-full focus:outline-none text-foreground">
                   <Avatar className="h-8 w-8">
                     <AvatarImage src={user.avatarUrl || undefined} alt={user.fullName} />
                     <AvatarFallback>{user.fullName?.charAt(0) || 'U'}</AvatarFallback>

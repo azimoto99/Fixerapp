@@ -178,7 +178,7 @@ const UserDrawerV2: React.FC<UserDrawerProps> = ({
                 <Wallet className="h-5 w-5" />
                 Wallet
               </h2>
-              <div className="flex bg-gray-100 dark:bg-gray-800 rounded-lg p-1">
+              <div className="flex bg-muted rounded-lg p-1">
                 <Button
                   variant={activeSection === 'earnings' ? 'default' : 'ghost'}
                   size="sm"
@@ -360,7 +360,7 @@ const UserDrawerV2: React.FC<UserDrawerProps> = ({
                           <span className="text-xs font-medium">Reviews</span>
                           {/* Show notification dot for new reviews */}
                           {user.rating && user.rating > 0 && (
-                            <span className="absolute top-1 right-1 h-2 w-2 bg-red-500 rounded-full animate-pulse"></span>
+                            <span className="absolute top-1 right-1 h-2 w-2 bg-destructive rounded-full animate-pulse"></span>
                           )}
                         </button>
                       </TooltipTrigger>
@@ -464,7 +464,7 @@ const UserDrawerV2: React.FC<UserDrawerProps> = ({
                       <TooltipTrigger asChild>
                         <Button
                           variant="ghost"
-                          className="flex flex-col items-center justify-center w-16 h-16 rounded-lg hover:bg-red-50 hover:text-red-600 dark:hover:bg-red-900/20 dark:hover:text-red-400"
+                          className="flex flex-col items-center justify-center w-16 h-16 rounded-lg hover:bg-destructive/10 hover:text-destructive"
                           onClick={handleLogout}
                         >
                           <LogOut className="h-5 w-5 mb-1" />

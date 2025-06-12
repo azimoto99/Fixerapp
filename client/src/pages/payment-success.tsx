@@ -103,7 +103,7 @@ export default function PaymentSuccess() {
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <p className="text-red-500">{error || 'Unable to retrieve payment information'}</p>
+            <p className="text-destructive">{error || 'Unable to retrieve payment information'}</p>
           </CardContent>
           <CardFooter>
             <Button onClick={() => navigate('/jobs')} className="w-full">
@@ -117,15 +117,15 @@ export default function PaymentSuccess() {
 
   return (
     <div className="max-w-md mx-auto mt-12">
-      <Card className="border-green-100">
-        <CardHeader className="bg-green-50 border-b border-green-100">
+      <Card className="border-primary/20">
+        <CardHeader className="bg-primary/5 border-b border-primary/20">
           <div className="flex items-center justify-center mb-4">
-            <div className="rounded-full bg-green-100 p-3">
-              <CheckCircle className="h-8 w-8 text-green-600" />
+            <div className="rounded-full bg-primary/10 p-3">
+              <CheckCircle className="h-8 w-8 text-primary" />
             </div>
           </div>
-          <CardTitle className="text-center text-green-800">Payment Successful!</CardTitle>
-          <CardDescription className="text-center text-green-700">
+          <CardTitle className="text-center text-primary">Payment Successful!</CardTitle>
+          <CardDescription className="text-center text-primary/80">
             Your payment has been processed successfully.
           </CardDescription>
         </CardHeader>
@@ -166,8 +166,8 @@ export default function PaymentSuccess() {
             </div>
             
             <div className="flex justify-between">
-              <span className="text-slate-600">Status:</span>
-              <span className="font-medium text-green-600">
+              <span className="text-muted-foreground">Status:</span>
+              <span className="font-medium text-primary">
                 {payment.status === 'succeeded' || payment.status === 'completed' 
                   ? 'Completed' 
                   : payment.status}

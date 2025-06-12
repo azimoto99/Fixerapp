@@ -324,8 +324,8 @@ export function ChunkErrorRecovery({ children }: { children: ReactNode }) {
       <div className="min-h-screen bg-background flex items-center justify-center p-4">
         <Card className="w-full max-w-md">
           <CardHeader className="text-center">
-            <div className="mx-auto w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center mb-4">
-              <RefreshCw className="h-6 w-6 text-blue-600" />
+            <div className="mx-auto w-12 h-12 bg-primary/10 rounded-full flex items-center justify-center mb-4">
+              <RefreshCw className="h-6 w-6 text-primary" />
             </div>
             <CardTitle>App Update Available</CardTitle>
             <CardDescription>
