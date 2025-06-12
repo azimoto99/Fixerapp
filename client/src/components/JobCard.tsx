@@ -25,7 +25,7 @@ const JobCard: React.FC<JobCardProps> = memo(({ job, isSelected, onSelect }) => 
   } = job;
   
   // Calculate service fee and total amount based on payment amount
-  const serviceFee = paymentAmount ? Math.max(1.5, paymentAmount * 0.05) : 0;
+  const serviceFee = paymentAmount ? paymentAmount * 0.05 : 0;
   const totalAmount = paymentAmount ? paymentAmount + serviceFee : 0;
   
   // Calculate proper distance if we have coordinates, otherwise use 0

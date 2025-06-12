@@ -433,8 +433,8 @@ export class DatabaseStorage implements IStorage {
   }
 
   async createJob(job: InsertJob): Promise<Job> {
-    // Service fee is fixed at $2.50
-    const serviceFee = 2.5;
+    // Service fee is 5% of payment amount
+    const serviceFee = data.paymentAmount * 0.05;
     const totalAmount = job.paymentType === 'fixed' ? job.paymentAmount + serviceFee : job.paymentAmount;
     
     // Create a job object with all required fields, including those specified in InsertJob
@@ -489,7 +489,7 @@ export class DatabaseStorage implements IStorage {
     if (data.paymentAmount !== undefined || data.paymentType !== undefined) {
       const paymentType = data.paymentType || existingJob.paymentType;
       const paymentAmount = data.paymentAmount !== undefined ? data.paymentAmount : existingJob.paymentAmount;
-      const serviceFee = 2.5; // Fixed service fee
+      const serviceFee = paymentAmount * 0.05; // 5% service fee
       
       updateData.paymentType = paymentType;
       updateData.paymentAmount = paymentAmount;
@@ -738,8 +738,8 @@ export class DatabaseStorage implements IStorage {
   }
 
   async createEarning(earning: InsertEarning): Promise<Earning> {
-    // Default service fee if not provided
-    const serviceFee = earning.serviceFee ?? 2.5;
+    // Default service fee if not provided (5% of amount)
+    const serviceFee = earning.serviceFee ?? (earning.amount * 0.05);
     
     // Calculate net amount (earnings - service fee)
     const netAmount = earning.amount - serviceFee;

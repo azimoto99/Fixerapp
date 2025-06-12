@@ -90,9 +90,9 @@ export async function createJobWithPaymentFirst(req: Request, res: Response) {
     validatedData.title = sanitizedTitle;
     validatedData.description = sanitizedDescription;
     
-    // Step 2: Calculate total amount (job posting fee + service fee)
-    const jobPostingFee = 2.50; // $2.50 job posting fee
-    const totalAmount = Math.round((validatedData.paymentAmount + jobPostingFee) * 100); // Convert to cents
+    // Step 2: Calculate total amount (job amount + service fee)
+    const serviceFee = validatedData.paymentAmount * 0.05; // 5% service fee
+    const totalAmount = Math.round((validatedData.paymentAmount + serviceFee) * 100); // Convert to cents
     
     console.log(`Processing payment-first job posting for user ${req.user.id}`);
     console.log(`Total charge amount: $${totalAmount / 100}`);
@@ -129,7 +129,7 @@ export async function createJobWithPaymentFirst(req: Request, res: Response) {
           user_id: req.user.id.toString(),
           job_title: validatedData.title,
           payment_amount: validatedData.paymentAmount.toString(),
-          service_fee: '2.50',
+          service_fee: serviceFee.toFixed(2),
           total_amount: (totalAmount / 100).toString()
         },
         description: `Job posting fee for: ${validatedData.title}`,
@@ -189,7 +189,7 @@ export async function createJobWithPaymentFirst(req: Request, res: Response) {
       paymentRecord = await storage.createPayment({
         userId: req.user.id,
         amount: totalAmount / 100, // Convert back to dollars
-        serviceFee: 2.5,
+        serviceFee: serviceFee,
         type: 'job_posting_fee',
         status: 'completed',
         paymentMethod: 'card',
@@ -218,8 +218,8 @@ export async function createJobWithPaymentFirst(req: Request, res: Response) {
         category: validatedData.category,
         paymentType: validatedData.paymentType,
         paymentAmount: validatedData.paymentAmount,
-        serviceFee: 2.5, // Standard service fee
-        totalAmount: validatedData.paymentAmount + 2.5, // Payment amount + service fee
+        serviceFee: serviceFee, // 5% service fee
+        totalAmount: validatedData.paymentAmount + serviceFee, // Payment amount + service fee
         location: validatedData.location,
         latitude: validatedData.latitude,
         longitude: validatedData.longitude,
@@ -342,7 +342,7 @@ export async function createJobWithPaymentFirst(req: Request, res: Response) {
           paymentIntentId: paymentIntent.id,
           paymentRecordId: paymentRecord?.id,
           amountCharged: totalAmount / 100,
-          serviceFee: 2.5,
+          serviceFee: serviceFee,
           jobAmount: validatedData.paymentAmount,
           status: 'completed'
         },

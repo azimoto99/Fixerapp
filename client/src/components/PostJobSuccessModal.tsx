@@ -166,7 +166,7 @@ const PostJobSuccessModal: React.FC<PostJobSuccessModalProps> = ({
               
               {/* Service Fee Notice */}
               <div className="mt-3 p-2 bg-blue-50 rounded-md text-xs text-blue-800">
-                <p>Your payment includes the job cost plus a $2.50 service fee to help maintain the platform.</p>
+                <p>Your payment includes the job cost plus a 5% service fee to help maintain the platform.</p>
               </div>
             </CardContent>
           </Card>

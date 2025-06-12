@@ -149,7 +149,7 @@ const DownloadReceipt: React.FC<DownloadReceiptProps> = ({ paymentId, isOpen, on
       
       // If job payment, show subtotal, fee, and total
       if (job) {
-        const serviceFee = job.serviceFee || 2.50;
+        const serviceFee = job.serviceFee || (job.paymentAmount * 0.05); // 5% service fee
         const subtotal = payment.amount - serviceFee;
         
         doc.setFont('helvetica', 'normal');

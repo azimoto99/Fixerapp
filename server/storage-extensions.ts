@@ -183,7 +183,7 @@ const paymentMethods = {
         userId: data.userId,
         jobId: data.jobId,
         amount: data.amount,
-        serviceFee: 2.5, // Standard service fee
+        serviceFee: data.amount * 0.05, // 5% service fee
         type: 'payment',
         status: 'pending',
         paymentMethod: 'card',
@@ -258,8 +258,8 @@ const paymentMethods = {
         workerId: data.workerId,
         jobId: data.jobId,
         amount: data.amount,
-        serviceFee: 2.5,
-        netAmount: data.amount - 2.5,
+        serviceFee: data.amount * 0.05,
+        netAmount: data.amount - (data.amount * 0.05),
         description: data.description,
         stripeAccountId: worker.stripeConnectAccountId
       });
@@ -269,7 +269,7 @@ const paymentMethods = {
       const stripe = stripeModule.getStripeClient();
       
       const transfer = await stripe.transfers.create({
-        amount: Math.round((data.amount - 2.5) * 100), // Convert to cents, minus fee
+        amount: Math.round((data.amount - (data.amount * 0.05)) * 100), // Convert to cents, minus 5% fee
         currency: 'usd',
         destination: worker.stripeConnectAccountId,
         description: `Payment for job #${data.jobId}: ${data.description}`,

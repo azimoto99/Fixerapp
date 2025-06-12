@@ -478,7 +478,7 @@ export class MemStorage implements IStorage {
     const id = this.jobIdCounter++;
     const datePosted = new Date();
     const workerId = null;
-    const serviceFee = 2.5; // Service fee is fixed at $2.50
+    const serviceFee = insertJob.paymentAmount * 0.05; // Service fee is 5% of payment amount
     const totalAmount = insertJob.paymentType === 'fixed' ? insertJob.paymentAmount + serviceFee : insertJob.paymentAmount;
     const status = insertJob.status || 'open'; // Default status is 'open'
     
@@ -520,7 +520,7 @@ export class MemStorage implements IStorage {
     if (data.paymentAmount !== undefined || data.paymentType !== undefined) {
       const paymentType = data.paymentType || job.paymentType;
       const paymentAmount = data.paymentAmount !== undefined ? data.paymentAmount : job.paymentAmount;
-      const serviceFee = 2.5; // Fixed service fee
+      const serviceFee = paymentAmount * 0.05; // 5% service fee
       
       updatedJob = {
         ...updatedJob,
@@ -793,7 +793,7 @@ export class MemStorage implements IStorage {
     const dateEarned = new Date();
     const datePaid = null;
     const status = "pending";  // Initial status is always "pending"
-    const serviceFee = earning.serviceFee || 2.5; // Default service fee is $2.50
+    const serviceFee = earning.serviceFee || (earning.amount * 0.05); // Default service fee is 5%
     
     const newEarning: Earning = {
       ...earning,

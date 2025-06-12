@@ -13,9 +13,10 @@ const JobPayment: React.FC<JobPaymentProps> = ({ job, onPaymentComplete }) => {
     id: jobId,
     title,
     paymentAmount,
-    serviceFee = 2.50,
-    totalAmount = paymentAmount + serviceFee
   } = job;
+
+  const serviceFee = paymentAmount * 0.05; // 5% service fee
+  const totalAmount = paymentAmount + serviceFee;
 
   return (
     <div className="bg-white border border-gray-200 rounded-lg p-4">
@@ -27,7 +28,7 @@ const JobPayment: React.FC<JobPaymentProps> = ({ job, onPaymentComplete }) => {
           <span className="font-medium">{formatCurrency(paymentAmount)}</span>
         </div>
         <div className="flex justify-between items-center mb-2">
-          <span className="text-sm text-gray-600">Service fee:</span>
+          <span className="text-sm text-gray-600">Service fee (5%):</span>
           <span className="font-medium">{formatCurrency(serviceFee)}</span>
         </div>
         <div className="flex justify-between items-center pt-2 border-t border-gray-200">
