@@ -5,6 +5,7 @@ import { cn } from '@/lib/utils';
 import { useLocation } from 'wouter';
 import { apiRequest } from '@/lib/queryClient';
 import { Button } from '@/components/ui/button';
+import { useGeolocation } from '@/hooks/use-react-geolocated';
 
 interface FindNearestJobButtonProps {
   className?: string;
@@ -14,21 +15,15 @@ const FindNearestJobButton: React.FC<FindNearestJobButtonProps> = ({ className }
   const { toast } = useToast();
   const [_, setLocation] = useLocation();
   const [isSearching, setIsSearching] = React.useState(false);
+  const { refreshLocation } = useGeolocation();
 
   const handleFindNearestJob = async () => {
     setIsSearching(true);
     
     try {
-      // Get user's current position
-      const position = await new Promise<GeolocationPosition>((resolve, reject) => {
-        navigator.geolocation.getCurrentPosition(resolve, reject, {
-          enableHighAccuracy: true,
-          timeout: 5000,
-          maximumAge: 0
-        });
-      });
-      
-      const { latitude, longitude } = position.coords;
+      // Get user's current position using the geolocation hook
+      const location = await refreshLocation();
+      const { latitude, longitude } = location;
       
       // Search for nearby jobs
       const response = await apiRequest(

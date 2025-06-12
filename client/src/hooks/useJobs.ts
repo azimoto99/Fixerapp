@@ -1,7 +1,7 @@
 import { useQuery } from '@tanstack/react-query';
 import { useMemo } from 'react';
 import { Job } from '@shared/schema';
-import { useGeolocation } from '@/lib/geolocation';
+import { useGeolocation } from '@/hooks/use-react-geolocated';
 import { useAuth } from '@/hooks/use-auth';
 
 interface UseJobsOptions {

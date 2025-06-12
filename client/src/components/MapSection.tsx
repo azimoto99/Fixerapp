@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
-import { useGeolocation } from '@/lib/geolocation';
+import { useGeolocation } from '@/hooks/use-react-geolocated';
 import JobDetail from './JobDetail';
 import JobDetailCard from './JobDetailCard';
 import UserDrawerV2 from './UserDrawerV2';

@@ -7,7 +7,7 @@ import { insertJobSchema, JOB_CATEGORIES, SKILLS, insertTaskSchema, type InsertT
 import { apiRequest } from '@/lib/queryClient';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/hooks/use-auth';
-import { useGeolocation } from '@/lib/geolocation';
+import { useGeolocation } from '@/hooks/use-react-geolocated';
 import { AddressAutocompleteInput } from '@/components/AddressAutocompleteInput';
 import {
   Drawer,

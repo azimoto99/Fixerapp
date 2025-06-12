@@ -7,7 +7,7 @@ import { insertJobSchema, insertTaskSchema } from '@shared/schema';
 import { useAuth } from '@/hooks/use-auth';
 import { useToast } from '@/hooks/use-toast';
 import { apiRequest } from '@/lib/queryClient';
-import { useGeolocation } from '@/lib/geolocation';
+import { useGeolocation } from '@/hooks/use-react-geolocated';
 
 import Header from '@/components/Header';
 import PaymentDetailsForm from '@/components/PaymentDetailsForm';

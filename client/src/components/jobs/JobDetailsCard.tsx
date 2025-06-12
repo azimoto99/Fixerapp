@@ -68,7 +68,7 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
-import { useGeolocation } from '@/hooks/use-geolocation';
+import { useGeolocation } from '@/hooks/use-react-geolocated';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 // Import application management tab
@@ -90,7 +90,7 @@ const JobDetailsCard: React.FC<JobDetailsCardProps> = ({ jobId, isOpen, onClose 
   const { user } = useAuth();
   const { toast } = useToast();
   const queryClient = useQueryClient();
-  const { userLocation } = useGeolocation();
+  const { userLocation, refreshLocation } = useGeolocation();
   const [isExpanded, setIsExpanded] = useState(true);
 
   const [showCompleteDialog, setShowCompleteDialog] = useState(false);
@@ -380,42 +380,7 @@ const JobDetailsCard: React.FC<JobDetailsCardProps> = ({ jobId, isOpen, onClose 
 
 
 
-  // Get user's current location
-  const refreshLocation = (): Promise<{latitude: number, longitude: number}> => {
-    return new Promise((resolve, reject) => {
-      if (!navigator.geolocation) {
-        reject(new Error('Geolocation is not supported by your browser'));
-        return;
-      }
-      
-      navigator.geolocation.getCurrentPosition(
-        (position) => {
-          const { latitude, longitude } = position.coords;
-          resolve({ latitude, longitude });
-        },
-        (error) => {
-          let errorMessage = "Unable to get your current location.";
-          switch(error.code) {
-            case error.PERMISSION_DENIED:
-              errorMessage = "Location access denied. Please enable location services and try again.";
-              break;
-            case error.POSITION_UNAVAILABLE:
-              errorMessage = "Location information is unavailable. Please try again.";
-              break;
-            case error.TIMEOUT:
-              errorMessage = "Location request timed out. Please try again.";
-              break;
-          }
-          reject(new Error(errorMessage));
-        },
-        {
-          enableHighAccuracy: true,
-          timeout: 12000, // Reduced from 15s
-          maximumAge: 30000 // Reduced cache time for more accurate location
-        }
-      );
-    });
-  };
+
 
   // Function to calculate distance between two coordinates
   const calculateDistance = (lat1: number, lon1: number, lat2: number, lon2: number): number => {
