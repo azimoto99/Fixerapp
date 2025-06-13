@@ -2370,6 +2370,76 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Test job posting route (bypasses payment for testing)
+  apiRouter.post("/jobs/test", isAuthenticated, async (req: Request, res: Response) => {
+    try {
+      if (!req.user) {
+        return res.status(401).json({ message: 'Authentication required' });
+      }
+
+      const {
+        title,
+        description,
+        category,
+        paymentType,
+        paymentAmount,
+        location,
+        latitude,
+        longitude,
+        dateNeeded,
+        requiredSkills = [],
+        equipmentProvided = false
+      } = req.body;
+
+      // Validate required fields
+      if (!title || !description || !category || !paymentAmount || !location) {
+        return res.status(400).json({ message: 'Missing required fields' });
+      }
+
+      // Calculate service fee and total amount
+      const serviceFee = paymentAmount * 0.05; // 5% service fee
+      const totalAmount = paymentAmount + serviceFee;
+
+      const jobData = {
+        title,
+        description,
+        category,
+        paymentType: paymentType || 'fixed',
+        paymentAmount,
+        serviceFee,
+        totalAmount,
+        location,
+        latitude,
+        longitude,
+        dateNeeded: new Date(dateNeeded),
+        requiredSkills,
+        equipmentProvided,
+        posterId: req.user.id,
+        status: 'open' as const,
+        datePosted: new Date()
+      };
+
+      const createdJob = await storage.createJob(jobData);
+
+      if (!createdJob) {
+        return res.status(500).json({ message: 'Failed to create test job' });
+      }
+
+      res.json({
+        success: true,
+        job: createdJob,
+        message: 'Test job created successfully'
+      });
+    } catch (error) {
+      console.error('Test job creation error:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Failed to create test job',
+        error: error instanceof Error ? error.message : 'Unknown error'
+      });
+    }
+  });
+
   // Standard job posting route (alias to payment-first)
   apiRouter.post("/jobs", isAuthenticated, async (req, res) => {
     try { await createJobWithPaymentFirst(req, res); }

@@ -323,7 +323,12 @@ const MapSection: React.FC<MapSectionProps> = ({ jobs, selectedJob, onSelectJob,
           category: job.category,
           paymentAmount: job.paymentAmount || 0,
           requiredSkills: job.requiredSkills || [],
-          status: job.status || 'open'
+          status: job.status || 'open',
+          // Add circle around job markers
+          showCircle: true,
+          circleRadius: 500, // 500 meter radius around each job
+          circleColor: job.markerColor || '#3b82f6',
+          circleOpacity: 0.15
         });
       });
     }

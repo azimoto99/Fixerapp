@@ -72,7 +72,12 @@ export default function JobLocationMap({
     paymentAmount: job.paymentAmount || 0,
     requiredSkills: job.requiredSkills || [],
     status: job.status || 'open',
-    isHighlighted: selectedJob?.id === job.id
+    isHighlighted: selectedJob?.id === job.id,
+    // Add circles around job markers
+    showCircle: true,
+    circleRadius: 300, // 300 meter radius for job location map
+    circleColor: selectedJob?.id === job.id ? '#f59e0b' : '#3b82f6',
+    circleOpacity: selectedJob?.id === job.id ? 0.3 : 0.15
   })).filter(marker => marker.latitude && marker.longitude); // Filter out jobs without coordinates
 
   // Handle map click to view job details

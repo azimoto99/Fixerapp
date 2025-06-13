@@ -56,7 +56,7 @@ function getLocationSource(accuracy: number | undefined): 'gps' | 'network' | 'f
 }
 
 export function useGeolocation(): GeolocationHook {
-  // Use the react-geolocated hook with more permissive settings for reliability
+  // Use the react-geolocated hook with balanced settings for reliability and accuracy
   const {
     coords,
     isGeolocationAvailable,
@@ -65,14 +65,14 @@ export function useGeolocation(): GeolocationHook {
     getPosition
   } = useGeolocated({
     positionOptions: {
-      enableHighAccuracy: false, // Start with network location for faster response
-      timeout: 8000, // Reasonable timeout
-      maximumAge: 300000, // 5 minute cache for reliability
+      enableHighAccuracy: true, // Use high accuracy for better location
+      timeout: 10000, // 10 second timeout
+      maximumAge: 60000, // 1 minute cache for balance
     },
-    userDecisionTimeout: 10000, // Standard timeout
+    userDecisionTimeout: 15000, // Give user time to allow location
     suppressLocationOnMount: false,
     watchPosition: false,
-    isOptimisticGeolocationEnabled: true, // Enable for faster response
+    isOptimisticGeolocationEnabled: false, // Disable for more accurate results
   });
 
   const [state, setState] = useState<GeolocationState>({
