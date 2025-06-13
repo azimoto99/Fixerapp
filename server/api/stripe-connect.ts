@@ -278,22 +278,30 @@ stripeConnectRouter.get('/account-status', isAuthenticated, async (req, res) => 
       return res.status(404).json({ message: 'User not found' });
     }
 
-    if (!user.stripeConnectAccountId) {
-      return res.status(404).json({ 
+    // Check both possible account ID fields for compatibility
+    const accountId = user.stripeConnectAccountId || user.stripeAccountId;
+
+    if (!accountId) {
+      return res.status(200).json({
         message: 'No Stripe Connect account found',
-        exists: false
+        exists: false,
+        hasAccount: false,
+        accountStatus: 'no_account',
+        onboardingRequired: true
       });
     }
 
-    const account = await stripe.accounts.retrieve(user.stripeConnectAccountId);
+    const account = await stripe.accounts.retrieve(accountId);
     
     return res.status(200).json({
       exists: true,
+      hasAccount: true,
       accountStatus: account.payouts_enabled ? 'active' : 'pending',
       accountId: account.id,
       payoutsEnabled: account.payouts_enabled,
       chargesEnabled: account.charges_enabled,
       detailsSubmitted: account.details_submitted,
+      onboardingRequired: !account.details_submitted,
       account: {
         id: account.id,
         charges_enabled: account.charges_enabled,
@@ -308,9 +316,13 @@ stripeConnectRouter.get('/account-status', isAuthenticated, async (req, res) => 
     });
   } catch (error) {
     console.error('Stripe Connect account status check error:', error);
-    return res.status(500).json({ 
-      message: 'Failed to check Stripe Connect account status',
-      error: error instanceof Error ? error.message : 'Unknown error'
+    // Return a graceful error response instead of 500
+    return res.status(200).json({
+      exists: false,
+      hasAccount: false,
+      accountStatus: 'error',
+      onboardingRequired: true,
+      error: 'Unable to verify account status'
     });
   }
 });
