@@ -79,19 +79,19 @@ const CATEGORY_STYLES: Record<string, Partial<PinStyle>> = {
 // Payment tier sizing with zoom-based limits
 const getPaymentTierSize = (amount: number, zoomLevel?: number): number => {
   let baseSize: number;
-  if (amount <= 50) baseSize = 44; // Small
-  else if (amount <= 150) baseSize = 52; // Medium
-  else baseSize = 60; // Large
+  if (amount <= 50) baseSize = 48; // Small - increased for better visibility
+  else if (amount <= 150) baseSize = 56; // Medium - increased for better visibility
+  else baseSize = 64; // Large - increased for better visibility
 
   // Apply zoom-based size limiting
   if (zoomLevel !== undefined) {
     // At zoom level 10 and below, cap the size to prevent pins from being too large
     if (zoomLevel <= 8) {
-      baseSize = Math.min(baseSize, 32); // Very small for very zoomed out
+      baseSize = Math.min(baseSize, 36); // Very small for very zoomed out
     } else if (zoomLevel <= 10) {
-      baseSize = Math.min(baseSize, 40); // Small for zoomed out
+      baseSize = Math.min(baseSize, 44); // Small for zoomed out
     } else if (zoomLevel <= 12) {
-      baseSize = Math.min(baseSize, 48); // Medium for normal zoom
+      baseSize = Math.min(baseSize, 52); // Medium for normal zoom
     }
     // At zoom 13+ use full size
   }
@@ -135,7 +135,7 @@ const getSkillBorderStyle = (skills: string[]): { borderColor: string; borderWid
   
   return {
     borderColor: "#ffffff",
-    borderWidth: 4,
+    borderWidth: 5, // Increased for better visibility
     borderStyle: "solid"
   };
 };
@@ -235,12 +235,12 @@ export const generatePinCSS = (style: PinStyle): Record<string, string> => {
     borderWidth: `${style.borderWidth}px`,
     borderStyle: style.borderStyle || "solid",
     color: style.textColor,
-    boxShadow: `0 4px 12px ${style.shadowColor}, 0 2px 4px rgba(0,0,0,0.1), inset 0 0 0 ${style.borderWidth}px ${style.borderColor}`,
+    boxShadow: `0 6px 16px ${style.shadowColor}, 0 3px 6px rgba(0,0,0,0.15), inset 0 0 0 ${style.borderWidth}px ${style.borderColor}`,
     borderRadius: "50%",
     display: "flex",
     alignItems: "center",
     justifyContent: "center",
-    fontSize: `${Math.max(18, style.size * 0.4)}px`,
+    fontSize: `${Math.max(20, style.size * 0.45)}px`, // Increased for better visibility
     fontWeight: "bold",
     cursor: "pointer",
     transition: "filter 0.2s ease, box-shadow 0.2s ease",

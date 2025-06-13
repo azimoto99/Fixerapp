@@ -73,31 +73,34 @@ export function useGeolocation(): GeolocationHook {
         errorMessage = 'Location information is unavailable.';
       }
 
-      // Only use fallback for permission denied in development
+      // Use fallback location for better user experience
       const isDev = process.env.NODE_ENV === 'development';
-      if (isDev && positionError.code === positionError.PERMISSION_DENIED) {
-        console.log('Using fallback location (permission denied in dev)');
+      const shouldUseFallback = isDev || positionError.code === positionError.PERMISSION_DENIED;
+
+      if (shouldUseFallback) {
+        console.log('Using fallback location:', positionError.code === positionError.PERMISSION_DENIED ? 'permission denied' : 'development mode');
         setState({
           userLocation: DEFAULT_LOCATION,
-          locationError: null,
+          locationError: `Using default location (${positionError.code === positionError.PERMISSION_DENIED ? 'location access denied' : 'development mode'})`,
           isLoading: false,
           isUsingFallback: true,
         });
       } else {
         setState({
-          userLocation: null,
+          userLocation: DEFAULT_LOCATION, // Still provide fallback for better UX
           locationError: errorMessage,
           isLoading: false,
-          isUsingFallback: false,
+          isUsingFallback: true,
         });
       }
     } else if (!isGeolocationAvailable) {
       const error = 'Geolocation is not supported by your browser';
+      console.log('Geolocation not available, using fallback location');
       setState({
-        userLocation: null,
+        userLocation: DEFAULT_LOCATION,
         locationError: error,
         isLoading: false,
-        isUsingFallback: false,
+        isUsingFallback: true,
       });
     } else if (!isGeolocationEnabled) {
       setState(prev => ({ ...prev, isLoading: true }));

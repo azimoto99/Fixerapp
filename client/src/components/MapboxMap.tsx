@@ -194,20 +194,54 @@ export default function MapboxMap({
       const isDark = document.documentElement.classList.contains('dark');
 
       if (marker.title === 'Current Location') {
-        // Special styling for user location marker
-        el.innerHTML = `📍`;
-        el.style.backgroundColor = isDark ? '#60a5fa' : '#3b82f6';
-        el.style.width = '32px';
-        el.style.height = '32px';
-        el.style.borderRadius = '50%';
-        el.style.border = '3px solid white';
-        el.style.boxShadow = '0 4px 12px rgba(59, 130, 246, 0.4), 0 2px 4px rgba(0,0,0,0.1)';
-        el.style.display = 'flex';
-        el.style.alignItems = 'center';
-        el.style.justifyContent = 'center';
-        el.style.fontSize = '16px';
+        // Enhanced user location marker with pulsing animation
+        el.innerHTML = `
+          <div style="
+            position: relative;
+            width: 40px;
+            height: 40px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+          ">
+            <!-- Pulsing outer ring -->
+            <div style="
+              position: absolute;
+              width: 40px;
+              height: 40px;
+              background-color: hsl(var(--primary));
+              border-radius: 50%;
+              opacity: 0.3;
+              animation: pulse 2s infinite;
+            "></div>
+            <!-- Inner location dot -->
+            <div style="
+              position: relative;
+              width: 20px;
+              height: 20px;
+              background-color: hsl(var(--primary));
+              border: 3px solid white;
+              border-radius: 50%;
+              box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+              z-index: 2;
+            "></div>
+          </div>
+        `;
+        el.style.width = '40px';
+        el.style.height = '40px';
         el.style.cursor = 'pointer';
-        el.style.zIndex = '10';
+        el.style.zIndex = '15';
+
+        // Add pulsing animation
+        const style = document.createElement('style');
+        style.textContent = `
+          @keyframes pulse {
+            0% { transform: scale(1); opacity: 0.3; }
+            50% { transform: scale(1.5); opacity: 0.1; }
+            100% { transform: scale(2); opacity: 0; }
+          }
+        `;
+        document.head.appendChild(style);
       } else {
         // Use new contextual styling system for job markers
         const pinConfig: PinConfig = {

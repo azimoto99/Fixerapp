@@ -441,16 +441,12 @@ const MapSection: React.FC<MapSectionProps> = ({ jobs, selectedJob, onSelectJob,
             latitude={
               focusMapCoordinates
               ? focusMapCoordinates.latitude
-              : (jobs?.length > 0 && jobs[0].latitude)
-                ? jobs[0].latitude
-                : position.latitude
+              : position.latitude
             }
             longitude={
               focusMapCoordinates
               ? focusMapCoordinates.longitude
-              : (jobs?.length > 0 && jobs[0].longitude)
-                ? jobs[0].longitude
-                : position.longitude
+              : position.longitude
             }
             zoom={focusMapCoordinates ? 18 : 10}
             markers={jobMarkers}
