@@ -1,7 +1,9 @@
 /**
  * Geocoding utilities for converting between addresses and coordinates
- * Using Mapbox Geocoding API
+ * Using Mapbox Geocoding API with location accuracy validation
  */
+
+import { validateCoordinates, analyzeLocationAccuracy } from './location-utils';
 
 // Make sure we have access to the Mapbox token
 const MAPBOX_ACCESS_TOKEN = import.meta.env.VITE_MAPBOX_ACCESS_TOKEN;
@@ -9,13 +11,16 @@ const MAPBOX_ACCESS_TOKEN = import.meta.env.VITE_MAPBOX_ACCESS_TOKEN;
 /**
  * Convert a text address to coordinates using Mapbox Geocoding API
  * @param address The address to geocode
- * @returns Promise resolving to coordinates or null if geocoding failed
+ * @returns Promise resolving to coordinates with accuracy info or error
  */
 export async function geocodeAddress(address: string): Promise<{
   success: boolean;
   latitude?: number;
   longitude?: number;
   displayName?: string;
+  accuracy?: number;
+  accuracyLevel?: 'high' | 'medium' | 'low' | 'fallback';
+  source?: 'geocoding';
   error?: string;
 }> {
   if (!address || !MAPBOX_ACCESS_TOKEN) {
@@ -56,12 +61,27 @@ export async function geocodeAddress(address: string): Promise<{
     // Mapbox returns coordinates as [longitude, latitude]
     const [longitude, latitude] = location.center;
 
-    // Return formatted result
+    // Validate coordinates
+    if (!validateCoordinates(latitude, longitude)) {
+      return {
+        success: false,
+        error: 'Invalid coordinates returned from geocoding service'
+      };
+    }
+
+    // Estimate accuracy based on place type (geocoded addresses are typically city-level)
+    const estimatedAccuracy = 1000; // Geocoded addresses are typically accurate to ~1km
+    const accuracyInfo = analyzeLocationAccuracy(estimatedAccuracy);
+
+    // Return formatted result with accuracy information
     return {
       success: true,
       latitude,
       longitude,
-      displayName: location.place_name
+      displayName: location.place_name,
+      accuracy: estimatedAccuracy,
+      accuracyLevel: accuracyInfo.accuracyLevel,
+      source: 'geocoding'
     };
   } catch (error) {
     console.error('Error geocoding address:', error);
@@ -121,7 +141,7 @@ export function detectCoordinates(text: string): { latitude: number; longitude: 
       const longitude = parseFloat(match[2]);
       
       // Validate the coordinates are in reasonable range
-      if (isValidCoordinate(latitude, longitude)) {
+      if (validateCoordinates(latitude, longitude)) {
         return { latitude, longitude };
       }
     }
@@ -132,16 +152,10 @@ export function detectCoordinates(text: string): { latitude: number; longitude: 
 
 /**
  * Validate that coordinates are in a reasonable range
+ * @deprecated Use validateCoordinates from location-utils instead
  */
 function isValidCoordinate(latitude: number, longitude: number): boolean {
-  return (
-    !isNaN(latitude) &&
-    !isNaN(longitude) &&
-    latitude >= -90 && 
-    latitude <= 90 && 
-    longitude >= -180 && 
-    longitude <= 180
-  );
+  return validateCoordinates(latitude, longitude);
 }
 
 /**

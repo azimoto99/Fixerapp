@@ -4,12 +4,24 @@ import { useGeolocated } from 'react-geolocated';
 export interface Coordinates {
   latitude: number;
   longitude: number;
+  accuracy?: number;
+  source?: 'gps' | 'network' | 'fallback';
 }
 
-// Default location (San Francisco) for development/testing
+// Default location (San Francisco) for development/testing only
 const DEFAULT_LOCATION: Coordinates = {
   latitude: 37.7749,
-  longitude: -122.4194
+  longitude: -122.4194,
+  accuracy: 0,
+  source: 'fallback'
+};
+
+// Location accuracy thresholds (in meters)
+const ACCURACY_THRESHOLDS = {
+  HIGH: 10,      // GPS-level accuracy
+  MEDIUM: 100,   // Good network accuracy
+  LOW: 1000,     // Poor network accuracy
+  FALLBACK: 10000 // City-level accuracy
 };
 
 interface GeolocationState {
@@ -17,15 +29,34 @@ interface GeolocationState {
   locationError: string | null;
   isLoading: boolean;
   isUsingFallback: boolean;
+  locationAccuracy: 'high' | 'medium' | 'low' | 'fallback' | null;
 }
 
 interface GeolocationHook extends GeolocationState {
   getCurrentLocation: () => Promise<Coordinates | null>;
   refreshLocation: () => Promise<Coordinates>;
+  requestHighAccuracyLocation: () => Promise<Coordinates>;
+}
+
+// Helper function to determine location accuracy level
+function getLocationAccuracy(accuracy: number | undefined): 'high' | 'medium' | 'low' | 'fallback' {
+  if (!accuracy) return 'fallback';
+  if (accuracy <= ACCURACY_THRESHOLDS.HIGH) return 'high';
+  if (accuracy <= ACCURACY_THRESHOLDS.MEDIUM) return 'medium';
+  if (accuracy <= ACCURACY_THRESHOLDS.LOW) return 'low';
+  return 'fallback';
+}
+
+// Helper function to determine location source
+function getLocationSource(accuracy: number | undefined): 'gps' | 'network' | 'fallback' {
+  if (!accuracy) return 'fallback';
+  if (accuracy <= ACCURACY_THRESHOLDS.HIGH) return 'gps';
+  if (accuracy <= ACCURACY_THRESHOLDS.LOW) return 'network';
+  return 'fallback';
 }
 
 export function useGeolocation(): GeolocationHook {
-  // Use the react-geolocated hook
+  // Use the react-geolocated hook with improved settings
   const {
     coords,
     isGeolocationAvailable,
@@ -34,14 +65,14 @@ export function useGeolocation(): GeolocationHook {
     getPosition
   } = useGeolocated({
     positionOptions: {
-      enableHighAccuracy: false, // Start with low accuracy for faster response
-      timeout: 8000, // Reasonable timeout for initial load
-      maximumAge: 300000, // 5 minute cache for initial load
+      enableHighAccuracy: true, // Start with high accuracy for precise location
+      timeout: 12000, // Longer timeout for GPS acquisition
+      maximumAge: 60000, // Reduced cache time (1 minute) for fresher results
     },
-    userDecisionTimeout: 10000, // Give user time to allow location
+    userDecisionTimeout: 15000, // More time for user to allow location
     suppressLocationOnMount: false,
     watchPosition: false,
-    isOptimisticGeolocationEnabled: true, // Enable for faster initial response
+    isOptimisticGeolocationEnabled: false, // Disable for more accurate results
   });
 
   const [state, setState] = useState<GeolocationState>({
@@ -49,69 +80,106 @@ export function useGeolocation(): GeolocationHook {
     locationError: null,
     isLoading: true,
     isUsingFallback: false,
+    locationAccuracy: null,
   });
 
-  // Update state based on react-geolocated results
+  // Update state based on react-geolocated results with improved accuracy handling
   useEffect(() => {
     if (coords) {
-      setState({
-        userLocation: {
+      const accuracy = coords.accuracy;
+      const locationAccuracy = getLocationAccuracy(accuracy);
+      const locationSource = getLocationSource(accuracy);
+
+      // Only accept location if it meets minimum accuracy requirements
+      const isAcceptableAccuracy = !accuracy || accuracy <= ACCURACY_THRESHOLDS.LOW;
+
+      if (isAcceptableAccuracy) {
+        const location: Coordinates = {
           latitude: coords.latitude,
           longitude: coords.longitude,
-        },
-        locationError: null,
-        isLoading: false,
-        isUsingFallback: false,
-      });
+          accuracy: accuracy,
+          source: locationSource
+        };
+
+        setState({
+          userLocation: location,
+          locationError: null,
+          isLoading: false,
+          isUsingFallback: false,
+          locationAccuracy: locationAccuracy,
+        });
+
+        // Log location quality for debugging
+        console.log(`Location acquired: ${locationSource} (${locationAccuracy} accuracy: ${accuracy?.toFixed(0)}m)`);
+      } else {
+        // Location accuracy is too poor, try to get a better one
+        console.warn(`Location accuracy too poor (${accuracy?.toFixed(0)}m), attempting high-accuracy request`);
+        // Don't set state yet, let the high-accuracy request handle it
+      }
     } else if (positionError) {
       let errorMessage = positionError.message;
+      let shouldUseFallback = false;
+
       if (positionError.code === positionError.TIMEOUT) {
-        errorMessage = 'Location request timed out. Please try again.';
+        errorMessage = 'Location request timed out. Please check your GPS signal and try again.';
+        shouldUseFallback = false; // Don't use fallback for timeout, user should retry
       } else if (positionError.code === positionError.PERMISSION_DENIED) {
-        errorMessage = 'Location access denied. Please enable location services.';
+        errorMessage = 'Location access denied. Please enable location services in your browser settings.';
+        shouldUseFallback = process.env.NODE_ENV === 'development'; // Only in dev mode
       } else if (positionError.code === positionError.POSITION_UNAVAILABLE) {
-        errorMessage = 'Location information is unavailable.';
+        errorMessage = 'Location information is unavailable. Please check your GPS signal.';
+        shouldUseFallback = false; // Don't use fallback, encourage user to fix GPS
       }
 
-      // Use fallback location for better user experience
-      const isDev = process.env.NODE_ENV === 'development';
-      const shouldUseFallback = isDev || positionError.code === positionError.PERMISSION_DENIED;
-
       if (shouldUseFallback) {
-        console.log('Using fallback location:', positionError.code === positionError.PERMISSION_DENIED ? 'permission denied' : 'development mode');
+        console.warn('Using fallback location due to:', errorMessage);
         setState({
           userLocation: DEFAULT_LOCATION,
-          locationError: `Using default location (${positionError.code === positionError.PERMISSION_DENIED ? 'location access denied' : 'development mode'})`,
+          locationError: `Using default location (development mode)`,
           isLoading: false,
           isUsingFallback: true,
+          locationAccuracy: 'fallback',
         });
       } else {
         setState({
-          userLocation: DEFAULT_LOCATION, // Still provide fallback for better UX
+          userLocation: null,
           locationError: errorMessage,
           isLoading: false,
-          isUsingFallback: true,
+          isUsingFallback: false,
+          locationAccuracy: null,
         });
       }
     } else if (!isGeolocationAvailable) {
       const error = 'Geolocation is not supported by your browser';
-      console.log('Geolocation not available, using fallback location');
+      console.error('Geolocation not available');
       setState({
-        userLocation: DEFAULT_LOCATION,
+        userLocation: null,
         locationError: error,
         isLoading: false,
-        isUsingFallback: true,
+        isUsingFallback: false,
+        locationAccuracy: null,
       });
     } else if (!isGeolocationEnabled) {
       setState(prev => ({ ...prev, isLoading: true }));
     }
   }, [coords, positionError, isGeolocationAvailable, isGeolocationEnabled]);
 
-  // Function to get current location
+  // Function to get current location with accuracy validation
   const getCurrentLocation = useCallback((): Promise<Coordinates | null> => {
     return new Promise((resolve) => {
-      if (state.userLocation) {
+      // If we already have a high-quality location, return it
+      if (state.userLocation && !state.isUsingFallback &&
+          (state.locationAccuracy === 'high' || state.locationAccuracy === 'medium')) {
         resolve(state.userLocation);
+        return;
+      }
+
+      // If we have a low-quality location, try to get a better one first
+      if (state.userLocation && state.locationAccuracy === 'low') {
+        console.log('Current location has low accuracy, attempting to get better location');
+        requestHighAccuracyLocation()
+          .then(resolve)
+          .catch(() => resolve(state.userLocation)); // Fallback to existing location
         return;
       }
 
@@ -125,12 +193,14 @@ export function useGeolocation(): GeolocationHook {
         getPosition();
       }
 
-      // Wait for the position to be available or use fallback
+      // Wait for the position to be available
       const checkPosition = () => {
-        if (coords) {
-          const location = {
+        if (coords && coords.accuracy && coords.accuracy <= ACCURACY_THRESHOLDS.LOW) {
+          const location: Coordinates = {
             latitude: coords.latitude,
             longitude: coords.longitude,
+            accuracy: coords.accuracy,
+            source: getLocationSource(coords.accuracy)
           };
           resolve(location);
         } else if (positionError) {
@@ -143,32 +213,98 @@ export function useGeolocation(): GeolocationHook {
           }
         } else {
           // Still waiting, check again in a bit
-          setTimeout(checkPosition, 100);
+          setTimeout(checkPosition, 200);
         }
       };
 
       checkPosition();
     });
-  }, [state.userLocation, coords, positionError, isGeolocationAvailable, getPosition]);
+  }, [state.userLocation, state.locationAccuracy, state.isUsingFallback, coords, positionError, isGeolocationAvailable, getPosition]);
 
-  // Function to manually refresh location with high accuracy
+  // Function to request high accuracy location specifically
+  const requestHighAccuracyLocation = useCallback((): Promise<Coordinates> => {
+    return new Promise((resolve, reject) => {
+      if (!isGeolocationAvailable) {
+        reject(new Error('Geolocation is not supported by your browser'));
+        return;
+      }
+
+      navigator.geolocation.getCurrentPosition(
+        (position) => {
+          const accuracy = position.coords.accuracy;
+          const locationAccuracy = getLocationAccuracy(accuracy);
+          const locationSource = getLocationSource(accuracy);
+
+          const newLocation: Coordinates = {
+            latitude: position.coords.latitude,
+            longitude: position.coords.longitude,
+            accuracy: accuracy,
+            source: locationSource
+          };
+
+          setState(prev => ({
+            ...prev,
+            userLocation: newLocation,
+            locationError: null,
+            isLoading: false,
+            isUsingFallback: false,
+            locationAccuracy: locationAccuracy,
+          }));
+
+          console.log(`High accuracy location acquired: ${locationSource} (${locationAccuracy} accuracy: ${accuracy?.toFixed(0)}m)`);
+          resolve(newLocation);
+        },
+        (error) => {
+          let errorMessage = error.message;
+          if (error.code === error.TIMEOUT) {
+            errorMessage = 'High accuracy location request timed out. GPS signal may be weak.';
+          } else if (error.code === error.PERMISSION_DENIED) {
+            errorMessage = 'Location access denied. Please enable location services.';
+          } else if (error.code === error.POSITION_UNAVAILABLE) {
+            errorMessage = 'High accuracy location unavailable. GPS signal may be blocked.';
+          }
+
+          console.warn('High accuracy location failed:', errorMessage);
+          reject(new Error(errorMessage));
+        },
+        {
+          enableHighAccuracy: true,
+          timeout: 20000, // Longer timeout for GPS acquisition
+          maximumAge: 0 // Always get fresh location
+        }
+      );
+    });
+  }, [isGeolocationAvailable]);
+
+  // Function to manually refresh location with progressive accuracy fallback
   const refreshLocation = useCallback((): Promise<Coordinates> => {
     return new Promise((resolve, reject) => {
       if (!isGeolocationAvailable) {
-        const error = new Error('Geolocation is not supported by your browser');
-        reject(error);
+        reject(new Error('Geolocation is not supported by your browser'));
         return;
       }
 
       setState(prev => ({ ...prev, isLoading: true, locationError: null }));
 
-      // Progressive fallback: try high accuracy first, then low accuracy
-      const tryGetLocation = (highAccuracy: boolean) => {
+      // Progressive fallback: try high accuracy first, then medium, then low accuracy
+      const tryGetLocation = (accuracyLevel: 'high' | 'medium' | 'low') => {
+        const options = {
+          high: { enableHighAccuracy: true, timeout: 20000, maximumAge: 0 },
+          medium: { enableHighAccuracy: true, timeout: 15000, maximumAge: 30000 },
+          low: { enableHighAccuracy: false, timeout: 10000, maximumAge: 60000 }
+        };
+
         navigator.geolocation.getCurrentPosition(
           (position) => {
-            const newLocation = {
+            const accuracy = position.coords.accuracy;
+            const locationAccuracy = getLocationAccuracy(accuracy);
+            const locationSource = getLocationSource(accuracy);
+
+            const newLocation: Coordinates = {
               latitude: position.coords.latitude,
               longitude: position.coords.longitude,
+              accuracy: accuracy,
+              source: locationSource
             };
 
             setState(prev => ({
@@ -176,48 +312,51 @@ export function useGeolocation(): GeolocationHook {
               userLocation: newLocation,
               locationError: null,
               isLoading: false,
-              isUsingFallback: false
+              isUsingFallback: false,
+              locationAccuracy: locationAccuracy,
             }));
 
+            console.log(`Location refreshed: ${locationSource} (${locationAccuracy} accuracy: ${accuracy?.toFixed(0)}m)`);
             resolve(newLocation);
           },
           (error) => {
-            // If high accuracy fails and it's not permission denied, try low accuracy
-            if (highAccuracy && error.code !== error.PERMISSION_DENIED) {
-              console.log('High accuracy failed, trying low accuracy...');
-              tryGetLocation(false);
+            // Try next accuracy level if current one fails
+            if (accuracyLevel === 'high' && error.code !== error.PERMISSION_DENIED) {
+              console.log('High accuracy failed, trying medium accuracy...');
+              tryGetLocation('medium');
+              return;
+            } else if (accuracyLevel === 'medium' && error.code !== error.PERMISSION_DENIED) {
+              console.log('Medium accuracy failed, trying low accuracy...');
+              tryGetLocation('low');
               return;
             }
 
             let errorMessage = error.message;
             if (error.code === error.TIMEOUT) {
-              errorMessage = 'Location request timed out. Please try again.';
+              errorMessage = 'Location request timed out. Please check your GPS signal and try again.';
             } else if (error.code === error.PERMISSION_DENIED) {
               errorMessage = 'Location access denied. Please enable location services and try again.';
             } else if (error.code === error.POSITION_UNAVAILABLE) {
-              errorMessage = 'Location information is unavailable. Please try again.';
+              errorMessage = 'Location information is unavailable. Please check your GPS signal.';
             }
 
             setState(prev => ({ ...prev, locationError: errorMessage, isLoading: false }));
             reject(new Error(errorMessage));
           },
-          {
-            enableHighAccuracy: highAccuracy,
-            timeout: highAccuracy ? 15000 : 10000, // Shorter timeout for low accuracy
-            maximumAge: 0 // Don't use cached position for manual refresh
-          }
+          options[accuracyLevel]
         );
       };
 
       // Start with high accuracy
-      tryGetLocation(true);
+      tryGetLocation('high');
     });
   }, [isGeolocationAvailable]);
 
   return {
     ...state,
     getCurrentLocation,
-    refreshLocation
+    refreshLocation,
+    requestHighAccuracyLocation
   };
 }
 

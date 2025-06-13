@@ -16,17 +16,28 @@
     ],
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.fixer"
+      "bundleIdentifier": "com.fixer",
+      "infoPlist": {
+        "NSLocationWhenInUseUsageDescription": "Fixer needs access to your location to show nearby jobs and help you find work opportunities in your area.",
+        "NSLocationAlwaysAndWhenInUseUsageDescription": "Fixer needs access to your location to show nearby jobs and help you find work opportunities in your area."
+      }
     },
-    "android": {      "adaptiveIcon": {
+    "android": {
+      "adaptiveIcon": {
         "foregroundImage": "./fixer.png",
         "backgroundColor": "#000000"
       },
       "package": "com.fixer",
       "permissions": [
         "ACCESS_COARSE_LOCATION",
-        "ACCESS_FINE_LOCATION"
-      ]
+        "ACCESS_FINE_LOCATION",
+        "ACCESS_BACKGROUND_LOCATION"
+      ],
+      "config": {
+        "googleMaps": {
+          "apiKey": "YOUR_GOOGLE_MAPS_API_KEY"
+        }
+      }
     },
     "web": {      "favicon": "./fixer.png"
     },
