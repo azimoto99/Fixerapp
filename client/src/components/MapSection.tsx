@@ -16,7 +16,7 @@ import { useQueryClient } from '@tanstack/react-query';
 import { StripeConnectRequired } from '@/components/stripe';
 import JobDetailsCard from './jobs/JobDetailsCard';
 import { useAllJobsForMap } from '@/hooks/useAllJobsForMap';
-import { MapPinLegend } from '@/components/MapPinLegend';
+
 
 interface MapSectionProps {
   jobs: Job[];
@@ -472,8 +472,7 @@ const MapSection: React.FC<MapSectionProps> = ({ jobs, selectedJob, onSelectJob,
           </div>
         </div>
 
-        {/* Map Pin Legend */}
-        <MapPinLegend />
+
         
         {/* Bottom card for job details - DoorDash-style slide-up panel */}
         {showJobDetail && selectedJob && (
