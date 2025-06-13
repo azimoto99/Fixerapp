@@ -277,16 +277,20 @@ export default function MapboxMap({
           el.style.setProperty(property, value);
         });
 
-        // Create a pin-shaped container with icon
+        // Create a CIRCULAR pin with emoji on top (what the user actually wants)
         el.innerHTML = `
           <div style="
             width: 100%;
             height: 100%;
+            background-color: ${pinStyle.backgroundColor};
+            border: ${pinStyle.borderWidth}px ${pinStyle.borderStyle} ${pinStyle.borderColor};
+            border-radius: 50%;
             display: flex;
             align-items: center;
             justify-content: center;
-            font-size: inherit;
+            font-size: ${Math.max(pinStyle.size * 0.4, 18)}px;
             position: relative;
+            box-shadow: 0 4px 12px ${pinStyle.shadowColor};
           ">
             ${pinStyle.icon}
           </div>
@@ -351,76 +355,7 @@ export default function MapboxMap({
         console.error(`Failed to add marker at [${marker.longitude}, ${marker.latitude}]`, error);
       }
 
-      // Add circle around marker if requested
-      if (marker.showCircle && marker.circleRadius && map.current) {
-        const circleId = `circle-${marker.latitude}-${marker.longitude}-${Date.now()}`;
-        const sourceId = `${circleId}-source`;
-
-        try {
-          // Create a proper circle polygon using turf-like calculation
-          const createCircle = (center: [number, number], radiusInMeters: number, points: number = 64) => {
-            const coords = [];
-            const distanceX = radiusInMeters / (111000 * Math.cos(center[1] * Math.PI / 180));
-            const distanceY = radiusInMeters / 111000;
-
-            for (let i = 0; i < points; i++) {
-              const angle = (i * 360 / points) * Math.PI / 180;
-              const x = center[0] + (distanceX * Math.cos(angle));
-              const y = center[1] + (distanceY * Math.sin(angle));
-              coords.push([x, y]);
-            }
-            coords.push(coords[0]); // Close the polygon
-            return coords;
-          };
-
-          const circleCoords = createCircle([marker.longitude, marker.latitude], marker.circleRadius);
-
-          // Create circle geometry as a polygon
-          const circleGeoJSON = {
-            type: 'Feature' as const,
-            geometry: {
-              type: 'Polygon' as const,
-              coordinates: [circleCoords]
-            },
-            properties: {}
-          };
-
-          // Add source for the circle
-          map.current.addSource(sourceId, {
-            type: 'geojson',
-            data: circleGeoJSON
-          });
-
-          // Add circle fill layer
-          map.current.addLayer({
-            id: circleId,
-            type: 'fill',
-            source: sourceId,
-            paint: {
-              'fill-color': marker.circleColor || '#3b82f6',
-              'fill-opacity': marker.circleOpacity || 0.2
-            }
-          });
-
-          // Add circle outline layer
-          map.current.addLayer({
-            id: `${circleId}-outline`,
-            type: 'line',
-            source: sourceId,
-            paint: {
-              'line-color': marker.circleColor || '#3b82f6',
-              'line-width': 2,
-              'line-opacity': 0.8
-            }
-          });
-
-          circleLayerIds.current.push(circleId);
-          circleLayerIds.current.push(`${circleId}-outline`);
-          console.log(`Circle added for marker at [${marker.longitude}, ${marker.latitude}] with radius ${marker.circleRadius}m`);
-        } catch (error) {
-          console.error(`Failed to add circle for marker at [${marker.longitude}, ${marker.latitude}]`, error);
-        }
-      }
+      // No more separate circles - the pin IS the circle now
     });
   }, [markers, mapLoaded, currentZoom]);
   
