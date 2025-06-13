@@ -56,7 +56,7 @@ function getLocationSource(accuracy: number | undefined): 'gps' | 'network' | 'f
 }
 
 export function useGeolocation(): GeolocationHook {
-  // Use the react-geolocated hook with improved settings
+  // Use the react-geolocated hook with more permissive settings for reliability
   const {
     coords,
     isGeolocationAvailable,
@@ -65,14 +65,14 @@ export function useGeolocation(): GeolocationHook {
     getPosition
   } = useGeolocated({
     positionOptions: {
-      enableHighAccuracy: true, // Start with high accuracy for precise location
-      timeout: 12000, // Longer timeout for GPS acquisition
-      maximumAge: 60000, // Reduced cache time (1 minute) for fresher results
+      enableHighAccuracy: false, // Start with network location for faster response
+      timeout: 8000, // Reasonable timeout
+      maximumAge: 300000, // 5 minute cache for reliability
     },
-    userDecisionTimeout: 15000, // More time for user to allow location
+    userDecisionTimeout: 10000, // Standard timeout
     suppressLocationOnMount: false,
     watchPosition: false,
-    isOptimisticGeolocationEnabled: false, // Disable for more accurate results
+    isOptimisticGeolocationEnabled: true, // Enable for faster response
   });
 
   const [state, setState] = useState<GeolocationState>({
@@ -90,31 +90,29 @@ export function useGeolocation(): GeolocationHook {
       const locationAccuracy = getLocationAccuracy(accuracy);
       const locationSource = getLocationSource(accuracy);
 
-      // Only accept location if it meets minimum accuracy requirements
-      const isAcceptableAccuracy = !accuracy || accuracy <= ACCURACY_THRESHOLDS.LOW;
+      // Accept all locations initially, but provide accuracy feedback
+      // We'll be less strict to ensure location works, but still provide quality info
+      const location: Coordinates = {
+        latitude: coords.latitude,
+        longitude: coords.longitude,
+        accuracy: accuracy,
+        source: locationSource
+      };
 
-      if (isAcceptableAccuracy) {
-        const location: Coordinates = {
-          latitude: coords.latitude,
-          longitude: coords.longitude,
-          accuracy: accuracy,
-          source: locationSource
-        };
+      setState({
+        userLocation: location,
+        locationError: null,
+        isLoading: false,
+        isUsingFallback: false,
+        locationAccuracy: locationAccuracy,
+      });
 
-        setState({
-          userLocation: location,
-          locationError: null,
-          isLoading: false,
-          isUsingFallback: false,
-          locationAccuracy: locationAccuracy,
-        });
+      // Log location quality for debugging
+      console.log(`Location acquired: ${locationSource} (${locationAccuracy} accuracy: ${accuracy?.toFixed(0) || 'unknown'}m)`);
 
-        // Log location quality for debugging
-        console.log(`Location acquired: ${locationSource} (${locationAccuracy} accuracy: ${accuracy?.toFixed(0)}m)`);
-      } else {
-        // Location accuracy is too poor, try to get a better one
-        console.warn(`Location accuracy too poor (${accuracy?.toFixed(0)}m), attempting high-accuracy request`);
-        // Don't set state yet, let the high-accuracy request handle it
+      // If accuracy is poor, suggest getting a better location but don't block
+      if (accuracy && accuracy > ACCURACY_THRESHOLDS.LOW) {
+        console.warn(`Location accuracy is poor (${accuracy.toFixed(0)}m). Consider requesting high accuracy location for better results.`);
       }
     } else if (positionError) {
       let errorMessage = positionError.message;
@@ -122,13 +120,13 @@ export function useGeolocation(): GeolocationHook {
 
       if (positionError.code === positionError.TIMEOUT) {
         errorMessage = 'Location request timed out. Please check your GPS signal and try again.';
-        shouldUseFallback = false; // Don't use fallback for timeout, user should retry
+        shouldUseFallback = process.env.NODE_ENV === 'development'; // Use fallback in dev for testing
       } else if (positionError.code === positionError.PERMISSION_DENIED) {
         errorMessage = 'Location access denied. Please enable location services in your browser settings.';
         shouldUseFallback = process.env.NODE_ENV === 'development'; // Only in dev mode
       } else if (positionError.code === positionError.POSITION_UNAVAILABLE) {
         errorMessage = 'Location information is unavailable. Please check your GPS signal.';
-        shouldUseFallback = false; // Don't use fallback, encourage user to fix GPS
+        shouldUseFallback = process.env.NODE_ENV === 'development'; // Use fallback in dev for testing
       }
 
       if (shouldUseFallback) {
@@ -161,6 +159,23 @@ export function useGeolocation(): GeolocationHook {
       });
     } else if (!isGeolocationEnabled) {
       setState(prev => ({ ...prev, isLoading: true }));
+    } else {
+      // If we're still loading after a reasonable time, provide fallback in development
+      const isDev = process.env.NODE_ENV === 'development';
+      if (isDev && state.isLoading) {
+        setTimeout(() => {
+          if (state.isLoading && !state.userLocation) {
+            console.warn('Location loading timeout, using fallback location for development');
+            setState({
+              userLocation: DEFAULT_LOCATION,
+              locationError: 'Using default location (development timeout)',
+              isLoading: false,
+              isUsingFallback: true,
+              locationAccuracy: 'fallback',
+            });
+          }
+        }, 10000); // 10 second timeout for development fallback
+      }
     }
   }, [coords, positionError, isGeolocationAvailable, isGeolocationEnabled]);
 
@@ -195,7 +210,7 @@ export function useGeolocation(): GeolocationHook {
 
       // Wait for the position to be available
       const checkPosition = () => {
-        if (coords && coords.accuracy && coords.accuracy <= ACCURACY_THRESHOLDS.LOW) {
+        if (coords) {
           const location: Coordinates = {
             latitude: coords.latitude,
             longitude: coords.longitude,
