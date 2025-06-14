@@ -18,51 +18,26 @@ export function useGeolocation() {
 
   useEffect(() => {
     if (!navigator.geolocation) {
-      setState({
-        userLocation: null,
-        error: 'Geolocation is not supported by your browser',
-        isLoading: false,
-      });
+      setState({ userLocation: null, error: 'Geolocation not supported', isLoading: false });
       return;
     }
-
-    const updateLocation = () => {
-      setState(prev => ({ ...prev, isLoading: true }));
-      
-      navigator.geolocation.getCurrentPosition(
-        (position) => {
-          setState({
-            userLocation: {
-              latitude: position.coords.latitude,
-              longitude: position.coords.longitude,
-            },
-            error: null,
-            isLoading: false,
-          });
-        },
-        (error) => {
-          setState({
-            userLocation: null,
-            error: error.message,
-            isLoading: false,
-          });
-        },
-        {
-          enableHighAccuracy: true,
-          timeout: 10000,
-          maximumAge: 60000 // 1 minute cache
-        }
-      );
-    };
-
-    // Initial location fetch
-    updateLocation();
-
-    // Set up a regular polling for updates when the component is active
-    const intervalId = setInterval(updateLocation, 60000); // update every minute
-
+    // Start watching user's position for real-time updates
+    setState(prev => ({ ...prev, isLoading: true }));
+    const watchId = navigator.geolocation.watchPosition(
+      (position) => {
+        setState({
+          userLocation: { latitude: position.coords.latitude, longitude: position.coords.longitude },
+          error: null,
+          isLoading: false,
+        });
+      },
+      (error) => {
+        setState({ userLocation: null, error: error.message, isLoading: false });
+      },
+      { enableHighAccuracy: true, timeout: 10000, maximumAge: 60000 }
+    );
     return () => {
-      clearInterval(intervalId);
+      navigator.geolocation.clearWatch(watchId);
     };
   }, []);
 

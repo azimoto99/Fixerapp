@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
-import { useGeolocation } from '@/lib/geolocation';
+import { useGeolocation } from '@/hooks/use-geolocation';
 import JobDetail from './JobDetail';
 import JobDetailCard from './JobDetailCard';
 import UserDrawerV2 from './UserDrawerV2';
@@ -25,7 +25,7 @@ interface MapSectionProps {
 
 // DoorDash-style interactive map component for showing nearby gigs with Mapbox
 const MapSection: React.FC<MapSectionProps> = ({ jobs, selectedJob, onSelectJob, searchCoordinates }) => {
-  const { userLocation, locationError, isUsingFallback } = useGeolocation();
+  const { userLocation, error: locationError, isLoading: isLocationLoading } = useGeolocation();
   const [showJobDetail, setShowJobDetail] = useState<boolean>(false);
   const [mapReady, setMapReady] = useState(false);
   const [isApplying, setIsApplying] = useState(false);

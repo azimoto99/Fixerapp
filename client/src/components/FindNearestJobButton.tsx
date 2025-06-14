@@ -5,6 +5,7 @@ import { cn } from '@/lib/utils';
 import { useLocation } from 'wouter';
 import { apiRequest } from '@/lib/queryClient';
 import { Button } from '@/components/ui/button';
+import { useGeolocation } from '@/hooks/use-geolocation';
 
 interface FindNearestJobButtonProps {
   className?: string;
@@ -14,26 +15,20 @@ const FindNearestJobButton: React.FC<FindNearestJobButtonProps> = ({ className }
   const { toast } = useToast();
   const [_, setLocation] = useLocation();
   const [isSearching, setIsSearching] = React.useState(false);
+  const { userLocation, refreshLocation, error: geoError, isLoading: isLocLoading } = useGeolocation();
 
   const handleFindNearestJob = async () => {
     setIsSearching(true);
-    
     try {
-      // Get user's current position
-      const position = await new Promise<GeolocationPosition>((resolve, reject) => {
-        navigator.geolocation.getCurrentPosition(resolve, reject, {
-          enableHighAccuracy: true,
-          timeout: 5000,
-          maximumAge: 0
-        });
-      });
-      
-      const { latitude, longitude } = position.coords;
+      // Ensure we have fresh position
+      const coords = userLocation || await refreshLocation();
+      const lat = coords.latitude;
+      const lon = coords.longitude;
       
       // Search for nearby jobs
       const response = await apiRequest(
         'GET', 
-        `/api/jobs/nearby?latitude=${latitude}&longitude=${longitude}&radius=5`
+        `/api/jobs/nearby?latitude=${lat}&longitude=${lon}&radius=5`
       );
       
       const nearbyJobs = await response.json();
@@ -58,10 +53,10 @@ const FindNearestJobButton: React.FC<FindNearestJobButtonProps> = ({ className }
         });
       }
     } catch (error) {
-      console.error("Error finding nearby jobs:", error);
+      console.error("Error finding nearby jobs:", error || geoError);
       toast({
         title: "Location error",
-        description: "Please enable location services to find nearby jobs.",
+        description: (error as Error)?.message || geoError || 'Please enable location services to find nearby jobs.',
         variant: "destructive"
       });
     } finally {
