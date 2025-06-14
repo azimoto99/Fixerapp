@@ -27,7 +27,20 @@ interface MapSectionProps {
 
 // DoorDash-style interactive map component for showing nearby gigs with Mapbox
 const MapSection: React.FC<MapSectionProps> = ({ jobs, selectedJob, onSelectJob, searchCoordinates }) => {
-  const { userLocation, locationError, isUsingFallback } = useGeolocation();
+  const { userLocation, locationError, isUsingFallback, refreshLocation } = useGeolocation();
+
+  // Debug logging for location
+  useEffect(() => {
+    console.log('MapSection location state:', { userLocation, locationError, isUsingFallback });
+  }, [userLocation, locationError, isUsingFallback]);
+
+  // Try to get location on mount if we don't have it
+  useEffect(() => {
+    if (!userLocation && !locationError && refreshLocation) {
+      console.log('Attempting to refresh location...');
+      refreshLocation();
+    }
+  }, [userLocation, locationError, refreshLocation]);
   const [showJobDetail, setShowJobDetail] = useState<boolean>(false);
   const [mapReady, setMapReady] = useState(false);
   const [isApplying, setIsApplying] = useState(false);
@@ -120,17 +133,20 @@ const MapSection: React.FC<MapSectionProps> = ({ jobs, selectedJob, onSelectJob,
   const position = useMemo(() => {
     // Prioritize search coordinates over geolocation
     if (searchCoordinates) {
+      console.log('Using search coordinates for position:', searchCoordinates);
       return {
         latitude: searchCoordinates.latitude,
         longitude: searchCoordinates.longitude
       };
     }
-    return userLocation 
+    const result = userLocation
       ? {
           latitude: userLocation.latitude,
           longitude: userLocation.longitude
         }
       : null;
+    console.log('Position calculated:', result, 'from userLocation:', userLocation);
+    return result;
   }, [searchCoordinates, userLocation]);
   
   // Determine map center only for job focus
@@ -341,7 +357,7 @@ const MapSection: React.FC<MapSectionProps> = ({ jobs, selectedJob, onSelectJob,
     
     // Add user location marker
     if (position) {
-      console.log('Creating user location marker');
+      console.log('Creating user location marker at:', position);
       markers.push({
         latitude: position.latitude,
         longitude: position.longitude,
@@ -349,6 +365,8 @@ const MapSection: React.FC<MapSectionProps> = ({ jobs, selectedJob, onSelectJob,
         description: 'You are here',
         onClick: () => {}
       });
+    } else {
+      console.log('No position available for user location marker. userLocation:', userLocation, 'searchCoordinates:', searchCoordinates);
     }
     
     // If we have focus coordinates from "Show on Map", add a special highlighted marker

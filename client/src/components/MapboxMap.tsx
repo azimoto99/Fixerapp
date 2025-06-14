@@ -275,11 +275,14 @@ export default function MapboxMap({
           element: el,
           anchor: 'center'
         }).setLngLat([marker.longitude, marker.latitude]);
-        
+
         if (map.current) {
           mapboxMarker.addTo(map.current);
           currentLocationMarker.current = mapboxMarker;
+          console.log(`Current location marker successfully added at [${marker.longitude}, ${marker.latitude}]`);
         }
+
+        // Don't return here - let it continue to the normal marker creation flow
       } else {
         // Use new contextual styling system for job markers
         const pinConfig: PinConfig = {
