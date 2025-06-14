@@ -236,7 +236,7 @@ export default function MapboxMap({
               position: absolute;
               width: 40px;
               height: 40px;
-              background-color: hsl(var(--primary));
+              background-color: #10b981;
               border-radius: 50%;
               opacity: 0.3;
               animation: pulse 2s infinite;
@@ -246,7 +246,7 @@ export default function MapboxMap({
               position: relative;
               width: 20px;
               height: 20px;
-              background-color: hsl(var(--primary));
+              background-color: #10b981;
               border: 3px solid white;
               border-radius: 50%;
               box-shadow: 0 2px 8px rgba(0,0,0,0.3);

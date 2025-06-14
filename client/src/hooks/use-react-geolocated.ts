@@ -71,7 +71,7 @@ export function useGeolocation(): GeolocationHook {
     },
     userDecisionTimeout: 15000,
     suppressLocationOnMount: false,
-    watchPosition: true,   // continuously watch for updates
+    watchPosition: false,   // disable continuous watching to prevent auto-zoom
     isOptimisticGeolocationEnabled: false,
   });
 
