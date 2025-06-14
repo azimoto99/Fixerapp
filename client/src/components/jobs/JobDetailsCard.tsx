@@ -556,7 +556,7 @@ const JobDetailsCard: React.FC<JobDetailsCardProps> = ({ jobId, isOpen, onClose 
 
   // Lower card z-index & disable clicks while a critical dialog is open
   const isBlockingDialogOpen = showLocationVerificationError || showCompleteDialog;
-  const cardLayerClass = isBlockingDialogOpen ? 'z-40 pointer-events-none' : 'z-50';
+  const cardLayerClass = isBlockingDialogOpen ? 'z-20 pointer-events-none' : 'z-50';
 
   // If the card is closed, don't render anything
   if (!isOpen) return null;
