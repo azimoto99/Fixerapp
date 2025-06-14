@@ -65,14 +65,14 @@ export function useGeolocation(): GeolocationHook {
     getPosition
   } = useGeolocated({
     positionOptions: {
-      enableHighAccuracy: true, // Use high accuracy for better location
-      timeout: 10000, // 10 second timeout
-      maximumAge: 60000, // 1 minute cache for balance
+      enableHighAccuracy: true,
+      timeout: 10000,
+      maximumAge: 0,    // no cache to ensure fresh location
     },
-    userDecisionTimeout: 15000, // Give user time to allow location
+    userDecisionTimeout: 15000,
     suppressLocationOnMount: false,
-    watchPosition: false,
-    isOptimisticGeolocationEnabled: false, // Disable for more accurate results
+    watchPosition: true,   // continuously watch for updates
+    isOptimisticGeolocationEnabled: false,
   });
 
   const [state, setState] = useState<GeolocationState>({
