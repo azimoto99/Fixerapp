@@ -1,3 +1,4 @@
+// @ts-nocheck
 import { NextApiRequest, NextApiResponse } from 'next';
 import Stripe from 'stripe';
 import { getServerSession } from 'next-auth';

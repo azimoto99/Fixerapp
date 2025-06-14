@@ -2355,7 +2355,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
     res.json({ received: true });
   });
 
-  registerAdminRoutes(app);
+  // NOTE: Admin routes are already registered near the top of this file.
+  // Duplicate registration caused endpoints to be mounted twice, which could
+  // lead to unexpected middleware execution counts and performance issues.
+  // registerAdminRoutes(app);
 
   // CRITICAL: Add the payment-first job posting route to fix revenue leak
   apiRouter.post("/jobs/payment-first", isAuthenticated, async (req: Request, res: Response) => {

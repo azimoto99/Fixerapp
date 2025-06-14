@@ -102,13 +102,19 @@ export function MessagingInterface({
     markMessageAsRead
   } = webSocketState;
 
-  // Fetch conversation history
+  // Build a stable query key (per-recipient and per-job)
+  const conversationQueryKey = ['messages', recipientId, jobId ?? 'general'] as const;
+
+  // Fetch conversation history (optionally scoped to a job)
   const { data: conversationData = [], isLoading, error: conversationError } = useQuery({
-    queryKey: ['messages', recipientId],
+    queryKey: conversationQueryKey,
     enabled: !!recipientId,
     queryFn: async () => {
       try {
-        const response = await apiRequest('GET', `/api/messages?contactId=${recipientId}`);
+        const searchParams = new URLSearchParams({ contactId: String(recipientId) });
+        if (jobId) searchParams.append('jobId', String(jobId));
+
+        const response = await apiRequest('GET', `/api/messages?${searchParams.toString()}`);
         if (!response.ok) {
           throw new Error('Failed to fetch messages');
         }
@@ -148,8 +154,8 @@ export function MessagingInterface({
           sendMessage(data.content, recipientId, jobId);
         }
 
-        // Update local cache
-        queryClient.invalidateQueries({ queryKey: ['messages', recipientId] });
+        // Refresh conversation cache
+        queryClient.invalidateQueries({ queryKey: conversationQueryKey });
       } catch (error) {
         console.error('Error in onSuccess handler:', error);
       }
@@ -280,11 +286,21 @@ export function MessagingInterface({
     }
   };
 
+  // Filter WS messages so we only merge the ones relevant to this chat
+  const safeWsMessages = Array.isArray(wsMessages)
+    ? wsMessages.filter((m: any) => {
+        const samePair =
+          (m.senderId === recipientId && m.recipientId === currentUserId) ||
+          (m.senderId === currentUserId && m.recipientId === recipientId);
+        const sameJob = jobId ? m.jobId === jobId : true;
+        return samePair && sameJob;
+      })
+    : [];
+
   // Merge conversation data with WebSocket messages
   let allMessages = [];
   try {
     const safeConversationData = Array.isArray(conversationData) ? conversationData : [];
-    const safeWsMessages = Array.isArray(wsMessages) ? wsMessages : [];
 
     allMessages = [...safeConversationData, ...safeWsMessages].sort(
       (a, b) => {
@@ -316,7 +332,7 @@ export function MessagingInterface({
               Error: {conversationError?.message || 'Unknown error occurred'}
             </p>
             <Button
-              onClick={() => queryClient.invalidateQueries({ queryKey: ['messages', recipientId] })}
+              onClick={() => queryClient.invalidateQueries({ queryKey: conversationQueryKey })}
               size="sm"
             >
               Retry

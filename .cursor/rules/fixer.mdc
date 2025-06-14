@@ -1,0 +1,31 @@
+---
+description: 
+globs: 
+alwaysApply: false
+---
+Fixer App Overview
+Fixer is a  marketplace that connects posters (people who need small jobs done) with workers (people who perform those jobs). It provides job discovery, task management, payments, and payout automation via Stripe Connect.
+Core User Roles
+Key Features & Flows
+1. Authentication & Profiles – Account creation with email/social login. – Role-based onboarding (worker vs. poster). – Profile completion (skills, bio, verification).
+2. Job Posting & Application – Posters create jobs with metadata (location, skills required, price). – Workers view “near me” jobs on an interactive Mapbox map. – Workers submit applications; posters accept or reject.
+3. Task Management – Workers can start, pause, or complete tasks. – Posters track job progress and receive notifications.
+4. Earnings & Wallet – Completed jobs generate “earnings” records in the database. – Workers see balances (total, pending, weekly, per-job average). – “Recent Earnings” list with timestamps and statuses.
+5. Stripe Connect Integration – Onboarding: Workers click “Connect Stripe Account” → calls /api/stripe/connect/create-account → opens Stripe’s Express onboarding in a new tab. – Account Status: Frontend polls /api/stripe/connect/account-status to display badges: • Not Connected / Pending Verification / Active & Verified. – Payouts: Posters release funds → backend uses Stripe Transfers to send money into the worker’s Stripe Connect account. – Webhooks: Stripe account and transfer events update user status and send in-app notifications.
+6. Notifications & History – In-app notifications for job updates, payments received/sent, and Stripe account status changes. – Transaction and earnings history available in a scrollable UI.
+7. Admin & Monitoring – Health-check endpoints for Stripe and database connectivity. – CSP, error handling, and retry logic for robustness. – Supabase (or Postgres) for storing jobs, users, payments, and earnings.
+Technical Stack
+* Frontend: React + Vite + Tailwind + TanStack Query + shadcn/ui components
+* Backend: Node.js / Express + TypeScript + Drizzle ORM (or Prisma) + Stripe SDK
+* Database: PostgreSQL (Supabase)
+* Authentication: NextAuth / Passport or Supabase Auth
+* Real-time & Storage: Supabase Realtime & Storage
+* Map: Mapbox
+* Notifications: In-app via database + webhooks
+What It Should Do
+1. Seamless Onboarding New users pick a role, fill profile details, and, if they’re workers, connect Stripe without friction.
+2. Reliable Job Lifecycle Jobs move from “posted” → “in progress” → “completed” with clear status changes and data integrity.
+3. Accurate Financial Flows Payments collected from posters, service fees deducted, payouts to workers via Stripe Connect, and earnings recorded.
+4. Robust Error Handling Environment checks (API keys, HTTPS URLs), retry logic for database connection, and CSP to guard against frontend vulnerabilities.
+5. Clear UX & Feedback Loading states, success/destructive toasts, and badges clearly communicate connectivity, payment, and job statuses.
+With these building blocks, Fixer enables local, small-task commerce with end-to-end visibility for both posters and workers—backed by Stripe’s secure payments and Supabase’s scalable data layer.

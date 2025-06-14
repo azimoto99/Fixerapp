@@ -137,9 +137,19 @@ export function registerMessagingRoutes(app: Express) {
         return res.status(401).json({ message: "User ID not found" });
       }
       
-      const messages = await storage.getMessagesBetweenUsers(currentUserId, otherUserId);
+      // Optional jobId filters the conversation to a single job
+      const jobIdParam = req.query.jobId as string | undefined;
+      let jobId: number | undefined = undefined;
+      if (jobIdParam) {
+        const parsed = parseInt(jobIdParam);
+        if (!isNaN(parsed)) jobId = parsed;
+      }
+
+      const messages = await (jobId
+        ? storage.getConversation(currentUserId, otherUserId, jobId)
+        : storage.getMessagesBetweenUsers(currentUserId, otherUserId));
       
-      // Mark messages as read
+      // Mark messages as read (ignores job filter for simplicity)
       await storage.markMessagesAsRead(currentUserId, otherUserId);
       
       res.json(messages);
@@ -336,7 +346,7 @@ export function registerMessagingRoutes(app: Express) {
     }
 
     try {
-      const { contactId } = req.query;
+      const { contactId, jobId: jobIdParam } = req.query;
       const userId = req.user?.id;
 
       if (!userId) {
@@ -352,8 +362,15 @@ export function registerMessagingRoutes(app: Express) {
         return res.status(400).json({ message: "Invalid contact ID" });
       }
 
-      // Get messages between the two users
-      const messages = await storage.getMessagesBetweenUsers(userId, contactIdNum);
+      let jobId: number | undefined = undefined;
+      if (jobIdParam) {
+        const parsed = parseInt(jobIdParam as string);
+        if (!isNaN(parsed)) jobId = parsed;
+      }
+
+      const messages = await (jobId
+        ? storage.getConversation(userId, contactIdNum, jobId)
+        : storage.getMessagesBetweenUsers(userId, contactIdNum));
       res.json(messages);
     } catch (error) {
       console.error("Error fetching messages:", error);

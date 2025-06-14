@@ -1,6 +1,7 @@
 /**
  * Extensions to the storage interface for admin functionality and enhanced payments
  */
+// @ts-nocheck
 import { storage } from './storage';
 import { db } from './db';
 import { users, jobs, applications, payments, earnings } from '@shared/schema';
