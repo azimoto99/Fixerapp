@@ -174,7 +174,7 @@ export default function MapboxMap({
         map.current = null;
       }
     };
-  }, [longitude, latitude, zoom, interactive]);
+  }, []);
 
   // Add markers when they change or map is loaded
   useEffect(() => {

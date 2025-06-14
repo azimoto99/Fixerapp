@@ -132,7 +132,20 @@ const MapSection: React.FC<MapSectionProps> = ({ jobs, selectedJob, onSelectJob,
         }
       : null;
   }, [searchCoordinates, userLocation]);
-  
+  // Default map center (San Francisco) before geolocation loads
+  const defaultCenter = { latitude: 37.7749, longitude: -122.4194 };
+  // Use geolocation when available, else fallback to default
+  const mapCenter = position ?? defaultCenter;
+  // Fly map to user location only once
+  const [flyToCoordinates, setFlyToCoordinates] = useState<{ latitude: number; longitude: number; zoom?: number } | null>(null);
+  const [hasCentered, setHasCentered] = useState(false);
+  useEffect(() => {
+    if (userLocation && !hasCentered) {
+      setFlyToCoordinates({ latitude: userLocation.latitude, longitude: userLocation.longitude, zoom: 10 });
+      setHasCentered(true);
+    }
+  }, [userLocation, hasCentered]);
+
   // Handle selecting a job when a map marker is clicked
   const handleMarkerClick = (job: Job) => {
     // Directly open the job details card without showing the intermediate panel
@@ -357,29 +370,6 @@ const MapSection: React.FC<MapSectionProps> = ({ jobs, selectedJob, onSelectJob,
     return markers;
   }, [sourceJobs, handleMarkerClick, position, focusMapCoordinates, highlightedJobId]);
   
-  // If no user location yet, show loading
-  if (!position) {
-    return (
-      <div className="md:col-span-2 bg-background/50 border border-border shadow-md rounded-lg flex items-center justify-center h-80">
-        <div className="text-center p-6 bg-card/80 rounded-xl border border-border shadow-sm max-w-sm">
-          <div className="relative mx-auto mb-5 w-16 h-16">
-            <div className="absolute inset-0 bg-primary/20 rounded-full animate-ping"></div>
-            <div className="relative flex items-center justify-center w-16 h-16 bg-primary/10 rounded-full">
-              <Loader2 className="h-8 w-8 animate-spin text-primary" />
-            </div>
-          </div>
-          <h3 className="text-foreground font-medium mb-2">Finding your location...</h3>
-          <p className="text-muted-foreground text-sm">Please allow location access for the best experience</p>
-          {locationError && (
-            <div className="mt-4 p-3 bg-destructive/10 border border-destructive/20 rounded-lg text-sm text-destructive">
-              {locationError}
-            </div>
-          )}
-        </div>
-      </div>
-    );
-  }
-
   return (
     <div className="w-full h-full relative">
       {/* Stripe Connect Required Modal */}
@@ -437,25 +427,25 @@ const MapSection: React.FC<MapSectionProps> = ({ jobs, selectedJob, onSelectJob,
           }
         `}</style>
         
-        {position && (
-          <MapboxMap
-            latitude={
-              focusMapCoordinates
+        {/* Always render map; fly to user location only once via flyToCoordinates */}
+        <MapboxMap
+          latitude={
+            focusMapCoordinates
               ? focusMapCoordinates.latitude
-              : position.latitude
-            }
-            longitude={
-              focusMapCoordinates
+              : mapCenter.latitude
+          }
+          longitude={
+            focusMapCoordinates
               ? focusMapCoordinates.longitude
-              : position.longitude
-            }
-            zoom={focusMapCoordinates ? 18 : 10}
-            markers={jobMarkers}
-            onMapClick={handleMapClick}
-            style={{ width: '100%', height: '100%' }}
-            interactive={true}
-          />
-        )}
+              : mapCenter.longitude
+          }
+          zoom={focusMapCoordinates ? 18 : 10}
+          markers={jobMarkers}
+          onMapClick={handleMapClick}
+          style={{ width: '100%', height: '100%' }}
+          interactive={true}
+          flyToCoordinates={flyToCoordinates}
+        />
         
         {/* Map controls overlay - Job count display */}
         <div className="absolute top-4 right-4 z-30">
