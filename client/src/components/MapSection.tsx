@@ -132,19 +132,16 @@ const MapSection: React.FC<MapSectionProps> = ({ jobs, selectedJob, onSelectJob,
         }
       : null;
   }, [searchCoordinates, userLocation]);
-  // Default map center (San Francisco) before geolocation loads
-  const defaultCenter = { latitude: 37.7749, longitude: -122.4194 };
-  // Use geolocation when available, else fallback to default
-  const mapCenter = position ?? defaultCenter;
-  // Fly map to user location only once
-  const [flyToCoordinates, setFlyToCoordinates] = useState<{ latitude: number; longitude: number; zoom?: number } | null>(null);
-  const [hasCentered, setHasCentered] = useState(false);
-  useEffect(() => {
-    if (userLocation && !hasCentered) {
-      setFlyToCoordinates({ latitude: userLocation.latitude, longitude: userLocation.longitude, zoom: 10 });
-      setHasCentered(true);
-    }
-  }, [userLocation, hasCentered]);
+  
+  // Determine map center only for job focus
+  const mapInitialProps: { latitude?: number; longitude?: number; zoom?: number } = {};
+  if (focusMapCoordinates) {
+    mapInitialProps.latitude = focusMapCoordinates.latitude;
+    mapInitialProps.longitude = focusMapCoordinates.longitude;
+    mapInitialProps.zoom = 18;
+  }
+
+  // No auto fly logic; initial mount will center map using initial props
 
   // Handle selecting a job when a map marker is clicked
   const handleMarkerClick = (job: Job) => {
@@ -432,19 +429,18 @@ const MapSection: React.FC<MapSectionProps> = ({ jobs, selectedJob, onSelectJob,
           latitude={
             focusMapCoordinates
               ? focusMapCoordinates.latitude
-              : mapCenter.latitude
+              : userLocation?.latitude
           }
           longitude={
             focusMapCoordinates
               ? focusMapCoordinates.longitude
-              : mapCenter.longitude
+              : userLocation?.longitude
           }
           zoom={focusMapCoordinates ? 18 : 10}
           markers={jobMarkers}
           onMapClick={handleMapClick}
           style={{ width: '100%', height: '100%' }}
           interactive={true}
-          flyToCoordinates={flyToCoordinates}
         />
         
         {/* Map controls overlay - Job count display */}

@@ -8,14 +8,6 @@ export interface Coordinates {
   source?: 'gps' | 'network' | 'fallback';
 }
 
-// Default location (San Francisco) for development/testing only
-const DEFAULT_LOCATION: Coordinates = {
-  latitude: 37.7749,
-  longitude: -122.4194,
-  accuracy: 0,
-  source: 'fallback'
-};
-
 // Location accuracy thresholds (in meters)
 const ACCURACY_THRESHOLDS = {
   HIGH: 10,      // GPS-level accuracy
@@ -115,38 +107,16 @@ export function useGeolocation(): GeolocationHook {
         console.warn(`Location accuracy is poor (${accuracy.toFixed(0)}m). Consider requesting high accuracy location for better results.`);
       }
     } else if (positionError) {
-      let errorMessage = positionError.message;
-      let shouldUseFallback = false;
+      const errorMessage = positionError.message;
 
-      if (positionError.code === positionError.TIMEOUT) {
-        errorMessage = 'Location request timed out. Please check your GPS signal and try again.';
-        shouldUseFallback = process.env.NODE_ENV === 'development'; // Use fallback in dev for testing
-      } else if (positionError.code === positionError.PERMISSION_DENIED) {
-        errorMessage = 'Location access denied. Please enable location services in your browser settings.';
-        shouldUseFallback = process.env.NODE_ENV === 'development'; // Only in dev mode
-      } else if (positionError.code === positionError.POSITION_UNAVAILABLE) {
-        errorMessage = 'Location information is unavailable. Please check your GPS signal.';
-        shouldUseFallback = process.env.NODE_ENV === 'development'; // Use fallback in dev for testing
-      }
-
-      if (shouldUseFallback) {
-        console.warn('Using fallback location due to:', errorMessage);
-        setState({
-          userLocation: DEFAULT_LOCATION,
-          locationError: `Using default location (development mode)`,
-          isLoading: false,
-          isUsingFallback: true,
-          locationAccuracy: 'fallback',
-        });
-      } else {
-        setState({
-          userLocation: null,
-          locationError: errorMessage,
-          isLoading: false,
-          isUsingFallback: false,
-          locationAccuracy: null,
-        });
-      }
+      // On any position error, clear location and report error
+      setState({
+        userLocation: null,
+        locationError: errorMessage,
+        isLoading: false,
+        isUsingFallback: false,
+        locationAccuracy: null,
+      });
     } else if (!isGeolocationAvailable) {
       const error = 'Geolocation is not supported by your browser';
       console.error('Geolocation not available');
@@ -160,22 +130,7 @@ export function useGeolocation(): GeolocationHook {
     } else if (!isGeolocationEnabled) {
       setState(prev => ({ ...prev, isLoading: true }));
     } else {
-      // If we're still loading after a reasonable time, provide fallback in development
-      const isDev = process.env.NODE_ENV === 'development';
-      if (isDev && state.isLoading) {
-        setTimeout(() => {
-          if (state.isLoading && !state.userLocation) {
-            console.warn('Location loading timeout, using fallback location for development');
-            setState({
-              userLocation: DEFAULT_LOCATION,
-              locationError: 'Using default location (development timeout)',
-              isLoading: false,
-              isUsingFallback: true,
-              locationAccuracy: 'fallback',
-            });
-          }
-        }, 10000); // 10 second timeout for development fallback
-      }
+      // On prolonged loading, show loading state without fallback
     }
   }, [coords, positionError, isGeolocationAvailable, isGeolocationEnabled]);
 

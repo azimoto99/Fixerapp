@@ -104,18 +104,18 @@ export function MessagingInterface({
 
   // Fetch conversation history
   const { data: conversationData = [], isLoading, error: conversationError } = useQuery({
-    queryKey: ['/api/messages/conversation', recipientId, jobId],
-    enabled: !!recipientId && !!jobId,
+    queryKey: ['messages', recipientId],
+    enabled: !!recipientId,
     queryFn: async () => {
       try {
-        const response = await apiRequest('GET', `/api/messages/conversation?recipientId=${recipientId}${jobId ? `&jobId=${jobId}` : ''}`);
+        const response = await apiRequest('GET', `/api/messages?contactId=${recipientId}`);
         if (!response.ok) {
-          throw new Error('Failed to fetch conversation');
+          throw new Error('Failed to fetch messages');
         }
         return response.json();
       } catch (error) {
-        console.error('Error fetching conversation:', error);
-        return []; // Return empty array on error
+        console.error('Error fetching messages:', error);
+        return [];
       }
     },
     retry: 1,
@@ -149,9 +149,7 @@ export function MessagingInterface({
         }
 
         // Update local cache
-        queryClient.invalidateQueries({
-          queryKey: ['/api/messages/conversation', recipientId, jobId]
-        });
+        queryClient.invalidateQueries({ queryKey: ['messages', recipientId] });
       } catch (error) {
         console.error('Error in onSuccess handler:', error);
       }
@@ -305,29 +303,6 @@ export function MessagingInterface({
 
   const isRecipientOnline = Array.isArray(onlineUsers) ? onlineUsers.includes(recipientId) : false;
   const isRecipientTyping = Array.isArray(typingUsers) ? typingUsers.includes(recipientId) : false;
-
-  // Show error state if there's a conversation error
-  if (conversationError) {
-    return (
-      <div className={`flex flex-col h-full bg-background border rounded-lg ${className}`}>
-        <div className="flex items-center justify-center h-full p-4">
-          <div className="text-center">
-            <AlertCircle className="h-8 w-8 text-destructive mx-auto mb-2" />
-            <h3 className="font-medium mb-1">Unable to load messages</h3>
-            <p className="text-sm text-muted-foreground mb-4">
-              There was an error loading the conversation. Please try refreshing the page.
-            </p>
-            <Button
-              onClick={() => window.location.reload()}
-              size="sm"
-            >
-              Refresh Page
-            </Button>
-          </div>
-        </div>
-      </div>
-    );
-  }
 
   return (
     <div className={`flex flex-col h-full bg-background border rounded-lg ${className}`}>

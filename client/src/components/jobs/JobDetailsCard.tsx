@@ -1051,13 +1051,14 @@ const JobDetailsCard: React.FC<JobDetailsCardProps> = ({ jobId, isOpen, onClose 
                 )}
                 
                 {/* Messages Tab Content - Real-time job conversations for all workers */}
-                {activeTab === 'messages' && user && !isJobPoster && user.accountType === 'worker' && (
+                {activeTab === 'messages' && user && !isJobPoster && user.accountType === 'worker' && job && poster && (
                   <div className="h-96 border rounded-lg overflow-hidden">
                     <MessagingInterface
+                      key={job.id}
                       jobId={job.id}
                       recipientId={job.posterId}
-                      recipientName={poster?.fullName || poster?.username || 'Job Poster'}
-                      recipientAvatar={poster?.avatarUrl}
+                      recipientName={poster.fullName || poster.username}
+                      recipientAvatar={poster.avatarUrl}
                       currentUserId={user.id}
                       className="h-full"
                     />
