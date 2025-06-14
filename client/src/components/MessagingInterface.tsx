@@ -105,6 +105,7 @@ export function MessagingInterface({
   // Fetch conversation history
   const { data: conversationData = [], isLoading, error: conversationError } = useQuery({
     queryKey: ['/api/messages/conversation', recipientId, jobId],
+    enabled: !!recipientId && !!jobId,
     queryFn: async () => {
       try {
         const response = await apiRequest('GET', `/api/messages/conversation?recipientId=${recipientId}${jobId ? `&jobId=${jobId}` : ''}`);
