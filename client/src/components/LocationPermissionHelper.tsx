@@ -85,10 +85,20 @@ export const LocationPermissionHelper: React.FC<LocationPermissionHelperProps> =
     }
 
     if (locationError && !userLocation) {
+      // Provide more helpful error messages
+      let description = locationError;
+      if (locationError.includes('denied')) {
+        description = 'Location access was denied. Please enable location services in your browser settings and try again.';
+      } else if (locationError.includes('unavailable')) {
+        description = 'Location services are unavailable. Please check your GPS signal or try again later.';
+      } else if (locationError.includes('timeout')) {
+        description = 'Location request timed out. Please check your GPS signal and try again.';
+      }
+
       return {
         status: 'error',
         title: 'Location access needed',
-        description: locationError,
+        description,
         icon: AlertCircle,
         color: 'red'
       };
@@ -111,7 +121,7 @@ export const LocationPermissionHelper: React.FC<LocationPermissionHelperProps> =
         title: 'Location found',
         description: showAccuracyInfo ? accuracyInfo.description : 'Your location has been determined.',
         icon: MapPin,
-        color: accuracyInfo.accuracyLevel === 'high' ? 'green' : 
+        color: accuracyInfo.accuracyLevel === 'high' ? 'green' :
                accuracyInfo.accuracyLevel === 'medium' ? 'blue' : 'yellow'
       };
     }

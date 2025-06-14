@@ -16,6 +16,14 @@ const ACCURACY_THRESHOLDS = {
   FALLBACK: 10000 // City-level accuracy
 };
 
+// Default location (only used in development mode as last resort)
+const DEFAULT_LOCATION: Coordinates = {
+  latitude: 37.7749,
+  longitude: -122.4194,
+  accuracy: 10000,
+  source: 'fallback'
+};
+
 interface GeolocationState {
   userLocation: Coordinates | null;
   locationError: string | null;
@@ -107,18 +115,41 @@ export function useGeolocation(): GeolocationHook {
         console.warn(`Location accuracy is poor (${accuracy.toFixed(0)}m). Consider requesting high accuracy location for better results.`);
       }
     } else if (positionError) {
-      const errorMessage = positionError.message;
+      let errorMessage = positionError.message;
 
-      // On any position error, clear location and report error
-      setState({
-        userLocation: null,
-        locationError: errorMessage,
-        isLoading: false,
-        isUsingFallback: false,
-        locationAccuracy: null,
-      });
+      // Provide user-friendly error messages
+      if (positionError.code === positionError.PERMISSION_DENIED) {
+        errorMessage = 'Location access denied. Please enable location services in your browser settings and try again.';
+      } else if (positionError.code === positionError.POSITION_UNAVAILABLE) {
+        errorMessage = 'Location information is unavailable. Please check your GPS signal or try again later.';
+      } else if (positionError.code === positionError.TIMEOUT) {
+        errorMessage = 'Location request timed out. Please check your GPS signal and try again.';
+      }
+
+      console.error('Location error:', errorMessage);
+
+      // In development mode, use fallback for permission denied only
+      const isDev = process.env.NODE_ENV === 'development';
+      if (isDev && positionError.code === positionError.PERMISSION_DENIED) {
+        console.warn('Using fallback location in development mode');
+        setState({
+          userLocation: DEFAULT_LOCATION,
+          locationError: `Using default location (${errorMessage})`,
+          isLoading: false,
+          isUsingFallback: true,
+          locationAccuracy: 'fallback',
+        });
+      } else {
+        setState({
+          userLocation: null,
+          locationError: errorMessage,
+          isLoading: false,
+          isUsingFallback: false,
+          locationAccuracy: null,
+        });
+      }
     } else if (!isGeolocationAvailable) {
-      const error = 'Geolocation is not supported by your browser';
+      const error = 'Geolocation is not supported by your browser. Please use a modern browser with location services.';
       console.error('Geolocation not available');
       setState({
         userLocation: null,
@@ -129,8 +160,6 @@ export function useGeolocation(): GeolocationHook {
       });
     } else if (!isGeolocationEnabled) {
       setState(prev => ({ ...prev, isLoading: true }));
-    } else {
-      // On prolonged loading, show loading state without fallback
     }
   }, [coords, positionError, isGeolocationAvailable, isGeolocationEnabled]);
 

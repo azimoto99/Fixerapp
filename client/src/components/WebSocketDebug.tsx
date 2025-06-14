@@ -1,10 +1,11 @@
 import React from "@/lib/ensure-react";
-import { useWebSocketTest } from '@/hooks/useWebSocketTest';
+import { useWebSocket } from '@/contexts/WebSocketContext';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 
 export function WebSocketDebug() {
-  const { status, lastMessage } = useWebSocketTest();
+  const { status, messages } = useWebSocket();
+  const lastMessage = messages[messages.length - 1];
 
   const getStatusColor = (status: string) => {
     switch (status) {

@@ -149,11 +149,21 @@ export function MessagingDrawer({ open, onOpenChange }: MessagingDrawerProps) {
   const sendMessageMutation = useMutation({
     mutationFn: async (messageData: { recipientId: number; content: string }) => {
       if (!currentUser?.id) {
-        throw new Error('User not authenticated');
+        throw new Error('Please log in to send messages');
       }
+
+      // Validate message content
+      if (!messageData.content.trim()) {
+        throw new Error('Message cannot be empty');
+      }
+
+      if (messageData.content.length > 1000) {
+        throw new Error('Message is too long (maximum 1000 characters)');
+      }
+
       const response = await apiRequest('POST', '/api/messages/send', messageData);
       if (!response.ok) {
-        const error = await response.json();
+        const error = await response.json().catch(() => ({ message: 'Failed to send message' }));
         throw new Error(error.message || 'Failed to send message');
       }
       return response.json();
@@ -164,11 +174,19 @@ export function MessagingDrawer({ open, onOpenChange }: MessagingDrawerProps) {
         queryClient.invalidateQueries({ queryKey: ['/api/messages', selectedContactId, currentUser?.id] });
         queryClient.invalidateQueries({ queryKey: ['/api/contacts', currentUser?.id] });
       }
+
+      // Show success feedback
+      toast({
+        title: "Message sent",
+        description: "Your message has been delivered successfully",
+        duration: 2000,
+      });
     },
     onError: (error: Error) => {
+      console.error('Send message error:', error);
       toast({
         title: "Failed to Send Message",
-        description: error.message || "An error occurred while sending the message",
+        description: error.message || "Please check your connection and try again",
         variant: "destructive",
       });
     }
@@ -177,14 +195,28 @@ export function MessagingDrawer({ open, onOpenChange }: MessagingDrawerProps) {
   const sendContactRequestMutation = useMutation({
     mutationFn: async ({ receiverId, message }: { receiverId: number; message?: string }) => {
       if (!currentUser?.id) {
-        throw new Error('User not authenticated');
+        throw new Error('Please log in to send contact requests');
       }
+
       if (receiverId === currentUser.id) {
-        throw new Error('Cannot send contact request to yourself');
+        throw new Error('You cannot send a contact request to yourself');
       }
+
+      // Check if already a contact
+      const isAlreadyContact = contacts.some((contact: Contact) => contact.id === receiverId);
+      if (isAlreadyContact) {
+        throw new Error('This user is already in your contacts');
+      }
+
+      // Check if request already sent
+      const requestAlreadySent = sentRequests.some((request: any) => request.receiverId === receiverId);
+      if (requestAlreadySent) {
+        throw new Error('Contact request already sent to this user');
+      }
+
       const response = await apiRequest('POST', '/api/contact-requests/send', { receiverId, message });
       if (!response.ok) {
-        const error = await response.json();
+        const error = await response.json().catch(() => ({ message: 'Failed to send contact request' }));
         throw new Error(error.message || 'Failed to send contact request');
       }
       return response.json();
@@ -200,9 +232,10 @@ export function MessagingDrawer({ open, onOpenChange }: MessagingDrawerProps) {
       setSearchQuery(""); // Clear search after sending
     },
     onError: (error: Error) => {
+      console.error('Send contact request error:', error);
       toast({
         title: "Failed to Send Request",
-        description: error.message || "An error occurred while sending the contact request",
+        description: error.message || "Please check your connection and try again",
         variant: "destructive",
       });
     }
@@ -303,8 +336,8 @@ export function MessagingDrawer({ open, onOpenChange }: MessagingDrawerProps) {
   }, [open]);
 
   const handleSendMessage = () => {
-    if (!newMessage.trim() || !selectedContactId) return;
-    
+    if (!newMessage.trim() || !selectedContactId || sendMessageMutation.isPending) return;
+
     sendMessageMutation.mutate({
       recipientId: selectedContactId,
       content: newMessage.trim()
@@ -566,11 +599,15 @@ export function MessagingDrawer({ open, onOpenChange }: MessagingDrawerProps) {
                         }
                       }}
                     />
-                    <Button 
+                    <Button
                       onClick={handleSendMessage}
                       disabled={!newMessage.trim() || sendMessageMutation.isPending}
                     >
-                      <Send className="h-4 w-4" />
+                      {sendMessageMutation.isPending ? (
+                        <Clock className="h-4 w-4 animate-spin" />
+                      ) : (
+                        <Send className="h-4 w-4" />
+                      )}
                     </Button>
                   </div>
                 </div>

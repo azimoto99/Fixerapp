@@ -304,6 +304,39 @@ export function MessagingInterface({
   const isRecipientOnline = Array.isArray(onlineUsers) ? onlineUsers.includes(recipientId) : false;
   const isRecipientTyping = Array.isArray(typingUsers) ? typingUsers.includes(recipientId) : false;
 
+  // Show error state if there's a conversation error
+  if (conversationError) {
+    return (
+      <div className={`flex flex-col h-full bg-background border rounded-lg ${className}`}>
+        <div className="flex items-center justify-center h-full p-4">
+          <div className="text-center">
+            <AlertCircle className="h-8 w-8 text-destructive mx-auto mb-2" />
+            <h3 className="font-medium mb-1">Unable to load messages</h3>
+            <p className="text-sm text-muted-foreground mb-4">
+              Error: {conversationError?.message || 'Unknown error occurred'}
+            </p>
+            <Button
+              onClick={() => queryClient.invalidateQueries({ queryKey: ['messages', recipientId] })}
+              size="sm"
+            >
+              Retry
+            </Button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Debug: Log current state
+  console.log('MessagingInterface state:', {
+    recipientId,
+    jobId,
+    currentUserId,
+    conversationData,
+    isLoading,
+    conversationError
+  });
+  
   return (
     <div className={`flex flex-col h-full bg-background border rounded-lg ${className}`}>
       {/* Header */}

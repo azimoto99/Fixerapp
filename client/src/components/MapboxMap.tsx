@@ -62,8 +62,8 @@ export default function MapboxMap({
       style: document.documentElement.classList.contains('dark') 
         ? 'mapbox://styles/mapbox/dark-v11'  // Dark theme style
         : 'mapbox://styles/mapbox/streets-v12', // Light theme style
-      center: [longitude, latitude],
-      zoom: zoom,
+      center: [longitude || 0, latitude || 0],
+      zoom,
       interactive: interactive,
     });
     
@@ -176,11 +176,14 @@ export default function MapboxMap({
     };
   }, []);
 
-  // Add markers when they change or map is loaded
+  // Track current location marker separately
+  const currentLocationMarker = useRef<mapboxgl.Marker | null>(null);
+  
+  // Add/update markers when they change or map is loaded
   useEffect(() => {
     if (!mapLoaded || !map.current) return;
     
-    // Remove existing markers and circles
+    // Only remove non-current-location markers
     mapMarkers.current.forEach(marker => marker.remove());
     mapMarkers.current = [];
 
@@ -211,6 +214,13 @@ export default function MapboxMap({
       const isDark = document.documentElement.classList.contains('dark');
 
       if (marker.title === 'Current Location') {
+        // Update existing current location marker or create new one
+        if (currentLocationMarker.current) {
+          // Just update position without recreating
+          currentLocationMarker.current.setLngLat([marker.longitude, marker.latitude]);
+          return;
+        }
+        
         // Enhanced user location marker with pulsing animation
         el.innerHTML = `
           <div style="
@@ -259,6 +269,17 @@ export default function MapboxMap({
           }
         `;
         document.head.appendChild(style);
+        
+        // Create and store current location marker
+        const mapboxMarker = new mapboxgl.Marker({
+          element: el,
+          anchor: 'center'
+        }).setLngLat([marker.longitude, marker.latitude]);
+        
+        if (map.current) {
+          mapboxMarker.addTo(map.current);
+          currentLocationMarker.current = mapboxMarker;
+        }
       } else {
         // Use new contextual styling system for job markers
         const pinConfig: PinConfig = {
