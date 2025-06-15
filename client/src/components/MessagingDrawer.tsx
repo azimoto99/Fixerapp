@@ -1,9 +1,9 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { 
-  Sheet, 
-  SheetContent, 
-  SheetHeader, 
+import {
+  Sheet,
+  SheetContent,
+  SheetHeader,
   SheetTitle,
   SheetDescription
 } from "@/components/ui/sheet";
@@ -16,7 +16,34 @@ import { Separator } from "@/components/ui/separator";
 import { apiRequest } from "@/lib/queryClient";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { useToast } from "@/hooks/use-toast";
-import { Search, X, Send, MessageSquare, UserPlus, Shield, AlertTriangle, CheckCircle, Clock, ArrowLeft, MoreVertical, Trash2, Users, UserCheck, UserX, Mail } from "lucide-react";
+import {
+  Search,
+  X,
+  Send,
+  MessageSquare,
+  UserPlus,
+  Shield,
+  AlertTriangle,
+  CheckCircle,
+  Clock,
+  ArrowLeft,
+  MoreVertical,
+  Trash2,
+  Users,
+  UserCheck,
+  UserX,
+  Mail,
+  Phone,
+  Video,
+  Paperclip,
+  Smile,
+  Check,
+  CheckCheck,
+  Circle,
+  Zap,
+  Wifi,
+  WifiOff
+} from "lucide-react";
 import { useAuth } from '@/hooks/use-auth';
 import {
   AlertDialog,
@@ -36,7 +63,12 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 
-type Contact = {
+// Import our new modern messaging components
+import { ContactList, type Contact } from './messaging/ContactList';
+import { ModernMessagingInterface } from './messaging/ModernMessagingInterface';
+
+// Legacy types for backward compatibility
+type LegacyContact = {
   id: number;
   username: string;
   fullName: string | null;
@@ -68,14 +100,12 @@ export function MessagingDrawer({ open, onOpenChange }: MessagingDrawerProps) {
   const queryClient = useQueryClient();
   const { user: currentUser } = useAuth(); // Use proper auth hook
   const [selectedContactId, setSelectedContactId] = useState<number | null>(null);
-  const [newMessage, setNewMessage] = useState("");
   const [searchQuery, setSearchQuery] = useState("");
-  const messagesEndRef = useRef<HTMLDivElement>(null);
   const [tab, setTab] = useState("contacts");
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [contactToDelete, setContactToDelete] = useState<number | null>(null);
 
-  const { data: contacts = [], isLoading: contactsLoading, error: contactsError } = useQuery({
+  const { data: legacyContacts = [], isLoading: contactsLoading, error: contactsError } = useQuery({
     queryKey: ['/api/contacts', currentUser?.id],
     queryFn: async () => {
       if (!currentUser?.id) {
@@ -92,24 +122,28 @@ export function MessagingDrawer({ open, onOpenChange }: MessagingDrawerProps) {
     refetchOnWindowFocus: true,
   });
 
+  // Transform legacy contacts to modern Contact interface
+  const contacts: Contact[] = legacyContacts.map((contact: LegacyContact) => ({
+    id: contact.id,
+    name: contact.fullName || contact.username,
+    username: contact.username,
+    avatar: contact.avatarUrl || undefined,
+    lastMessage: contact.lastMessage ? {
+      content: contact.lastMessage,
+      timestamp: new Date(),
+      isRead: true,
+      senderId: contact.id
+    } : undefined,
+    unreadCount: 0,
+    isOnline: false,
+    isPinned: false,
+    isArchived: false,
+    isTyping: false
+  }));
 
 
-  const { data: messages = [], isLoading: messagesLoading } = useQuery({
-    queryKey: ['/api/messages', selectedContactId, currentUser?.id],
-    queryFn: async () => {
-      if (!currentUser?.id || !selectedContactId) {
-        throw new Error('Missing authentication or contact ID');
-      }
-      const response = await apiRequest('GET', `/api/messages?contactId=${selectedContactId}`);
-      if (!response.ok) {
-        throw new Error('Failed to fetch messages');
-      }
-      return response.json();
-    },
-    enabled: open && selectedContactId !== null && !!currentUser?.id,
-    refetchInterval: 5000, // Refresh messages every 5 seconds
-    staleTime: 10000,
-  });
+
+
 
   // Contact requests queries
   const { data: receivedRequests = [], isLoading: receivedRequestsLoading } = useQuery({
@@ -146,51 +180,7 @@ export function MessagingDrawer({ open, onOpenChange }: MessagingDrawerProps) {
     refetchOnWindowFocus: true,
   });
 
-  const sendMessageMutation = useMutation({
-    mutationFn: async (messageData: { recipientId: number; content: string }) => {
-      if (!currentUser?.id) {
-        throw new Error('Please log in to send messages');
-      }
 
-      // Validate message content
-      if (!messageData.content.trim()) {
-        throw new Error('Message cannot be empty');
-      }
-
-      if (messageData.content.length > 1000) {
-        throw new Error('Message is too long (maximum 1000 characters)');
-      }
-
-      const response = await apiRequest('POST', '/api/messages/send', messageData);
-      if (!response.ok) {
-        const error = await response.json().catch(() => ({ message: 'Failed to send message' }));
-        throw new Error(error.message || 'Failed to send message');
-      }
-      return response.json();
-    },
-    onSuccess: () => {
-      setNewMessage("");
-      if (selectedContactId) {
-        queryClient.invalidateQueries({ queryKey: ['/api/messages', selectedContactId, currentUser?.id] });
-        queryClient.invalidateQueries({ queryKey: ['/api/contacts', currentUser?.id] });
-      }
-
-      // Show success feedback
-      toast({
-        title: "Message sent",
-        description: "Your message has been delivered successfully",
-        duration: 2000,
-      });
-    },
-    onError: (error: Error) => {
-      console.error('Send message error:', error);
-      toast({
-        title: "Failed to Send Message",
-        description: error.message || "Please check your connection and try again",
-        variant: "destructive",
-      });
-    }
-  });
 
   const sendContactRequestMutation = useMutation({
     mutationFn: async ({ receiverId, message }: { receiverId: number; message?: string }) => {
@@ -318,31 +308,14 @@ export function MessagingDrawer({ open, onOpenChange }: MessagingDrawerProps) {
     }
   }, [open, currentUser, toast, onOpenChange]);
 
-  // Scroll to bottom of messages when new ones arrive
-  useEffect(() => {
-    if (messagesEndRef.current) {
-      messagesEndRef.current.scrollIntoView({ behavior: 'smooth' });
-    }
-  }, [messages]);
-
   // Reset states when drawer closes
   useEffect(() => {
     if (!open) {
       setSelectedContactId(null);
-      setNewMessage("");
       setSearchQuery("");
       setTab("contacts");
     }
   }, [open]);
-
-  const handleSendMessage = () => {
-    if (!newMessage.trim() || !selectedContactId || sendMessageMutation.isPending) return;
-
-    sendMessageMutation.mutate({
-      recipientId: selectedContactId,
-      content: newMessage.trim()
-    });
-  };
 
   const handleSendContactRequest = (receiverId: number) => {
     sendContactRequestMutation.mutate({ receiverId });
@@ -457,25 +430,24 @@ export function MessagingDrawer({ open, onOpenChange }: MessagingDrawerProps) {
       .substring(0, 2);
   };
 
-  const formatTime = (dateString: string): string => {
-    const date = new Date(dateString);
-    return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-  };
+
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetContent side="left" className="flex flex-col w-[400px] sm:max-w-md p-0">
-        {/* Enhanced header with security indicators */}
-        <div className="px-4 py-3 border-b flex justify-between items-center sticky top-0 bg-background/95 backdrop-blur-xl z-10 shadow-sm">
+        {/* Modern header with clean design */}
+        <div className="px-4 py-4 border-b flex justify-between items-center sticky top-0 bg-background/95 backdrop-blur-xl z-10">
           <div className="flex items-center gap-3">
-            <div className="p-2 bg-primary/10 rounded-lg">
+            <div className="p-2.5 bg-gradient-to-br from-primary/10 to-primary/5 rounded-xl">
               <MessageSquare className="h-5 w-5 text-primary" />
             </div>
-            <div className="flex flex-col space-y-1">
-              <h2 className="text-lg font-semibold tracking-tight">Messages</h2>
-              <div className="flex items-center gap-2">
-                <p className="text-sm text-muted-foreground">Secure messaging</p>
-                <Shield className="h-3 w-3 text-green-500" />
+            <div>
+              <h2 className="text-xl font-bold tracking-tight text-foreground">Messages</h2>
+              <div className="flex items-center gap-2 mt-0.5">
+                <div className="flex items-center gap-1">
+                  <Wifi className="h-3 w-3 text-green-500" />
+                  <span className="text-xs text-muted-foreground">Secure & encrypted</span>
+                </div>
               </div>
             </div>
           </div>
@@ -483,226 +455,74 @@ export function MessagingDrawer({ open, onOpenChange }: MessagingDrawerProps) {
             variant="ghost"
             size="icon"
             onClick={() => onOpenChange(false)}
-            className="h-8 w-8 p-0 rounded-full hover:bg-accent"
+            className="h-9 w-9 rounded-full hover:bg-accent transition-colors"
           >
             <X className="h-4 w-4" />
           </Button>
         </div>
 
         <Tabs value={tab} onValueChange={setTab} className="flex flex-col flex-grow h-full">
-          <TabsList className="grid grid-cols-3 mx-4 mt-3 mb-2 bg-muted/50">
-            <TabsTrigger value="contacts" className="flex items-center gap-1">
+          <TabsList className="grid grid-cols-3 mx-4 mt-4 mb-3 bg-muted/30 p-1 rounded-xl">
+            <TabsTrigger value="contacts" className="flex items-center gap-2 rounded-lg data-[state=active]:bg-background data-[state=active]:shadow-sm">
               <Users className="h-4 w-4" />
-              <span className="hidden sm:inline">Contacts</span>
+              <span className="font-medium">Chats</span>
               {contacts.length > 0 && (
-                <Badge variant="secondary" className="ml-1 h-5 px-1.5 text-xs">
+                <Badge variant="secondary" className="ml-1 h-5 px-2 text-xs rounded-full">
                   {contacts.length}
                 </Badge>
               )}
             </TabsTrigger>
-            <TabsTrigger value="requests" className="flex items-center gap-1">
+            <TabsTrigger value="requests" className="flex items-center gap-2 rounded-lg data-[state=active]:bg-background data-[state=active]:shadow-sm">
               <Mail className="h-4 w-4" />
-              <span className="hidden sm:inline">Requests</span>
+              <span className="font-medium">Requests</span>
               {receivedRequests.length > 0 && (
-                <Badge variant="destructive" className="ml-1 h-5 px-1.5 text-xs">
+                <Badge variant="destructive" className="ml-1 h-5 px-2 text-xs rounded-full">
                   {receivedRequests.length}
                 </Badge>
               )}
             </TabsTrigger>
-            <TabsTrigger value="add" className="flex items-center gap-1">
+            <TabsTrigger value="add" className="flex items-center gap-2 rounded-lg data-[state=active]:bg-background data-[state=active]:shadow-sm">
               <UserPlus className="h-4 w-4" />
-              <span className="hidden sm:inline">Add</span>
+              <span className="font-medium">Add</span>
             </TabsTrigger>
           </TabsList>
 
           <TabsContent value="contacts" className="flex flex-col flex-grow h-full m-0 p-0">
             {selectedContactId ? (
-              <div className="flex flex-col h-full">
-                {/* Contact header */}
-                <div className="px-4 py-2 border-b flex items-center justify-between">
-                  {contacts.find((c: Contact) => c.id === selectedContactId) && (
-                    <>
-                      <div className="flex items-center gap-2">
-                        <Avatar>
-                          <AvatarImage 
-                            src={(contacts.find((c: Contact) => c.id === selectedContactId) as Contact)?.avatarUrl || ""} 
-                            alt={(contacts.find((c: Contact) => c.id === selectedContactId) as Contact)?.username} 
-                          />
-                          <AvatarFallback>
-                            {getInitials((contacts.find((c: Contact) => c.id === selectedContactId) as Contact)?.fullName)}
-                          </AvatarFallback>
-                        </Avatar>
-                        <div>
-                          <h3 className="font-medium">
-                            {(contacts.find((c: Contact) => c.id === selectedContactId) as Contact)?.fullName || 
-                            (contacts.find((c: Contact) => c.id === selectedContactId) as Contact)?.username}
-                          </h3>
-                          <p className="text-sm text-muted-foreground">
-                            @{(contacts.find((c: Contact) => c.id === selectedContactId) as Contact)?.username}
-                          </p>
-                        </div>
-                      </div>
-                      <div className="flex gap-2">
-                        <Button 
-                          variant="outline" 
-                          size="icon" 
-                          onClick={() => setSelectedContactId(null)}
-                        >
-                          <X className="h-4 w-4" />
-                        </Button>
-                      </div>
-                    </>
-                  )}
-                </div>
-                
-                {/* Message area */}
-                <ScrollArea className="flex-grow p-4">
-                  <div className="flex flex-col space-y-3">
-                    {messages.map((message: Message) => (
-                      <div 
-                        key={message.id}
-                        className={`flex ${message.senderId === currentUser?.id ? 'justify-end' : 'justify-start'}`}
-                      >
-                        <div 
-                          className={`max-w-[80%] rounded-lg px-4 py-2 ${
-                            message.senderId === currentUser?.id 
-                              ? 'bg-primary text-primary-foreground' 
-                              : 'bg-muted'
-                          }`}
-                        >
-                          <p>{message.content}</p>
-                          <p className={`text-xs mt-1 ${
-                            message.senderId === currentUser?.id 
-                              ? 'text-primary-foreground/70' 
-                              : 'text-muted-foreground'
-                          }`}>
-                            {formatTime(message.sentAt)}
-                          </p>
-                        </div>
-                      </div>
-                    ))}
-                    <div ref={messagesEndRef} />
-                  </div>
-                </ScrollArea>
-                
-                {/* Message input */}
-                <div className="p-4 border-t mt-auto">
-                  <div className="flex gap-2">
-                    <Input
-                      placeholder="Type your message..."
-                      value={newMessage}
-                      onChange={(e) => setNewMessage(e.target.value)}
-                      onKeyDown={(e) => {
-                        if (e.key === 'Enter' && !e.shiftKey) {
-                          e.preventDefault();
-                          handleSendMessage();
-                        }
-                      }}
-                    />
-                    <Button
-                      onClick={handleSendMessage}
-                      disabled={!newMessage.trim() || sendMessageMutation.isPending}
-                    >
-                      {sendMessageMutation.isPending ? (
-                        <Clock className="h-4 w-4 animate-spin" />
-                      ) : (
-                        <Send className="h-4 w-4" />
-                      )}
-                    </Button>
-                  </div>
-                </div>
-              </div>
+              <ModernMessagingInterface
+                contactId={selectedContactId}
+                contactName={contacts.find(c => c.id === selectedContactId)?.name || 'Unknown'}
+                contactUsername={contacts.find(c => c.id === selectedContactId)?.username}
+                contactAvatar={contacts.find(c => c.id === selectedContactId)?.avatar}
+                currentUserId={currentUser?.id || 0}
+                onBack={() => setSelectedContactId(null)}
+              />
             ) : (
-              <div className="p-4 flex flex-col gap-2">
-                <div className="flex justify-between items-center mb-3">
-                  <h3 className="text-sm font-medium text-foreground">Your contacts</h3>
-                  <Badge variant="outline" className="text-xs">
-                    {contactsLoading ? '...' : `${contacts.length} ${contacts.length === 1 ? 'contact' : 'contacts'}`}
-                  </Badge>
+              <div className="flex flex-col h-full">
+                {/* Search Bar */}
+                <div className="px-4 py-3 border-b">
+                  <div className="relative">
+                    <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                    <Input
+                      placeholder="Search conversations..."
+                      className="pl-10 bg-muted/30 border-0 focus-visible:ring-1"
+                    />
+                  </div>
                 </div>
 
-                {contactsLoading ? (
-                  <div className="space-y-3">
-                    {[1, 2, 3].map((i) => (
-                      <div key={i} className="flex items-center gap-3 p-3 border rounded-md">
-                        <div className="h-10 w-10 bg-muted rounded-full animate-pulse" />
-                        <div className="flex-1 space-y-2">
-                          <div className="h-4 bg-muted rounded animate-pulse" />
-                          <div className="h-3 bg-muted rounded w-2/3 animate-pulse" />
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                ) : contactsError ? (
-                  <div className="text-center p-6 border rounded-md bg-destructive/10 border-destructive/20">
-                    <AlertTriangle className="h-10 w-10 mx-auto text-destructive mb-2" />
-                    <p className="text-destructive font-medium">Failed to load contacts</p>
-                    <p className="text-sm text-muted-foreground mt-1">
-                      Please try refreshing the page
-                    </p>
-                  </div>
-                ) : (
-                  <div className="space-y-2 rounded-md">
-                    {contacts.length === 0 ? (
-                      <div className="text-center p-6 border rounded-md bg-muted/30">
-                        <MessageSquare className="h-10 w-10 mx-auto text-muted-foreground mb-2" />
-                        <p className="text-muted-foreground font-medium">No contacts yet</p>
-                        <p className="text-sm text-muted-foreground mt-1">
-                          Use the Find Users tab to add contacts
-                        </p>
-                      </div>
-                    ) : (
-                      contacts.map((contact: Contact) => (
-                        <div
-                          key={contact.id}
-                          className={`group p-3 cursor-pointer hover:bg-accent/50 border rounded-md transition-all duration-200 ${
-                            selectedContactId === contact.id ? 'bg-accent border-accent shadow-sm' : 'bg-card hover:shadow-sm'
-                          }`}
-                          onClick={() => handleContactSelect(contact.id)}
-                        >
-                          <div className="flex items-center gap-3">
-                            <Avatar className="h-10 w-10 border-2 border-background shadow-sm">
-                              <AvatarImage src={contact.avatarUrl || ""} alt={contact.username} />
-                              <AvatarFallback className="bg-primary/10 text-primary font-medium">
-                                {getInitials(contact.fullName)}
-                              </AvatarFallback>
-                            </Avatar>
-                            <div className="flex-grow min-w-0">
-                              <h4 className="font-medium text-foreground">{contact.fullName || contact.username}</h4>
-                              <p className="text-sm text-muted-foreground truncate">
-                                {contact.lastMessage || 'No messages yet'}
-                              </p>
-                            </div>
-                            <DropdownMenu>
-                              <DropdownMenuTrigger asChild>
-                                <Button
-                                  variant="ghost"
-                                  size="icon"
-                                  className="h-8 w-8 rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
-                                  onClick={(e) => e.stopPropagation()}
-                                >
-                                  <MoreVertical className="h-4 w-4" />
-                                </Button>
-                              </DropdownMenuTrigger>
-                              <DropdownMenuContent align="end">
-                                <DropdownMenuItem
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    handleRemoveContact(contact.id);
-                                  }}
-                                  className="text-destructive focus:text-destructive"
-                                >
-                                  <Trash2 className="h-4 w-4 mr-2" />
-                                  Remove Contact
-                                </DropdownMenuItem>
-                              </DropdownMenuContent>
-                            </DropdownMenu>
-                          </div>
-                        </div>
-                      ))
-                    )}
-                  </div>
-                )}
+                {/* Contact List */}
+                <ContactList
+                  contacts={contacts}
+                  selectedContactId={selectedContactId}
+                  onContactSelect={handleContactSelect}
+                  onContactCall={(contactId) => console.log('Call:', contactId)}
+                  onContactVideoCall={(contactId) => console.log('Video call:', contactId)}
+                  onContactPin={(contactId) => console.log('Pin:', contactId)}
+                  onContactArchive={(contactId) => console.log('Archive:', contactId)}
+                  onContactDelete={(contactId) => console.log('Delete:', contactId)}
+                  isLoading={contactsLoading}
+                  className="flex-1"
+                />
               </div>
             )}
           </TabsContent>
