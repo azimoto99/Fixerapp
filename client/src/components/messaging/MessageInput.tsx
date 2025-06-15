@@ -75,17 +75,32 @@ export function MessageInput({
   const fileInputRef = useRef<HTMLInputElement>(null);
   const typingTimeoutRef = useRef<NodeJS.Timeout>();
 
-  // Auto-resize textarea
+  // Auto-resize textarea with smooth transitions
   const adjustTextareaHeight = useCallback(() => {
     const textarea = textareaRef.current;
     if (textarea) {
+      // Store current scroll position to prevent jumping
+      const scrollTop = textarea.scrollTop;
+
+      // Reset height to auto to get the correct scrollHeight
       textarea.style.height = 'auto';
-      textarea.style.height = `${Math.min(textarea.scrollHeight, 120)}px`;
+
+      // Calculate new height with min/max constraints
+      const newHeight = Math.min(Math.max(textarea.scrollHeight, 44), 120);
+
+      // Apply new height
+      textarea.style.height = `${newHeight}px`;
+
+      // Restore scroll position
+      textarea.scrollTop = scrollTop;
     }
   }, []);
 
   useEffect(() => {
-    adjustTextareaHeight();
+    // Use requestAnimationFrame to ensure smooth resizing
+    requestAnimationFrame(() => {
+      adjustTextareaHeight();
+    });
   }, [value, adjustTextareaHeight]);
 
   // Handle typing indicators
@@ -166,7 +181,7 @@ export function MessageInput({
   const canSend = (value.trim().length > 0 || attachments.length > 0) && !disabled && !isLoading;
 
   return (
-    <div className={cn("border-t bg-background/95 backdrop-blur-xl", className)}>
+    <div className={cn("border-t bg-background/95 backdrop-blur-xl sticky bottom-0 z-10", className)}>
       {/* Reply Context */}
       {replyTo && (
         <div className="px-4 py-2 border-b bg-muted/30">
@@ -263,7 +278,8 @@ export function MessageInput({
             className={cn(
               "min-h-[44px] max-h-[120px] resize-none rounded-2xl border-0 bg-muted/50",
               "focus-visible:ring-1 focus-visible:ring-ring pr-12",
-              "placeholder:text-muted-foreground"
+              "placeholder:text-muted-foreground transition-all duration-200",
+              "overflow-hidden leading-relaxed"
             )}
             rows={1}
           />
