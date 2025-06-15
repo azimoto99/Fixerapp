@@ -3,8 +3,9 @@ import mapboxgl from 'mapbox-gl';
 import 'mapbox-gl/dist/mapbox-gl.css';
 import { generatePinStyle, generatePinCSS, type PinConfig } from '@/lib/mapPinStyles';
 
-// Set the access token from environment variable
-mapboxgl.accessToken = process.env.VITE_MAPBOX_ACCESS_TOKEN;
+// Set the access token from Vite environment variable
+// Note: in a Vite/React app we must use import.meta.env to access env vars at build time.
+mapboxgl.accessToken = import.meta.env.VITE_MAPBOX_ACCESS_TOKEN;
 
 
 interface MapboxMapProps {
@@ -280,9 +281,12 @@ export default function MapboxMap({
           mapboxMarker.addTo(map.current);
           currentLocationMarker.current = mapboxMarker;
           console.log(`Current location marker successfully added at [${marker.longitude}, ${marker.latitude}]`);
-        }
 
-        // Don't return here - let it continue to the normal marker creation flow
+          // Exit early to avoid creating a duplicate generic marker using the same DOM element.
+          // We intentionally do NOT push the current-location marker to mapMarkers so it
+          // persists across re-renders and isn't removed during the standard cleanup cycle.
+          return; // continue to next marker
+        }
       } else {
         // Use new contextual styling system for job markers
         const pinConfig: PinConfig = {

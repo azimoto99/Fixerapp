@@ -378,30 +378,26 @@ const JobDetailsCard: React.FC<JobDetailsCardProps> = ({ jobId, isOpen, onClose 
     editJobMutation.mutate(updatedData);
   };
 
-  // Calculate great-circle distance between two latitude/longitude pairs.
-  // Returns distance in **miles** for clarity and easier unit conversion.
-  // (‵verifyWorkerLocation‵ later converts miles → feet).
-  const calculateDistance = (
-    lat1: number,
-    lon1: number,
-    lat2: number,
-    lon2: number
-  ): number => {
-    // Mean radius of the Earth in miles
-    const R = 3958.8;
 
-    const dLat = ((lat2 - lat1) * Math.PI) / 180;
-    const dLon = ((lon2 - lon1) * Math.PI) / 180;
 
-    const a =
-      Math.sin(dLat / 2) * Math.sin(dLat / 2) +
-      Math.cos((lat1 * Math.PI) / 180) *
-        Math.cos((lat2 * Math.PI) / 180) *
-        Math.sin(dLon / 2) *
-        Math.sin(dLon / 2);
-    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
 
-    return R * c; // miles
+
+  // Function to calculate distance between two coordinates
+  const calculateDistance = (lat1: number, lon1: number, lat2: number, lon2: number): number => {
+    // Earth's radius in feet
+    const R = 20902231; // 3959 miles * 5280 feet
+
+    const dLat = (lat2 - lat1) * Math.PI / 180;
+    const dLon = (lon2 - lon1) * Math.PI / 180;
+    
+    const a = 
+      Math.sin(dLat/2) * Math.sin(dLat/2) +
+      Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * 
+      Math.sin(dLon/2) * Math.sin(dLon/2);
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+    const distance = R * c;
+    
+    return Math.round(distance);
   };
 
   // Verify worker location against job location
@@ -554,10 +550,6 @@ const JobDetailsCard: React.FC<JobDetailsCardProps> = ({ jobId, isOpen, onClose 
     }
   };
 
-  // Lower card z-index & disable clicks while a critical dialog is open
-  const isBlockingDialogOpen = showLocationVerificationError || showCompleteDialog;
-  const cardLayerClass = isBlockingDialogOpen ? 'z-20 pointer-events-none' : 'z-50';
-
   // If the card is closed, don't render anything
   if (!isOpen) return null;
 
@@ -565,7 +557,7 @@ const JobDetailsCard: React.FC<JobDetailsCardProps> = ({ jobId, isOpen, onClose 
     return (
       <AnimatePresence>
         <motion.div
-          className={`fixed bottom-0 left-0 right-0 ${cardLayerClass} p-4 sm:p-6 flex justify-center`}
+          className="fixed bottom-0 left-0 right-0 z-50 p-4 sm:p-6 flex justify-center"
           initial="hidden"
           animate="visible"
           exit="exit"
@@ -586,7 +578,7 @@ const JobDetailsCard: React.FC<JobDetailsCardProps> = ({ jobId, isOpen, onClose 
     return (
       <AnimatePresence>
         <motion.div
-          className={`fixed bottom-0 left-0 right-0 ${cardLayerClass} p-4 sm:p-6 flex justify-center`}
+          className="fixed bottom-0 left-0 right-0 z-50 p-4 sm:p-6 flex justify-center"
           initial="hidden"
           animate="visible"
           exit="exit"
@@ -611,7 +603,7 @@ const JobDetailsCard: React.FC<JobDetailsCardProps> = ({ jobId, isOpen, onClose 
     <>
       <AnimatePresence>
         <motion.div
-          className={`fixed bottom-0 left-0 right-0 ${cardLayerClass} p-4 sm:p-6 flex justify-center`}
+          className="fixed bottom-0 left-0 right-0 z-50 p-4 sm:p-6 flex justify-center"
           initial="hidden"
           animate="visible"
           exit="exit"
