@@ -3,6 +3,7 @@ import { IStorage } from "./storage";
 import { DatabaseStorage } from "./database-storage";
 import connectPg from "connect-pg-simple";
 import session from "express-session";
+import { uploadProfileImage as uploadToS3, base64ToBuffer, validateImageFile } from './services/s3Service.js';
 import { pool, db } from "./db";
 import { eq, desc, sql } from "drizzle-orm";
 import { supportTickets, supportMessages, users } from "@shared/schema";
@@ -109,15 +110,37 @@ export class FixedDatabaseStorage implements IStorage {
 
   async uploadProfileImage(userId: number, imageData: string) {
     try {
-      // Check if the method exists in the underlying storage
+      // Check if the underlying storage has S3 upload capability
       if (typeof this.storage.uploadProfileImage === 'function') {
         return await this.storage.uploadProfileImage(userId, imageData);
       }
-      
-      // Fallback implementation if not available
-      console.warn(`uploadProfileImage not implemented in storage, using fallback implementation`);
-      // Update the user's avatarUrl directly
-      return await this.updateUser(userId, { avatarUrl: imageData });
+
+      // Fallback S3 implementation
+      console.log(`Using S3 fallback for uploadProfileImage(${userId})`);
+
+      try {
+        // Convert base64 to buffer
+        const imageBuffer = base64ToBuffer(imageData);
+
+        // Validate image
+        validateImageFile(imageBuffer, 5 * 1024 * 1024); // 5MB max
+
+        // Upload to S3
+        const uploadResult = await uploadToS3(userId, imageBuffer);
+
+        // Update user with S3 URL
+        const updatedUser = await this.updateUser(userId, {
+          avatarUrl: uploadResult.url
+        });
+
+        console.log(`Profile image uploaded for user ${userId}: ${uploadResult.url}`);
+        return updatedUser;
+
+      } catch (uploadError) {
+        console.error(`S3 upload failed for user ${userId}:`, uploadError);
+        // Final fallback - store as base64 (not recommended for production)
+        return await this.updateUser(userId, { avatarUrl: imageData });
+      }
     } catch (error) {
       console.error(`Error in uploadProfileImage(${userId}):`, error);
       return undefined;

@@ -1,11 +1,12 @@
 import { useState, useRef } from 'react';
 import { useMutation } from '@tanstack/react-query';
-import { apiRequest, queryClient } from '@/lib/queryClient';
+import { queryClient } from '@/lib/queryClient';
 import { useToast } from '@/hooks/use-toast';
 import { User } from '@shared/schema';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Upload, X } from 'lucide-react';
+import { uploadProfileImage, validateImageFile, resizeImage } from '@/lib/uploadService';
 
 interface ProfileImageUploaderProps {
   user: User;
@@ -18,24 +19,31 @@ export function ProfileImageUploader({ user }: ProfileImageUploaderProps) {
   const [isUploading, setIsUploading] = useState(false);
 
   const uploadMutation = useMutation({
-    mutationFn: async (imageData: string) => {
-      const response = await apiRequest(
-        'POST', 
-        `/api/users/${user.id}/profile-image`, 
-        { imageData }
-      );
-      
-      return response.json();
+    mutationFn: async (file: File) => {
+      // Validate the image file
+      validateImageFile(file);
+
+      // Resize image if it's too large (optional optimization)
+      let processedFile = file;
+      if (file.size > 1024 * 1024) { // If larger than 1MB, resize
+        processedFile = await resizeImage(file, 400, 400, 0.8);
+      }
+
+      // Upload to S3 via our new service
+      const result = await uploadProfileImage(processedFile);
+      return result;
     },
-    onSuccess: (updatedUser) => {
-      // Update the cache with new user data
-      queryClient.setQueryData(['/api/user'], updatedUser);
-      
+    onSuccess: (result) => {
+      // Update the cache with new user data if available
+      if (result.user) {
+        queryClient.setQueryData(['/api/user'], result.user);
+      }
+
       toast({
         title: 'Profile image updated',
-        description: 'Your profile image has been successfully updated.',
+        description: 'Your profile image has been uploaded to secure cloud storage.',
       });
-      
+
       setIsUploading(false);
     },
     onError: (error: Error) => {
@@ -55,41 +63,62 @@ export function ProfileImageUploader({ user }: ProfileImageUploaderProps) {
     const file = event.target.files?.[0];
     if (!file) return;
 
-    if (file.size > 5 * 1024 * 1024) {
+    try {
+      // Validate file using our new validation function
+      validateImageFile(file);
+
+      // Create preview
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        const imageData = e.target?.result as string;
+        setPreviewImage(imageData);
+      };
+      reader.readAsDataURL(file);
+
+      // Upload file
+      setIsUploading(true);
+      uploadMutation.mutate(file);
+    } catch (error) {
       toast({
-        title: 'File too large',
-        description: 'Please select an image less than 5MB',
+        title: 'Invalid file',
+        description: error instanceof Error ? error.message : 'Please select a valid image file.',
         variant: 'destructive',
       });
-      return;
     }
-
-    const reader = new FileReader();
-    reader.onload = (e) => {
-      const imageData = e.target?.result as string;
-      setPreviewImage(imageData);
-      uploadImage(imageData);
-    };
-    reader.readAsDataURL(file);
-  };
-
-  const uploadImage = (imageData: string) => {
-    setIsUploading(true);
-    uploadMutation.mutate(imageData);
   };
 
   const triggerFileInput = () => {
     fileInputRef.current?.click();
   };
 
-  const removeImage = () => {
+  const removeImage = async () => {
     // If there's no image to remove, just return
     if (!previewImage) return;
-    
-    // Set a default or placeholder image
-    setIsUploading(true);
-    uploadMutation.mutate('');
-    setPreviewImage(null);
+
+    try {
+      // Create a 1x1 transparent pixel as a placeholder
+      const canvas = document.createElement('canvas');
+      canvas.width = 1;
+      canvas.height = 1;
+      const ctx = canvas.getContext('2d');
+      ctx!.clearRect(0, 0, 1, 1);
+
+      // Convert to blob and then to file
+      canvas.toBlob((blob) => {
+        if (blob) {
+          const placeholderFile = new File([blob], 'placeholder.png', { type: 'image/png' });
+          setIsUploading(true);
+          uploadMutation.mutate(placeholderFile);
+          setPreviewImage(null);
+        }
+      }, 'image/png');
+    } catch (error) {
+      toast({
+        title: 'Error',
+        description: 'Failed to remove image',
+        variant: 'destructive',
+      });
+    }
   };
 
   return (

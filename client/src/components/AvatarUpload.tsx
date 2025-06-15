@@ -2,7 +2,7 @@ import { useState, useRef } from 'react';
 import { Camera, Upload, User, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
-import { apiRequest } from '@/lib/queryClient';
+import { uploadProfileImage, validateImageFile, resizeImage } from '@/lib/uploadService';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 
 interface AvatarUploadProps {
@@ -21,37 +21,36 @@ export function AvatarUpload({ currentAvatarUrl, userId, onAvatarUpdate, classNa
 
   const uploadMutation = useMutation({
     mutationFn: async (file: File) => {
-      // Convert file to base64 data URL to match the expected format
-      const imageData = await new Promise<string>((resolve, reject) => {
-        const reader = new FileReader();
-        reader.onload = (e) => resolve(e.target?.result as string);
-        reader.onerror = reject;
-        reader.readAsDataURL(file);
-      });
-      
-      const response = await apiRequest(
-        'POST',
-        `/api/users/${userId}/profile-image`,
-        { imageData }
-      );
-      
-      return response.json();
+      // Validate the image file
+      validateImageFile(file);
+
+      // Resize image if it's too large (optional optimization)
+      let processedFile = file;
+      if (file.size > 1024 * 1024) { // If larger than 1MB, resize
+        processedFile = await resizeImage(file, 400, 400, 0.8);
+      }
+
+      // Upload to S3 via our new service
+      const result = await uploadProfileImage(processedFile);
+      return result;
     },
-    onSuccess: (updatedUser) => {
+    onSuccess: (result) => {
       toast({
         title: "Avatar Updated! 🎉",
-        description: "Your profile picture has been updated successfully.",
+        description: "Your profile picture has been uploaded to secure cloud storage.",
       });
-      
-      // Update local preview with the new avatar URL
-      setPreviewUrl(updatedUser.avatarUrl);
-      
+
+      // Update local preview with the new S3 URL
+      setPreviewUrl(result.url);
+
       // Notify parent component
-      onAvatarUpdate?.(updatedUser.avatarUrl);
-      
-      // Update the user cache
-      queryClient.setQueryData(['/api/user'], updatedUser);
-      
+      onAvatarUpdate?.(result.url);
+
+      // Update the user cache if user data is returned
+      if (result.user) {
+        queryClient.setQueryData(['/api/user'], result.user);
+      }
+
       // Invalidate user queries to refresh everywhere
       queryClient.invalidateQueries({ queryKey: ['/api/user'] });
       queryClient.invalidateQueries({ queryKey: ['/api/users'] });
@@ -66,35 +65,26 @@ export function AvatarUpload({ currentAvatarUrl, userId, onAvatarUpdate, classNa
   });
 
   const handleFileSelect = (file: File) => {
-    // Validate file type
-    if (!file.type.startsWith('image/')) {
+    try {
+      // Validate file using our new validation function
+      validateImageFile(file);
+
+      // Create preview
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        setPreviewUrl(e.target?.result as string);
+      };
+      reader.readAsDataURL(file);
+
+      // Upload file
+      uploadMutation.mutate(file);
+    } catch (error) {
       toast({
-        title: "Invalid File Type",
-        description: "Please select a JPG or PNG image.",
+        title: "Invalid File",
+        description: error instanceof Error ? error.message : "Please select a valid image file.",
         variant: "destructive",
       });
-      return;
     }
-
-    // Validate file size (2MB)
-    if (file.size > 2 * 1024 * 1024) {
-      toast({
-        title: "File Too Large",
-        description: "Please select an image smaller than 2MB.",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    // Create preview
-    const reader = new FileReader();
-    reader.onload = (e) => {
-      setPreviewUrl(e.target?.result as string);
-    };
-    reader.readAsDataURL(file);
-
-    // Upload file
-    uploadMutation.mutate(file);
   };
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {

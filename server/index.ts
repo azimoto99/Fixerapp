@@ -118,7 +118,7 @@ app.use((req, res, next) => {
     "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://js.stripe.com https://api.mapbox.com https://basil.stripe.com blob:; " +
     "script-src-elem 'self' 'unsafe-inline' https://js.stripe.com https://api.mapbox.com https://basil.stripe.com; " +
     "style-src 'self' 'unsafe-inline' https:; " +
-    "img-src 'self' data: https: blob:; " +
+    "img-src 'self' data: https: blob: https://*.s3.*.amazonaws.com; " +
     "connect-src 'self' https://api.stripe.com https://api.mapbox.com https://events.mapbox.com wss: ws: https://basil.stripe.com; " +
     "frame-src 'self' https://js.stripe.com https://hooks.stripe.com https://connect.stripe.com; " +
     "child-src 'self' blob: https://js.stripe.com; " +
