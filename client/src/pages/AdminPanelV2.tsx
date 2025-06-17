@@ -10,7 +10,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Skeleton } from "@/components/ui/skeleton";
-import { AlertCircle, Loader2, RefreshCw, Search, Filter, ChevronLeft, ChevronRight } from "lucide-react";
+import { AlertCircle, Loader2, RefreshCw, Search, Filter, ChevronLeft, ChevronRight, Bell } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
 import { 
@@ -117,6 +117,15 @@ export default function AdminPanelV2() {
   
   // Performance optimization - debounced search
   const [debouncedSearch, setDebouncedSearch] = useState("");
+  
+  const [isCreateJobDialogOpen, setIsCreateJobDialogOpen] = useState(false);
+  const [newJobTitle, setNewJobTitle] = useState("");
+  const [newJobDescription, setNewJobDescription] = useState("");
+  const [newJobAmount, setNewJobAmount] = useState<number>(0);
+
+  const [notifications, setNotifications] = useState<any[]>([]);
+  const [newNotifTitle, setNewNotifTitle] = useState("");
+  const [newNotifBody, setNewNotifBody] = useState("");
   
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -376,6 +385,47 @@ export default function AdminPanelV2() {
     }
   };
 
+  useEffect(() => {
+    if (selectedTab === 'notifications') {
+      apiRequest('GET', '/api/admin/notifications')
+        .then(res => res.json())
+        .then(setNotifications)
+        .catch(console.error);
+    }
+  }, [selectedTab]);
+
+  const createAdminJobMutation = useMutation({
+    mutationFn: async () => {
+      const payload = {
+        title: newJobTitle,
+        description: newJobDescription,
+        paymentAmount: newJobAmount,
+      };
+      return apiRequest('POST', '/api/admin/jobs', payload).then(r => r.json());
+    },
+    onSuccess: () => {
+      toast({ title: 'Job created' });
+      setIsCreateJobDialogOpen(false);
+      setNewJobTitle('');
+      setNewJobDescription('');
+      setNewJobAmount(0);
+      refetchJobs();
+    },
+    onError: () => toast({ title: 'Create job failed', variant: 'destructive' }),
+  });
+
+  const createNotificationMutation = useMutation({
+    mutationFn: async () => {
+      return apiRequest('POST', '/api/admin/notifications', { title: newNotifTitle, body: newNotifBody }).then(r => r.json());
+    },
+    onSuccess: (created) => {
+      toast({ title: 'Notification sent' });
+      setNewNotifTitle('');
+      setNewNotifBody('');
+      setNotifications(prev => [created, ...prev]);
+    },
+  });
+
   return (
     <div className="min-h-screen bg-background p-6">
       <div className="max-w-7xl mx-auto" style={{ zIndex: 1010, position: 'relative' }}>
@@ -389,7 +439,7 @@ export default function AdminPanelV2() {
         </div>
 
         <Tabs value={selectedTab} onValueChange={setSelectedTab} className="space-y-6">
-          <TabsList className="grid w-full grid-cols-5 bg-card shadow-sm border-border" style={{ zIndex: 1120, position: 'relative' }}>
+          <TabsList className="grid w-full grid-cols-6 bg-card shadow-sm border-border" style={{ zIndex: 1120, position: 'relative' }}>
             <TabsTrigger value="overview" className="flex items-center gap-2">
               <BarChart3 className="h-4 w-4" />
               Overview
@@ -409,6 +459,10 @@ export default function AdminPanelV2() {
             <TabsTrigger value="financials" className="flex items-center gap-2">
               <DollarSign className="h-4 w-4" />
               Financials
+            </TabsTrigger>
+            <TabsTrigger value="notifications" className="flex items-center gap-2">
+              <Bell className="h-4 w-4" />
+              Notifications
             </TabsTrigger>
           </TabsList>
 
@@ -607,9 +661,12 @@ export default function AdminPanelV2() {
           {/* Jobs Tab */}
           <TabsContent value="jobs" className="space-y-6">
             <Card className="bg-card shadow-lg border-0">
-              <CardHeader>
-                <CardTitle className="text-xl font-semibold text-gray-900">Job Management</CardTitle>
-                <CardDescription>Monitor and manage all platform jobs</CardDescription>
+              <CardHeader className="flex justify-between items-center">
+                <div>
+                  <CardTitle className="text-xl font-semibold text-gray-900">Job Management</CardTitle>
+                  <CardDescription>Monitor and manage all platform jobs</CardDescription>
+                </div>
+                <Button onClick={() => setIsCreateJobDialogOpen(true)}>Create Admin Job</Button>
               </CardHeader>
               <CardContent>
                 <div className="space-y-4">
@@ -776,6 +833,39 @@ export default function AdminPanelV2() {
                     <p className="text-sm text-gray-500">Financial transactions will appear here when jobs are completed</p>
                   </div>
                 )}
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          {/* Notifications Tab */}
+          <TabsContent value="notifications" className="space-y-6">
+            <Card className="bg-card shadow-lg border-0">
+              <CardHeader className="flex justify-between items-center">
+                <div>
+                  <CardTitle className="text-xl font-semibold text-gray-900">Global Notifications</CardTitle>
+                  <CardDescription>Send platform-wide messages to all users</CardDescription>
+                </div>
+                <Button onClick={() => createNotificationMutation.mutate()} disabled={!newNotifTitle || !newNotifBody || createNotificationMutation.isLoading}>Send</Button>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-4 mb-4">
+                  <Input placeholder="Title" value={newNotifTitle} onChange={e => setNewNotifTitle(e.target.value)} />
+                  <Textarea placeholder="Body" value={newNotifBody} onChange={e => setNewNotifBody(e.target.value)} />
+                </div>
+                <ScrollArea className="h-72 pr-3">
+                  {notifications.map(n => (
+                    <div key={n.id} className="border p-3 rounded mb-2 flex justify-between items-start">
+                      <div>
+                        <h4 className="font-medium">{n.title}</h4>
+                        <p className="text-sm text-muted-foreground">{n.body}</p>
+                        <p className="text-xs text-gray-500 mt-1">{new Date(n.createdAt).toLocaleString()}</p>
+                      </div>
+                      <Button size="icon" variant="destructive" onClick={() => apiRequest('DELETE', `/api/admin/notifications/${n.id}`).then(() => setNotifications(prev => prev.filter(x => x.id !== n.id)))}>
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  ))}
+                </ScrollArea>
               </CardContent>
             </Card>
           </TabsContent>
@@ -969,6 +1059,23 @@ export default function AdminPanelV2() {
                 </div>
               </div>
             )}
+          </DialogContent>
+        </Dialog>
+
+        {/* Create Job Dialog */}
+        <Dialog open={isCreateJobDialogOpen} onOpenChange={setIsCreateJobDialogOpen}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Create Admin Job</DialogTitle>
+            </DialogHeader>
+            <div className="space-y-4">
+              <Input placeholder="Title" value={newJobTitle} onChange={e => setNewJobTitle(e.target.value)} />
+              <Textarea placeholder="Description" value={newJobDescription} onChange={e => setNewJobDescription(e.target.value)} />
+              <Input type="number" placeholder="Payment Amount" value={newJobAmount} onChange={e => setNewJobAmount(Number(e.target.value))} />
+              <Button disabled={createAdminJobMutation.isLoading} onClick={() => createAdminJobMutation.mutate()}>
+                {createAdminJobMutation.isLoading ? 'Creating...' : 'Create'}
+              </Button>
+            </div>
           </DialogContent>
         </Dialog>
       </div>

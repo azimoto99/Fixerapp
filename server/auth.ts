@@ -229,30 +229,40 @@ export function setupAuth(app: Express) {
 
       const user = await storage.createUser(userData);
 
-      // Store user ID as backup in case passport session gets corrupted
-      req.session.userId = user.id;
-      
-      req.login(user, (err) => {
-        if (err) return next(err);
-        
-        // Ensure session is saved before responding
-        req.session.save((saveErr) => {
-          if (saveErr) {
-            console.error('Session save error after registration:', saveErr);
-            return next(saveErr);
-          }
-          
-          // Don't return password in response
-          const { password, ...userResponse } = user as any;
-          res.status(201).json(userResponse);
-        });
+      // Generate email verification token (valid 24h)
+      const token = (await import('crypto')).randomBytes(32).toString('hex');
+      const expiry = new Date(Date.now() + 24 * 60 * 60 * 1000);
+
+      await storage.updateUser(user.id, {
+        verificationToken: token,
+        verificationTokenExpiry: expiry
       });
+
+      // Send verification e-mail
+      const { sendEmail } = await import('./utils/email.js');
+      const verificationUrl = `${process.env.APP_URL || 'http://localhost:5000'}/api/verify-email?token=${token}`;
+
+      const emailHtml = `
+        <p>Hi ${user.fullName},</p>
+        <p>Welcome to Fixer! Please confirm your e-mail address by clicking the link below:</p>
+        <p><a href="${verificationUrl}">Verify my e-mail</a></p>
+        <p>This link will expire in 24 hours.</p>
+        <p>If you did not create an account, you can safely ignore this e-mail.</p>
+      `;
+
+      try {
+        await sendEmail(user.email, 'Confirm your Fixer account', emailHtml);
+      } catch (mailErr) {
+        console.error('E-mail send error:', mailErr);
+      }
+
+      res.status(201).json({ message: 'Registration successful. Please check your e-mail to verify your account.' });
     } catch (error) {
       res.status(400).json({ message: (error as Error).message });
     }
   });
 
-  // Simple login endpoint
+  // Simple login endpoint (blocks unverified e-mail)
   app.post("/api/login", (req: Request, res: Response, next: NextFunction) => {
     passport.authenticate("local", (err: Error | null, user: Express.User | false, info: { message: string } | undefined) => {
       if (err) {
@@ -263,10 +273,15 @@ export function setupAuth(app: Express) {
         return res.status(401).json({ message: info?.message || "Login failed" });
       }
       
+      // Block login if e-mail not verified
+      if (!(user as any).emailVerified) {
+        return res.status(401).json({ message: 'Please verify your e-mail before logging in.' });
+      }
+
       // Store user ID as backup in case passport session gets corrupted
-      req.session.userId = user.id;
+      req.session.userId = (user as any).id;
       
-      req.login(user, (loginErr) => {
+      req.login(user as any, (loginErr) => {
         if (loginErr) {
           return next(loginErr);
         }

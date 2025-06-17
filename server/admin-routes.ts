@@ -2018,4 +2018,32 @@ export function registerAdminRoutes(app: Express) {
     await storage.deleteGlobalNotification(id);
     res.json({ success: true });
   });
+
+  // ------------------------------------------------------------------
+  // Broadcast E-mail to all users
+  // ------------------------------------------------------------------
+  app.post('/api/admin/broadcast-email', adminAuth, async (req, res) => {
+    try {
+      const { subject, body } = req.body;
+      if (!subject || !body) {
+        return res.status(400).json({ message: 'subject and body are required' });
+      }
+
+      const users = await storage.getAllUsers();
+
+      // Send e-mails in batches of 100 to avoid overwhelming SMTP
+      const batchSize = 100;
+      const { sendEmail } = await import('./utils/email.js');
+
+      for (let i = 0; i < users.length; i += batchSize) {
+        const batch = users.slice(i, i + batchSize);
+        await Promise.all(batch.map(u => sendEmail(u.email, subject, body)));
+      }
+
+      res.json({ success: true, sent: users.length });
+    } catch (err) {
+      console.error('Broadcast email error', err);
+      res.status(500).json({ message: 'Failed to send broadcast' });
+    }
+  });
 }
