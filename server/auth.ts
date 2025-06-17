@@ -250,13 +250,18 @@ export function setupAuth(app: Express) {
         <p>If you did not create an account, you can safely ignore this e-mail.</p>
       `;
 
+      let mailError: any = null;
       try {
         await sendEmail(user.email, 'Confirm your Fixer account', emailHtml);
       } catch (mailErr) {
-        console.error('E-mail send error:', mailErr);
+        mailError = mailErr;
+        console.error('E-mail send error (continuing anyway):', mailErr);
       }
 
-      res.status(201).json({ message: 'Registration successful. Please check your e-mail to verify your account.' });
+      res.status(201).json({
+        message: 'Registration successful. Please check your e-mail to verify your account.',
+        ...(mailError && process.env.NODE_ENV !== 'production' ? { verificationUrl } : {})
+      });
     } catch (error) {
       res.status(400).json({ message: (error as Error).message });
     }
@@ -275,7 +280,11 @@ export function setupAuth(app: Express) {
       
       // Block login if e-mail not verified
       if (!(user as any).emailVerified) {
-        return res.status(401).json({ message: 'Please verify your e-mail before logging in.' });
+        if (process.env.NODE_ENV !== 'production') {
+          console.warn('Email not verified – bypassing because NODE_ENV is not production');
+        } else {
+          return res.status(401).json({ message: 'Please verify your e-mail before logging in.' });
+        }
       }
 
       // Store user ID as backup in case passport session gets corrupted
