@@ -175,6 +175,11 @@ export interface IStorage {
   searchUsers(query: string, excludeUserId?: number): Promise<User[]>;
   getJobsForWorker(workerId: number, filter?: { status?: string }): Promise<Job[]>;
   getJobsForPoster(posterId: number): Promise<Job[]>;
+
+  // Global notifications
+  getAllGlobalNotifications(): Promise<{ id: number; title: string; body: string; isActive: boolean; createdAt: string }[]>;
+  createGlobalNotification(data: { title: string; body: string; createdBy?: number }): Promise<any>;
+  deleteGlobalNotification(id: number): Promise<boolean>;
 }
 
 export class MemStorage implements IStorage {
@@ -1340,6 +1345,22 @@ export class MemStorage implements IStorage {
 			.filter(job => job.posterId === posterId)
 			.sort((a, b) => new Date(b.datePosted || 0).getTime() - new Date(a.datePosted || 0).getTime());
 	}
+
+  // Global notifications
+  async getAllGlobalNotifications(): Promise<{ id: number; title: string; body: string; isActive: boolean; createdAt: string }[]> {
+    // Implementation needed
+    throw new Error("Method not implemented");
+  }
+
+  async createGlobalNotification(data: { title: string; body: string; createdBy?: number }): Promise<any> {
+    // Implementation needed
+    throw new Error("Method not implemented");
+  }
+
+  async deleteGlobalNotification(id: number): Promise<boolean> {
+    // Implementation needed
+    throw new Error("Method not implemented");
+  }
 }
 
 // Import the fixed database storage implementation - don't rename the import

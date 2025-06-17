@@ -1036,4 +1036,50 @@ export class DatabaseStorage implements IStorage {
         )
       );
   }
+
+  // === GLOBAL NOTIFICATION METHODS ===
+  async getAllGlobalNotifications(): Promise<{ id: number; title: string; body: string; isActive: boolean; createdAt: string }[]> {
+    const rows = await this.db
+      .selectFrom('global_notifications')
+      .select(['id', 'title', 'body', 'is_active', 'created_at'])
+      .orderBy('created_at', 'desc')
+      .execute();
+
+    return rows.map(r => ({
+      id: r.id,
+      title: r.title,
+      body: r.body,
+      isActive: r.is_active,
+      createdAt: r.created_at instanceof Date ? r.created_at.toISOString() : r.created_at,
+    }));
+  }
+
+  async createGlobalNotification(data: { title: string; body: string; createdBy?: number }): Promise<any> {
+    const [row] = await this.db
+      .insertInto('global_notifications')
+      .values({
+        title: data.title,
+        body: data.body,
+        created_by: data.createdBy ?? null,
+      })
+      .returning(['id', 'title', 'body', 'is_active', 'created_at'])
+      .execute();
+
+    return {
+      id: row.id,
+      title: row.title,
+      body: row.body,
+      isActive: row.is_active,
+      createdAt: row.created_at instanceof Date ? row.created_at.toISOString() : row.created_at,
+    };
+  }
+
+  async deleteGlobalNotification(id: number): Promise<boolean> {
+    const result = await this.db
+      .deleteFrom('global_notifications')
+      .where('id', '=', id)
+      .executeTakeFirst();
+
+    return !!result?.numDeletedRows;
+  }
 }

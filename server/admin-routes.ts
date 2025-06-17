@@ -1593,102 +1593,91 @@ export function registerAdminRoutes(app: Express) {
     }
   );
 
-  // Enhanced Support Analytics Endpoint
-  app.get("/api/admin/analytics/support", 
-    adminAuth, 
-    async (req, res) => {
+  // Support Analytics Endpoint – fetches real tickets from DB
+  app.get("/api/admin/analytics/support", adminAuth, async (req, res) => {
       try {
-        // For now, return mock support tickets structure to show real data can be displayed
-        const mockTickets = [
-          {
-            id: 1,
-            userId: 22,
-            title: "Payment Issue",
-            description: "Unable to receive payment for completed job",
-            category: "payment",
-            priority: "high",
-            status: "open",
-            createdAt: new Date().toISOString(),
-            userEmail: "zai@example.com",
-            userName: "zai"
-          },
-          {
-            id: 2,
-            userId: 20,
-            title: "Job Dispute",
-            description: "Client is not satisfied with work quality",
-            category: "dispute",
-            priority: "medium",
-            status: "in_progress",
-            createdAt: new Date().toISOString(),
-            userEmail: "azi@example.com",
-            userName: "azi"
-          }
-        ];
+        const { page = 1, limit = 20, search = "", status = "all", priority = "all" } = req.query as any;
+
+        // Pull tickets from storage
+        const tickets = await storage.getAllSupportTickets();
+
+        // Basic filtering
+        const filtered = tickets.filter(t => {
+          const matchesSearch = search ?
+            t.title.toLowerCase().includes(search.toLowerCase()) ||
+            (t.description || "").toLowerCase().includes(search.toLowerCase()) : true;
+          const matchesStatus = status === "all" || t.status === status;
+          const matchesPriority = priority === "all" || t.priority === priority;
+          return matchesSearch && matchesStatus && matchesPriority;
+        });
+
+        // Simple analytics
+        const totalTickets = filtered.length;
+        const byPriority: Record<string, number> = {};
+        const byStatus: Record<string, number> = {};
+        filtered.forEach(t => {
+          byPriority[t.priority] = (byPriority[t.priority] || 0) + 1;
+          byStatus[t.status] = (byStatus[t.status] || 0) + 1;
+        });
+
+        // Pagination
+        const start = (Number(page) - 1) * Number(limit);
+        const paginated = filtered.slice(start, start + Number(limit));
 
         res.json({
-          tickets: mockTickets,
-          analytics: {
-            totalTickets: mockTickets.length,
-            byPriority: { high: 1, medium: 1, low: 0 },
-            byStatus: { open: 1, in_progress: 1, resolved: 0 },
-            avgResolutionTime: "2.3 hours",
-            customerSatisfaction: 4.2
-          }
+          tickets: paginated,
+          total: totalTickets,
+          page: Number(page),
+          totalPages: Math.ceil(totalTickets / Number(limit)),
+          analytics: { totalTickets, byPriority, byStatus }
         });
       } catch (error) {
-        console.error('Support analytics error:', error);
+        console.error("Support analytics error:", error);
         res.status(500).json({ message: "Failed to fetch support analytics" });
       }
-    }
-  );
+  });
 
-  // Enhanced Financial Analytics Endpoint
-  app.get("/api/admin/analytics/financials", 
-    adminAuth, 
-    async (req, res) => {
+  // Financial Analytics – real payments
+  app.get("/api/admin/analytics/financials", adminAuth, async (req, res) => {
       try {
-        // Return structured financial data to show actual platform metrics
-        const mockTransactions = [
-          {
-            id: 1,
-            userId: 22,
-            amount: 85.00,
-            type: "job_payment",
-            status: "completed",
-            createdAt: new Date().toISOString(),
-            description: "Payment for plumbing job"
-          },
-          {
-            id: 2,
-            userId: 20,
-            amount: 125.50,
-            type: "job_payment", 
-            status: "completed",
-            createdAt: new Date().toISOString(),
-            description: "Payment for electrical work"
-          }
-        ];
+        const { page = 1, limit = 20, search = "", status = "all", type = "all" } = req.query as any;
+
+        const payments = await storage.getAllPayments();
+
+        const filtered = payments.filter(p => {
+          const matchesSearch = search ?
+            (p.description || "").toLowerCase().includes(search.toLowerCase()) ||
+            String(p.id).includes(search) : true;
+          const matchesStatus = status === "all" || p.status === status;
+          const matchesType = type === "all" || p.type === type;
+          return matchesSearch && matchesStatus && matchesType;
+        });
+
+        // Aggregate analytics
+        const totalRevenue = filtered.reduce((sum, p) => sum + (p.amount > 0 ? p.amount : 0), 0);
+        const platformFees = filtered.reduce((sum, p) => sum + (p.serviceFee || 0), 0);
+
+        // Pagination
+        const start = (Number(page) - 1) * Number(limit);
+        const paginated = filtered.slice(start, start + Number(limit));
 
         res.json({
-          transactions: mockTransactions,
+          transactions: paginated,
+          total: filtered.length,
+          page: Number(page),
+          totalPages: Math.ceil(filtered.length / Number(limit)),
           analytics: {
-            totalRevenue: 210.50,
-            monthlyRevenue: 210.50,
-            platformFees: 21.05,
-            totalTransactions: mockTransactions.length,
-            successfulTransactions: 2,
-            failedTransactions: 0,
-            avgTransactionValue: 105.25,
-            revenueGrowth: 15.2
+            totalRevenue,
+            monthlyRevenue: totalRevenue, // TODO: compute monthly
+            platformFees,
+            totalTransactions: filtered.length
           }
         });
       } catch (error) {
-        console.error('Financial analytics error:', error);
+        console.error("Financial analytics error:", error);
         res.status(500).json({ message: "Failed to fetch financial analytics" });
       }
-    }
-  );
+  });
 
   // Comprehensive Analytics Dashboard
   app.get("/api/admin/analytics/comprehensive", 
@@ -1984,4 +1973,49 @@ export function registerAdminRoutes(app: Express) {
       }
     }
   );
+
+  // Admin can create a job without payment (adminPosted)
+  app.post('/api/admin/jobs', adminAuth, async (req, res) => {
+    try {
+      const jobData = req.body;
+      // Basic validation
+      if (!jobData.title || !jobData.description || !jobData.paymentAmount) {
+        return res.status(400).json({ message: 'Missing required fields' });
+      }
+
+      const newJob = await storage.createJob({
+        ...jobData,
+        posterId: req.user!.id, // admin id
+        status: 'open',
+        adminPosted: true,
+        datePosted: new Date(),
+        serviceFee: 0,
+        totalAmount: jobData.paymentAmount
+      });
+
+      res.status(201).json({ success: true, job: newJob });
+    } catch (error) {
+      console.error('Admin create job error:', error);
+      res.status(500).json({ message: 'Failed to create job' });
+    }
+  });
+
+  // Global notifications CRUD
+  app.get('/api/admin/notifications', adminAuth, async (_req, res) => {
+    const notifs = await storage.getAllGlobalNotifications();
+    res.json(notifs);
+  });
+
+  app.post('/api/admin/notifications', adminAuth, async (req, res) => {
+    const { title, body } = req.body;
+    if (!title || !body) return res.status(400).json({ message: 'title and body required' });
+    const notif = await storage.createGlobalNotification({ title, body, createdBy: req.user!.id });
+    res.status(201).json(notif);
+  });
+
+  app.delete('/api/admin/notifications/:id', adminAuth, async (req, res) => {
+    const id = Number(req.params.id);
+    await storage.deleteGlobalNotification(id);
+    res.json({ success: true });
+  });
 }

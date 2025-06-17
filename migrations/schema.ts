@@ -455,6 +455,7 @@ export const jobs = pgTable("jobs", {
 	workerTrackingEnabled: boolean("worker_tracking_enabled").default(true),
 	verifyLocationToStart: boolean("verify_location_to_start").default(true),
 	markerColor: text("marker_color"),
+	adminPosted: boolean('admin_posted').default(false).notNull(),
 });
 
 export const platformSettings = pgTable("platform_settings", {
@@ -554,3 +555,12 @@ export const users = pgTable("users", {
 	uniqueIndex("email_accounttype_unique").using("btree", table.email.asc().nullsLast().op("text_ops"), table.accountType.asc().nullsLast().op("text_ops")),
 	unique("users_username_unique").on(table.username),
 ]);
+
+export const globalNotifications = pgTable("global_notifications", {
+	id: serial().primaryKey().notNull(),
+	title: text().notNull(),
+	body: text().notNull(),
+	isActive: boolean("is_active").default(true).notNull(),
+	createdBy: integer("created_by"),
+	createdAt: timestamp("created_at", { mode: 'string' }).defaultNow(),
+});

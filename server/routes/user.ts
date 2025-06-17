@@ -1,6 +1,7 @@
 import express from 'express';
 import { requireAuth } from '../middleware/auth.js';
 import { PREDEFINED_AVATARS } from '../../client/src/components/AvatarPicker.js';
+import { storage } from '../storage';
 
 const router = express.Router();
 
@@ -23,7 +24,7 @@ router.post('/avatar', requireAuth, async (req, res) => {
 
     // Update user profile with new avatar URL
     const avatarUrl = `/avatars/${avatarName}`;
-    const updatedUser = await req.storage.updateUser(userId, {
+    const updatedUser = await storage.updateUser(userId, {
       avatarUrl
     });
 
