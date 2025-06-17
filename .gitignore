@@ -92,4 +92,7 @@ client/public/
 *.sublime*
 *.code-workspace
 
+# Allow the client upload service utility to be tracked
+!client/src/lib/uploadService.ts
+
 # End of .gitignore 

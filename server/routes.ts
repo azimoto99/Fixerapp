@@ -374,10 +374,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
   const applicationsRouter = await import('./api/applications');
   apiRouter.use('/applications', applicationsRouter.default);
 
-  // Register upload routes
-  const uploadRouter = await import('./routes/upload');
-  apiRouter.use('/upload', uploadRouter.default);
-
   // Add missing API routes that are being called by the frontend
   
   // Update job endpoint

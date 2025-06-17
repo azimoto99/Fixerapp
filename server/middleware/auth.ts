@@ -191,3 +191,5 @@ export async function optionalAuth(req: Request, res: Response, next: NextFuncti
     next(); // Continue even if there's an error
   }
 }
+
+export { isAuthenticated as requireAuth };

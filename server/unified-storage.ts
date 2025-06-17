@@ -19,7 +19,6 @@ import {
 } from '@shared/schema';
 import connectPg from "connect-pg-simple";
 import session from "express-session";
-import { uploadProfileImage as uploadToS3, base64ToBuffer, validateImageFile } from './services/s3Service.js';
 
 // Define a set of vibrant colors for job markers
 const JOB_MARKER_COLORS = [
@@ -702,29 +701,19 @@ export class UnifiedStorage implements IStorage {
   }
 
   async uploadProfileImage(userId: number, imageData: string): Promise<User | undefined> {
-    return this.withErrorHandling(async () => {
-      try {
-        // Convert base64 to buffer
-        const imageBuffer = base64ToBuffer(imageData);
-
-        // Validate image
-        validateImageFile(imageBuffer, 5 * 1024 * 1024); // 5MB max
-
-        // Upload to S3
-        const uploadResult = await uploadToS3(userId, imageBuffer);
-
-        // Update user with S3 URL
-        const updatedUser = await this.updateUser(userId, {
-          avatarUrl: uploadResult.url
-        });
-
-        console.log(`Profile image uploaded for user ${userId}: ${uploadResult.url}`);
-        return updatedUser;
-
-      } catch (error) {
-        console.error(`Error uploading profile image for user ${userId}:`, error);
-        throw error;
+    return this.safeExecute(async () => {
+      // Extract avatar name from the request
+      const avatarName = imageData.split('/').pop(); // Get last part of path
+      if (!avatarName) {
+        throw new Error('Invalid avatar name');
       }
+
+      // Update user profile with new avatar URL
+      const updatedUser = await this.updateUser(userId, {
+        avatarUrl: `/avatars/${avatarName}`
+      });
+
+      return updatedUser;
     }, undefined, `uploadProfileImage(${userId})`);
   }
 

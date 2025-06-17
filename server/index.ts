@@ -16,6 +16,7 @@ import { storage } from './storage';
 import { globalErrorHandler } from './utils/global-error-handler';
 // Import seed script to create initial data
 import "./seed";
+import userRoutes from './routes/user.js';
 
 // Initialize global error handler early
 globalErrorHandler.setupGlobalHandlers();
@@ -110,7 +111,7 @@ app.use((err: any, req: Request, res: Response, next: NextFunction) => {
   });
 });
 
-// Add CSP headers
+// Update CSP headers to remove S3
 app.use((req, res, next) => {
   res.setHeader(
     'Content-Security-Policy',
@@ -118,7 +119,7 @@ app.use((req, res, next) => {
     "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://js.stripe.com https://api.mapbox.com https://basil.stripe.com blob:; " +
     "script-src-elem 'self' 'unsafe-inline' https://js.stripe.com https://api.mapbox.com https://basil.stripe.com; " +
     "style-src 'self' 'unsafe-inline' https:; " +
-    "img-src 'self' data: https: blob: https://*.s3.*.amazonaws.com; " +
+    "img-src 'self' data: https: blob:; " +
     "connect-src 'self' https://api.stripe.com https://api.mapbox.com https://events.mapbox.com wss: ws: https://basil.stripe.com; " +
     "frame-src 'self' https://js.stripe.com https://hooks.stripe.com https://connect.stripe.com; " +
     "child-src 'self' blob: https://js.stripe.com; " +
@@ -192,4 +193,7 @@ app.use((req, res, next) => {
   }, () => {
     log(`serving on ${host}:${port}`);
   });
+
+  // Add after other route registrations:
+  app.use('/api/user', userRoutes);
 })();

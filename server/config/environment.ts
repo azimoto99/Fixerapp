@@ -36,6 +36,12 @@ interface Config {
   // File uploads
   MAX_FILE_SIZE: number;
   UPLOAD_DIR: string;
+
+  // AWS S3 Configuration
+  AWS_REGION: string;
+  AWS_ACCESS_KEY_ID: string;
+  AWS_SECRET_ACCESS_KEY: string;
+  S3_BUCKET_NAME: string;
 }
 
 function validateEnv(): Config {
@@ -44,7 +50,12 @@ function validateEnv(): Config {
     'SUPABASE_ANON_KEY', 
     'SUPABASE_DATABASE_URL',
     'STRIPE_SECRET_KEY',
-    'MAPBOX_ACCESS_TOKEN'
+    'MAPBOX_ACCESS_TOKEN',
+    // Add S3 required variables
+    'AWS_REGION',
+    'AWS_ACCESS_KEY_ID',
+    'AWS_SECRET_ACCESS_KEY',
+    'S3_BUCKET_NAME'
   ];
 
   const missing = requiredVars.filter(varName => !process.env[varName]);
@@ -79,7 +90,13 @@ function validateEnv(): Config {
     SENDGRID_API_KEY: process.env.SENDGRID_API_KEY,
     
     MAX_FILE_SIZE: parseInt(process.env.MAX_FILE_SIZE || '5242880'), // 5MB
-    UPLOAD_DIR: process.env.UPLOAD_DIR || 'public/uploads'
+    UPLOAD_DIR: process.env.UPLOAD_DIR || 'public/uploads',
+
+    // AWS S3 Configuration
+    AWS_REGION: process.env.AWS_REGION!,
+    AWS_ACCESS_KEY_ID: process.env.AWS_ACCESS_KEY_ID!,
+    AWS_SECRET_ACCESS_KEY: process.env.AWS_SECRET_ACCESS_KEY!,
+    S3_BUCKET_NAME: process.env.S3_BUCKET_NAME!
   };
 }
 
@@ -95,3 +112,5 @@ console.log(`- SUPABASE_URL: ${config.SUPABASE_URL ? 'Set' : 'Not set'}`);
 console.log(`- STRIPE_SECRET_KEY: ${config.STRIPE_SECRET_KEY ? 'Set' : 'Not set'}`);
 console.log(`- MAPBOX_ACCESS_TOKEN: ${config.MAPBOX_ACCESS_TOKEN ? 'Set' : 'Not set'}`);
 console.log(`- STRIPE_WEBHOOK_SECRET: ${config.STRIPE_WEBHOOK_SECRET ? 'Set' : 'Not set'}`);
+console.log(`- AWS S3: ${config.AWS_ACCESS_KEY_ID && config.AWS_SECRET_ACCESS_KEY ? 'Configured' : 'Not configured'}`);
+console.log(`- S3 BUCKET: ${config.S3_BUCKET_NAME || 'Not set'}`);
