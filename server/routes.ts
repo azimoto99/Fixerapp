@@ -1161,18 +1161,32 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ message: "Failed to update user" });
       }
       
-      // In a real application, you would send an email with the verification link
-      // For demo purposes, we'll just return the token in the response
+      // Send verification email
       const verificationUrl = `${process.env.APP_URL || 'http://localhost:5000'}/verify-email?token=${token}`;
       
-      // TODO: In a production app, we would send an actual email here
-      // sendEmail(user.email, 'Verify your email', verificationUrl);
+      const { sendEmail } = await import('./utils/email.js');
+      const emailHtml = `
+        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+          <h2>Verify your email address</h2>
+          <p>Hi ${user.firstName || 'there'},</p>
+          <p>Please click the link below to verify your email address:</p>
+          <p><a href="${verificationUrl}" style="background-color: #007bff; color: white; padding: 12px 24px; text-decoration: none; border-radius: 4px;">Verify Email</a></p>
+          <p>Or copy and paste this link in your browser:</p>
+          <p>${verificationUrl}</p>
+          <p>This link will expire in 24 hours.</p>
+          <p>Thanks,<br>The Fixer Team</p>
+        </div>
+      `;
+      
+      // Send email (non-blocking)
+      sendEmail(user.email, 'Verify your Fixer account', emailHtml).catch(err => {
+        console.error('Failed to send verification email:', err);
+      });
       
       res.json({ 
         message: "Verification email sent",
         // Only for development, remove in production:
-        verificationUrl,
-        token
+        ...(process.env.NODE_ENV !== 'production' && { verificationUrl, token })
       });
     } catch (error) {
       res.status(400).json({ message: (error as Error).message });
