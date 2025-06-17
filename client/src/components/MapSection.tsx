@@ -467,7 +467,7 @@ const MapSection: React.FC<MapSectionProps> = ({ jobs, selectedJob, onSelectJob,
             <div className="flex items-center space-x-2">
               <div className="w-2 h-2 bg-primary rounded-full animate-pulse"></div>
               <span className="text-sm font-medium">
-                {sourceJobs.filter(job => job.status === 'open').length} Open Jobs
+                {sourceJobs.filter(job => (job.status || '').toLowerCase() === 'open').length} Open Jobs
               </span>
             </div>
           </div>

@@ -377,10 +377,7 @@ export default function AdminPanelV2() {
   };
 
   return (
-    <div 
-      className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 p-6"
-      style={{ zIndex: 1000, position: 'relative' }}
-    >
+    <div className="min-h-screen bg-background p-6">
       <div className="max-w-7xl mx-auto" style={{ zIndex: 1010, position: 'relative' }}>
         {/* Header */}
         <div className="mb-8">
@@ -392,7 +389,7 @@ export default function AdminPanelV2() {
         </div>
 
         <Tabs value={selectedTab} onValueChange={setSelectedTab} className="space-y-6">
-          <TabsList className="grid w-full grid-cols-5 bg-white shadow-sm border" style={{ zIndex: 1120, position: 'relative' }}>
+          <TabsList className="grid w-full grid-cols-5 bg-card shadow-sm border-border" style={{ zIndex: 1120, position: 'relative' }}>
             <TabsTrigger value="overview" className="flex items-center gap-2">
               <BarChart3 className="h-4 w-4" />
               Overview
@@ -418,7 +415,7 @@ export default function AdminPanelV2() {
           {/* Overview Tab */}
           <TabsContent value="overview" className="space-y-6">
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-              <Card className="bg-white shadow-lg border-0">
+              <Card className="bg-card shadow-lg border-0">
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                   <CardTitle className="text-sm font-medium text-gray-600">Total Users</CardTitle>
                   <Users className="h-4 w-4 text-blue-600" />
@@ -442,7 +439,7 @@ export default function AdminPanelV2() {
                 </CardContent>
               </Card>
 
-              <Card className="bg-white shadow-lg border-0">
+              <Card className="bg-card shadow-lg border-0">
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                   <CardTitle className="text-sm font-medium text-gray-600">Active Jobs</CardTitle>
                   <Briefcase className="h-4 w-4 text-green-600" />
@@ -462,7 +459,7 @@ export default function AdminPanelV2() {
                 </CardContent>
               </Card>
 
-              <Card className="bg-white shadow-lg border-0">
+              <Card className="bg-card shadow-lg border-0">
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                   <CardTitle className="text-sm font-medium text-gray-600">Platform Revenue</CardTitle>
                   <DollarSign className="h-4 w-4 text-emerald-600" />
@@ -486,7 +483,7 @@ export default function AdminPanelV2() {
                 </CardContent>
               </Card>
 
-              <Card className="bg-white shadow-lg border-0">
+              <Card className="bg-card shadow-lg border-0">
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                   <CardTitle className="text-sm font-medium text-gray-600">Support Tickets</CardTitle>
                   <Activity className="h-4 w-4 text-orange-600" />
@@ -499,7 +496,7 @@ export default function AdminPanelV2() {
             </div>
 
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              <Card className="bg-white shadow-lg border-0">
+              <Card className="bg-card shadow-lg border-0">
                 <CardHeader>
                   <CardTitle className="text-lg font-semibold text-gray-900">Recent Activity</CardTitle>
                 </CardHeader>
@@ -517,7 +514,7 @@ export default function AdminPanelV2() {
                 </CardContent>
               </Card>
 
-              <Card className="bg-white shadow-lg border-0">
+              <Card className="bg-card shadow-lg border-0">
                 <CardHeader>
                   <CardTitle className="text-lg font-semibold text-gray-900">System Health</CardTitle>
                 </CardHeader>
@@ -543,7 +540,7 @@ export default function AdminPanelV2() {
 
           {/* Users Tab */}
           <TabsContent value="users" className="space-y-6">
-            <Card className="bg-white shadow-lg border-0">
+            <Card className="bg-card shadow-lg border-0">
               <CardHeader>
                 <CardTitle className="text-xl font-semibold text-gray-900">User Management</CardTitle>
                 <CardDescription>Manage platform users and their permissions</CardDescription>
@@ -609,7 +606,7 @@ export default function AdminPanelV2() {
 
           {/* Jobs Tab */}
           <TabsContent value="jobs" className="space-y-6">
-            <Card className="bg-white shadow-lg border-0">
+            <Card className="bg-card shadow-lg border-0">
               <CardHeader>
                 <CardTitle className="text-xl font-semibold text-gray-900">Job Management</CardTitle>
                 <CardDescription>Monitor and manage all platform jobs</CardDescription>
@@ -663,7 +660,7 @@ export default function AdminPanelV2() {
 
           {/* Support Tab */}
           <TabsContent value="support" className="space-y-6">
-            <Card className="bg-white shadow-lg border-0">
+            <Card className="bg-card shadow-lg border-0">
               <CardHeader>
                 <CardTitle className="text-xl font-semibold text-gray-900">Support Tickets</CardTitle>
                 <CardDescription>Manage customer support and resolve issues</CardDescription>
@@ -733,7 +730,7 @@ export default function AdminPanelV2() {
 
           {/* Financials Tab */}
           <TabsContent value="financials" className="space-y-6">
-            <Card className="bg-white shadow-lg border-0">
+            <Card className="bg-card shadow-lg border-0">
               <CardHeader>
                 <CardTitle className="text-xl font-semibold text-gray-900">Financial Overview</CardTitle>
                 <CardDescription>Track payments, earnings, and platform revenue</CardDescription>
