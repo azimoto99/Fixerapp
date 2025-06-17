@@ -83,10 +83,6 @@ prisma/*.db
 patches/*.patch
 
 # ---- Generated assets ----------------------------------------
-public/avatars/
-public/assets/
-attached_assets/
-client/public/
 
 # ---- IDE specific --------------------------------------------
 *.sublime*
