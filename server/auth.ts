@@ -258,9 +258,25 @@ export function setupAuth(app: Express) {
         console.error('E-mail send error (continuing anyway):', mailErr);
       }
 
-      res.status(201).json({
-        message: 'Registration successful. Please check your e-mail to verify your account.',
-        ...(mailError && process.env.NODE_ENV !== 'production' ? { verificationUrl } : {})
+      // Automatically establish a session so the existing React flow (which expects
+      // an authenticated user with an `id`) keeps working.
+      req.login(user as any, (err) => {
+        if (err) {
+          console.error('Auto-login after registration failed:', err);
+          return res.status(201).json({
+            message: 'Registration succeeded but automatic login failed. Please sign in manually.',
+          });
+        }
+
+        // Save session then return the user payload (without password)
+        req.session.save(() => {
+          const { password, ...sanitized } = user as any;
+          res.status(201).json({
+            ...sanitized,
+            message: 'Registration successful. Please verify your e-mail.',
+            ...(mailError && process.env.NODE_ENV !== 'production' ? { verificationUrl } : {})
+          });
+        });
       });
     } catch (error) {
       res.status(400).json({ message: (error as Error).message });
