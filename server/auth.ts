@@ -222,8 +222,6 @@ export function setupAuth(app: Express) {
         accountType: "worker", // Always set to worker
         skills: req.body.skills || [],
         isActive: true,
-        rating: 0,
-        requiresProfileCompletion: false,
         location: req.body.location || null,
         googleId: null,
         facebookId: null
