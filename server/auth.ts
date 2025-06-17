@@ -238,10 +238,8 @@ export function setupAuth(app: Express) {
         verificationTokenExpiry: expiry
       });
 
-      // Send verification e-mail
-      const { sendEmail } = await import('./utils/email.js');
+      // Build verification URL and e-mail HTML
       const verificationUrl = `${process.env.APP_URL || 'http://localhost:5000'}/api/verify-email?token=${token}`;
-
       const emailHtml = `
         <p>Hi ${user.fullName},</p>
         <p>Welcome to Fixer! Please confirm your e-mail address by clicking the link below:</p>
@@ -250,13 +248,15 @@ export function setupAuth(app: Express) {
         <p>If you did not create an account, you can safely ignore this e-mail.</p>
       `;
 
-      let mailError: any = null;
-      try {
-        await sendEmail(user.email, 'Confirm your Fixer account', emailHtml);
-      } catch (mailErr) {
-        mailError = mailErr;
-        console.error('E-mail send error (continuing anyway):', mailErr);
-      }
+      // Fire-and-forget email so the client doesn't wait
+      (async () => {
+        try {
+          const { sendEmail } = await import('./utils/email.js');
+          await sendEmail(user.email, 'Confirm your Fixer account', emailHtml);
+        } catch (e) {
+          console.error('Email send failure (non-blocking):', e);
+        }
+      })();
 
       // Automatically establish a session so the existing React flow (which expects
       // an authenticated user with an `id`) keeps working.
@@ -274,7 +274,6 @@ export function setupAuth(app: Express) {
           res.status(201).json({
             ...sanitized,
             message: 'Registration successful. Please verify your e-mail.',
-            ...(mailError && process.env.NODE_ENV !== 'production' ? { verificationUrl } : {})
           });
         });
       });
