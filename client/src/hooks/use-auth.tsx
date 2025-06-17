@@ -1,4 +1,4 @@
-import React from "@/lib/ensure-react";
+import React, { useEffect } from "@/lib/ensure-react";
 import { createContext, ReactNode, useContext } from "react";
 import {
   useQuery,
@@ -39,7 +39,7 @@ export const AuthContext = createContext<AuthContextType | null>(null);
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const { toast } = useToast();
-  const [_, setLocation] = useLocation();
+  const [location, navigate] = useLocation();
   
   const {
     data: user,
@@ -49,6 +49,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     queryKey: ["/api/user"],
     queryFn: getQueryFn({ on401: "returnNull" }),
   });
+
+  // Redirect unverified users
+  useEffect(() => {
+    if (user && !user.emailVerified && location !== '/verify-email') {
+      navigate('/verify-email');
+    }
+    if (user && user.emailVerified && location === '/verify-email') {
+      navigate('/');
+    }
+  }, [user, location]);
 
   const loginMutation = useMutation({
     mutationFn: async (credentials: LoginData) => {
@@ -72,7 +82,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       // Check if user needs to complete their profile first (for social logins)
       if (userData.requiresProfileCompletion) {
         // Redirect to profile completion page
-        setLocation(`/complete-profile?id=${userData.id}&provider=google`);
+        navigate(`/complete-profile?id=${userData.id}&provider=google`);
         toast({
           title: "Profile completion required",
           description: "Please complete your profile to continue",
@@ -100,7 +110,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           
           // Small delay to ensure state is updated before navigation
           setTimeout(() => {
-            setLocation('/');
+            navigate('/');
           }, 100);
         } catch (err) {
           console.error('Error verifying session after login:', err);
@@ -164,7 +174,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         // Check if user needs to complete their profile first (for social logins)
         if (userData.requiresProfileCompletion) {
           // Redirect to profile completion page
-          setLocation(`/complete-profile?id=${userData.id}&provider=google`);
+          navigate(`/complete-profile?id=${userData.id}&provider=google`);
           toast({
             title: "Profile completion required",
             description: "Please complete your profile to continue",
@@ -201,7 +211,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           await queryClient.invalidateQueries({ queryKey: ["/api/user"] });
           
           // Navigate to home
-          setLocation('/');
+          navigate('/');
         } catch (err) {
           console.error('Error verifying session after registration:', err);
           
@@ -213,7 +223,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           
           // Give it another moment then navigate
           setTimeout(() => {
-            setLocation('/');
+            navigate('/');
           }, 1000);
         }
       } catch (error) {
@@ -242,7 +252,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     },
     onSuccess: (userData: UserWithFlags) => {
       queryClient.setQueryData(["/api/user"], userData);
-      setLocation('/');
+      navigate('/');
       toast({
         title: "Account type set",
         description: `You are now signed in as a ${userData.accountType}`,

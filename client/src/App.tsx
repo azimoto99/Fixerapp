@@ -22,6 +22,7 @@ import PaymentsPage from "@/pages/payments-page";
 import NotificationsPage from "@/pages/notifications-page";
 import UserProfile from "@/pages/UserProfile";
 import AdminPanelV2 from "@/pages/AdminPanelV2";
+import VerifyEmail from "@/pages/VerifyEmail";
 import StripeConnectOnboarding from "@/components/StripeConnectOnboarding";
 import WalletPage from "@/pages/wallet-page";
 import { AuthProvider } from "@/hooks/use-auth";
@@ -99,6 +100,7 @@ function RouterWithAuth() {
       <ProtectedRoute path="/payment-settings" component={PaymentSettings} />
       {/* Consolidated payment management */}
       <ProtectedRoute path="/payments" component={PaymentsPage} />
+      <ProtectedRoute path="/verify-email" component={VerifyEmail} />
       {/* Wallet page for Stripe Connect returns */}
       <ProtectedRoute path="/wallet" component={WalletPage} />
       {/* Removed redundant StripeTest route */}
