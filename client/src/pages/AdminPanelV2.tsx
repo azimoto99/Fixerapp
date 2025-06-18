@@ -461,41 +461,41 @@ export default function AdminPanelV2() {
   });
 
   return (
-    <div className="min-h-screen bg-background p-6">
+    <div className="min-h-screen bg-background dark:bg-black p-6">
       <div className="max-w-7xl mx-auto" style={{ zIndex: 1010, position: 'relative' }}>
         {/* Header */}
         <div className="mb-8">
-          <h1 className="text-4xl font-bold text-gray-900 mb-2 flex items-center gap-3">
-            <ShieldCheck className="h-10 w-10 text-blue-600" />
+          <h1 className="text-4xl font-bold text-gray-900 dark:text-emerald-400 mb-2 flex items-center gap-3">
+            <ShieldCheck className="h-10 w-10 text-emerald-500 dark:text-emerald-400" />
             Fixer Admin Panel
           </h1>
-          <p className="text-gray-600">Manage your platform with comprehensive admin tools</p>
+          <p className="text-gray-600 dark:text-emerald-200">Manage your platform with comprehensive admin tools</p>
         </div>
 
         <Tabs value={selectedTab} onValueChange={setSelectedTab} className="space-y-6">
-          <TabsList className="grid w-full grid-cols-6 bg-card shadow-sm border-border" style={{ zIndex: 1120, position: 'relative' }}>
-            <TabsTrigger value="overview" className="flex items-center gap-2">
-              <BarChart3 className="h-4 w-4" />
+          <TabsList className="grid w-full grid-cols-6 bg-card shadow-sm border-border dark:bg-gray-900 dark:border-emerald-700" style={{ zIndex: 1120, position: 'relative' }}>
+            <TabsTrigger value="overview" className="flex items-center gap-2 text-gray-700 dark:text-emerald-300 data-[state=active]:bg-emerald-100 dark:data-[state=active]:bg-emerald-900 data-[state=active]:text-emerald-700 dark:data-[state=active]:text-emerald-300">
+              <BarChart3 className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
               Overview
             </TabsTrigger>
-            <TabsTrigger value="users" className="flex items-center gap-2">
-              <Users className="h-4 w-4" />
+            <TabsTrigger value="users" className="flex items-center gap-2 text-gray-700 dark:text-emerald-300 data-[state=active]:bg-emerald-100 dark:data-[state=active]:bg-emerald-900 data-[state=active]:text-emerald-700 dark:data-[state=active]:text-emerald-300">
+              <Users className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
               Users
             </TabsTrigger>
-            <TabsTrigger value="jobs" className="flex items-center gap-2">
-              <Briefcase className="h-4 w-4" />
+            <TabsTrigger value="jobs" className="flex items-center gap-2 text-gray-700 dark:text-emerald-300 data-[state=active]:bg-emerald-100 dark:data-[state=active]:bg-emerald-900 data-[state=active]:text-emerald-700 dark:data-[state=active]:text-emerald-300">
+              <Briefcase className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
               Jobs
             </TabsTrigger>
-            <TabsTrigger value="support" className="flex items-center gap-2">
-              <MessageSquare className="h-4 w-4" />
+            <TabsTrigger value="support" className="flex items-center gap-2 text-gray-700 dark:text-emerald-300 data-[state=active]:bg-emerald-100 dark:data-[state=active]:bg-emerald-900 data-[state=active]:text-emerald-700 dark:data-[state=active]:text-emerald-300">
+              <MessageSquare className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
               Support
             </TabsTrigger>
-            <TabsTrigger value="financials" className="flex items-center gap-2">
-              <DollarSign className="h-4 w-4" />
+            <TabsTrigger value="financials" className="flex items-center gap-2 text-gray-700 dark:text-emerald-300 data-[state=active]:bg-emerald-100 dark:data-[state=active]:bg-emerald-900 data-[state=active]:text-emerald-700 dark:data-[state=active]:text-emerald-300">
+              <DollarSign className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
               Financials
             </TabsTrigger>
-            <TabsTrigger value="notifications" className="flex items-center gap-2">
-              <Bell className="h-4 w-4" />
+            <TabsTrigger value="notifications" className="flex items-center gap-2 text-gray-700 dark:text-emerald-300 data-[state=active]:bg-emerald-100 dark:data-[state=active]:bg-emerald-900 data-[state=active]:text-emerald-700 dark:data-[state=active]:text-emerald-300">
+              <Bell className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
               Notifications
             </TabsTrigger>
           </TabsList>
@@ -503,122 +503,122 @@ export default function AdminPanelV2() {
           {/* Overview Tab */}
           <TabsContent value="overview" className="space-y-6">
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-              <Card className="bg-card shadow-lg border-0">
+              <Card className="bg-card shadow-lg border-0 dark:bg-gray-900 dark:border-emerald-700">
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium text-gray-600">Total Users</CardTitle>
-                  <Users className="h-4 w-4 text-blue-600" />
+                  <CardTitle className="text-sm font-medium text-gray-600 dark:text-emerald-300">Total Users</CardTitle>
+                  <Users className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
                 </CardHeader>
                 <CardContent>
-                  <div className="text-2xl font-bold text-gray-900">
+                  <div className="text-2xl font-bold text-gray-900 dark:text-emerald-400">
                     {dashboardStats?.userGrowth?.totalUsers || 0}
                   </div>
-                  <p className="text-xs text-gray-500">
+                  <p className="text-xs text-gray-500 dark:text-emerald-200">
                     +{dashboardStats?.userGrowth?.newUsersToday || 0} today
                   </p>
                   <div className="flex items-center mt-1">
                     <span className={`text-xs font-medium ${
-                      (dashboardStats?.userGrowth?.growthRate || 0) >= 0 ? 'text-green-600' : 'text-red-600'
+                      (dashboardStats?.userGrowth?.growthRate || 0) >= 0 ? 'text-green-600 dark:text-emerald-400' : 'text-red-600 dark:text-emerald-500'
                     }`}>
                       {(dashboardStats?.userGrowth?.growthRate || 0) >= 0 ? '↗' : '↘'} 
                       {Math.abs(dashboardStats?.userGrowth?.growthRate || 0).toFixed(1)}%
                     </span>
-                    <span className="text-xs text-gray-500 ml-1">vs last month</span>
+                    <span className="text-xs text-gray-500 dark:text-emerald-200 ml-1">vs last month</span>
                   </div>
                 </CardContent>
               </Card>
 
-              <Card className="bg-card shadow-lg border-0">
+              <Card className="bg-card shadow-lg border-0 dark:bg-gray-900 dark:border-emerald-700">
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium text-gray-600">Active Jobs</CardTitle>
-                  <Briefcase className="h-4 w-4 text-green-600" />
+                  <CardTitle className="text-sm font-medium text-gray-600 dark:text-emerald-300">Active Jobs</CardTitle>
+                  <Briefcase className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
                 </CardHeader>
                 <CardContent>
-                  <div className="text-2xl font-bold text-gray-900">
+                  <div className="text-2xl font-bold text-gray-900 dark:text-emerald-400">
                     {dashboardStats?.jobMetrics?.activeJobs || 0}
                   </div>
-                  <p className="text-xs text-gray-500">
+                  <p className="text-xs text-gray-500 dark:text-emerald-200">
                     {dashboardStats?.jobMetrics?.totalJobs || 0} total jobs
                   </p>
                   <div className="flex items-center mt-1">
-                    <span className="text-xs font-medium text-blue-600">
+                    <span className="text-xs font-medium text-emerald-600 dark:text-emerald-400">
                       {(dashboardStats?.jobMetrics?.completionRate || 0).toFixed(1)}% completion rate
                     </span>
                   </div>
                 </CardContent>
               </Card>
 
-              <Card className="bg-card shadow-lg border-0">
+              <Card className="bg-card shadow-lg border-0 dark:bg-gray-900 dark:border-emerald-700">
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium text-gray-600">Platform Revenue</CardTitle>
-                  <DollarSign className="h-4 w-4 text-emerald-600" />
+                  <CardTitle className="text-sm font-medium text-gray-600 dark:text-emerald-300">Platform Revenue</CardTitle>
+                  <DollarSign className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
                 </CardHeader>
                 <CardContent>
-                  <div className="text-2xl font-bold text-gray-900">
+                  <div className="text-2xl font-bold text-gray-900 dark:text-emerald-400">
                     ${(dashboardStats?.financialMetrics?.monthlyRevenue || 0).toLocaleString()}
                   </div>
-                  <p className="text-xs text-gray-500">
+                  <p className="text-xs text-gray-500 dark:text-emerald-200">
                     ${(dashboardStats?.financialMetrics?.totalRevenue || 0).toLocaleString()} total
                   </p>
                   <div className="flex items-center mt-1">
                     <span className={`text-xs font-medium ${
-                      (dashboardStats?.financialMetrics?.revenueGrowth || 0) >= 0 ? 'text-green-600' : 'text-red-600'
+                      (dashboardStats?.financialMetrics?.revenueGrowth || 0) >= 0 ? 'text-green-600 dark:text-emerald-400' : 'text-red-600 dark:text-emerald-500'
                     }`}>
                       {(dashboardStats?.financialMetrics?.revenueGrowth || 0) >= 0 ? '↗' : '↘'} 
                       {Math.abs(dashboardStats?.financialMetrics?.revenueGrowth || 0).toFixed(1)}%
                     </span>
-                    <span className="text-xs text-gray-500 ml-1">growth</span>
+                    <span className="text-xs text-gray-500 dark:text-emerald-200 ml-1">growth</span>
                   </div>
                 </CardContent>
               </Card>
 
-              <Card className="bg-card shadow-lg border-0">
+              <Card className="bg-card shadow-lg border-0 dark:bg-gray-900 dark:border-emerald-700">
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium text-gray-600">Support Tickets</CardTitle>
-                  <Activity className="h-4 w-4 text-orange-600" />
+                  <CardTitle className="text-sm font-medium text-gray-600 dark:text-emerald-300">Support Tickets</CardTitle>
+                  <Activity className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
                 </CardHeader>
                 <CardContent>
-                  <div className="text-2xl font-bold text-gray-900">{dashboardStats?.pendingSupport || 0}</div>
-                  <p className="text-xs text-gray-500">Pending tickets</p>
+                  <div className="text-2xl font-bold text-gray-900 dark:text-emerald-400">{dashboardStats?.pendingSupport || 0}</div>
+                  <p className="text-xs text-gray-500 dark:text-emerald-200">Pending tickets</p>
                 </CardContent>
               </Card>
             </div>
 
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              <Card className="bg-card shadow-lg border-0">
+              <Card className="bg-card shadow-lg border-0 dark:bg-gray-900 dark:border-emerald-700">
                 <CardHeader>
-                  <CardTitle className="text-lg font-semibold text-gray-900">Recent Activity</CardTitle>
+                  <CardTitle className="text-lg font-semibold text-gray-900 dark:text-emerald-400">Recent Activity</CardTitle>
                 </CardHeader>
                 <CardContent>
                   <div className="space-y-4">
-                    <div className="flex items-center gap-3 p-3 bg-blue-50 rounded-lg">
-                      <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
-                      <span className="text-sm text-gray-700">Platform running smoothly</span>
+                    <div className="flex items-center gap-3 p-3 bg-emerald-50 dark:bg-emerald-900 rounded-lg">
+                      <div className="w-2 h-2 bg-emerald-500 rounded-full"></div>
+                      <span className="text-sm text-gray-700 dark:text-emerald-200">Platform running smoothly</span>
                     </div>
-                    <div className="flex items-center gap-3 p-3 bg-green-50 rounded-lg">
-                      <div className="w-2 h-2 bg-green-500 rounded-full"></div>
-                      <span className="text-sm text-gray-700">All systems operational</span>
+                    <div className="flex items-center gap-3 p-3 bg-emerald-50 dark:bg-emerald-900 rounded-lg">
+                      <div className="w-2 h-2 bg-emerald-500 rounded-full"></div>
+                      <span className="text-sm text-gray-700 dark:text-emerald-200">All systems operational</span>
                     </div>
                   </div>
                 </CardContent>
               </Card>
 
-              <Card className="bg-card shadow-lg border-0">
+              <Card className="bg-card shadow-lg border-0 dark:bg-gray-900 dark:border-emerald-700">
                 <CardHeader>
-                  <CardTitle className="text-lg font-semibold text-gray-900">System Health</CardTitle>
+                  <CardTitle className="text-lg font-semibold text-gray-900 dark:text-emerald-400">System Health</CardTitle>
                 </CardHeader>
                 <CardContent>
                   <div className="space-y-4">
                     <div className="flex justify-between items-center">
-                      <span className="text-sm text-gray-600">Database</span>
-                      <Badge className="bg-green-100 text-green-800">Healthy</Badge>
+                      <span className="text-sm text-gray-600 dark:text-emerald-300">Database</span>
+                      <Badge className="bg-emerald-100 text-emerald-800 dark:bg-emerald-900 dark:text-emerald-300">Healthy</Badge>
                     </div>
                     <div className="flex justify-between items-center">
-                      <span className="text-sm text-gray-600">Payment System</span>
-                      <Badge className="bg-green-100 text-green-800">Operational</Badge>
+                      <span className="text-sm text-gray-600 dark:text-emerald-300">Payment System</span>
+                      <Badge className="bg-emerald-100 text-emerald-800 dark:bg-emerald-900 dark:text-emerald-300">Operational</Badge>
                     </div>
                     <div className="flex justify-between items-center">
-                      <span className="text-sm text-gray-600">Authentication</span>
-                      <Badge className="bg-green-100 text-green-800">Secure</Badge>
+                      <span className="text-sm text-gray-600 dark:text-emerald-300">Authentication</span>
+                      <Badge className="bg-emerald-100 text-emerald-800 dark:bg-emerald-900 dark:text-emerald-300">Secure</Badge>
                     </div>
                   </div>
                 </CardContent>
@@ -628,31 +628,31 @@ export default function AdminPanelV2() {
 
           {/* Users Tab */}
           <TabsContent value="users" className="space-y-6">
-            <Card className="bg-card shadow-lg border-0">
+            <Card className="bg-card shadow-lg border-0 dark:bg-gray-900 dark:border-emerald-700">
               <CardHeader>
-                <CardTitle className="text-xl font-semibold text-gray-900">User Management</CardTitle>
+                <CardTitle className="text-xl font-semibold text-gray-900 dark:text-emerald-400">User Management</CardTitle>
                 <CardDescription>Manage platform users and their permissions</CardDescription>
               </CardHeader>
               <CardContent>
                 <div className="space-y-4">
                   {users.map((user: User) => (
-                    <div key={user.id} className="flex items-center justify-between p-4 border rounded-lg bg-gray-50">
+                    <div key={user.id} className="flex items-center justify-between p-4 border rounded-lg bg-gray-50 dark:bg-gray-800">
                       <div className="flex items-center gap-4">
                         <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center">
-                          <Users className="h-6 w-6 text-blue-600" />
+                          <Users className="h-6 w-6 text-blue-600 dark:text-emerald-400" />
                         </div>
                         <div>
-                          <h3 className="font-semibold text-gray-900">{user.fullName}</h3>
-                          <p className="text-sm text-gray-500">{user.email}</p>
+                          <h3 className="font-semibold text-gray-900 dark:text-emerald-400">{user.fullName}</h3>
+                          <p className="text-sm text-gray-500 dark:text-emerald-200">{user.email}</p>
                           <div className="flex gap-2 mt-1">
-                            <Badge variant="outline" className="text-xs">
+                            <Badge variant="outline" className="text-xs text-gray-700 dark:text-emerald-300">
                               {user.accountType}
                             </Badge>
-                            <Badge className={`text-xs ${user.isActive ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>
+                            <Badge className={`text-xs ${user.isActive ? 'bg-green-100 text-green-800 dark:bg-emerald-900 dark:text-emerald-300' : 'bg-red-100 text-red-800 dark:bg-emerald-900 dark:text-emerald-300'}`}>
                               {user.isActive ? 'Active' : 'Inactive'}
                             </Badge>
                             {user.isAdmin && (
-                              <Badge className="text-xs bg-purple-100 text-purple-800">Admin</Badge>
+                              <Badge className="text-xs bg-purple-100 text-purple-800 dark:bg-emerald-900 dark:text-emerald-300">Admin</Badge>
                             )}
                           </div>
                         </div>
@@ -668,21 +668,21 @@ export default function AdminPanelV2() {
                             setIsUserDialogOpen(true);
                           }}
                         >
-                          <Eye className="h-4 w-4" />
+                          <Eye className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
                         </Button>
                         <Button
                           size="sm"
                           variant="outline"
                           onClick={() => toggleUserStatusMutation.mutate({ userId: user.id, isActive: !user.isActive })}
                         >
-                          {user.isActive ? <UserX className="h-4 w-4" /> : <CheckCircle className="h-4 w-4" />}
+                          {user.isActive ? <UserX className="h-4 w-4 text-emerald-600 dark:text-emerald-400" /> : <CheckCircle className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />}
                         </Button>
                         <Button
                           size="sm"
                           variant="destructive"
                           onClick={() => deleteUserMutation.mutate(user.id)}
                         >
-                          <Trash2 className="h-4 w-4" />
+                          <Trash2 className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
                         </Button>
                       </div>
                     </div>
@@ -694,10 +694,10 @@ export default function AdminPanelV2() {
 
           {/* Jobs Tab */}
           <TabsContent value="jobs" className="space-y-6">
-            <Card className="bg-card shadow-lg border-0">
+            <Card className="bg-card shadow-lg border-0 dark:bg-gray-900 dark:border-emerald-700">
               <CardHeader className="flex justify-between items-center">
                 <div>
-                  <CardTitle className="text-xl font-semibold text-gray-900">Job Management</CardTitle>
+                  <CardTitle className="text-xl font-semibold text-gray-900 dark:text-emerald-400">Job Management</CardTitle>
                   <CardDescription>Monitor and manage all platform jobs</CardDescription>
                 </div>
                 <Button onClick={() => setIsCreateJobDialogOpen(true)}>Create Admin Job</Button>
@@ -705,19 +705,19 @@ export default function AdminPanelV2() {
               <CardContent>
                 <div className="space-y-4">
                   {jobs.map((job: Job) => (
-                    <div key={job.id} className="flex items-center justify-between p-4 border rounded-lg bg-gray-50">
+                    <div key={job.id} className="flex items-center justify-between p-4 border rounded-lg bg-gray-50 dark:bg-gray-800">
                       <div className="flex items-center gap-4">
                         <div className="w-12 h-12 bg-green-100 rounded-full flex items-center justify-center">
-                          <Briefcase className="h-6 w-6 text-green-600" />
+                          <Briefcase className="h-6 w-6 text-green-600 dark:text-emerald-400" />
                         </div>
                         <div>
-                          <h3 className="font-semibold text-gray-900">{job.title}</h3>
-                          <p className="text-sm text-gray-500">{job.location}</p>
+                          <h3 className="font-semibold text-gray-900 dark:text-emerald-400">{job.title}</h3>
+                          <p className="text-sm text-gray-500 dark:text-emerald-200">{job.location}</p>
                           <div className="flex gap-2 mt-1">
-                            <Badge className={`text-xs ${getStatusColor(job.status)} text-white`}>
+                            <Badge className={`text-xs ${getStatusColor(job.status)} text-white dark:text-emerald-400`}>
                               {job.status}
                             </Badge>
-                            <Badge variant="outline" className="text-xs">
+                            <Badge variant="outline" className="text-xs text-gray-700 dark:text-emerald-300">
                               ${job.paymentAmount}
                             </Badge>
                           </div>
@@ -732,14 +732,14 @@ export default function AdminPanelV2() {
                             setIsJobDialogOpen(true);
                           }}
                         >
-                          <Eye className="h-4 w-4" />
+                          <Eye className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
                         </Button>
                         <Button
                           size="sm"
                           variant="destructive"
                           onClick={() => deleteJobMutation.mutate(job.id)}
                         >
-                          <Trash2 className="h-4 w-4" />
+                          <Trash2 className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
                         </Button>
                       </div>
                     </div>
@@ -751,30 +751,30 @@ export default function AdminPanelV2() {
 
           {/* Support Tab */}
           <TabsContent value="support" className="space-y-6">
-            <Card className="bg-card shadow-lg border-0">
+            <Card className="bg-card shadow-lg border-0 dark:bg-gray-900 dark:border-emerald-700">
               <CardHeader>
-                <CardTitle className="text-xl font-semibold text-gray-900">Support Tickets</CardTitle>
+                <CardTitle className="text-xl font-semibold text-gray-900 dark:text-emerald-400">Support Tickets</CardTitle>
                 <CardDescription>Manage customer support and resolve issues</CardDescription>
               </CardHeader>
               <CardContent>
                 <div className="space-y-4">
                   {supportTickets.map((ticket: SupportTicket) => (
-                    <div key={ticket.id} className="flex items-center justify-between p-4 border rounded-lg bg-gray-50">
+                    <div key={ticket.id} className="flex items-center justify-between p-4 border rounded-lg bg-gray-50 dark:bg-gray-800">
                       <div className="flex items-center gap-4">
                         <div className="w-12 h-12 bg-yellow-100 rounded-full flex items-center justify-center">
-                          <MessageSquare className="h-6 w-6 text-yellow-600" />
+                          <MessageSquare className="h-6 w-6 text-yellow-600 dark:text-emerald-400" />
                         </div>
                         <div>
-                          <h3 className="font-semibold text-gray-900">{ticket.title}</h3>
-                          <p className="text-sm text-gray-500">{ticket.userName || `User ${ticket.userId}`}</p>
+                          <h3 className="font-semibold text-gray-900 dark:text-emerald-400">{ticket.title}</h3>
+                          <p className="text-sm text-gray-500 dark:text-emerald-200">{ticket.userName || `User ${ticket.userId}`}</p>
                           <div className="flex gap-2 mt-1">
-                            <Badge className={`text-xs ${getStatusColor(ticket.status)} text-white`}>
+                            <Badge className={`text-xs ${getStatusColor(ticket.status)} text-white dark:text-emerald-400`}>
                               {ticket.status}
                             </Badge>
-                            <Badge className={`text-xs ${getPriorityColor(ticket.priority)} text-white`}>
+                            <Badge className={`text-xs ${getPriorityColor(ticket.priority)} text-white dark:text-emerald-400`}>
                               {ticket.priority}
                             </Badge>
-                            <Badge variant="outline" className="text-xs">
+                            <Badge variant="outline" className="text-xs text-gray-700 dark:text-emerald-300">
                               {ticket.category}
                             </Badge>
                           </div>
@@ -789,8 +789,7 @@ export default function AdminPanelV2() {
                             setIsTicketDialogOpen(true);
                           }}
                         >
-                          <Eye className="h-4 w-4 mr-1" />
-                          View & Respond
+                          <Eye className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
                         </Button>
                         <Button
                           size="sm"
@@ -809,7 +808,7 @@ export default function AdminPanelV2() {
                           variant="destructive"
                           onClick={() => deleteTicketMutation.mutate(ticket.id)}
                         >
-                          <Trash2 className="h-4 w-4" />
+                          <Trash2 className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
                         </Button>
                       </div>
                     </div>
@@ -821,9 +820,9 @@ export default function AdminPanelV2() {
 
           {/* Financials Tab */}
           <TabsContent value="financials" className="space-y-6">
-            <Card className="bg-card shadow-lg border-0">
+            <Card className="bg-card shadow-lg border-0 dark:bg-gray-900 dark:border-emerald-700">
               <CardHeader>
-                <CardTitle className="text-xl font-semibold text-gray-900">Financial Overview</CardTitle>
+                <CardTitle className="text-xl font-semibold text-gray-900 dark:text-emerald-400">Financial Overview</CardTitle>
                 <CardDescription>Track payments, earnings, and platform revenue</CardDescription>
               </CardHeader>
               <CardContent>
@@ -834,26 +833,26 @@ export default function AdminPanelV2() {
                 ) : transactions.length > 0 ? (
                   <div className="space-y-4">
                     {transactions.map((transaction: any) => (
-                      <div key={transaction.id} className="flex items-center justify-between p-4 border rounded-lg bg-gray-50">
+                      <div key={transaction.id} className="flex items-center justify-between p-4 border rounded-lg bg-gray-50 dark:bg-gray-800">
                         <div className="flex items-center gap-4">
                           <div className="w-12 h-12 bg-emerald-100 rounded-full flex items-center justify-center">
-                            <CreditCard className="h-6 w-6 text-emerald-600" />
+                            <CreditCard className="h-6 w-6 text-emerald-600 dark:text-emerald-400" />
                           </div>
                           <div>
-                            <h3 className="font-semibold text-gray-900">${transaction.amount?.toFixed(2) || '0.00'}</h3>
-                            <p className="text-sm text-gray-500">{transaction.description || transaction.type || 'Transaction'}</p>
+                            <h3 className="font-semibold text-gray-900 dark:text-emerald-400">${transaction.amount?.toFixed(2) || '0.00'}</h3>
+                            <p className="text-sm text-gray-500 dark:text-emerald-200">{transaction.description || transaction.type || 'Transaction'}</p>
                             <div className="flex gap-2 mt-1">
-                              <Badge className={`text-xs ${getStatusColor(transaction.status)} text-white`}>
+                              <Badge className={`text-xs ${getStatusColor(transaction.status)} text-white dark:text-emerald-400`}>
                                 {transaction.status}
                               </Badge>
-                              <Badge variant="outline" className="text-xs">
+                              <Badge variant="outline" className="text-xs text-gray-700 dark:text-emerald-300">
                                 {transaction.type}
                               </Badge>
                             </div>
                           </div>
                         </div>
                         <div className="text-right">
-                          <p className="text-sm text-gray-500">
+                          <p className="text-sm text-gray-500 dark:text-emerald-200">
                             {new Date(transaction.createdAt || Date.now()).toLocaleDateString()}
                           </p>
                         </div>
@@ -863,8 +862,8 @@ export default function AdminPanelV2() {
                 ) : (
                   <div className="text-center py-8">
                     <CreditCard className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-                    <h3 className="font-medium text-gray-600">No Transactions Yet</h3>
-                    <p className="text-sm text-gray-500">Financial transactions will appear here when jobs are completed</p>
+                    <h3 className="font-medium text-gray-600 dark:text-emerald-200">No Transactions Yet</h3>
+                    <p className="text-sm text-gray-500 dark:text-emerald-200">Financial transactions will appear here when jobs are completed</p>
                   </div>
                 )}
               </CardContent>
@@ -873,10 +872,10 @@ export default function AdminPanelV2() {
 
           {/* Notifications Tab */}
           <TabsContent value="notifications" className="space-y-6">
-            <Card className="bg-card shadow-lg border-0">
+            <Card className="bg-card shadow-lg border-0 dark:bg-gray-900 dark:border-emerald-700">
               <CardHeader className="flex justify-between items-center">
                 <div>
-                  <CardTitle className="text-xl font-semibold text-gray-900">Global Notifications</CardTitle>
+                  <CardTitle className="text-xl font-semibold text-gray-900 dark:text-emerald-400">Global Notifications</CardTitle>
                   <CardDescription>Send platform-wide messages to all users</CardDescription>
                 </div>
                 <Button onClick={() => createNotificationMutation.mutate()} disabled={!newNotifTitle || !newNotifBody || createNotificationMutation.isLoading}>Send</Button>
@@ -892,20 +891,20 @@ export default function AdminPanelV2() {
                       <div>
                         <h4 className="font-medium">{n.title}</h4>
                         <p className="text-sm text-muted-foreground">{n.body}</p>
-                        <p className="text-xs text-gray-500 mt-1">{new Date(n.createdAt).toLocaleString()}</p>
+                        <p className="text-xs text-gray-500 dark:text-emerald-200 mt-1">{new Date(n.createdAt).toLocaleString()}</p>
                       </div>
                       <Button size="icon" variant="destructive" onClick={() => apiRequest('DELETE', `/api/admin/notifications/${n.id}`).then(() => setNotifications(prev => prev.filter(x => x.id !== n.id)))}>
-                        <Trash2 className="h-4 w-4" />
+                        <Trash2 className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
                       </Button>
                     </div>
                   ))}
                 </ScrollArea>
               </CardContent>
             </Card>
-            <Card className="bg-card shadow-lg border-0">
+            <Card className="bg-card shadow-lg border-0 dark:bg-gray-900 dark:border-emerald-700">
               <CardHeader className="flex justify-between items-center">
                 <div>
-                  <CardTitle className="text-xl font-semibold text-gray-900">Mass Email</CardTitle>
+                  <CardTitle className="text-xl font-semibold text-gray-900 dark:text-emerald-400">Mass Email</CardTitle>
                   <CardDescription>Send emails to all users for updates on new features</CardDescription>
                 </div>
                 <Button onClick={() => sendMassEmailMutation.mutate()} disabled={!massEmailSubject || !massEmailBody || isSendingMassEmail}>
