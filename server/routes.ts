@@ -1247,6 +1247,47 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
   
+  // Add GET endpoint for email verification from email links
+  apiRouter.get("/verify-email", async (req: Request, res: Response) => {
+    try {
+      const { token } = req.query;
+      if (!token || typeof token !== 'string') {
+        return res.status(400).json({ message: "Token is required" });
+      }
+      
+      // Find user with this token and verify it's not expired
+      const now = new Date();
+      
+      // Check for user with matching token
+      const users = await storage.getAllUsers();
+      let user = users.find(u => 
+        u.verificationToken === token && 
+        u.verificationTokenExpiry && 
+        new Date(u.verificationTokenExpiry) > now
+      );
+      
+      if (!user) {
+        return res.status(400).json({ message: "Invalid or expired verification token" });
+      }
+      
+      // Mark email as verified and clear the token
+      const updatedUser = await storage.updateUser(user.id, {
+        emailVerified: true,
+        verificationToken: null,
+        verificationTokenExpiry: null
+      });
+      
+      if (!updatedUser) {
+        return res.status(404).json({ message: "Failed to update user" });
+      }
+      
+      // Redirect to a success page or send a success response
+      res.redirect(`${process.env.APP_URL || 'http://localhost:5000'}/email-verified`);
+    } catch (error) {
+      res.status(400).json({ message: (error as Error).message });
+    }
+  });
+  
   // Phone verification endpoints
   // Send SMS verification code
   apiRouter.post("/users/:id/send-phone-verification", isAuthenticated, async (req: Request, res: Response) => {
