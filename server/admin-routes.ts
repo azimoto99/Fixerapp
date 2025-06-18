@@ -1977,23 +1977,25 @@ export function registerAdminRoutes(app: Express) {
   // Admin can create a job without payment (adminPosted)
   app.post('/api/admin/jobs', adminAuth, async (req, res) => {
     try {
-      const jobData = req.body;
-      // Basic validation
-      if (!jobData.title || !jobData.description || !jobData.paymentAmount) {
-        return res.status(400).json({ message: 'Missing required fields' });
+      const { title, description, paymentAmount, location, category, skillsRequired } = req.body;
+
+      if (!title || !description || !paymentAmount) {
+        return res.status(400).json({ message: "Missing required job fields" });
       }
 
       const newJob = await storage.createJob({
-        ...jobData,
-        posterId: req.user!.id, // admin id
+        title,
+        description,
+        paymentAmount: parseFloat(paymentAmount),
         status: 'open',
-        adminPosted: true,
-        datePosted: new Date(),
-        serviceFee: 0,
-        totalAmount: jobData.paymentAmount
+        location: location || 'Not specified',
+        category: category || 'Uncategorized',
+        skillsRequired: skillsRequired || [],
+        posterId: req.user.id, // Use the admin's ID as the poster
+        datePosted: new Date().toISOString(),
       });
 
-      res.status(201).json({ success: true, job: newJob });
+      res.status(201).json(newJob);
     } catch (error) {
       console.error('Admin create job error:', error);
       res.status(500).json({ message: 'Failed to create job' });

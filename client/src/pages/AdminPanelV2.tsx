@@ -129,6 +129,9 @@ export default function AdminPanelV2() {
   const [notifications, setNotifications] = useState<any[]>([]);
   const [newNotifTitle, setNewNotifTitle] = useState("");
   const [newNotifBody, setNewNotifBody] = useState("");
+  const [massEmailSubject, setMassEmailSubject] = useState("");
+  const [massEmailBody, setMassEmailBody] = useState("");
+  const [isSendingMassEmail, setIsSendingMassEmail] = useState(false);
   
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -145,7 +148,7 @@ export default function AdminPanelV2() {
 
   // Enhanced data fetching with comprehensive analytics and real-time monitoring
   const { data: dashboardStats, isLoading: isDashboardLoading, error: dashboardError } = useQuery({
-    queryKey: ["/api/admin/analytics/comprehensive"],
+    queryKey: ["/api/admin/stats"],
     refetchInterval: 30000, // Refresh every 30 seconds
     staleTime: 10000, // Consider data stale after 10 seconds
     retry: 3,
@@ -190,7 +193,7 @@ export default function AdminPanelV2() {
         sortOrder
       });
       
-      const response = await apiRequest('GET', `/api/admin/analytics/users?${params}`);
+      const response = await apiRequest('GET', `/api/admin/users?${params}`);
       return response.json();
     },
     enabled: selectedTab === "users",
@@ -199,7 +202,7 @@ export default function AdminPanelV2() {
 
   // Enhanced jobs fetching with filtering
   const jobsQueryKey = useMemo(() => [
-    "/api/admin/jobs-detailed",
+    "/api/admin/jobs",
     { 
       page: currentPage, 
       pageSize, 
@@ -222,7 +225,7 @@ export default function AdminPanelV2() {
         sortOrder
       });
       
-      const response = await apiRequest('GET', `/api/admin/analytics/jobs?${params}`);
+      const response = await apiRequest('GET', `/api/admin/jobs?${params}`);
       return response.json();
     },
     enabled: selectedTab === "jobs",
@@ -236,12 +239,12 @@ export default function AdminPanelV2() {
   const totalJobs = jobsResponse?.total || 0;
 
   const { data: supportResponse, isLoading: isSupportLoading, refetch: refetchSupport } = useQuery({
-    queryKey: ["/api/admin/analytics/support"],
+    queryKey: ["/api/admin/support-tickets"],
     enabled: selectedTab === "support",
   });
 
   const { data: financialResponse, isLoading: isTransactionsLoading } = useQuery({
-    queryKey: ["/api/admin/analytics/financials"],
+    queryKey: ["/api/admin/payments"],
     enabled: selectedTab === "financials",
   });
 
@@ -432,6 +435,28 @@ export default function AdminPanelV2() {
       setNewNotifTitle('');
       setNewNotifBody('');
       setNotifications(prev => [created, ...prev]);
+    },
+    onError: (error) => {
+      toast({ title: 'Failed to send notification', description: String(error), variant: 'destructive' });
+    },
+  });
+
+  // Mass email mutation
+  const sendMassEmailMutation = useMutation({
+    mutationFn: async () => {
+      setIsSendingMassEmail(true);
+      return apiRequest('POST', '/api/admin/mass-email', { subject: massEmailSubject, body: massEmailBody }).then(r => r.json());
+    },
+    onSuccess: () => {
+      toast({ title: 'Mass email sent successfully' });
+      setMassEmailSubject('');
+      setMassEmailBody('');
+    },
+    onError: (error) => {
+      toast({ title: 'Failed to send mass email', description: String(error), variant: 'destructive' });
+    },
+    onSettled: () => {
+      setIsSendingMassEmail(false);
     },
   });
 
@@ -875,6 +900,24 @@ export default function AdminPanelV2() {
                     </div>
                   ))}
                 </ScrollArea>
+              </CardContent>
+            </Card>
+            <Card className="bg-card shadow-lg border-0">
+              <CardHeader className="flex justify-between items-center">
+                <div>
+                  <CardTitle className="text-xl font-semibold text-gray-900">Mass Email</CardTitle>
+                  <CardDescription>Send emails to all users for updates on new features</CardDescription>
+                </div>
+                <Button onClick={() => sendMassEmailMutation.mutate()} disabled={!massEmailSubject || !massEmailBody || isSendingMassEmail}>
+                  {isSendingMassEmail ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : null}
+                  Send Mass Email
+                </Button>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-4 mb-4">
+                  <Input placeholder="Email Subject" value={massEmailSubject} onChange={e => setMassEmailSubject(e.target.value)} />
+                  <Textarea placeholder="Email Body" value={massEmailBody} onChange={e => setMassEmailBody(e.target.value)} className="h-40" />
+                </div>
               </CardContent>
             </Card>
           </TabsContent>
