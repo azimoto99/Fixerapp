@@ -161,14 +161,18 @@ export class UnifiedStorage implements IStorage {
   }
 
   // USER OPERATIONS
-  async getAllUsers(search?: string): Promise<User[]> {
+  async getAllUsers(
+    { page = 1, limit = 10, search = '', status = 'all',
+      sortBy = 'createdAt', sortOrder = 'desc' } = {}
+  ): Promise<User[]> {
+    const searchText = String(search);
     return this.safeExecute(async () => {
-      if (search) {
+      if (searchText) {
         return await db.select().from(users)
           .where(
-            sql`LOWER(${users.username}) LIKE ${`%${search.toLowerCase()}%`} OR 
-                LOWER(${users.fullName}) LIKE ${`%${search.toLowerCase()}%`} OR 
-                LOWER(${users.email}) LIKE ${`%${search.toLowerCase()}%`}`
+            sql`LOWER(${users.username}) LIKE ${`%${searchText.toLowerCase()}%`} OR 
+                LOWER(${users.fullName}) LIKE ${`%${searchText.toLowerCase()}%`} OR 
+                LOWER(${users.email}) LIKE ${`%${searchText.toLowerCase()}%`}`
           );
       }
       return await db.select().from(users);
@@ -366,14 +370,19 @@ export class UnifiedStorage implements IStorage {
   }
 
   // PAYMENT & EARNING OPERATIONS
-  async getAllPayments(search?: string): Promise<Payment[]> {
+  async getAllPayments(
+    { page = 1, limit = 10, search = '',
+      status = 'all', type = 'all',
+      sortBy = 'createdAt', sortOrder = 'desc' } = {}
+  ): Promise<Payment[]> {
+    const searchText = String(search);
     return this.safeExecute(async () => {
-      if (search) {
+      if (searchText) {
         return await db.select().from(payments)
           .where(
-            sql`CAST(${payments.id} AS TEXT) LIKE ${`%${search}%`} OR 
-                ${payments.transactionId} LIKE ${`%${search}%`} OR 
-                ${payments.description} LIKE ${`%${search}%`}`
+            sql`CAST(${payments.id} AS TEXT) LIKE ${`%${searchText}%`} OR 
+                ${payments.transactionId} LIKE ${`%${searchText}%`} OR 
+                ${payments.description} LIKE ${`%${searchText}%`}`
           )
           .orderBy(desc(payments.createdAt));
       }
@@ -1071,13 +1080,13 @@ export class UnifiedStorage implements IStorage {
     }, null as any, `createContactRequest(${senderId}, ${receiverId})`);
   }
 
-  async getContactRequests(userId: number, type: 'sent' | 'received'): Promise<any[]> {
+  async getContactRequests(userId: number, type: 'sent' | 'received', status: 'pending' | 'accepted' | 'rejected' | 'all' = 'pending'): Promise<any[]> {
     return this.safeExecute(async () => {
       const isReceived = type === 'received';
       const userIdField = isReceived ? contactRequests.receiverId : contactRequests.senderId;
       const otherUserIdField = isReceived ? contactRequests.senderId : contactRequests.receiverId;
 
-      const result = await db
+      let query = db
         .select({
           id: contactRequests.id,
           senderId: contactRequests.senderId,
@@ -1086,7 +1095,6 @@ export class UnifiedStorage implements IStorage {
           message: contactRequests.message,
           createdAt: contactRequests.createdAt,
           updatedAt: contactRequests.updatedAt,
-          // User details
           userId: users.id,
           username: users.username,
           fullName: users.fullName,
@@ -1097,8 +1105,13 @@ export class UnifiedStorage implements IStorage {
         .where(eq(userIdField, userId))
         .orderBy(desc(contactRequests.createdAt));
 
+      if (status !== 'all') {
+        query = query.where(eq(contactRequests.status, status));
+      }
+
+      const result = await query;
       return result;
-    }, [], `getContactRequests(${userId}, ${type})`);
+    }, [], `getContactRequests(${userId}, ${type}, ${status})`);
   }
 
   async updateContactRequestStatus(requestId: number, status: 'accepted' | 'rejected', userId: number): Promise<any> {

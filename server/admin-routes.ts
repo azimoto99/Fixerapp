@@ -2177,4 +2177,16 @@ export function registerAdminRoutes(app: Express) {
       res.status(500).json({ message: 'Failed to send mass email' });
     }
   });
+
+  // Legacy alias: /api/admin/transactions -> /api/admin/payments (for old frontend)
+  app.get('/api/admin/transactions', (req, res) => {
+    const qs = new URLSearchParams(req.query as any).toString();
+    res.redirect(307, `/api/admin/payments${qs ? '?' + qs : ''}`);
+  });
+
+  // Legacy alias: /api/admin/support -> /api/admin/support-tickets
+  app.get('/api/admin/support', (req, res) => {
+    const qs = new URLSearchParams(req.query as any).toString();
+    res.redirect(307, `/api/admin/support-tickets${qs ? '?' + qs : ''}`);
+  });
 }
