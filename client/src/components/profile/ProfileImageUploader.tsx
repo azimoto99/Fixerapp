@@ -75,25 +75,51 @@ export function ProfileImageUploader({ user }: ProfileImageUploaderProps) {
   const updateAvatarMutation = useMutation({
     mutationFn: async (avatarName: string) => {
       const response = await apiRequest('POST', '/api/user/avatar', { avatarName });
+      if (!response.ok) {
+        throw new Error('Failed to update avatar');
+      }
       return response.json();
     },
-    onSuccess: (data) => {
-      queryClient.setQueryData(['/api/user'], data.user);
-      setPreviewImage(data.avatarUrl);
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['user', user.id] });
       toast({
-        title: 'Avatar updated',
-        description: 'Your profile avatar has been updated successfully.',
+        title: "Avatar Updated",
+        description: "Your avatar has been updated successfully",
       });
-      setIsUploading(false);
       setShowAvatarSelector(false);
     },
-    onError: (error: Error) => {
+    onError: (error) => {
       toast({
-        title: 'Update failed',
-        description: error.message,
-        variant: 'destructive',
+        title: "Error",
+        description: error instanceof Error ? error.message : "Failed to update avatar",
+        variant: "destructive",
       });
-      setIsUploading(false);
+    },
+  });
+
+  const uploadCustomAvatarMutation = useMutation({
+    mutationFn: async (file: File) => {
+      const formData = new FormData();
+      formData.append('customAvatar', file);
+      const response = await apiRequest('POST', '/api/user/avatar', formData);
+      if (!response.ok) {
+        throw new Error('Failed to upload custom avatar');
+      }
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['user', user.id] });
+      toast({
+        title: "Custom Avatar Uploaded",
+        description: "Your custom avatar has been uploaded successfully",
+      });
+    },
+    onError: (error) => {
+      toast({
+        title: "Error",
+        description: error instanceof Error ? error.message : "Failed to upload custom avatar",
+        variant: "destructive",
+      });
     },
   });
 
@@ -159,9 +185,12 @@ export function ProfileImageUploader({ user }: ProfileImageUploaderProps) {
     }
   };
 
-  const selectAvatar = (avatarName: string) => {
-    setIsUploading(true);
+  const handleAvatarSelect = (avatarName: string) => {
     updateAvatarMutation.mutate(avatarName);
+  };
+
+  const handleCustomAvatarUpload = (file: File) => {
+    uploadCustomAvatarMutation.mutate(file);
   };
 
   return (
@@ -226,7 +255,7 @@ export function ProfileImageUploader({ user }: ProfileImageUploaderProps) {
             <button
               key={avatarName}
               className="relative group/avatar"
-              onClick={() => selectAvatar(avatarName)}
+              onClick={() => handleAvatarSelect(avatarName)}
               disabled={isUploading}
             >
               <Avatar className="h-16 w-16 cursor-pointer border-2 border-background">

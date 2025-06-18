@@ -48,7 +48,7 @@ export function ModernMessagingInterface({
 
   const {
     isConnected,
-    status,
+    status = 'disconnected' as 'disconnected' | 'connecting' | 'connected',
     typingUsers,
     onlineUsers,
     sendMessage,
@@ -85,16 +85,25 @@ export function ModernMessagingInterface({
     mutationFn: async ({ content, attachments }: { content: string; attachments?: File[] }) => {
       // Handle file uploads first if any
       let attachmentUrl = undefined;
+      let attachmentType = undefined;
       if (attachments && attachments.length > 0) {
-        // TODO: Implement file upload logic
-        console.log('File attachments not yet implemented:', attachments);
+        const formData = new FormData();
+        formData.append('file', attachments[0]);
+        const uploadResponse = await apiRequest('POST', '/api/messages/upload-attachment', formData);
+        if (!uploadResponse.ok) {
+          throw new Error('Failed to upload attachment');
+        }
+        const uploadData = await uploadResponse.json();
+        attachmentUrl = uploadData.attachmentUrl;
+        attachmentType = uploadData.attachmentType;
       }
 
       const response = await apiRequest('POST', '/api/messages/send', {
         recipientId: contactId,
         content,
         ...(replyTo && { replyToId: replyTo.id }),
-        ...(attachmentUrl && { attachmentUrl })
+        ...(attachmentUrl && { attachmentUrl }),
+        ...(attachmentType && { attachmentType })
       });
 
       if (!response.ok) {
@@ -115,6 +124,30 @@ export function ModernMessagingInterface({
         variant: "destructive",
       });
     }
+  });
+
+  // Mutation for initiating a call
+  const initiateCallMutation = useMutation({
+    mutationFn: async (recipientId: number) => {
+      const response = await apiRequest('POST', '/api/messages/initiate-call', { recipientId });
+      if (!response.ok) {
+        throw new Error('Failed to initiate call');
+      }
+      return response.json();
+    },
+    onSuccess: (data) => {
+      toast({
+        title: "Call Initiated",
+        description: "Your call has been initiated successfully. Call SID: " + data.callSid,
+      });
+    },
+    onError: (error) => {
+      toast({
+        title: "Error",
+        description: error instanceof Error ? error.message : "Failed to initiate call",
+        variant: "destructive",
+      });
+    },
   });
 
   // Auto-scroll to bottom with improved reliability
@@ -158,14 +191,14 @@ export function ModernMessagingInterface({
   const handleTypingStart = useCallback(() => {
     if (!isTyping) {
       setIsTyping(true);
-      startTyping(contactId);
+      startTyping(contactId.toString());
     }
   }, [isTyping, startTyping, contactId]);
 
   const handleTypingStop = useCallback(() => {
     if (isTyping) {
       setIsTyping(false);
-      stopTyping(contactId);
+      stopTyping(contactId.toString());
     }
   }, [isTyping, stopTyping, contactId]);
 
@@ -185,6 +218,19 @@ export function ModernMessagingInterface({
   const handleReact = useCallback((messageId: number, emoji: string) => {
     console.log('React to message:', messageId, emoji);
     // TODO: Implement reaction functionality
+  }, []);
+
+  // Handle call initiation
+  const handleCall = useCallback(() => {
+    initiateCallMutation.mutate(contactId);
+  }, [contactId]);
+
+  // Handle video call initiation (placeholder for future implementation)
+  const handleVideoCall = useCallback(() => {
+    toast({
+      title: "Video Call",
+      description: "Video call functionality will be implemented soon.",
+    });
   }, []);
 
   // Group messages by sender and time
@@ -223,13 +269,10 @@ export function ModernMessagingInterface({
           contactUsername={contactUsername}
           contactAvatar={contactAvatar}
           isOnline={isContactOnline}
-          isTyping={conversationTypingUsers.length > 0}
-          connectionStatus={status}
+          lastSeen={null}
           onBack={onBack}
-          onCall={() => console.log('Call:', contactId)}
-          onVideoCall={() => console.log('Video call:', contactId)}
-          onSearch={() => console.log('Search in conversation')}
-          onInfo={() => console.log('Contact info:', contactId)}
+          onCall={handleCall}
+          onVideoCall={handleVideoCall}
         />
       </div>
 

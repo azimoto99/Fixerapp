@@ -5,6 +5,11 @@ import { Request, Response, Express } from "express";
 import { z } from "zod";
 import { storage } from "../storage";
 import { insertMessageSchema } from "@shared/schema";
+import AWS from "aws-sdk";
+import twilio from 'twilio';
+
+// Twilio configuration
+const twilioClient = twilio(process.env.TWILIO_ACCOUNT_SID, process.env.TWILIO_AUTH_TOKEN);
 
 export function registerMessagingRoutes(app: Express) {
   /**
@@ -387,4 +392,69 @@ export function registerMessagingRoutes(app: Express) {
    */
   // Search endpoint moved to main routes.ts file
   // This helps avoid conflicts with duplicate endpoints
+
+  // Endpoint for uploading message attachments
+  app.post('/upload-attachment', async (req: Request, res: Response) => {
+    try {
+      if (!req.file) {
+        return res.status(400).json({ error: 'No file uploaded' });
+      }
+
+      // Upload the file to S3
+      const s3 = new AWS.S3({
+        accessKeyId: process.env.AWS_ACCESS_KEY_ID,
+        secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY,
+        region: process.env.AWS_REGION
+      });
+
+      const fileKey = `uploads/${Date.now()}-${req.file.originalname}`;
+      const uploadParams = {
+        Bucket: process.env.S3_BUCKET_NAME,
+        Key: fileKey,
+        Body: req.file.buffer,
+        ContentType: req.file.mimetype
+      };
+
+      const uploadResult = await s3.upload(uploadParams).promise();
+      const fileUrl = uploadResult.Location;
+      const fileType = req.file.mimetype.startsWith('image/') ? 'image' : 'document';
+
+      res.json({
+        attachmentUrl: fileUrl,
+        attachmentType: fileType
+      });
+    } catch (error) {
+      console.error('Error uploading attachment to S3:', error);
+      res.status(500).json({ error: 'Failed to upload attachment' });
+    }
+  });
+
+  // Endpoint to initiate a call
+  app.post('/initiate-call', async (req: Request, res: Response) => {
+    try {
+      const { recipientId } = req.body;
+      if (!recipientId) {
+        return res.status(400).json({ error: 'Recipient ID is required' });
+      }
+
+      // In a real implementation, you would fetch the recipient's phone number from the database
+      // For now, we'll use a placeholder
+      const recipientPhoneNumber = '+1234567890'; // Replace with actual phone number retrieval logic
+      const fromNumber = process.env.TWILIO_PHONE_NUMBER;
+
+      const call = await twilioClient.calls.create({
+        url: 'http://demo.twilio.com/docs/voice.xml', // Replace with your TwiML URL or use TwiML Bin
+        to: recipientPhoneNumber,
+        from: fromNumber
+      });
+
+      res.json({
+        message: 'Call initiated successfully',
+        callSid: call.sid
+      });
+    } catch (error) {
+      console.error('Error initiating call:', error);
+      res.status(500).json({ error: 'Failed to initiate call' });
+    }
+  });
 }

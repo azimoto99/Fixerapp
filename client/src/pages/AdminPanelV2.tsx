@@ -87,17 +87,21 @@ export default function AdminPanelV2() {
     setCurrentPage(1);
   }, [debouncedSearch, filterStatus, ticketFilterStatus, ticketFilterPriority, paymentFilterStatus, paymentFilterType, selectedTab]);
 
-  const { data: dashboardStats, isLoading: isDashboardLoading } = useQuery<AdminStats>({
+  const { data: dashboardStats, isLoading: isDashboardLoading, error: dashboardError } = useQuery<AdminStats>({
     queryKey: ["/api/admin/stats"],
     refetchInterval: 30000,
   });
+
+  if (dashboardError) {
+    console.error('Dashboard stats error:', dashboardError);
+  }
 
   const usersQueryKey = useMemo(() => [
     "/api/admin/users",
     { page: currentPage, pageSize, search: debouncedSearch, status: filterStatus, sortBy, sortOrder }
   ], [currentPage, pageSize, debouncedSearch, filterStatus, sortBy, sortOrder]);
 
-  const { data: usersResponse, isLoading: isUsersLoading, refetch: refetchUsers } = useQuery({
+  const { data: usersResponse, isLoading: isUsersLoading, refetch: refetchUsers, error: usersError } = useQuery({
     queryKey: usersQueryKey,
     queryFn: async () => {
       const params = new URLSearchParams({
@@ -113,6 +117,10 @@ export default function AdminPanelV2() {
     },
     enabled: selectedTab === "users",
   });
+  if (usersError) {
+    console.error('Users query error:', usersError);
+  }
+
   const users = usersResponse?.users || [];
   const totalUsers = usersResponse?.total || 0;
 
@@ -121,7 +129,7 @@ export default function AdminPanelV2() {
     { page: currentPage, pageSize, search: debouncedSearch, status: filterStatus, sortBy, sortOrder }
   ], [currentPage, pageSize, debouncedSearch, filterStatus, sortBy, sortOrder]);
 
-  const { data: jobsResponse, isLoading: isJobsLoading, refetch: refetchJobs } = useQuery({
+  const { data: jobsResponse, isLoading: isJobsLoading, refetch: refetchJobs, error: jobsError } = useQuery({
     queryKey: jobsQueryKey,
     queryFn: async () => {
       const params = new URLSearchParams({
@@ -137,6 +145,10 @@ export default function AdminPanelV2() {
     },
     enabled: selectedTab === "jobs",
   });
+  if (jobsError) {
+    console.error('Jobs query error:', jobsError);
+  }
+
   const jobs = jobsResponse?.jobs || [];
   const totalJobs = jobsResponse?.total || 0;
 
@@ -145,7 +157,7 @@ export default function AdminPanelV2() {
     { page: currentPage, pageSize, search: debouncedSearch, status: ticketFilterStatus, priority: ticketFilterPriority, sortBy, sortOrder }
   ], [currentPage, pageSize, debouncedSearch, ticketFilterStatus, ticketFilterPriority, sortBy, sortOrder]);
 
-  const { data: supportResponse, isLoading: isSupportLoading, refetch: refetchSupport } = useQuery({
+  const { data: supportResponse, isLoading: isSupportLoading, refetch: refetchSupport, error: supportError } = useQuery({
     queryKey: supportQueryKey,
     queryFn: async () => {
       const params = new URLSearchParams({
@@ -162,6 +174,10 @@ export default function AdminPanelV2() {
     },
     enabled: selectedTab === "support",
   });
+  if (supportError) {
+    console.error('Support tickets query error:', supportError);
+  }
+
   const supportTickets = supportResponse?.tickets || [];
   const totalTickets = supportResponse?.total || 0;
 
@@ -170,7 +186,7 @@ export default function AdminPanelV2() {
     { page: currentPage, pageSize, search: debouncedSearch, status: paymentFilterStatus, type: paymentFilterType, sortBy, sortOrder }
   ], [currentPage, pageSize, debouncedSearch, paymentFilterStatus, paymentFilterType, sortBy, sortOrder]);
 
-  const { data: paymentsResponse, isLoading: isTransactionsLoading, refetch: refetchPayments } = useQuery({
+  const { data: paymentsResponse, isLoading: isTransactionsLoading, refetch: refetchPayments, error: paymentsError } = useQuery({
     queryKey: paymentsQueryKey,
     queryFn: async () => {
       const params = new URLSearchParams({
@@ -187,6 +203,10 @@ export default function AdminPanelV2() {
     },
     enabled: selectedTab === "financials",
   });
+  if (paymentsError) {
+    console.error('Payments query error:', paymentsError);
+  }
+
   const transactions = paymentsResponse || [];
   const totalTransactions = paymentsResponse?.length || 0;
 

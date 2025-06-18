@@ -29,6 +29,7 @@ export const LocationPermissionHelper: React.FC<LocationPermissionHelperProps> =
 
   const [permissionState, setPermissionState] = useState<'unknown' | 'granted' | 'denied' | 'prompt'>('unknown');
   const [isRequestingPermission, setIsRequestingPermission] = useState(false);
+  const [highAccuracyError, setHighAccuracyError] = useState<string | null>(null);
 
   // Check permission status on mount
   useEffect(() => {
@@ -66,10 +67,12 @@ export const LocationPermissionHelper: React.FC<LocationPermissionHelperProps> =
   };
 
   const handleRequestHighAccuracy = async () => {
+    setHighAccuracyError(null);
     try {
       await requestHighAccuracyLocation();
     } catch (error) {
       console.error('Failed to get high accuracy location:', error);
+      setHighAccuracyError('Failed to get high accuracy location. Please check your device settings or GPS signal.');
     }
   };
 
@@ -116,10 +119,14 @@ export const LocationPermissionHelper: React.FC<LocationPermissionHelperProps> =
 
     if (userLocation) {
       const accuracyInfo = analyzeLocationAccuracy(userLocation.accuracy);
+      let description = showAccuracyInfo ? accuracyInfo.description : 'Your location has been determined.';
+      if (highAccuracyError && locationAccuracy === 'low') {
+        description = highAccuracyError;
+      }
       return {
         status: 'success',
         title: 'Location found',
-        description: showAccuracyInfo ? accuracyInfo.description : 'Your location has been determined.',
+        description,
         icon: MapPin,
         color: accuracyInfo.accuracyLevel === 'high' ? 'green' :
                accuracyInfo.accuracyLevel === 'medium' ? 'blue' : 'yellow'
