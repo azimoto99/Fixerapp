@@ -1214,56 +1214,6 @@ export class UnifiedStorage implements IStorage {
   async getUserBadges(userId: number): Promise<UserBadge[]> { return []; }
   async awardBadge(userBadge: InsertUserBadge): Promise<UserBadge> { return null as any; }
   async revokeBadge(userId: number, badgeId: number): Promise<boolean> { return true; }
-
-  async getAllPayments({ page = 1, limit = 10, search = '', status, type, sortBy = 'createdAt', sortOrder = 'desc' }) {
-    const offset = (page - 1) * limit;
-    let whereClause: any = {};
-
-    if (search) {
-      whereClause.OR = [
-        { description: { contains: search, mode: 'insensitive' } },
-        { user: { email: { contains: search, mode: 'insensitive' } } },
-        { user: { fullName: { contains: search, mode: 'insensitive' } } },
-      ];
-    }
-
-    if (status && status !== 'all') {
-      whereClause.status = status;
-    }
-
-    if (type && type !== 'all') {
-      whereClause.type = type;
-    }
-
-    const [payments, total] = await this.prisma.$transaction([
-      this.prisma.payment.findMany({
-        where: whereClause,
-        take: limit,
-        skip: offset,
-        orderBy: {
-          [sortBy]: sortOrder,
-        },
-        include: {
-          user: {
-            select: {
-              id: true,
-              email: true,
-              fullName: true,
-            },
-          },
-        },
-      }),
-      this.prisma.payment.count({ where: whereClause }),
-    ]);
-
-    const formattedPayments = payments.map(p => ({
-      ...p,
-      userName: p.user?.fullName,
-      userEmail: p.user?.email,
-    }));
-
-    return { payments: formattedPayments, total };
-  }
 }
 
 // Create and export a single instance
