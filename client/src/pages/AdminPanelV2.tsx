@@ -90,6 +90,11 @@ export default function AdminPanelV2() {
   const { data: dashboardStats, isLoading: isDashboardLoading, error: dashboardError } = useQuery<AdminStats>({
     queryKey: ["/api/admin/stats"],
     refetchInterval: 30000,
+    retry: 2,
+    retryDelay: 1000,
+    onError: (error) => {
+      console.error('Error fetching dashboard stats:', error);
+    },
   });
 
   if (dashboardError) {
@@ -116,6 +121,11 @@ export default function AdminPanelV2() {
       return response.json();
     },
     enabled: selectedTab === "users",
+    retry: 2,
+    retryDelay: 1000,
+    onError: (error) => {
+      console.error('Error fetching users:', error);
+    },
   });
   if (usersError) {
     console.error('Users query error:', usersError);
@@ -144,6 +154,11 @@ export default function AdminPanelV2() {
       return response.json();
     },
     enabled: selectedTab === "jobs",
+    retry: 2,
+    retryDelay: 1000,
+    onError: (error) => {
+      console.error('Error fetching jobs:', error);
+    },
   });
   if (jobsError) {
     console.error('Jobs query error:', jobsError);
@@ -173,6 +188,11 @@ export default function AdminPanelV2() {
       return response.json();
     },
     enabled: selectedTab === "support",
+    retry: 2,
+    retryDelay: 1000,
+    onError: (error) => {
+      console.error('Error fetching support tickets:', error);
+    },
   });
   if (supportError) {
     console.error('Support tickets query error:', supportError);
@@ -201,7 +221,12 @@ export default function AdminPanelV2() {
       const response = await apiRequest('GET', `/api/admin/payments?${params.toString()}`);
       return response.json();
     },
-    enabled: selectedTab === "financials",
+    enabled: selectedTab === "payments",
+    retry: 2,
+    retryDelay: 1000,
+    onError: (error) => {
+      console.error('Error fetching payments:', error);
+    },
   });
   if (paymentsError) {
     console.error('Payments query error:', paymentsError);
@@ -247,279 +272,332 @@ export default function AdminPanelV2() {
   };
 
   return (
-    <div className="flex min-h-screen bg-gray-100 dark:bg-gray-900">
-      <aside className={`fixed inset-y-0 left-0 z-50 w-64 bg-white dark:bg-gray-800 shadow-lg transform ${isMobileMenuOpen ? 'translate-x-0' : '-translate-x-full'} md:relative md:translate-x-0 transition-transform duration-300 ease-in-out`}>
-        <div className="p-4 flex justify-between items-center">
-          <h1 className="text-2xl font-bold text-gray-800 dark:text-white">Admin</h1>
-          <button onClick={() => setIsMobileMenuOpen(false)} className="md:hidden text-gray-600 dark:text-gray-300">
-            <X size={24} />
-          </button>
+    <div className="container mx-auto py-6 max-w-7xl">
+      <div className="flex justify-between items-center mb-6">
+        <div>
+          <h1 className="text-3xl font-bold tracking-tight">Admin Dashboard</h1>
+          <p className="text-muted-foreground mt-2">Manage platform operations and view analytics</p>
         </div>
-        <nav className="mt-4">
-          <TabsList className="flex flex-col items-start p-2 space-y-1">
-            <TabsTrigger value="overview" className="w-full text-left justify-start" onClick={() => setSelectedTab('overview')}>Overview</TabsTrigger>
-            <TabsTrigger value="users" className="w-full text-left justify-start" onClick={() => setSelectedTab('users')}>Users</TabsTrigger>
-            <TabsTrigger value="jobs" className="w-full text-left justify-start" onClick={() => setSelectedTab('jobs')}>Jobs</TabsTrigger>
-            <TabsTrigger value="support" className="w-full text-left justify-start" onClick={() => setSelectedTab('support')}>Support Tickets</TabsTrigger>
-            <TabsTrigger value="financials" className="w-full text-left justify-start" onClick={() => setSelectedTab('financials')}>Financials</TabsTrigger>
-          </TabsList>
-        </nav>
-      </aside>
+        <div className="flex gap-2 items-center">
+          <Button 
+            variant="outline" 
+            size="icon" 
+            onClick={() => {
+              refetchUsers();
+              refetchJobs();
+              refetchSupport();
+              refetchPayments();
+            }}
+            className="rounded-full"
+          >
+            <RefreshCw className="h-4 w-4" />
+          </Button>
+          <Button variant="outline" className="md:hidden" size="icon" onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}>
+            {isMobileMenuOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
+          </Button>
+        </div>
+      </div>
 
-      <main className="flex-1 p-4 md:p-8 overflow-y-auto">
-        <button onClick={() => setIsMobileMenuOpen(true)} className="md:hidden mb-4 p-2 rounded-md bg-white dark:bg-gray-800 text-gray-600 dark:text-gray-300">
-          <Menu size={24} />
-        </button>
-        
-        <Tabs value={selectedTab} onValueChange={setSelectedTab} className="w-full">
-          <TabsContent value="overview">
-             {isDashboardLoading ? (
-                <Skeleton className="h-[125px] w-full rounded-xl" />
-            ) : (
+      <Tabs defaultValue="overview" value={selectedTab} onValueChange={setSelectedTab} className="w-full">
+        <div className={`md:block ${isMobileMenuOpen ? 'block' : 'hidden'} mb-6 md:mb-0`}>
+          <TabsList className="flex flex-col items-start p-2 space-y-1">
+            <TabsTrigger value="overview" className="w-full justify-start">Overview</TabsTrigger>
+            <TabsTrigger value="users" className="w-full justify-start">Users</TabsTrigger>
+            <TabsTrigger value="jobs" className="w-full justify-start">Jobs</TabsTrigger>
+            <TabsTrigger value="support" className="w-full justify-start">Support</TabsTrigger>
+            <TabsTrigger value="payments" className="w-full justify-start">Payments</TabsTrigger>
+          </TabsList>
+        </div>
+        <TabsContent value="overview" className="mt-0 md:mt-6">
+          <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4 mb-6">
+            {isDashboardLoading ? (
+              <>
+                <Card><CardHeader><Skeleton className="h-6 w-1/3" /></CardHeader><CardContent><Skeleton className="h-8 w-1/2" /></CardContent></Card>
+                <Card><CardHeader><Skeleton className="h-6 w-1/3" /></CardHeader><CardContent><Skeleton className="h-8 w-1/2" /></CardContent></Card>
+                <Card><CardHeader><Skeleton className="h-6 w-1/3" /></CardHeader><CardContent><Skeleton className="h-8 w-1/2" /></CardContent></Card>
+                <Card><CardHeader><Skeleton className="h-6 w-1/3" /></CardHeader><CardContent><Skeleton className="h-8 w-1/2" /></CardContent></Card>
+              </>
+            ) : dashboardError ? (
+              <>
+                <Card className="border-destructive/30 bg-destructive/5"><CardHeader className="pb-2"><CardTitle>Total Users</CardTitle></CardHeader><CardContent><p className="text-destructive">Error loading data</p></CardContent></Card>
+                <Card className="border-destructive/30 bg-destructive/5"><CardHeader className="pb-2"><CardTitle>Total Jobs</CardTitle></CardHeader><CardContent><p className="text-destructive">Error loading data</p></CardContent></Card>
+                <Card className="border-destructive/30 bg-destructive/5"><CardHeader className="pb-2"><CardTitle>Total Revenue</CardTitle></CardHeader><CardContent><p className="text-destructive">Error loading data</p></CardContent></Card>
+                <Card className="border-destructive/30 bg-destructive/5"><CardHeader className="pb-2"><CardTitle>Pending Disputes</CardTitle></CardHeader><CardContent><p className="text-destructive">Error loading data</p></CardContent></Card>
+              </>
+            ) : dashboardStats ? (
+              <>
                 <Card>
-                  <CardHeader><CardTitle>Platform Overview</CardTitle></CardHeader>
-                  <CardContent className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-                      <div>Total Users: {dashboardStats?.totalUsers}</div>
-                      <div>Total Jobs: {dashboardStats?.totalJobs}</div>
-                      <div>Total Revenue: ${dashboardStats?.totalRevenue?.toFixed(2)}</div>
-                      <div>Pending Disputes: {dashboardStats?.pendingDisputes}</div>
+                  <CardHeader className="pb-2">
+                    <CardTitle>Total Users</CardTitle>
+                    <CardDescription>Registered users</CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="text-2xl font-bold">{dashboardStats.totalUsers.toLocaleString()}</div>
                   </CardContent>
                 </Card>
-            )}
-          </TabsContent>
+                <Card>
+                  <CardHeader className="pb-2">
+                    <CardTitle>Total Jobs</CardTitle>
+                    <CardDescription>Posted jobs</CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="text-2xl font-bold">{dashboardStats.totalJobs.toLocaleString()}</div>
+                  </CardContent>
+                </Card>
+                <Card>
+                  <CardHeader className="pb-2">
+                    <CardTitle>Total Revenue</CardTitle>
+                    <CardDescription>Platform revenue</CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="text-2xl font-bold">${dashboardStats.totalRevenue.toLocaleString()}</div>
+                  </CardContent>
+                </Card>
+                <Card>
+                  <CardHeader className="pb-2">
+                    <CardTitle>Pending Disputes</CardTitle>
+                    <CardDescription>Open issues</CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="text-2xl font-bold">{dashboardStats.pendingDisputes}</div>
+                  </CardContent>
+                </Card>
+              </>
+            ) : null}
+          </div>
+        </TabsContent>
 
-          <TabsContent value="users">
-            <div className="flex items-center justify-between mb-4">
-              <div className="flex items-center gap-2">
-                <Input placeholder="Search users..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} className="w-64" />
-                <Select value={filterStatus} onValueChange={setFilterStatus}>
-                  <SelectTrigger className="w-[180px]"><SelectValue placeholder="Filter by status" /></SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">All</SelectItem>
-                    <SelectItem value="active">Active</SelectItem>
-                    <SelectItem value="inactive">Inactive</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              <Button onClick={() => refetchUsers()} variant="outline" size="sm" disabled={isUsersLoading}>
-                <RefreshCw className={`h-4 w-4 ${isUsersLoading ? 'animate-spin' : ''}`} />
-              </Button>
+        <TabsContent value="users">
+          <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center gap-2">
+              <Input placeholder="Search users..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} className="w-64" />
+              <Select value={filterStatus} onValueChange={setFilterStatus}>
+                <SelectTrigger className="w-[180px]"><SelectValue placeholder="Filter by status" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All</SelectItem>
+                  <SelectItem value="active">Active</SelectItem>
+                  <SelectItem value="inactive">Inactive</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
-            <div className="rounded-lg border">
-              {isUsersLoading ? (
-                Array.from({ length: 5 }).map((_, i) => <Skeleton key={i} className="h-16 w-full" />)
-              ) : users.length === 0 ? (
-                <div className="text-center p-8">No users found.</div>
-              ) : (
-                users.map((user) => (
-                  <div key={user.id} className="border-b last:border-b-0 p-4 hover:bg-muted/50 transition-colors cursor-pointer" onClick={() => handleUserSelect(user)}>
-                    <div className="grid grid-cols-4 gap-4 items-center">
-                        <p className="font-semibold">{user.username}</p>
-                        <p className="text-sm text-muted-foreground">{user.email}</p>
-                        <p>{user.accountType}</p>
-                        <Badge variant={user.isActive ? "default" : "destructive"}>{user.isActive ? 'Active' : 'Inactive'}</Badge>
-                    </div>
+            <Button onClick={() => refetchUsers()} variant="outline" size="sm" disabled={isUsersLoading}>
+              <RefreshCw className={`h-4 w-4 ${isUsersLoading ? 'animate-spin' : ''}`} />
+            </Button>
+          </div>
+          <div className="rounded-lg border">
+            {isUsersLoading ? (
+              Array.from({ length: 5 }).map((_, i) => <Skeleton key={i} className="h-16 w-full" />)
+            ) : users.length === 0 ? (
+              <div className="text-center p-8">No users found.</div>
+            ) : (
+              users.map((user) => (
+                <div key={user.id} className="border-b last:border-b-0 p-4 hover:bg-muted/50 transition-colors cursor-pointer" onClick={() => handleUserSelect(user)}>
+                  <div className="grid grid-cols-4 gap-4 items-center">
+                      <p className="font-semibold">{user.username}</p>
+                      <p className="text-sm text-muted-foreground">{user.email}</p>
+                      <p>{user.accountType}</p>
+                      <Badge variant={user.isActive ? "default" : "destructive"}>{user.isActive ? 'Active' : 'Inactive'}</Badge>
                   </div>
-                ))
-              )}
-            </div>
-            {totalUsers > 0 && (
-              <div className="flex justify-end items-center gap-2 mt-4">
-                <span className="text-sm text-muted-foreground">Page {currentPage} of {Math.ceil(totalUsers / pageSize)}</span>
-                <Button variant="outline" size="sm" onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))} disabled={currentPage === 1}><ChevronLeft className="h-4 w-4" /> Previous</Button>
-                <Button variant="outline" size="sm" onClick={() => setCurrentPage(prev => Math.min(prev + 1, Math.ceil(totalUsers / pageSize)))} disabled={currentPage * pageSize >= totalUsers}>Next <ChevronRight className="h-4 w-4" /></Button>
-              </div>
-            )}
-          </TabsContent>
-
-          <TabsContent value="jobs">
-            <div className="flex items-center justify-between mb-4">
-              <div className="flex items-center gap-2">
-                  <Input placeholder="Search jobs..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} className="w-64" />
-              </div>
-              <Button onClick={() => refetchJobs()} variant="outline" size="sm" disabled={isJobsLoading}><RefreshCw className={`h-4 w-4 ${isJobsLoading ? 'animate-spin' : ''}`} /></Button>
-            </div>
-            <div className="rounded-lg border">
-                {isJobsLoading ? (
-                    Array.from({ length: 5 }).map((_, i) => <Skeleton key={i} className="h-16 w-full" />)
-                ) : jobs.length === 0 ? (
-                    <div className="text-center p-8">No jobs found.</div>
-                ) : (
-                    jobs.map((job) => (
-                      <div key={job.id} className="border-b last:border-b-0 p-4 hover:bg-muted/50 transition-colors cursor-pointer" onClick={() => handleJobSelect(job)}>
-                          <p>{job.title}</p>
-                      </div>
-                    ))
-                )}
-            </div>
-            {totalJobs > 0 && (
-                <div className="flex justify-end items-center gap-2 mt-4">
-                  <span className="text-sm text-muted-foreground">Page {currentPage} of {Math.ceil(totalJobs / pageSize)}</span>
-                  <Button variant="outline" size="sm" onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))} disabled={currentPage === 1}><ChevronLeft className="h-4 w-4" /> Previous</Button>
-                  <Button variant="outline" size="sm" onClick={() => setCurrentPage(prev => Math.min(prev + 1, Math.ceil(totalJobs / pageSize)))} disabled={currentPage * pageSize >= totalJobs}>Next <ChevronRight className="h-4 w-4" /></Button>
                 </div>
+              ))
             )}
-          </TabsContent>
-          
-          <TabsContent value="support">
-            <div className="flex items-center justify-between mb-4">
-              <div className="flex items-center gap-2">
-                <Input placeholder="Search tickets..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} className="w-64"/>
-                <Select value={ticketFilterStatus} onValueChange={setTicketFilterStatus}>
-                  <SelectTrigger className="w-[180px]"><SelectValue placeholder="Filter by status" /></SelectTrigger>
-                  <SelectContent>
-                      <SelectItem value="all">All Statuses</SelectItem>
-                      <SelectItem value="open">Open</SelectItem>
-                      <SelectItem value="in_progress">In Progress</SelectItem>
-                      <SelectItem value="resolved">Resolved</SelectItem>
-                      <SelectItem value="closed">Closed</SelectItem>
-                  </SelectContent>
-                </Select>
-                <Select value={ticketFilterPriority} onValueChange={setTicketFilterPriority}>
-                  <SelectTrigger className="w-[180px]"><SelectValue placeholder="Filter by priority" /></SelectTrigger>
-                  <SelectContent>
-                      <SelectItem value="all">All Priorities</SelectItem>
-                      <SelectItem value="low">Low</SelectItem>
-                      <SelectItem value="medium">Medium</SelectItem>
-                      <SelectItem value="high">High</SelectItem>
-                      <SelectItem value="urgent">Urgent</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              <Button onClick={() => refetchSupport()} variant="outline" size="sm" disabled={isSupportLoading}><RefreshCw className={`h-4 w-4 ${isSupportLoading ? 'animate-spin' : ''}`} /></Button>
+          </div>
+          {totalUsers > 0 && (
+            <div className="flex justify-end items-center gap-2 mt-4">
+              <span className="text-sm text-muted-foreground">Page {currentPage} of {Math.ceil(totalUsers / pageSize)}</span>
+              <Button variant="outline" size="sm" onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))} disabled={currentPage === 1}><ChevronLeft className="h-4 w-4" /> Previous</Button>
+              <Button variant="outline" size="sm" onClick={() => setCurrentPage(prev => Math.min(prev + 1, Math.ceil(totalUsers / pageSize)))} disabled={currentPage * pageSize >= totalUsers}>Next <ChevronRight className="h-4 w-4" /></Button>
             </div>
-            <div className="rounded-lg border">
-              {isSupportLoading ? (
+          )}
+        </TabsContent>
+
+        <TabsContent value="jobs">
+          <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center gap-2">
+                <Input placeholder="Search jobs..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} className="w-64" />
+            </div>
+            <Button onClick={() => refetchJobs()} variant="outline" size="sm" disabled={isJobsLoading}><RefreshCw className={`h-4 w-4 ${isJobsLoading ? 'animate-spin' : ''}`} /></Button>
+          </div>
+          <div className="rounded-lg border">
+              {isJobsLoading ? (
                   Array.from({ length: 5 }).map((_, i) => <Skeleton key={i} className="h-16 w-full" />)
-              ) : supportTickets.length === 0 ? (
-                  <div className="text-center p-8">No support tickets found.</div>
+              ) : jobs.length === 0 ? (
+                  <div className="text-center p-8">No jobs found.</div>
               ) : (
-                  supportTickets.map((ticket) => (
-                    <div key={ticket.id} className="border-b last:border-b-0 p-4 hover:bg-muted/50 transition-colors cursor-pointer" onClick={() => handleTicketSelect(ticket)}>
-                        <div className="flex justify-between items-start">
-                          <div className="space-y-1">
-                              <p className="font-semibold">{ticket.title}</p>
-                              <p className="text-sm text-muted-foreground">#{ticket.id} from {ticket.userName || ticket.userEmail}</p>
-                          </div>
-                          <div className="flex flex-col items-end space-y-1">
-                              <Badge variant="secondary" className={getPriorityColor(ticket.priority)}>{ticket.priority}</Badge>
-                              <Badge className={getStatusColor(ticket.status)}>{ticket.status}</Badge>
-                          </div>
-                        </div>
+                  jobs.map((job) => (
+                    <div key={job.id} className="border-b last:border-b-0 p-4 hover:bg-muted/50 transition-colors cursor-pointer" onClick={() => handleJobSelect(job)}>
+                        <p>{job.title}</p>
                     </div>
                   ))
               )}
-            </div>
-            {totalTickets > 0 && (
+          </div>
+          {totalJobs > 0 && (
               <div className="flex justify-end items-center gap-2 mt-4">
-                <span className="text-sm text-muted-foreground">Page {currentPage} of {Math.ceil(totalTickets / pageSize)}</span>
+                <span className="text-sm text-muted-foreground">Page {currentPage} of {Math.ceil(totalJobs / pageSize)}</span>
                 <Button variant="outline" size="sm" onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))} disabled={currentPage === 1}><ChevronLeft className="h-4 w-4" /> Previous</Button>
-                <Button variant="outline" size="sm" onClick={() => setCurrentPage(prev => Math.min(prev + 1, Math.ceil(totalTickets / pageSize)))} disabled={currentPage * pageSize >= totalTickets}>Next <ChevronRight className="h-4 w-4" /></Button>
+                <Button variant="outline" size="sm" onClick={() => setCurrentPage(prev => Math.min(prev + 1, Math.ceil(totalJobs / pageSize)))} disabled={currentPage * pageSize >= totalJobs}>Next <ChevronRight className="h-4 w-4" /></Button>
               </div>
-            )}
-          </TabsContent>
-
-          <TabsContent value="financials">
-            <Card>
-              <CardHeader>
-                <CardTitle>Financial Overview</CardTitle>
-                <CardDescription>Monitor all platform transactions</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="flex items-center justify-between mb-4">
-                  <div className="flex items-center gap-2">
-                    <Input placeholder="Search transactions..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} className="w-64" />
-                    <Select value={paymentFilterStatus} onValueChange={setPaymentFilterStatus}>
-                      <SelectTrigger className="w-[180px]"><SelectValue placeholder="Filter by status" /></SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="all">All Statuses</SelectItem>
-                        <SelectItem value="succeeded">Succeeded</SelectItem>
-                        <SelectItem value="pending">Pending</SelectItem>
-                        <SelectItem value="failed">Failed</SelectItem>
-                      </SelectContent>
-                    </Select>
-                    <Select value={paymentFilterType} onValueChange={setPaymentFilterType}>
-                      <SelectTrigger className="w-[180px]"><SelectValue placeholder="Filter by type" /></SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="all">All Types</SelectItem>
-                        <SelectItem value="payment">Payment</SelectItem>
-                        <SelectItem value="withdrawal">Withdrawal</SelectItem>
-                        <SelectItem value="refund">Refund</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <Button onClick={() => refetchPayments()} variant="outline" size="sm" disabled={isTransactionsLoading}>
-                    <RefreshCw className={`h-4 w-4 ${isTransactionsLoading ? 'animate-spin' : ''}`} />
-                  </Button>
-                </div>
-
-                <div className="rounded-lg border">
-                  {isTransactionsLoading ? (
-                    Array.from({ length: 10 }).map((_, i) => <Skeleton key={i} className="h-16 w-full" />)
-                  ) : transactions.length === 0 ? (
-                    <div className="text-center p-8">No transactions found.</div>
-                  ) : (
-                    transactions.map((transaction: Payment) => (
-                      <div key={transaction.id} className="border-b last:border-b-0 p-4">
-                        <div className="grid grid-cols-5 gap-4 items-center">
-                          <p className="font-semibold col-span-2">{transaction.description}</p>
-                          <p className="text-sm text-muted-foreground">{transaction.userEmail}</p>
-                          <p className="font-semibold text-right">${transaction.amount.toFixed(2)}</p>
-                          <div className="flex justify-end">
-                            <Badge>{transaction.status}</Badge>
-                          </div>
+          )}
+        </TabsContent>
+        
+        <TabsContent value="support">
+          <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center gap-2">
+              <Input placeholder="Search tickets..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} className="w-64"/>
+              <Select value={ticketFilterStatus} onValueChange={setTicketFilterStatus}>
+                <SelectTrigger className="w-[180px]"><SelectValue placeholder="Filter by status" /></SelectTrigger>
+                <SelectContent>
+                    <SelectItem value="all">All Statuses</SelectItem>
+                    <SelectItem value="open">Open</SelectItem>
+                    <SelectItem value="in_progress">In Progress</SelectItem>
+                    <SelectItem value="resolved">Resolved</SelectItem>
+                    <SelectItem value="closed">Closed</SelectItem>
+                </SelectContent>
+              </Select>
+              <Select value={ticketFilterPriority} onValueChange={setTicketFilterPriority}>
+                <SelectTrigger className="w-[180px]"><SelectValue placeholder="Filter by priority" /></SelectTrigger>
+                <SelectContent>
+                    <SelectItem value="all">All Priorities</SelectItem>
+                    <SelectItem value="low">Low</SelectItem>
+                    <SelectItem value="medium">Medium</SelectItem>
+                    <SelectItem value="high">High</SelectItem>
+                    <SelectItem value="urgent">Urgent</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <Button onClick={() => refetchSupport()} variant="outline" size="sm" disabled={isSupportLoading}><RefreshCw className={`h-4 w-4 ${isSupportLoading ? 'animate-spin' : ''}`} /></Button>
+          </div>
+          <div className="rounded-lg border">
+            {isSupportLoading ? (
+                Array.from({ length: 5 }).map((_, i) => <Skeleton key={i} className="h-16 w-full" />)
+            ) : supportTickets.length === 0 ? (
+                <div className="text-center p-8">No support tickets found.</div>
+            ) : (
+                supportTickets.map((ticket) => (
+                  <div key={ticket.id} className="border-b last:border-b-0 p-4 hover:bg-muted/50 transition-colors cursor-pointer" onClick={() => handleTicketSelect(ticket)}>
+                      <div className="flex justify-between items-start">
+                        <div className="space-y-1">
+                            <p className="font-semibold">{ticket.title}</p>
+                            <p className="text-sm text-muted-foreground">#{ticket.id} from {ticket.userName || ticket.userEmail}</p>
+                        </div>
+                        <div className="flex flex-col items-end space-y-1">
+                            <Badge variant="secondary" className={getPriorityColor(ticket.priority)}>{ticket.priority}</Badge>
+                            <Badge className={getStatusColor(ticket.status)}>{ticket.status}</Badge>
                         </div>
                       </div>
-                    ))
-                  )}
-                </div>
-
-                {totalTransactions > 0 && (
-                  <div className="flex justify-end items-center gap-2 mt-4">
-                    <span className="text-sm text-muted-foreground">Page {currentPage} of {Math.ceil(totalTransactions / pageSize)}</span>
-                    <Button variant="outline" size="sm" onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))} disabled={currentPage === 1}><ChevronLeft className="h-4 w-4" /> Previous</Button>
-                    <Button variant="outline" size="sm" onClick={() => setCurrentPage(prev => Math.min(prev + 1, Math.ceil(totalTransactions / pageSize)))} disabled={currentPage * pageSize >= totalTransactions}>Next <ChevronRight className="h-4 w-4" /></Button>
                   </div>
-                )}
-              </CardContent>
-            </Card>
-          </TabsContent>
-        </Tabs>
-
-        {/* Dialogs for details */}
-        <Dialog open={isUserDialogOpen} onOpenChange={setIsUserDialogOpen}>
-          <DialogContent>
-            <DialogHeader><DialogTitle>User Details</DialogTitle></DialogHeader>
-            {selectedUser && (
-              <div>
-                <p><strong>Username:</strong> {selectedUser.username}</p>
-                <p><strong>Email:</strong> {selectedUser.email}</p>
-              </div>
+                ))
             )}
-          </DialogContent>
-        </Dialog>
-        
-        <Dialog open={isJobDialogOpen} onOpenChange={setIsJobDialogOpen}>
-            <DialogContent>
-                <DialogHeader><DialogTitle>Job Details</DialogTitle></DialogHeader>
-                {selectedJob && <div><p>{selectedJob.title}</p></div>}
-            </DialogContent>
-        </Dialog>
+          </div>
+          {totalTickets > 0 && (
+            <div className="flex justify-end items-center gap-2 mt-4">
+              <span className="text-sm text-muted-foreground">Page {currentPage} of {Math.ceil(totalTickets / pageSize)}</span>
+              <Button variant="outline" size="sm" onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))} disabled={currentPage === 1}><ChevronLeft className="h-4 w-4" /> Previous</Button>
+              <Button variant="outline" size="sm" onClick={() => setCurrentPage(prev => Math.min(prev + 1, Math.ceil(totalTickets / pageSize)))} disabled={currentPage * pageSize >= totalTickets}>Next <ChevronRight className="h-4 w-4" /></Button>
+            </div>
+          )}
+        </TabsContent>
 
-        <Dialog open={isTicketDialogOpen} onOpenChange={setIsTicketDialogOpen}>
-            <DialogContent>
-                <DialogHeader><DialogTitle>Support Ticket</DialogTitle></DialogHeader>
-                {selectedTicket && (
-                    <div>
-                        <p><strong>Title:</strong> {selectedTicket.title}</p>
-                        <Textarea value={ticketResponse} onChange={(e) => setTicketResponse(e.target.value)} placeholder="Respond to ticket..."/>
-                        <Button>Send Response</Button>
+        <TabsContent value="payments">
+          <Card>
+            <CardHeader>
+              <CardTitle>Financial Overview</CardTitle>
+              <CardDescription>Monitor all platform transactions</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="flex items-center justify-between mb-4">
+                <div className="flex items-center gap-2">
+                  <Input placeholder="Search transactions..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} className="w-64" />
+                  <Select value={paymentFilterStatus} onValueChange={setPaymentFilterStatus}>
+                    <SelectTrigger className="w-[180px]"><SelectValue placeholder="Filter by status" /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">All Statuses</SelectItem>
+                      <SelectItem value="succeeded">Succeeded</SelectItem>
+                      <SelectItem value="pending">Pending</SelectItem>
+                      <SelectItem value="failed">Failed</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <Select value={paymentFilterType} onValueChange={setPaymentFilterType}>
+                    <SelectTrigger className="w-[180px]"><SelectValue placeholder="Filter by type" /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">All Types</SelectItem>
+                      <SelectItem value="payment">Payment</SelectItem>
+                      <SelectItem value="withdrawal">Withdrawal</SelectItem>
+                      <SelectItem value="refund">Refund</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <Button onClick={() => refetchPayments()} variant="outline" size="sm" disabled={isTransactionsLoading}>
+                  <RefreshCw className={`h-4 w-4 ${isTransactionsLoading ? 'animate-spin' : ''}`} />
+                </Button>
+              </div>
+
+              <div className="rounded-lg border">
+                {isTransactionsLoading ? (
+                  Array.from({ length: 10 }).map((_, i) => <Skeleton key={i} className="h-16 w-full" />)
+                ) : transactions.length === 0 ? (
+                  <div className="text-center p-8">No transactions found.</div>
+                ) : (
+                  transactions.map((transaction: Payment) => (
+                    <div key={transaction.id} className="border-b last:border-b-0 p-4">
+                      <div className="grid grid-cols-5 gap-4 items-center">
+                        <p className="font-semibold col-span-2">{transaction.description}</p>
+                        <p className="text-sm text-muted-foreground">{transaction.userEmail}</p>
+                        <p className="font-semibold text-right">${transaction.amount.toFixed(2)}</p>
+                        <div className="flex justify-end">
+                          <Badge>{transaction.status}</Badge>
+                        </div>
+                      </div>
                     </div>
+                  ))
                 )}
-            </DialogContent>
-        </Dialog>
+              </div>
 
-      </main>
+              {totalTransactions > 0 && (
+                <div className="flex justify-end items-center gap-2 mt-4">
+                  <span className="text-sm text-muted-foreground">Page {currentPage} of {Math.ceil(totalTransactions / pageSize)}</span>
+                  <Button variant="outline" size="sm" onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))} disabled={currentPage === 1}><ChevronLeft className="h-4 w-4" /> Previous</Button>
+                  <Button variant="outline" size="sm" onClick={() => setCurrentPage(prev => Math.min(prev + 1, Math.ceil(totalTransactions / pageSize)))} disabled={currentPage * pageSize >= totalTransactions}>Next <ChevronRight className="h-4 w-4" /></Button>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
+      </Tabs>
+
+      {/* Dialogs for details */}
+      <Dialog open={isUserDialogOpen} onOpenChange={setIsUserDialogOpen}>
+        <DialogContent>
+          <DialogHeader><DialogTitle>User Details</DialogTitle></DialogHeader>
+          {selectedUser && (
+            <div>
+              <p><strong>Username:</strong> {selectedUser.username}</p>
+              <p><strong>Email:</strong> {selectedUser.email}</p>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
+      
+      <Dialog open={isJobDialogOpen} onOpenChange={setIsJobDialogOpen}>
+          <DialogContent>
+              <DialogHeader><DialogTitle>Job Details</DialogTitle></DialogHeader>
+              {selectedJob && <div><p>{selectedJob.title}</p></div>}
+          </DialogContent>
+      </Dialog>
+
+      <Dialog open={isTicketDialogOpen} onOpenChange={setIsTicketDialogOpen}>
+          <DialogContent>
+              <DialogHeader><DialogTitle>Support Ticket</DialogTitle></DialogHeader>
+              {selectedTicket && (
+                  <div>
+                      <p><strong>Title:</strong> {selectedTicket.title}</p>
+                      <Textarea value={ticketResponse} onChange={(e) => setTicketResponse(e.target.value)} placeholder="Respond to ticket..."/>
+                      <Button>Send Response</Button>
+                  </div>
+              )}
+          </DialogContent>
+      </Dialog>
+
     </div>
   );
 }

@@ -137,7 +137,7 @@ const JobDetailsCard: React.FC<JobDetailsCardProps> = ({ jobId, isOpen, onClose 
   });
 
   // Fetch job details
-  const { data: job, isLoading } = useQuery({
+  const { data: job, isLoading, error: jobError } = useQuery({
     queryKey: ['/api/jobs', jobId],
     queryFn: async () => {
       const response = await apiRequest('GET', `/api/jobs/${jobId}`);
@@ -147,10 +147,18 @@ const JobDetailsCard: React.FC<JobDetailsCardProps> = ({ jobId, isOpen, onClose 
       return response.json();
     },
     enabled: isOpen && !!jobId,
+    onError: (error) => {
+      console.error('Error fetching job details:', error);
+      toast({
+        title: 'Error',
+        description: 'Failed to load job details. Please try again.',
+        variant: 'destructive',
+      });
+    },
   });
 
   // Fetch poster details
-  const { data: poster } = useQuery({
+  const { data: poster, error: posterError } = useQuery({
     queryKey: ['/api/users', job?.posterId],
     queryFn: async () => {
       const response = await apiRequest('GET', `/api/users/${job?.posterId}`);
@@ -160,10 +168,13 @@ const JobDetailsCard: React.FC<JobDetailsCardProps> = ({ jobId, isOpen, onClose 
       return response.json();
     },
     enabled: isOpen && !!job?.posterId,
+    onError: (error) => {
+      console.error('Error fetching poster details:', error);
+    },
   });
 
   // Fetch application status if user is a worker
-  const { data: application } = useQuery({
+  const { data: application, error: applicationError } = useQuery({
     queryKey: ['/api/applications', jobId, user?.id],
     queryFn: async () => {
       const response = await apiRequest('GET', `/api/jobs/${jobId}/applications/worker/${user?.id}`);
@@ -173,10 +184,13 @@ const JobDetailsCard: React.FC<JobDetailsCardProps> = ({ jobId, isOpen, onClose 
       return response.json();
     },
     enabled: isOpen && !!jobId && !!user && user.accountType === 'worker',
+    onError: (error) => {
+      console.error('Error fetching application status:', error);
+    },
   });
   
   // Fetch all applications for the job if user is the job poster
-  const { data: applications = [] } = useQuery({
+  const { data: applications = [], error: applicationsError } = useQuery({
     queryKey: [`/api/applications/job/${jobId}`],
     queryFn: async () => {
       const response = await apiRequest('GET', `/api/applications/job/${jobId}`);
@@ -187,10 +201,13 @@ const JobDetailsCard: React.FC<JobDetailsCardProps> = ({ jobId, isOpen, onClose 
       return (data.applications || []) as Application[];
     },
     enabled: isOpen && !!jobId && !!user && (user.accountType === 'poster' || user.id === job?.posterId),
+    onError: (error) => {
+      console.error('Error fetching applications:', error);
+    },
   });
 
   // Fetch tasks
-  const { data: tasks = [] } = useQuery({
+  const { data: tasks = [], error: tasksError } = useQuery({
     queryKey: ['/api/jobs', jobId, 'tasks'],
     queryFn: async () => {
       const response = await apiRequest('GET', `/api/jobs/${jobId}/tasks`);
@@ -200,6 +217,9 @@ const JobDetailsCard: React.FC<JobDetailsCardProps> = ({ jobId, isOpen, onClose 
       return response.json() as Task[];
     },
     enabled: isOpen && !!jobId,
+    onError: (error) => {
+      console.error('Error fetching tasks:', error);
+    },
   });
 
   // Job status update mutation
