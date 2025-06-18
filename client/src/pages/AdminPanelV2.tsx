@@ -122,6 +122,9 @@ export default function AdminPanelV2() {
   const [newJobTitle, setNewJobTitle] = useState("");
   const [newJobDescription, setNewJobDescription] = useState("");
   const [newJobAmount, setNewJobAmount] = useState<number>(0);
+  const [newJobLocation, setNewJobLocation] = useState("");
+  const [newJobCategory, setNewJobCategory] = useState("");
+  const [newJobSkills, setNewJobSkills] = useState("");
 
   const [notifications, setNotifications] = useState<any[]>([]);
   const [newNotifTitle, setNewNotifTitle] = useState("");
@@ -394,12 +397,15 @@ export default function AdminPanelV2() {
     }
   }, [selectedTab]);
 
-  const createAdminJobMutation = useMutation({
+  const createJobMutation = useMutation({
     mutationFn: async () => {
       const payload = {
         title: newJobTitle,
         description: newJobDescription,
         paymentAmount: newJobAmount,
+        location: newJobLocation,
+        category: newJobCategory,
+        skillsRequired: newJobSkills.split(',').map(skill => skill.trim()).filter(skill => skill),
       };
       return apiRequest('POST', '/api/admin/jobs', payload).then(r => r.json());
     },
@@ -409,9 +415,12 @@ export default function AdminPanelV2() {
       setNewJobTitle('');
       setNewJobDescription('');
       setNewJobAmount(0);
+      setNewJobLocation('');
+      setNewJobCategory('');
+      setNewJobSkills('');
       refetchJobs();
     },
-    onError: () => toast({ title: 'Create job failed', variant: 'destructive' }),
+    onError: (error) => toast({ title: 'Create job failed', description: String(error), variant: 'destructive' }),
   });
 
   const createNotificationMutation = useMutation({
@@ -1064,16 +1073,51 @@ export default function AdminPanelV2() {
 
         {/* Create Job Dialog */}
         <Dialog open={isCreateJobDialogOpen} onOpenChange={setIsCreateJobDialogOpen}>
-          <DialogContent>
+          <DialogTrigger asChild>
+            <Button>Create Job</Button>
+          </DialogTrigger>
+          <DialogContent className="max-w-2xl" style={{ zIndex: 1080 }} onClick={(e) => e.stopPropagation()}>
             <DialogHeader>
-              <DialogTitle>Create Admin Job</DialogTitle>
+              <DialogTitle>Create New Job</DialogTitle>
             </DialogHeader>
             <div className="space-y-4">
-              <Input placeholder="Title" value={newJobTitle} onChange={e => setNewJobTitle(e.target.value)} />
-              <Textarea placeholder="Description" value={newJobDescription} onChange={e => setNewJobDescription(e.target.value)} />
-              <Input type="number" placeholder="Payment Amount" value={newJobAmount} onChange={e => setNewJobAmount(Number(e.target.value))} />
-              <Button disabled={createAdminJobMutation.isLoading} onClick={() => createAdminJobMutation.mutate()}>
-                {createAdminJobMutation.isLoading ? 'Creating...' : 'Create'}
+              <Input
+                placeholder="Job Title"
+                value={newJobTitle}
+                onChange={(e) => setNewJobTitle(e.target.value)}
+              />
+              <Textarea
+                placeholder="Job Description"
+                value={newJobDescription}
+                onChange={(e) => setNewJobDescription(e.target.value)}
+              />
+              <Input
+                type="number"
+                placeholder="Payment Amount"
+                value={newJobAmount}
+                onChange={(e) => setNewJobAmount(Number(e.target.value))}
+              />
+              <Input
+                placeholder="Location"
+                value={newJobLocation}
+                onChange={(e) => setNewJobLocation(e.target.value)}
+              />
+              <Input
+                placeholder="Category"
+                value={newJobCategory}
+                onChange={(e) => setNewJobCategory(e.target.value)}
+              />
+              <Input
+                placeholder="Skills Required (comma-separated)"
+                value={newJobSkills}
+                onChange={(e) => setNewJobSkills(e.target.value)}
+              />
+              <Button
+                onClick={() => createJobMutation.mutate()}
+                disabled={createJobMutation.isLoading || !newJobTitle || !newJobDescription || newJobAmount <= 0 || !newJobLocation || !newJobCategory}
+              >
+                {createJobMutation.isLoading ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : null}
+                Create Job
               </Button>
             </div>
           </DialogContent>
