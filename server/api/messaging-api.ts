@@ -5,8 +5,17 @@ import { Request, Response, Express } from "express";
 import { z } from "zod";
 import { storage } from "../storage";
 import { insertMessageSchema } from "@shared/schema";
-import AWS from "aws-sdk";
+import { S3Client, PutObjectCommand } from "@aws-sdk/client-s3";
 import twilio from 'twilio';
+
+// Configure S3 client
+const s3Client = new S3Client({
+  region: process.env.AWS_REGION || 'us-east-1',
+  credentials: {
+    accessKeyId: process.env.AWS_ACCESS_KEY_ID || '',
+    secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY || ''
+  }
+});
 
 // Twilio configuration
 const twilioClient = twilio(process.env.TWILIO_ACCOUNT_SID, process.env.TWILIO_AUTH_TOKEN);
@@ -401,12 +410,6 @@ export function registerMessagingRoutes(app: Express) {
       }
 
       // Upload the file to S3
-      const s3 = new AWS.S3({
-        accessKeyId: process.env.AWS_ACCESS_KEY_ID,
-        secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY,
-        region: process.env.AWS_REGION
-      });
-
       const fileKey = `uploads/${Date.now()}-${req.file.originalname}`;
       const uploadParams = {
         Bucket: process.env.S3_BUCKET_NAME,
@@ -415,8 +418,9 @@ export function registerMessagingRoutes(app: Express) {
         ContentType: req.file.mimetype
       };
 
-      const uploadResult = await s3.upload(uploadParams).promise();
-      const fileUrl = uploadResult.Location;
+      const command = new PutObjectCommand(uploadParams);
+      const uploadResult = await s3Client.send(command);
+      const fileUrl = `https://${process.env.S3_BUCKET_NAME}.s3.amazonaws.com/${fileKey}`;
       const fileType = req.file.mimetype.startsWith('image/') ? 'image' : 'document';
 
       res.json({
