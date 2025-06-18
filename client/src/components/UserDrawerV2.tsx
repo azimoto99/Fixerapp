@@ -197,7 +197,6 @@ const UserDrawerV2: React.FC<UserDrawerProps> = ({
                 </Button>
               </div>
             </div>
-
             {activeSection === 'earnings' ? (
               <EarningsContent user={user} />
             ) : (
@@ -206,11 +205,11 @@ const UserDrawerV2: React.FC<UserDrawerProps> = ({
           </div>
         );
       case "reviews":
-        return <ReviewsContent userId={user.id} />;
+        return <ReviewsContent user={user} />;
       case "settings":
         return <SettingsContent user={user} />;
       case "support":
-        return <SupportContent />;
+        return <SupportContent user={user} />;
       default:
         return <ProfileContentV2 user={user} onSignOut={handleLogout} />;
     }
@@ -249,260 +248,134 @@ const UserDrawerV2: React.FC<UserDrawerProps> = ({
                 >
                   <X className="h-4 w-4" />
                 </button>
-                
-                {/* User profile section - simplified and modern */}
-                <div className="flex items-center gap-3">
-                  <Avatar className="h-12 w-12 border-2 border-primary-foreground/30 shadow-sm">
-                    <AvatarImage src={user.avatarUrl || undefined} alt={user.fullName} />
-                    <AvatarFallback className="bg-primary-foreground/10 text-primary-foreground text-sm font-semibold">
-                      {user.fullName?.charAt(0) || 'U'}
-                    </AvatarFallback>
+                {/* Header content */}
+                <div className="flex items-center gap-3 mt-2">
+                  <Avatar className="w-12 h-12 border-2 border-primary-foreground/30">
+                    <AvatarImage src={user.avatarUrl || undefined} alt={user.fullName || user.username} />
+                    <AvatarFallback>{user.fullName?.charAt(0) || user.username.charAt(0)}</AvatarFallback>
                   </Avatar>
-                  
-                  <div>
-                    <div className="font-medium text-base tracking-tight">{user.fullName}</div>
-                    <div className="text-xs text-primary-foreground/90 flex items-center gap-2 mt-0.5">
-                      <Badge variant="outline" className="font-normal capitalize text-[10px] px-2 py-0 h-4 bg-primary-foreground/10 hover:bg-primary-foreground/20 text-primary-foreground border-primary-foreground/20">
-                        {user.accountType}
-                      </Badge>
-                      {user.rating && user.rating > 0 && (
-                        <div className="flex items-center bg-primary-foreground/10 px-1.5 py-0 rounded text-[10px] h-4">
-                          <StarIcon className="h-2.5 w-2.5 text-yellow-300 mr-0.5 inline" />
-                          <span>{user.rating.toFixed(1)}</span>
-                        </div>
+                  <div className="flex-1 min-w-0">
+                    <h1 className="text-xl font-semibold truncate">{user.fullName || user.username}</h1>
+                    <div className="flex items-center gap-1.5 mt-0.5">
+                      <span className="text-xs opacity-90">@{user.username}</span>
+                      {user.isAdmin && (
+                        <Badge variant="secondary" className="bg-primary-foreground/20 text-primary-foreground px-2 py-0.5 h-auto text-[10px] font-medium uppercase tracking-wide">
+                          Admin
+                        </Badge>
                       )}
                     </div>
-                  </div>
-                </div>
-                
-                {/* Quick stats with modern clean design */}
-                <div className="grid grid-cols-3 gap-2 mt-3">
-                  <div className="bg-primary-foreground/10 rounded-lg p-1.5 text-center shadow-sm">
-                    <div className="text-[10px] text-primary-foreground/80 font-medium">Jobs</div>
-                    <div className="text-sm font-semibold">{user.completedJobs || 0}</div>
-                  </div>
-                  <div className="bg-primary-foreground/10 rounded-lg p-1.5 text-center shadow-sm">
-                    <div className="text-[10px] text-primary-foreground/80 font-medium">Rating</div>
-                    <div className="text-sm font-semibold flex items-center justify-center">
-                      <StarIcon className="h-3 w-3 text-yellow-300 mr-0.5" />
-                      {user.rating?.toFixed(1) || '-'}
-                    </div>
-                  </div>
-                  <div className="bg-primary-foreground/10 rounded-lg p-1.5 text-center shadow-sm">
-                    <div className="text-[10px] text-primary-foreground/80 font-medium">Success</div>
-                    <div className="text-sm font-semibold">{user.successRate ? `${user.successRate}%` : '-'}</div>
                   </div>
                 </div>
               </div>
             </div>
 
-            <div className="flex h-[calc(100vh-140px)] overflow-hidden">
-              {/* Modern sidebar navigation with vector styling */}
-              <TooltipProvider>
-                <div className="w-[90px] border-r border-border/40 bg-background/95 dark:bg-background py-4 flex flex-col items-center h-full overflow-y-auto">
-                  <div className="flex flex-col items-center space-y-2">
-                    {/* Main sections */}
-                    <div className="mb-2 px-2 py-1 w-full">
-                      <Tooltip>
-                        <TooltipTrigger asChild>
-                          <button
-                            onClick={() => navigateTo('/')}
-                            className="flex flex-col items-center justify-center w-16 h-16 rounded-lg hover:bg-primary/5 hover:shadow-sm transition-all duration-200 text-foreground dark:text-foreground/90"
-                          >
-                            <Home className="h-5 w-5 mb-1 stroke-[1.5px]" />
-                            <span className="text-xs font-medium">Home</span>
-                          </button>
-                        </TooltipTrigger>
-                        <TooltipContent side="right">
-                          <p>Return to home page</p>
-                        </TooltipContent>
-                      </Tooltip>
-                    </div>
-
-                    <Separator className="my-1 w-12 opacity-30" />
-
-
-
-                    {/* User sections - clean vector design */}
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                        <button
-                          onClick={() => handleTabChange("profile")}
-                          className={cn(
-                            "flex flex-col items-center justify-center w-16 h-16 rounded-lg transition-all duration-200",
-                            activeTab === "profile"
-                              ? "bg-primary/10 text-primary shadow-sm"
-                              : "hover:bg-primary/5 hover:shadow-sm text-foreground dark:text-foreground/90"
-                          )}
-                        >
-                          <User className="h-5 w-5 mb-1 stroke-[1.5px]" />
-                          <span className="text-xs font-medium">Profile</span>
-                        </button>
-                      </TooltipTrigger>
-                      <TooltipContent side="right">
-                        <p>View and edit your profile</p>
-                      </TooltipContent>
-                    </Tooltip>
-                    
-                    {/* Reviews with notification badge */}
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                        <button
-                          onClick={() => handleTabChange("reviews")}
-                          className={cn(
-                            "flex flex-col items-center justify-center w-16 h-16 rounded-lg relative transition-all duration-200",
-                            activeTab === "reviews"
-                              ? "bg-primary/10 text-primary shadow-sm"
-                              : "hover:bg-primary/5 hover:shadow-sm text-foreground dark:text-foreground/90"
-                          )}
-                        >
-                          <StarIcon className="h-5 w-5 mb-1 stroke-[1.5px]" />
-                          <span className="text-xs font-medium">Reviews</span>
-                          {/* Show notification dot for new reviews */}
-                          {user.rating && user.rating > 0 && (
-                            <span className="absolute top-1 right-1 h-2 w-2 bg-destructive rounded-full animate-pulse"></span>
-                          )}
-                        </button>
-                      </TooltipTrigger>
-                      <TooltipContent side="right">
-                        <p>View your reviews and ratings</p>
-                      </TooltipContent>
-                    </Tooltip>
-
-                    <Separator className="my-1 w-12 opacity-30" />
-
-                    {/* Unified Wallet section - clean vector design */}
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                        <button
-                          onClick={() => handleTabChange("wallet")}
-                          className={cn(
-                            "flex flex-col items-center justify-center w-16 h-16 rounded-lg transition-all duration-200",
-                            activeTab === "wallet"
-                              ? "bg-primary/10 text-primary shadow-sm"
-                              : "hover:bg-primary/5 hover:shadow-sm text-foreground dark:text-foreground/90"
-                          )}
-                        >
-                          <Wallet className="h-5 w-5 mb-1 stroke-[1.5px]" />
-                          <span className="text-xs font-medium">Wallet</span>
-                        </button>
-                      </TooltipTrigger>
-                      <TooltipContent side="right">
-                        <p>Manage your earnings, payments, and withdrawals</p>
-                      </TooltipContent>
-                    </Tooltip>
-
-
-                    
-                    {user.accountType === 'poster' && (
-                      <Tooltip>
-                        <TooltipTrigger asChild>
-                          <button
-                            onClick={() => navigateTo('/payment-dashboard')}
-                            className="flex flex-col items-center justify-center w-16 h-16 rounded-lg hover:bg-primary/5 hover:shadow-sm transition-all duration-200 text-foreground dark:text-foreground/90"
-                          >
-                            <LayoutDashboard className="h-5 w-5 mb-1 stroke-[1.5px]" />
-                            <span className="text-xs font-medium">Dashboard</span>
-                          </button>
-                        </TooltipTrigger>
-                        <TooltipContent side="right">
-                          <p>View your payment dashboard</p>
-                        </TooltipContent>
-                      </Tooltip>
+            {/* Drawer content with scrollable area */}
+            <div className="flex h-[calc(100vh-80px)] overflow-hidden">
+              {/* Sidebar navigation - fixed width, scrollable on small screens */}
+              <div className="w-36 bg-muted/50 border-r border-muted-foreground/10 overflow-y-auto hidden md:block">
+                <nav className="p-2 space-y-1.5">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className={cn(
+                      "w-full justify-start text-sm px-3 py-2 h-9",
+                      activeTab === "profile" && "bg-background/80 border border-muted-foreground/20"
                     )}
+                    onClick={() => handleTabChange("profile")}
+                  >
+                    <User className="h-4 w-4 mr-2" />
+                    Profile
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className={cn(
+                      "w-full justify-start text-sm px-3 py-2 h-9",
+                      activeTab === "wallet" && "bg-background/80 border border-muted-foreground/20"
+                    )}
+                    onClick={() => handleTabChange("wallet")}
+                  >
+                    <Wallet className="h-4 w-4 mr-2" />
+                    Wallet
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className={cn(
+                      "w-full justify-start text-sm px-3 py-2 h-9",
+                      activeTab === "reviews" && "bg-background/80 border border-muted-foreground/20"
+                    )}
+                    onClick={() => handleTabChange("reviews")}
+                  >
+                    <StarIcon className="h-4 w-4 mr-2" />
+                    Reviews
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className={cn(
+                      "w-full justify-start text-sm px-3 py-2 h-9",
+                      activeTab === "notifications" && "bg-background/80 border border-muted-foreground/20"
+                    )}
+                    onClick={() => handleTabChange("notifications")}
+                  >
+                    <Bell className="h-4 w-4 mr-2" />
+                    Notifications
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className={cn(
+                      "w-full justify-start text-sm px-3 py-2 h-9",
+                      activeTab === "settings" && "bg-background/80 border border-muted-foreground/20"
+                    )}
+                    onClick={() => handleTabChange("settings")}
+                  >
+                    <Settings className="h-4 w-4 mr-2" />
+                    Settings
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className={cn(
+                      "w-full justify-start text-sm px-3 py-2 h-9",
+                      activeTab === "support" && "bg-background/80 border border-muted-foreground/20"
+                    )}
+                    onClick={() => handleTabChange("support")}
+                  >
+                    <HelpCircle className="h-4 w-4 mr-2" />
+                    Support
+                  </Button>
+                  {user.isAdmin && (
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className={cn(
+                        "w-full justify-start text-sm px-3 py-2 h-9",
+                        activeTab === "admin" && "bg-background/80 border border-muted-foreground/20"
+                      )}
+                      onClick={() => handleTabChange("admin")}
+                    >
+                      <Shield className="h-4 w-4 mr-2" />
+                      Admin
+                    </Button>
+                  )}
+                  <Separator className="my-1 opacity-50" />
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="w-full justify-start text-sm text-destructive/80 hover:text-destructive px-3 py-2 h-9"
+                    onClick={handleLogout}
+                  >
+                    <LogOut className="h-4 w-4 mr-2" />
+                    Logout
+                  </Button>
+                </nav>
+              </div>
 
-                    <Separator className="my-2 w-10" />
-
-                    {/* Settings */}
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                        <button
-                          onClick={() => handleTabChange("settings")}
-                          className={cn(
-                            "flex flex-col items-center justify-center w-16 h-16 rounded-lg transition-all duration-200",
-                            activeTab === "settings"
-                              ? "bg-primary/10 text-primary shadow-sm"
-                              : "hover:bg-primary/5 hover:shadow-sm text-foreground dark:text-foreground/90"
-                          )}
-                        >
-                          <Settings className="h-5 w-5 mb-1" />
-                          <span className="text-xs">Settings</span>
-                        </button>
-                      </TooltipTrigger>
-                      <TooltipContent side="right">
-                        <p>Manage account settings and preferences</p>
-                      </TooltipContent>
-                    </Tooltip>
-                    
-
-                    
-                    {/* Help & Support */}
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                        <button
-                          onClick={() => handleTabChange("support")}
-                          className={cn(
-                            "flex flex-col items-center justify-center w-16 h-16 rounded-lg transition-all duration-200",
-                            activeTab === "support"
-                              ? "bg-primary/10 text-primary shadow-sm"
-                              : "hover:bg-primary/5 hover:shadow-sm text-foreground dark:text-foreground/90"
-                          )}
-                        >
-                          <HelpCircle className="h-5 w-5 mb-1 stroke-[1.5px]" />
-                          <span className="text-xs font-medium">Support</span>
-                        </button>
-                      </TooltipTrigger>
-                      <TooltipContent side="right">
-                        <p>Get help, report issues, and file disputes</p>
-                      </TooltipContent>
-                    </Tooltip>
-                  </div>
-
-                  {/* Logout at bottom */}
-                  <div className="mt-auto pb-4">
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                        <Button
-                          variant="ghost"
-                          className="flex flex-col items-center justify-center w-16 h-16 rounded-lg hover:bg-destructive/10 hover:text-destructive"
-                          onClick={handleLogout}
-                        >
-                          <LogOut className="h-5 w-5 mb-1" />
-                          <span className="text-xs">Logout</span>
-                        </Button>
-                      </TooltipTrigger>
-                      <TooltipContent side="right">
-                        <p>Sign out of your account</p>
-                      </TooltipContent>
-                    </Tooltip>
-                  </div>
-                </div>
-              </TooltipProvider>
-              
-              {/* Enhanced tab content with better styling and improved spacing */}
-              <div className="flex-1 overflow-y-auto p-4 bg-card dark:bg-card min-h-0">
-                {/* Title bar for current section - more compact */}
-                <div className="mb-4 pb-3 border-b">
-                  <h2 className="text-lg font-bold text-foreground">
-                    {activeTab === "profile" ? "Your Profile" :
-                     activeTab === "reviews" ? "Reviews & Ratings" :
-                     activeTab === "wallet" ? "Wallet & Earnings" :
-                     activeTab === "settings" ? "Account Settings" :
-                     activeTab === "support" ? "Help & Support" : "Profile"}
-                  </h2>
-                  <p className="text-xs text-muted-foreground mt-1">
-                    {activeTab === "profile" ? "View and update your personal information" :
-                     activeTab === "reviews" ? "See what others are saying about your work" :
-                     activeTab === "wallet" ? "Manage your earnings, payments, and withdrawals" :
-                     activeTab === "settings" ? "Customize your account settings and preferences" :
-                     activeTab === "support" ? "Get help and contact support" : ""}
-                  </p>
-                </div>
-                
-                {/* Content section with smooth fade-in animation */}
-                <div className="animate-in fade-in duration-300">
-                  {renderTabContent()}
-                </div>
+              {/* Main content area - takes remaining space */}
+              <div className="flex-1 overflow-y-auto p-4">
+                {renderTabContent()}
               </div>
             </div>
           </div>

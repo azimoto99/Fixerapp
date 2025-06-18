@@ -8,6 +8,7 @@ export default function VerifyEmail() {
   const { user } = useAuth();
   const { toast } = useToast();
   const [sending, setSending] = useState(false);
+  const [verificationUrl, setVerificationUrl] = useState<string | null>(null);
 
   if (!user) return null; // should not happen due to ProtectedRoute
 
@@ -16,7 +17,12 @@ export default function VerifyEmail() {
     try {
       const res = await apiRequest('POST', `/api/users/${user.id}/send-email-verification`);
       if (res.ok) {
+        const data = await res.json();
         toast({ title: 'Verification email sent', description: 'Please check your inbox.' });
+        // For development, set the verification URL if available
+        if (data.verificationUrl) {
+          setVerificationUrl(data.verificationUrl);
+        }
       } else {
         const data = await res.json();
         toast({ title: 'Failed to send e-mail', description: data.message || 'Unknown error', variant: 'destructive' });
@@ -37,6 +43,12 @@ export default function VerifyEmail() {
       <Button className="mt-6" onClick={resend} disabled={sending}>
         {sending ? 'Sending…' : 'Resend e-mail'}
       </Button>
+      {verificationUrl && (
+        <div className="mt-4 text-sm text-blue-500">
+          <p>Development mode: You can use this link to verify your email:</p>
+          <a href={verificationUrl} className="underline">{verificationUrl}</a>
+        </div>
+      )}
     </div>
   );
 } 

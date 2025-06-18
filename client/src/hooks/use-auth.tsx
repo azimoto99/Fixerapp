@@ -70,6 +70,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         
         console.log('Login response status:', res.status);
         
+        if (!res.ok) {
+          const errorData = await res.json().catch(() => ({ message: 'Login failed' }));
+          throw new Error(errorData.message || 'Login failed');
+        }
+        
         const userData = await res.json();
         console.log('Login successful, user data retrieved:', userData.id);
         return userData;
@@ -88,37 +93,21 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           description: "Please complete your profile to continue",
         });
       } else {
-        // Normal login flow - no need to check account type as all users are workers
+        // Normal login flow
         queryClient.setQueryData(["/api/user"], userData);
         
-        // Verify the session is established by making a call to /api/user
-        try {
-          const res = await apiRequest('GET', '/api/user');
-          const verifiedUser = await res.json();
-          console.log('Session verified after login:', verifiedUser.id);
-          
-          // Update the query cache with the verified user data
-          queryClient.setQueryData(["/api/user"], verifiedUser);
-          
-          // Invalidate and refetch to ensure fresh data
-          await queryClient.invalidateQueries({ queryKey: ["/api/user"] });
-          
-          toast({
-            title: "Login successful",
-            description: "Welcome back!",
-          });
-          
-          // Small delay to ensure state is updated before navigation
-          setTimeout(() => {
-            navigate('/');
-          }, 100);
-        } catch (err) {
-          console.error('Error verifying session after login:', err);
-          toast({
-            title: "Login successful",
-            description: "Welcome back! Please refresh if needed.",
-          });
-        }
+        // Invalidate and refetch to ensure fresh data
+        await queryClient.invalidateQueries({ queryKey: ["/api/user"] });
+        
+        toast({
+          title: "Login successful",
+          description: "Welcome back!",
+        });
+        
+        // Small delay to ensure state is updated before navigation
+        setTimeout(() => {
+          navigate('/');
+        }, 100);
       }
     },
     onError: (error: Error) => {
@@ -170,70 +159,33 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
     },
     onSuccess: async (userData: UserWithFlags) => {
-      try {
-        // Check if user needs to complete their profile first (for social logins)
-        if (userData.requiresProfileCompletion) {
-          // Redirect to profile completion page
-          navigate(`/complete-profile?id=${userData.id}&provider=google`);
-          toast({
-            title: "Profile completion required",
-            description: "Please complete your profile to continue",
-          });
-          return;
-        }
-        
-        // Normal registration flow - no need to check account type as all users are workers
-        queryClient.setQueryData(["/api/user"], userData);
-        
-        // Show success message immediately
+      // Check if user needs to complete their profile first (for social logins)
+      if (userData.requiresProfileCompletion) {
+        // Redirect to profile completion page
+        navigate(`/complete-profile?id=${userData.id}&provider=google`);
         toast({
-          title: "Registration successful", 
-          description: "Setting up your account...",
+          title: "Profile completion required",
+          description: "Please complete your profile to continue",
         });
-        
-        // Wait a bit for the session to propagate
-        await new Promise(resolve => setTimeout(resolve, 500));
-        
-        // Verify the session is established by making a call to /api/user
-        try {
-          const res = await apiRequest('GET', '/api/user');
-          if (!res.ok) {
-            throw new Error('Session verification failed');
-          }
-          
-          const verifiedUser = await res.json();
-          console.log('Session verified after registration:', verifiedUser.id);
-          
-          // Update the query cache with the verified user data
-          queryClient.setQueryData(["/api/user"], verifiedUser);
-          
-          // Invalidate and refetch to ensure fresh data
-          await queryClient.invalidateQueries({ queryKey: ["/api/user"] });
-          
-          // Navigate to home
-          navigate('/');
-        } catch (err) {
-          console.error('Error verifying session after registration:', err);
-          
-          // Still try to navigate even if verification fails
-          toast({
-            title: "Welcome!", 
-            description: "Your account is ready. Redirecting...",
-          });
-          
-          // Give it another moment then navigate
-          setTimeout(() => {
-            navigate('/');
-          }, 1000);
-        }
-      } catch (error) {
-        console.error('Error in registration success handler:', error);
-        toast({
-          title: "Registration completed", 
-          description: "Please refresh the page if you're not redirected.",
-          variant: "default",
-        });
+        return;
       }
+      
+      // Normal registration flow
+      queryClient.setQueryData(["/api/user"], userData);
+      
+      // Show success message immediately
+      toast({
+        title: "Registration successful", 
+        description: "Setting up your account...",
+      });
+      
+      // Invalidate and refetch to ensure fresh data
+      await queryClient.invalidateQueries({ queryKey: ["/api/user"] });
+      
+      // Small delay to ensure state is updated before navigation
+      setTimeout(() => {
+        navigate('/verify-email');
+      }, 500);
     },
     onError: (error: Error) => {
       console.error('Registration mutation error:', error);
