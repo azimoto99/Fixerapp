@@ -1,5 +1,5 @@
-import { useState, useEffect, useCallback, useMemo } from "react";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useState, useEffect, useMemo } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -7,96 +7,51 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { ScrollArea } from "@/components/ui/scroll-area";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Skeleton } from "@/components/ui/skeleton";
-import { AlertCircle, Loader2, RefreshCw, Search, Filter, ChevronLeft, ChevronRight, Bell } from "lucide-react";
-import { useToast } from "@/hooks/use-toast";
+import { RefreshCw, ChevronLeft, ChevronRight, Menu, X } from "lucide-react";
 import { apiRequest } from "@/lib/queryClient";
-import { 
-  Users, 
-  Briefcase, 
-  DollarSign, 
-  TrendingUp, 
-  AlertTriangle, 
-  CheckCircle, 
-  XCircle, 
-  Eye,
-  Trash2,
-  UserX,
-  MessageSquare,
-  CreditCard,
-  ShieldCheck,
-  Settings,
-  BarChart3,
-  Activity,
-  Menu,
-  X
-} from "lucide-react";
 
 interface AdminStats {
   totalUsers: number;
   totalJobs: number;
   totalRevenue: number;
   pendingDisputes: number;
-  activeJobs: number;
-  completedJobs: number;
-  totalEarnings: number;
-  platformFees: number;
 }
 
 interface User {
   id: number;
   username: string;
-  fullName: string;
   email: string;
   accountType: string;
   isActive: boolean;
-  isAdmin: boolean;
-  lastActive: string;
-  rating?: number;
 }
 
 interface Job {
   id: number;
   title: string;
-  description: string;
   status: string;
-  paymentAmount: number;
-  posterId: number;
-  workerId?: number;
-  datePosted: string;
-  location: string;
 }
 
 interface SupportTicket {
   id: number;
-  userId: number;
   title: string;
-  description: string;
-  category: string;
+  userName?: string;
+  userEmail?: string;
   priority: string;
   status: string;
-  createdAt: string;
-  userEmail?: string;
-  userName?: string;
 }
 
 interface Payment {
   id: number;
-  userId: number;
-  amount: number;
-  type: string;
-  status: string;
-  createdAt: string;
   description: string;
+  userEmail?: string;
+  amount: number;
+  status: string;
+  userId: number;
 }
 
 export default function AdminPanelV2() {
-  const { toast } = useToast();
-  const queryClient = useQueryClient();
-  
-  // Enhanced state management for better UX
   const [selectedTab, setSelectedTab] = useState("overview");
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
   const [selectedJob, setSelectedJob] = useState<Job | null>(null);
@@ -106,79 +61,40 @@ export default function AdminPanelV2() {
   const [isTicketDialogOpen, setIsTicketDialogOpen] = useState(false);
   const [ticketResponse, setTicketResponse] = useState("");
   
-  // Enhanced UI state for responsive design
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize] = useState(10);
   const [sortBy, setSortBy] = useState("createdAt");
   const [sortOrder, setSortOrder] = useState<"asc" | "desc">("desc");
-  const [filterStatus, setFilterStatus] = useState<string>("all");
-  
-  // Performance optimization - debounced search
-  const [debouncedSearch, setDebouncedSearch] = useState("");
-  
-  const [isCreateJobDialogOpen, setIsCreateJobDialogOpen] = useState(false);
-  const [newJobTitle, setNewJobTitle] = useState("");
-  const [newJobDescription, setNewJobDescription] = useState("");
-  const [newJobAmount, setNewJobAmount] = useState<number>(0);
-  const [newJobLocation, setNewJobLocation] = useState("");
-  const [newJobCategory, setNewJobCategory] = useState("");
-  const [newJobSkills, setNewJobSkills] = useState("");
 
-  const [notifications, setNotifications] = useState<any[]>([]);
-  const [newNotifTitle, setNewNotifTitle] = useState("");
-  const [newNotifBody, setNewNotifBody] = useState("");
-  const [massEmailSubject, setMassEmailSubject] = useState("");
-  const [massEmailBody, setMassEmailBody] = useState("");
-  const [isSendingMassEmail, setIsSendingMassEmail] = useState(false);
+  const [filterStatus, setFilterStatus] = useState<string>("all");
+  const [ticketFilterStatus, setTicketFilterStatus] = useState<string>("all");
+  const [ticketFilterPriority, setTicketFilterPriority] = useState<string>("all");
+  const [paymentFilterStatus, setPaymentFilterStatus] = useState<string>("all");
+  const [paymentFilterType, setPaymentFilterType] = useState<string>("all");
+  
+  const [debouncedSearch, setDebouncedSearch] = useState("");
   
   useEffect(() => {
     const timer = setTimeout(() => {
       setDebouncedSearch(searchTerm);
     }, 300);
-    
     return () => clearTimeout(timer);
   }, [searchTerm]);
   
-  // Reset pagination when search or filters change
   useEffect(() => {
     setCurrentPage(1);
-  }, [debouncedSearch, filterStatus, selectedTab]);
+  }, [debouncedSearch, filterStatus, ticketFilterStatus, ticketFilterPriority, paymentFilterStatus, paymentFilterType, selectedTab]);
 
-  // Enhanced data fetching with comprehensive analytics and real-time monitoring
-  const { data: dashboardStats, isLoading: isDashboardLoading, error: dashboardError } = useQuery({
+  const { data: dashboardStats, isLoading: isDashboardLoading } = useQuery<AdminStats>({
     queryKey: ["/api/admin/stats"],
-    refetchInterval: 30000, // Refresh every 30 seconds
-    staleTime: 10000, // Consider data stale after 10 seconds
-    retry: 3,
+    refetchInterval: 30000,
   });
 
-  // Real-time system health monitoring
-  const { data: systemHealth, isLoading: isSystemLoading } = useQuery({
-    queryKey: ["/api/admin/system/health"],
-    refetchInterval: 15000, // Refresh every 15 seconds for real-time monitoring
-    staleTime: 5000,
-  });
-
-  // Performance metrics for advanced monitoring
-  const { data: performanceMetrics, isLoading: isPerformanceLoading } = useQuery({
-    queryKey: ["/api/admin/system/performance"],
-    refetchInterval: 20000, // Refresh every 20 seconds
-    staleTime: 8000,
-  });
-
-  // Optimized data fetching with pagination and filtering
   const usersQueryKey = useMemo(() => [
     "/api/admin/users",
-    { 
-      page: currentPage, 
-      pageSize, 
-      search: debouncedSearch, 
-      status: filterStatus, 
-      sortBy, 
-      sortOrder 
-    }
+    { page: currentPage, pageSize, search: debouncedSearch, status: filterStatus, sortBy, sortOrder }
   ], [currentPage, pageSize, debouncedSearch, filterStatus, sortBy, sortOrder]);
 
   const { data: usersResponse, isLoading: isUsersLoading, refetch: refetchUsers } = useQuery({
@@ -192,25 +108,17 @@ export default function AdminPanelV2() {
         sortBy,
         sortOrder
       });
-      
-      const response = await apiRequest('GET', `/api/admin/users?${params}`);
+      const response = await apiRequest('GET', `/api/admin/users?${params.toString()}`);
       return response.json();
     },
     enabled: selectedTab === "users",
-    staleTime: 5000,
   });
+  const users = usersResponse?.users || [];
+  const totalUsers = usersResponse?.total || 0;
 
-  // Enhanced jobs fetching with filtering
   const jobsQueryKey = useMemo(() => [
     "/api/admin/jobs",
-    { 
-      page: currentPage, 
-      pageSize, 
-      search: debouncedSearch, 
-      status: filterStatus, 
-      sortBy, 
-      sortOrder 
-    }
+    { page: currentPage, pageSize, search: debouncedSearch, status: filterStatus, sortBy, sortOrder }
   ], [currentPage, pageSize, debouncedSearch, filterStatus, sortBy, sortOrder]);
 
   const { data: jobsResponse, isLoading: isJobsLoading, refetch: refetchJobs } = useQuery({
@@ -224,947 +132,374 @@ export default function AdminPanelV2() {
         sortBy,
         sortOrder
       });
-      
-      const response = await apiRequest('GET', `/api/admin/jobs?${params}`);
+      const response = await apiRequest('GET', `/api/admin/jobs?${params.toString()}`);
       return response.json();
     },
     enabled: selectedTab === "jobs",
-    staleTime: 5000,
   });
-
-  // Extract paginated data
-  const users = usersResponse?.users || [];
-  const totalUsers = usersResponse?.total || 0;
   const jobs = jobsResponse?.jobs || [];
   const totalJobs = jobsResponse?.total || 0;
 
+  const supportQueryKey = useMemo(() => [
+    "/api/admin/support-tickets",
+    { page: currentPage, pageSize, search: debouncedSearch, status: ticketFilterStatus, priority: ticketFilterPriority, sortBy, sortOrder }
+  ], [currentPage, pageSize, debouncedSearch, ticketFilterStatus, ticketFilterPriority, sortBy, sortOrder]);
+
   const { data: supportResponse, isLoading: isSupportLoading, refetch: refetchSupport } = useQuery({
-    queryKey: ["/api/admin/support-tickets"],
-    enabled: selectedTab === "support",
-  });
-
-  const { data: financialResponse, isLoading: isTransactionsLoading } = useQuery({
-    queryKey: ["/api/admin/payments"],
-    enabled: selectedTab === "financials",
-  });
-
-  // Extract data from analytics responses
-  const supportTickets = supportResponse?.tickets || [];
-  const transactions = financialResponse?.transactions || [];
-
-  const { data: systemMetrics = [], isLoading: isSystemMetricsLoading } = useQuery({
-    queryKey: ["/api/admin/system-metrics"],
-    enabled: selectedTab === "overview",
-  });
-
-  // User management mutations
-  const deleteUserMutation = useMutation({
-    mutationFn: (userId: number) => apiRequest("DELETE", `/api/admin/users/${userId}`),
-    onSuccess: () => {
-      toast({ title: "User deleted successfully" });
-      queryClient.invalidateQueries({ queryKey: ["/api/admin/users"] });
-      queryClient.invalidateQueries({ queryKey: ["/api/admin/stats"] });
-    },
-    onError: () => {
-      toast({ title: "Failed to delete user", variant: "destructive" });
-    },
-  });
-
-  const toggleUserStatusMutation = useMutation({
-    mutationFn: ({ userId, isActive }: { userId: number; isActive: boolean }) =>
-      apiRequest("PATCH", `/api/admin/users/${userId}`, { isActive }),
-    onSuccess: () => {
-      toast({ title: "User status updated" });
-      queryClient.invalidateQueries({ queryKey: ["/api/admin/users"] });
-    },
-    onError: () => {
-      toast({ title: "Failed to update user status", variant: "destructive" });
-    },
-  });
-
-  // Job management mutations
-  const deleteJobMutation = useMutation({
-    mutationFn: (jobId: number) => apiRequest("DELETE", `/api/admin/jobs/${jobId}`),
-    onSuccess: () => {
-      toast({ title: "Job deleted successfully" });
-      queryClient.invalidateQueries({ queryKey: ["/api/admin/jobs"] });
-      queryClient.invalidateQueries({ queryKey: ["/api/admin/stats"] });
-    },
-    onError: () => {
-      toast({ title: "Failed to delete job", variant: "destructive" });
-    },
-  });
-
-  // Support ticket mutations
-  const updateTicketStatusMutation = useMutation({
-    mutationFn: ({ ticketId, status, resolution }: { ticketId: number; status: string; resolution?: string }) =>
-      apiRequest("PATCH", `/api/admin/support-tickets/${ticketId}`, { status, resolution }),
-    onSuccess: () => {
-      toast({ title: "Ticket updated successfully" });
-      queryClient.invalidateQueries({ queryKey: ["/api/admin/support-tickets"] });
-    },
-    onError: () => {
-      toast({ title: "Failed to update ticket", variant: "destructive" });
-    },
-  });
-
-  // Add ticket response mutation
-  const addTicketResponseMutation = useMutation({
-    mutationFn: async ({ ticketId, message }: { ticketId: number; message: string }) => 
-      apiRequest("POST", `/api/admin/support-tickets/${ticketId}/responses`, { message }),
-    onSuccess: () => {
-      toast({ title: "Response sent successfully" });
-      setTicketResponse("");
-      setIsTicketDialogOpen(false);
-      queryClient.invalidateQueries({ queryKey: ["/api/admin/analytics/support"] });
-    },
-    onError: () => {
-      toast({ title: "Failed to send response", variant: "destructive" });
-    },
-  });
-
-  // Delete ticket mutation
-  const deleteTicketMutation = useMutation({
-    mutationFn: async (ticketId: number) => {
-      const response = await apiRequest("DELETE", `/api/admin/support-tickets/${ticketId}`);
+    queryKey: supportQueryKey,
+    queryFn: async () => {
+      const params = new URLSearchParams({
+        page: currentPage.toString(),
+        limit: pageSize.toString(),
+        search: debouncedSearch,
+        ...(ticketFilterStatus !== "all" && { status: ticketFilterStatus }),
+        ...(ticketFilterPriority !== "all" && { priority: ticketFilterPriority }),
+        sortBy,
+        sortOrder
+      });
+      const response = await apiRequest('GET', `/api/admin/support-tickets?${params.toString()}`);
       return response.json();
     },
-    onSuccess: () => {
-      refetchSupport();
-      toast({ title: "Ticket deleted successfully" });
-    },
-    onError: () => {
-      toast({ title: "Failed to delete ticket", variant: "destructive" });
-    }
+    enabled: selectedTab === "support",
   });
+  const supportTickets = supportResponse?.tickets || [];
+  const totalTickets = supportResponse?.total || 0;
 
-  // Respond to ticket mutation
-  const respondToTicketMutation = useMutation({
-    mutationFn: async ({ ticketId, response }: { ticketId: number, response: string }) => {
-      const result = await apiRequest("POST", `/api/admin/support-tickets/${ticketId}/respond`, {
-        response,
-        status: "resolved"
+  const paymentsQueryKey = useMemo(() => [
+    "/api/admin/payments",
+    { page: currentPage, pageSize, search: debouncedSearch, status: paymentFilterStatus, type: paymentFilterType, sortBy, sortOrder }
+  ], [currentPage, pageSize, debouncedSearch, paymentFilterStatus, paymentFilterType, sortBy, sortOrder]);
+
+  const { data: paymentsResponse, isLoading: isTransactionsLoading, refetch: refetchPayments } = useQuery({
+    queryKey: paymentsQueryKey,
+    queryFn: async () => {
+      const params = new URLSearchParams({
+        page: currentPage.toString(),
+        limit: pageSize.toString(),
+        search: debouncedSearch,
+        ...(paymentFilterStatus !== 'all' && { status: paymentFilterStatus }),
+        ...(paymentFilterType !== 'all' && { type: paymentFilterType }),
+        sortBy,
+        sortOrder,
       });
-      return result.json();
+      const response = await apiRequest('GET', `/api/admin/payments?${params.toString()}`);
+      return response.json();
     },
-    onSuccess: () => {
-      refetchSupport();
-      setIsTicketDialogOpen(false);
-      setTicketResponse("");
-      toast({ title: "Response sent and ticket resolved" });
-    },
-    onError: () => {
-      toast({ title: "Failed to send response", variant: "destructive" });
-    }
+    enabled: selectedTab === "financials",
   });
+  const transactions = paymentsResponse?.transactions || [];
+  const totalTransactions = paymentsResponse?.total || 0;
 
+  const handleUserSelect = (user: User) => {
+    setSelectedUser(user);
+    setIsUserDialogOpen(true);
+  };
+
+  const handleJobSelect = (job: Job) => {
+    setSelectedJob(job);
+    setIsJobDialogOpen(true);
+  };
+
+  const handleTicketSelect = (ticket: SupportTicket) => {
+    setSelectedTicket(ticket);
+    setTicketResponse("");
+    setIsTicketDialogOpen(true);
+  };
+  
   const getStatusColor = (status: string) => {
-    switch (status.toLowerCase()) {
-      case "active":
-      case "open":
-      case "completed":
-        return "bg-green-500";
-      case "pending":
-      case "in_progress":
-        return "bg-yellow-500";
-      case "inactive":
-      case "closed":
-      case "canceled":
-        return "bg-red-500";
-      default:
-        return "bg-gray-500";
+    switch (status) {
+      case 'open': return 'bg-blue-500 text-white';
+      case 'in_progress': return 'bg-yellow-500 text-white';
+      case 'resolved': return 'bg-green-500 text-white';
+      case 'closed': return 'bg-gray-500 text-white';
+      default: return 'bg-gray-500 text-white';
     }
   };
 
   const getPriorityColor = (priority: string) => {
-    switch (priority.toLowerCase()) {
-      case "urgent":
-        return "bg-red-500";
-      case "high":
-        return "bg-orange-500";
-      case "medium":
-        return "bg-yellow-500";
-      case "low":
-        return "bg-green-500";
-      default:
-        return "bg-gray-500";
+    switch (priority) {
+      case 'low': return 'bg-green-500 text-white';
+      case 'medium': return 'bg-yellow-500 text-white';
+      case 'high': return 'bg-orange-500 text-white';
+      case 'urgent': return 'bg-red-500 text-white';
+      default: return 'bg-gray-500 text-white';
     }
   };
 
-  useEffect(() => {
-    if (selectedTab === 'notifications') {
-      apiRequest('GET', '/api/admin/notifications')
-        .then(res => res.json())
-        .then(setNotifications)
-        .catch(console.error);
-    }
-  }, [selectedTab]);
-
-  const createJobMutation = useMutation({
-    mutationFn: async () => {
-      const payload = {
-        title: newJobTitle,
-        description: newJobDescription,
-        paymentAmount: newJobAmount,
-        location: newJobLocation,
-        category: newJobCategory,
-        skillsRequired: newJobSkills.split(',').map(skill => skill.trim()).filter(skill => skill),
-      };
-      return apiRequest('POST', '/api/admin/jobs', payload).then(r => r.json());
-    },
-    onSuccess: () => {
-      toast({ title: 'Job created' });
-      setIsCreateJobDialogOpen(false);
-      setNewJobTitle('');
-      setNewJobDescription('');
-      setNewJobAmount(0);
-      setNewJobLocation('');
-      setNewJobCategory('');
-      setNewJobSkills('');
-      refetchJobs();
-    },
-    onError: (error) => toast({ title: 'Create job failed', description: String(error), variant: 'destructive' }),
-  });
-
-  const createNotificationMutation = useMutation({
-    mutationFn: async () => {
-      return apiRequest('POST', '/api/admin/notifications', { title: newNotifTitle, body: newNotifBody }).then(r => r.json());
-    },
-    onSuccess: (created) => {
-      toast({ title: 'Notification sent' });
-      setNewNotifTitle('');
-      setNewNotifBody('');
-      setNotifications(prev => [created, ...prev]);
-    },
-    onError: (error) => {
-      toast({ title: 'Failed to send notification', description: String(error), variant: 'destructive' });
-    },
-  });
-
-  // Mass email mutation
-  const sendMassEmailMutation = useMutation({
-    mutationFn: async () => {
-      setIsSendingMassEmail(true);
-      return apiRequest('POST', '/api/admin/mass-email', { subject: massEmailSubject, body: massEmailBody }).then(r => r.json());
-    },
-    onSuccess: () => {
-      toast({ title: 'Mass email sent successfully' });
-      setMassEmailSubject('');
-      setMassEmailBody('');
-    },
-    onError: (error) => {
-      toast({ title: 'Failed to send mass email', description: String(error), variant: 'destructive' });
-    },
-    onSettled: () => {
-      setIsSendingMassEmail(false);
-    },
-  });
-
   return (
-    <div className="min-h-screen bg-background dark:bg-black p-6">
-      <div className="max-w-7xl mx-auto" style={{ zIndex: 1010, position: 'relative' }}>
-        {/* Header */}
-        <div className="mb-8">
-          <h1 className="text-4xl font-bold text-gray-900 dark:text-emerald-400 mb-2 flex items-center gap-3">
-            <ShieldCheck className="h-10 w-10 text-emerald-500 dark:text-emerald-400" />
-            Fixer Admin Panel
-          </h1>
-          <p className="text-gray-600 dark:text-emerald-200">Manage your platform with comprehensive admin tools</p>
+    <div className="flex min-h-screen bg-gray-100 dark:bg-gray-900">
+      <aside className={`fixed inset-y-0 left-0 z-50 w-64 bg-white dark:bg-gray-800 shadow-lg transform ${isMobileMenuOpen ? 'translate-x-0' : '-translate-x-full'} md:relative md:translate-x-0 transition-transform duration-300 ease-in-out`}>
+        <div className="p-4 flex justify-between items-center">
+          <h1 className="text-2xl font-bold text-gray-800 dark:text-white">Admin</h1>
+          <button onClick={() => setIsMobileMenuOpen(false)} className="md:hidden text-gray-600 dark:text-gray-300">
+            <X size={24} />
+          </button>
         </div>
-
-        <Tabs value={selectedTab} onValueChange={setSelectedTab} className="space-y-6">
-          <TabsList className="grid w-full grid-cols-6 bg-card shadow-sm border-border dark:bg-gray-900 dark:border-emerald-700" style={{ zIndex: 1120, position: 'relative' }}>
-            <TabsTrigger value="overview" className="flex items-center gap-2 text-gray-700 dark:text-emerald-300 data-[state=active]:bg-emerald-100 dark:data-[state=active]:bg-emerald-900 data-[state=active]:text-emerald-700 dark:data-[state=active]:text-emerald-300">
-              <BarChart3 className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
-              Overview
-            </TabsTrigger>
-            <TabsTrigger value="users" className="flex items-center gap-2 text-gray-700 dark:text-emerald-300 data-[state=active]:bg-emerald-100 dark:data-[state=active]:bg-emerald-900 data-[state=active]:text-emerald-700 dark:data-[state=active]:text-emerald-300">
-              <Users className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
-              Users
-            </TabsTrigger>
-            <TabsTrigger value="jobs" className="flex items-center gap-2 text-gray-700 dark:text-emerald-300 data-[state=active]:bg-emerald-100 dark:data-[state=active]:bg-emerald-900 data-[state=active]:text-emerald-700 dark:data-[state=active]:text-emerald-300">
-              <Briefcase className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
-              Jobs
-            </TabsTrigger>
-            <TabsTrigger value="support" className="flex items-center gap-2 text-gray-700 dark:text-emerald-300 data-[state=active]:bg-emerald-100 dark:data-[state=active]:bg-emerald-900 data-[state=active]:text-emerald-700 dark:data-[state=active]:text-emerald-300">
-              <MessageSquare className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
-              Support
-            </TabsTrigger>
-            <TabsTrigger value="financials" className="flex items-center gap-2 text-gray-700 dark:text-emerald-300 data-[state=active]:bg-emerald-100 dark:data-[state=active]:bg-emerald-900 data-[state=active]:text-emerald-700 dark:data-[state=active]:text-emerald-300">
-              <DollarSign className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
-              Financials
-            </TabsTrigger>
-            <TabsTrigger value="notifications" className="flex items-center gap-2 text-gray-700 dark:text-emerald-300 data-[state=active]:bg-emerald-100 dark:data-[state=active]:bg-emerald-900 data-[state=active]:text-emerald-700 dark:data-[state=active]:text-emerald-300">
-              <Bell className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
-              Notifications
-            </TabsTrigger>
+        <nav className="mt-4">
+          <TabsList className="flex flex-col items-start p-2 space-y-1">
+            <TabsTrigger value="overview" className="w-full text-left justify-start" onClick={() => setSelectedTab('overview')}>Overview</TabsTrigger>
+            <TabsTrigger value="users" className="w-full text-left justify-start" onClick={() => setSelectedTab('users')}>Users</TabsTrigger>
+            <TabsTrigger value="jobs" className="w-full text-left justify-start" onClick={() => setSelectedTab('jobs')}>Jobs</TabsTrigger>
+            <TabsTrigger value="support" className="w-full text-left justify-start" onClick={() => setSelectedTab('support')}>Support Tickets</TabsTrigger>
+            <TabsTrigger value="financials" className="w-full text-left justify-start" onClick={() => setSelectedTab('financials')}>Financials</TabsTrigger>
           </TabsList>
+        </nav>
+      </aside>
 
-          {/* Overview Tab */}
-          <TabsContent value="overview" className="space-y-6">
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-              <Card className="bg-card shadow-lg border-0 dark:bg-gray-900 dark:border-emerald-700">
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium text-gray-600 dark:text-emerald-300">Total Users</CardTitle>
-                  <Users className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
-                </CardHeader>
-                <CardContent>
-                  <div className="text-2xl font-bold text-gray-900 dark:text-emerald-400">
-                    {dashboardStats?.userGrowth?.totalUsers || 0}
-                  </div>
-                  <p className="text-xs text-gray-500 dark:text-emerald-200">
-                    +{dashboardStats?.userGrowth?.newUsersToday || 0} today
-                  </p>
-                  <div className="flex items-center mt-1">
-                    <span className={`text-xs font-medium ${
-                      (dashboardStats?.userGrowth?.growthRate || 0) >= 0 ? 'text-green-600 dark:text-emerald-400' : 'text-red-600 dark:text-emerald-500'
-                    }`}>
-                      {(dashboardStats?.userGrowth?.growthRate || 0) >= 0 ? '↗' : '↘'} 
-                      {Math.abs(dashboardStats?.userGrowth?.growthRate || 0).toFixed(1)}%
-                    </span>
-                    <span className="text-xs text-gray-500 dark:text-emerald-200 ml-1">vs last month</span>
-                  </div>
-                </CardContent>
-              </Card>
+      <main className="flex-1 p-4 md:p-8 overflow-y-auto">
+        <button onClick={() => setIsMobileMenuOpen(true)} className="md:hidden mb-4 p-2 rounded-md bg-white dark:bg-gray-800 text-gray-600 dark:text-gray-300">
+          <Menu size={24} />
+        </button>
+        
+        <Tabs value={selectedTab} onValueChange={setSelectedTab} className="w-full">
+          <TabsContent value="overview">
+             {isDashboardLoading ? (
+                <Skeleton className="h-[125px] w-full rounded-xl" />
+            ) : (
+                <Card>
+                  <CardHeader><CardTitle>Platform Overview</CardTitle></CardHeader>
+                  <CardContent className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+                      <div>Total Users: {dashboardStats?.totalUsers}</div>
+                      <div>Total Jobs: {dashboardStats?.totalJobs}</div>
+                      <div>Total Revenue: ${dashboardStats?.totalRevenue?.toFixed(2)}</div>
+                      <div>Pending Disputes: {dashboardStats?.pendingDisputes}</div>
+                  </CardContent>
+                </Card>
+            )}
+          </TabsContent>
 
-              <Card className="bg-card shadow-lg border-0 dark:bg-gray-900 dark:border-emerald-700">
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium text-gray-600 dark:text-emerald-300">Active Jobs</CardTitle>
-                  <Briefcase className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
-                </CardHeader>
-                <CardContent>
-                  <div className="text-2xl font-bold text-gray-900 dark:text-emerald-400">
-                    {dashboardStats?.jobMetrics?.activeJobs || 0}
-                  </div>
-                  <p className="text-xs text-gray-500 dark:text-emerald-200">
-                    {dashboardStats?.jobMetrics?.totalJobs || 0} total jobs
-                  </p>
-                  <div className="flex items-center mt-1">
-                    <span className="text-xs font-medium text-emerald-600 dark:text-emerald-400">
-                      {(dashboardStats?.jobMetrics?.completionRate || 0).toFixed(1)}% completion rate
-                    </span>
-                  </div>
-                </CardContent>
-              </Card>
-
-              <Card className="bg-card shadow-lg border-0 dark:bg-gray-900 dark:border-emerald-700">
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium text-gray-600 dark:text-emerald-300">Platform Revenue</CardTitle>
-                  <DollarSign className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
-                </CardHeader>
-                <CardContent>
-                  <div className="text-2xl font-bold text-gray-900 dark:text-emerald-400">
-                    ${(dashboardStats?.financialMetrics?.monthlyRevenue || 0).toLocaleString()}
-                  </div>
-                  <p className="text-xs text-gray-500 dark:text-emerald-200">
-                    ${(dashboardStats?.financialMetrics?.totalRevenue || 0).toLocaleString()} total
-                  </p>
-                  <div className="flex items-center mt-1">
-                    <span className={`text-xs font-medium ${
-                      (dashboardStats?.financialMetrics?.revenueGrowth || 0) >= 0 ? 'text-green-600 dark:text-emerald-400' : 'text-red-600 dark:text-emerald-500'
-                    }`}>
-                      {(dashboardStats?.financialMetrics?.revenueGrowth || 0) >= 0 ? '↗' : '↘'} 
-                      {Math.abs(dashboardStats?.financialMetrics?.revenueGrowth || 0).toFixed(1)}%
-                    </span>
-                    <span className="text-xs text-gray-500 dark:text-emerald-200 ml-1">growth</span>
-                  </div>
-                </CardContent>
-              </Card>
-
-              <Card className="bg-card shadow-lg border-0 dark:bg-gray-900 dark:border-emerald-700">
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium text-gray-600 dark:text-emerald-300">Support Tickets</CardTitle>
-                  <Activity className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
-                </CardHeader>
-                <CardContent>
-                  <div className="text-2xl font-bold text-gray-900 dark:text-emerald-400">{dashboardStats?.pendingSupport || 0}</div>
-                  <p className="text-xs text-gray-500 dark:text-emerald-200">Pending tickets</p>
-                </CardContent>
-              </Card>
+          <TabsContent value="users">
+            <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center gap-2">
+                <Input placeholder="Search users..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} className="w-64" />
+                <Select value={filterStatus} onValueChange={setFilterStatus}>
+                  <SelectTrigger className="w-[180px]"><SelectValue placeholder="Filter by status" /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All</SelectItem>
+                    <SelectItem value="active">Active</SelectItem>
+                    <SelectItem value="inactive">Inactive</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <Button onClick={() => refetchUsers()} variant="outline" size="sm" disabled={isUsersLoading}>
+                <RefreshCw className={`h-4 w-4 ${isUsersLoading ? 'animate-spin' : ''}`} />
+              </Button>
             </div>
-
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              <Card className="bg-card shadow-lg border-0 dark:bg-gray-900 dark:border-emerald-700">
-                <CardHeader>
-                  <CardTitle className="text-lg font-semibold text-gray-900 dark:text-emerald-400">Recent Activity</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-4">
-                    <div className="flex items-center gap-3 p-3 bg-emerald-50 dark:bg-emerald-900 rounded-lg">
-                      <div className="w-2 h-2 bg-emerald-500 rounded-full"></div>
-                      <span className="text-sm text-gray-700 dark:text-emerald-200">Platform running smoothly</span>
-                    </div>
-                    <div className="flex items-center gap-3 p-3 bg-emerald-50 dark:bg-emerald-900 rounded-lg">
-                      <div className="w-2 h-2 bg-emerald-500 rounded-full"></div>
-                      <span className="text-sm text-gray-700 dark:text-emerald-200">All systems operational</span>
+            <div className="rounded-lg border">
+              {isUsersLoading ? (
+                Array.from({ length: 5 }).map((_, i) => <Skeleton key={i} className="h-16 w-full" />)
+              ) : users.length === 0 ? (
+                <div className="text-center p-8">No users found.</div>
+              ) : (
+                users.map((user) => (
+                  <div key={user.id} className="border-b last:border-b-0 p-4 hover:bg-muted/50 transition-colors cursor-pointer" onClick={() => handleUserSelect(user)}>
+                    <div className="grid grid-cols-4 gap-4 items-center">
+                        <p className="font-semibold">{user.username}</p>
+                        <p className="text-sm text-muted-foreground">{user.email}</p>
+                        <p>{user.accountType}</p>
+                        <Badge variant={user.isActive ? "default" : "destructive"}>{user.isActive ? 'Active' : 'Inactive'}</Badge>
                     </div>
                   </div>
-                </CardContent>
-              </Card>
-
-              <Card className="bg-card shadow-lg border-0 dark:bg-gray-900 dark:border-emerald-700">
-                <CardHeader>
-                  <CardTitle className="text-lg font-semibold text-gray-900 dark:text-emerald-400">System Health</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-4">
-                    <div className="flex justify-between items-center">
-                      <span className="text-sm text-gray-600 dark:text-emerald-300">Database</span>
-                      <Badge className="bg-emerald-100 text-emerald-800 dark:bg-emerald-900 dark:text-emerald-300">Healthy</Badge>
-                    </div>
-                    <div className="flex justify-between items-center">
-                      <span className="text-sm text-gray-600 dark:text-emerald-300">Payment System</span>
-                      <Badge className="bg-emerald-100 text-emerald-800 dark:bg-emerald-900 dark:text-emerald-300">Operational</Badge>
-                    </div>
-                    <div className="flex justify-between items-center">
-                      <span className="text-sm text-gray-600 dark:text-emerald-300">Authentication</span>
-                      <Badge className="bg-emerald-100 text-emerald-800 dark:bg-emerald-900 dark:text-emerald-300">Secure</Badge>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
+                ))
+              )}
             </div>
+            {totalUsers > 0 && (
+              <div className="flex justify-end items-center gap-2 mt-4">
+                <span className="text-sm text-muted-foreground">Page {currentPage} of {Math.ceil(totalUsers / pageSize)}</span>
+                <Button variant="outline" size="sm" onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))} disabled={currentPage === 1}><ChevronLeft className="h-4 w-4" /> Previous</Button>
+                <Button variant="outline" size="sm" onClick={() => setCurrentPage(prev => Math.min(prev + 1, Math.ceil(totalUsers / pageSize)))} disabled={currentPage * pageSize >= totalUsers}>Next <ChevronRight className="h-4 w-4" /></Button>
+              </div>
+            )}
           </TabsContent>
 
-          {/* Users Tab */}
-          <TabsContent value="users" className="space-y-6">
-            <Card className="bg-card shadow-lg border-0 dark:bg-gray-900 dark:border-emerald-700">
-              <CardHeader>
-                <CardTitle className="text-xl font-semibold text-gray-900 dark:text-emerald-400">User Management</CardTitle>
-                <CardDescription>Manage platform users and their permissions</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-4">
-                  {users.map((user: User) => (
-                    <div key={user.id} className="flex items-center justify-between p-4 border rounded-lg bg-gray-50 dark:bg-gray-800">
-                      <div className="flex items-center gap-4">
-                        <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center">
-                          <Users className="h-6 w-6 text-blue-600 dark:text-emerald-400" />
-                        </div>
-                        <div>
-                          <h3 className="font-semibold text-gray-900 dark:text-emerald-400">{user.fullName}</h3>
-                          <p className="text-sm text-gray-500 dark:text-emerald-200">{user.email}</p>
-                          <div className="flex gap-2 mt-1">
-                            <Badge variant="outline" className="text-xs text-gray-700 dark:text-emerald-300">
-                              {user.accountType}
-                            </Badge>
-                            <Badge className={`text-xs ${user.isActive ? 'bg-green-100 text-green-800 dark:bg-emerald-900 dark:text-emerald-300' : 'bg-red-100 text-red-800 dark:bg-emerald-900 dark:text-emerald-300'}`}>
-                              {user.isActive ? 'Active' : 'Inactive'}
-                            </Badge>
-                            {user.isAdmin && (
-                              <Badge className="text-xs bg-purple-100 text-purple-800 dark:bg-emerald-900 dark:text-emerald-300">Admin</Badge>
-                            )}
-                          </div>
-                        </div>
-                      </div>
-                      <div className="flex gap-2">
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          onClick={(e) => {
-                            e.preventDefault();
-                            e.stopPropagation();
-                            setSelectedUser(user);
-                            setIsUserDialogOpen(true);
-                          }}
-                        >
-                          <Eye className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
-                        </Button>
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          onClick={() => toggleUserStatusMutation.mutate({ userId: user.id, isActive: !user.isActive })}
-                        >
-                          {user.isActive ? <UserX className="h-4 w-4 text-emerald-600 dark:text-emerald-400" /> : <CheckCircle className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />}
-                        </Button>
-                        <Button
-                          size="sm"
-                          variant="destructive"
-                          onClick={() => deleteUserMutation.mutate(user.id)}
-                        >
-                          <Trash2 className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
-                        </Button>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </CardContent>
-            </Card>
-          </TabsContent>
-
-          {/* Jobs Tab */}
-          <TabsContent value="jobs" className="space-y-6">
-            <Card className="bg-card shadow-lg border-0 dark:bg-gray-900 dark:border-emerald-700">
-              <CardHeader className="flex justify-between items-center">
-                <div>
-                  <CardTitle className="text-xl font-semibold text-gray-900 dark:text-emerald-400">Job Management</CardTitle>
-                  <CardDescription>Monitor and manage all platform jobs</CardDescription>
-                </div>
-                <Button onClick={() => setIsCreateJobDialogOpen(true)}>Create Admin Job</Button>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-4">
-                  {jobs.map((job: Job) => (
-                    <div key={job.id} className="flex items-center justify-between p-4 border rounded-lg bg-gray-50 dark:bg-gray-800">
-                      <div className="flex items-center gap-4">
-                        <div className="w-12 h-12 bg-green-100 rounded-full flex items-center justify-center">
-                          <Briefcase className="h-6 w-6 text-green-600 dark:text-emerald-400" />
-                        </div>
-                        <div>
-                          <h3 className="font-semibold text-gray-900 dark:text-emerald-400">{job.title}</h3>
-                          <p className="text-sm text-gray-500 dark:text-emerald-200">{job.location}</p>
-                          <div className="flex gap-2 mt-1">
-                            <Badge className={`text-xs ${getStatusColor(job.status)} text-white dark:text-emerald-400`}>
-                              {job.status}
-                            </Badge>
-                            <Badge variant="outline" className="text-xs text-gray-700 dark:text-emerald-300">
-                              ${job.paymentAmount}
-                            </Badge>
-                          </div>
-                        </div>
-                      </div>
-                      <div className="flex gap-2">
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          onClick={() => {
-                            setSelectedJob(job);
-                            setIsJobDialogOpen(true);
-                          }}
-                        >
-                          <Eye className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
-                        </Button>
-                        <Button
-                          size="sm"
-                          variant="destructive"
-                          onClick={() => deleteJobMutation.mutate(job.id)}
-                        >
-                          <Trash2 className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
-                        </Button>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </CardContent>
-            </Card>
-          </TabsContent>
-
-          {/* Support Tab */}
-          <TabsContent value="support" className="space-y-6">
-            <Card className="bg-card shadow-lg border-0 dark:bg-gray-900 dark:border-emerald-700">
-              <CardHeader>
-                <CardTitle className="text-xl font-semibold text-gray-900 dark:text-emerald-400">Support Tickets</CardTitle>
-                <CardDescription>Manage customer support and resolve issues</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-4">
-                  {supportTickets.map((ticket: SupportTicket) => (
-                    <div key={ticket.id} className="flex items-center justify-between p-4 border rounded-lg bg-gray-50 dark:bg-gray-800">
-                      <div className="flex items-center gap-4">
-                        <div className="w-12 h-12 bg-yellow-100 rounded-full flex items-center justify-center">
-                          <MessageSquare className="h-6 w-6 text-yellow-600 dark:text-emerald-400" />
-                        </div>
-                        <div>
-                          <h3 className="font-semibold text-gray-900 dark:text-emerald-400">{ticket.title}</h3>
-                          <p className="text-sm text-gray-500 dark:text-emerald-200">{ticket.userName || `User ${ticket.userId}`}</p>
-                          <div className="flex gap-2 mt-1">
-                            <Badge className={`text-xs ${getStatusColor(ticket.status)} text-white dark:text-emerald-400`}>
-                              {ticket.status}
-                            </Badge>
-                            <Badge className={`text-xs ${getPriorityColor(ticket.priority)} text-white dark:text-emerald-400`}>
-                              {ticket.priority}
-                            </Badge>
-                            <Badge variant="outline" className="text-xs text-gray-700 dark:text-emerald-300">
-                              {ticket.category}
-                            </Badge>
-                          </div>
-                        </div>
-                      </div>
-                      <div className="flex gap-2">
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          onClick={() => {
-                            setSelectedTicket(ticket);
-                            setIsTicketDialogOpen(true);
-                          }}
-                        >
-                          <Eye className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
-                        </Button>
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          onClick={() => updateTicketStatusMutation.mutate({ 
-                            ticketId: ticket.id, 
-                            status: ticket.status === "open" ? "in_progress" : "resolved",
-                            resolution: "Issue resolved by admin"
-                          })}
-                          disabled={ticket.status === "resolved" || ticket.status === "closed"}
-                        >
-                          {ticket.status === "open" ? "Start" : "Resolve"}
-                        </Button>
-                        <Button
-                          size="sm"
-                          variant="destructive"
-                          onClick={() => deleteTicketMutation.mutate(ticket.id)}
-                        >
-                          <Trash2 className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
-                        </Button>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </CardContent>
-            </Card>
-          </TabsContent>
-
-          {/* Financials Tab */}
-          <TabsContent value="financials" className="space-y-6">
-            <Card className="bg-card shadow-lg border-0 dark:bg-gray-900 dark:border-emerald-700">
-              <CardHeader>
-                <CardTitle className="text-xl font-semibold text-gray-900 dark:text-emerald-400">Financial Overview</CardTitle>
-                <CardDescription>Track payments, earnings, and platform revenue</CardDescription>
-              </CardHeader>
-              <CardContent>
-                {isTransactionsLoading ? (
-                  <div className="flex justify-center py-8">
-                    <div className="animate-spin w-6 h-6 border-2 border-primary border-t-transparent rounded-full" />
-                  </div>
-                ) : transactions.length > 0 ? (
-                  <div className="space-y-4">
-                    {transactions.map((transaction: any) => (
-                      <div key={transaction.id} className="flex items-center justify-between p-4 border rounded-lg bg-gray-50 dark:bg-gray-800">
-                        <div className="flex items-center gap-4">
-                          <div className="w-12 h-12 bg-emerald-100 rounded-full flex items-center justify-center">
-                            <CreditCard className="h-6 w-6 text-emerald-600 dark:text-emerald-400" />
-                          </div>
-                          <div>
-                            <h3 className="font-semibold text-gray-900 dark:text-emerald-400">${transaction.amount?.toFixed(2) || '0.00'}</h3>
-                            <p className="text-sm text-gray-500 dark:text-emerald-200">{transaction.description || transaction.type || 'Transaction'}</p>
-                            <div className="flex gap-2 mt-1">
-                              <Badge className={`text-xs ${getStatusColor(transaction.status)} text-white dark:text-emerald-400`}>
-                                {transaction.status}
-                              </Badge>
-                              <Badge variant="outline" className="text-xs text-gray-700 dark:text-emerald-300">
-                                {transaction.type}
-                              </Badge>
-                            </div>
-                          </div>
-                        </div>
-                        <div className="text-right">
-                          <p className="text-sm text-gray-500 dark:text-emerald-200">
-                            {new Date(transaction.createdAt || Date.now()).toLocaleDateString()}
-                          </p>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
+          <TabsContent value="jobs">
+            <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center gap-2">
+                  <Input placeholder="Search jobs..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} className="w-64" />
+              </div>
+              <Button onClick={() => refetchJobs()} variant="outline" size="sm" disabled={isJobsLoading}><RefreshCw className={`h-4 w-4 ${isJobsLoading ? 'animate-spin' : ''}`} /></Button>
+            </div>
+            <div className="rounded-lg border">
+                {isJobsLoading ? (
+                    Array.from({ length: 5 }).map((_, i) => <Skeleton key={i} className="h-16 w-full" />)
+                ) : jobs.length === 0 ? (
+                    <div className="text-center p-8">No jobs found.</div>
                 ) : (
-                  <div className="text-center py-8">
-                    <CreditCard className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-                    <h3 className="font-medium text-gray-600 dark:text-emerald-200">No Transactions Yet</h3>
-                    <p className="text-sm text-gray-500 dark:text-emerald-200">Financial transactions will appear here when jobs are completed</p>
+                    jobs.map((job) => (
+                      <div key={job.id} className="border-b last:border-b-0 p-4 hover:bg-muted/50 transition-colors cursor-pointer" onClick={() => handleJobSelect(job)}>
+                          <p>{job.title}</p>
+                      </div>
+                    ))
+                )}
+            </div>
+            {totalJobs > 0 && (
+                <div className="flex justify-end items-center gap-2 mt-4">
+                  <span className="text-sm text-muted-foreground">Page {currentPage} of {Math.ceil(totalJobs / pageSize)}</span>
+                  <Button variant="outline" size="sm" onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))} disabled={currentPage === 1}><ChevronLeft className="h-4 w-4" /> Previous</Button>
+                  <Button variant="outline" size="sm" onClick={() => setCurrentPage(prev => Math.min(prev + 1, Math.ceil(totalJobs / pageSize)))} disabled={currentPage * pageSize >= totalJobs}>Next <ChevronRight className="h-4 w-4" /></Button>
+                </div>
+            )}
+          </TabsContent>
+          
+          <TabsContent value="support">
+            <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center gap-2">
+                <Input placeholder="Search tickets..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} className="w-64"/>
+                <Select value={ticketFilterStatus} onValueChange={setTicketFilterStatus}>
+                  <SelectTrigger className="w-[180px]"><SelectValue placeholder="Filter by status" /></SelectTrigger>
+                  <SelectContent>
+                      <SelectItem value="all">All Statuses</SelectItem>
+                      <SelectItem value="open">Open</SelectItem>
+                      <SelectItem value="in_progress">In Progress</SelectItem>
+                      <SelectItem value="resolved">Resolved</SelectItem>
+                      <SelectItem value="closed">Closed</SelectItem>
+                  </SelectContent>
+                </Select>
+                <Select value={ticketFilterPriority} onValueChange={setTicketFilterPriority}>
+                  <SelectTrigger className="w-[180px]"><SelectValue placeholder="Filter by priority" /></SelectTrigger>
+                  <SelectContent>
+                      <SelectItem value="all">All Priorities</SelectItem>
+                      <SelectItem value="low">Low</SelectItem>
+                      <SelectItem value="medium">Medium</SelectItem>
+                      <SelectItem value="high">High</SelectItem>
+                      <SelectItem value="urgent">Urgent</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <Button onClick={() => refetchSupport()} variant="outline" size="sm" disabled={isSupportLoading}><RefreshCw className={`h-4 w-4 ${isSupportLoading ? 'animate-spin' : ''}`} /></Button>
+            </div>
+            <div className="rounded-lg border">
+              {isSupportLoading ? (
+                  Array.from({ length: 5 }).map((_, i) => <Skeleton key={i} className="h-16 w-full" />)
+              ) : supportTickets.length === 0 ? (
+                  <div className="text-center p-8">No support tickets found.</div>
+              ) : (
+                  supportTickets.map((ticket) => (
+                    <div key={ticket.id} className="border-b last:border-b-0 p-4 hover:bg-muted/50 transition-colors cursor-pointer" onClick={() => handleTicketSelect(ticket)}>
+                        <div className="flex justify-between items-start">
+                          <div className="space-y-1">
+                              <p className="font-semibold">{ticket.title}</p>
+                              <p className="text-sm text-muted-foreground">#{ticket.id} from {ticket.userName || ticket.userEmail}</p>
+                          </div>
+                          <div className="flex flex-col items-end space-y-1">
+                              <Badge variant="secondary" className={getPriorityColor(ticket.priority)}>{ticket.priority}</Badge>
+                              <Badge className={getStatusColor(ticket.status)}>{ticket.status}</Badge>
+                          </div>
+                        </div>
+                    </div>
+                  ))
+              )}
+            </div>
+            {totalTickets > 0 && (
+              <div className="flex justify-end items-center gap-2 mt-4">
+                <span className="text-sm text-muted-foreground">Page {currentPage} of {Math.ceil(totalTickets / pageSize)}</span>
+                <Button variant="outline" size="sm" onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))} disabled={currentPage === 1}><ChevronLeft className="h-4 w-4" /> Previous</Button>
+                <Button variant="outline" size="sm" onClick={() => setCurrentPage(prev => Math.min(prev + 1, Math.ceil(totalTickets / pageSize)))} disabled={currentPage * pageSize >= totalTickets}>Next <ChevronRight className="h-4 w-4" /></Button>
+              </div>
+            )}
+          </TabsContent>
+
+          <TabsContent value="financials">
+            <Card>
+              <CardHeader>
+                <CardTitle>Financial Overview</CardTitle>
+                <CardDescription>Monitor all platform transactions</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="flex items-center justify-between mb-4">
+                  <div className="flex items-center gap-2">
+                    <Input placeholder="Search transactions..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} className="w-64" />
+                    <Select value={paymentFilterStatus} onValueChange={setPaymentFilterStatus}>
+                      <SelectTrigger className="w-[180px]"><SelectValue placeholder="Filter by status" /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all">All Statuses</SelectItem>
+                        <SelectItem value="succeeded">Succeeded</SelectItem>
+                        <SelectItem value="pending">Pending</SelectItem>
+                        <SelectItem value="failed">Failed</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <Select value={paymentFilterType} onValueChange={setPaymentFilterType}>
+                      <SelectTrigger className="w-[180px]"><SelectValue placeholder="Filter by type" /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all">All Types</SelectItem>
+                        <SelectItem value="payment">Payment</SelectItem>
+                        <SelectItem value="withdrawal">Withdrawal</SelectItem>
+                        <SelectItem value="refund">Refund</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <Button onClick={() => refetchPayments()} variant="outline" size="sm" disabled={isTransactionsLoading}>
+                    <RefreshCw className={`h-4 w-4 ${isTransactionsLoading ? 'animate-spin' : ''}`} />
+                  </Button>
+                </div>
+
+                <div className="rounded-lg border">
+                  {isTransactionsLoading ? (
+                    Array.from({ length: 10 }).map((_, i) => <Skeleton key={i} className="h-16 w-full" />)
+                  ) : transactions.length === 0 ? (
+                    <div className="text-center p-8">No transactions found.</div>
+                  ) : (
+                    transactions.map((transaction: Payment) => (
+                      <div key={transaction.id} className="border-b last:border-b-0 p-4">
+                        <div className="grid grid-cols-5 gap-4 items-center">
+                          <p className="font-semibold col-span-2">{transaction.description}</p>
+                          <p className="text-sm text-muted-foreground">{transaction.userEmail}</p>
+                          <p className="font-semibold text-right">${transaction.amount.toFixed(2)}</p>
+                          <div className="flex justify-end">
+                            <Badge>{transaction.status}</Badge>
+                          </div>
+                        </div>
+                      </div>
+                    ))
+                  )}
+                </div>
+
+                {totalTransactions > 0 && (
+                  <div className="flex justify-end items-center gap-2 mt-4">
+                    <span className="text-sm text-muted-foreground">Page {currentPage} of {Math.ceil(totalTransactions / pageSize)}</span>
+                    <Button variant="outline" size="sm" onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))} disabled={currentPage === 1}><ChevronLeft className="h-4 w-4" /> Previous</Button>
+                    <Button variant="outline" size="sm" onClick={() => setCurrentPage(prev => Math.min(prev + 1, Math.ceil(totalTransactions / pageSize)))} disabled={currentPage * pageSize >= totalTransactions}>Next <ChevronRight className="h-4 w-4" /></Button>
                   </div>
                 )}
               </CardContent>
             </Card>
           </TabsContent>
-
-          {/* Notifications Tab */}
-          <TabsContent value="notifications" className="space-y-6">
-            <Card className="bg-card shadow-lg border-0 dark:bg-gray-900 dark:border-emerald-700">
-              <CardHeader className="flex justify-between items-center">
-                <div>
-                  <CardTitle className="text-xl font-semibold text-gray-900 dark:text-emerald-400">Global Notifications</CardTitle>
-                  <CardDescription>Send platform-wide messages to all users</CardDescription>
-                </div>
-                <Button onClick={() => createNotificationMutation.mutate()} disabled={!newNotifTitle || !newNotifBody || createNotificationMutation.isLoading}>Send</Button>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-4 mb-4">
-                  <Input placeholder="Title" value={newNotifTitle} onChange={e => setNewNotifTitle(e.target.value)} />
-                  <Textarea placeholder="Body" value={newNotifBody} onChange={e => setNewNotifBody(e.target.value)} />
-                </div>
-                <ScrollArea className="h-72 pr-3">
-                  {notifications.map(n => (
-                    <div key={n.id} className="border p-3 rounded mb-2 flex justify-between items-start">
-                      <div>
-                        <h4 className="font-medium">{n.title}</h4>
-                        <p className="text-sm text-muted-foreground">{n.body}</p>
-                        <p className="text-xs text-gray-500 dark:text-emerald-200 mt-1">{new Date(n.createdAt).toLocaleString()}</p>
-                      </div>
-                      <Button size="icon" variant="destructive" onClick={() => apiRequest('DELETE', `/api/admin/notifications/${n.id}`).then(() => setNotifications(prev => prev.filter(x => x.id !== n.id)))}>
-                        <Trash2 className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
-                      </Button>
-                    </div>
-                  ))}
-                </ScrollArea>
-              </CardContent>
-            </Card>
-            <Card className="bg-card shadow-lg border-0 dark:bg-gray-900 dark:border-emerald-700">
-              <CardHeader className="flex justify-between items-center">
-                <div>
-                  <CardTitle className="text-xl font-semibold text-gray-900 dark:text-emerald-400">Mass Email</CardTitle>
-                  <CardDescription>Send emails to all users for updates on new features</CardDescription>
-                </div>
-                <Button onClick={() => sendMassEmailMutation.mutate()} disabled={!massEmailSubject || !massEmailBody || isSendingMassEmail}>
-                  {isSendingMassEmail ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : null}
-                  Send Mass Email
-                </Button>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-4 mb-4">
-                  <Input placeholder="Email Subject" value={massEmailSubject} onChange={e => setMassEmailSubject(e.target.value)} />
-                  <Textarea placeholder="Email Body" value={massEmailBody} onChange={e => setMassEmailBody(e.target.value)} className="h-40" />
-                </div>
-              </CardContent>
-            </Card>
-          </TabsContent>
         </Tabs>
 
-        {/* User Detail Dialog */}
+        {/* Dialogs for details */}
         <Dialog open={isUserDialogOpen} onOpenChange={setIsUserDialogOpen}>
-          <DialogContent className="max-w-2xl" style={{ zIndex: 1080 }} onClick={(e) => e.stopPropagation()}>
-            <DialogHeader>
-              <DialogTitle>User Details</DialogTitle>
-            </DialogHeader>
+          <DialogContent>
+            <DialogHeader><DialogTitle>User Details</DialogTitle></DialogHeader>
             {selectedUser && (
-              <div className="space-y-4">
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <label className="text-sm font-medium text-gray-700">Name</label>
-                    <p className="text-sm text-gray-900">{selectedUser.fullName}</p>
-                  </div>
-                  <div>
-                    <label className="text-sm font-medium text-gray-700">Email</label>
-                    <p className="text-sm text-gray-900">{selectedUser.email}</p>
-                  </div>
-                  <div>
-                    <label className="text-sm font-medium text-gray-700">Account Type</label>
-                    <p className="text-sm text-gray-900">{selectedUser.accountType}</p>
-                  </div>
-                  <div>
-                    <label className="text-sm font-medium text-gray-700">Status</label>
-                    <p className="text-sm text-gray-900">{selectedUser.isActive ? 'Active' : 'Inactive'}</p>
-                  </div>
-                  {selectedUser.rating && (
-                    <div>
-                      <label className="text-sm font-medium text-gray-700">Rating</label>
-                      <p className="text-sm text-gray-900">{selectedUser.rating.toFixed(1)} ⭐</p>
-                    </div>
-                  )}
-                  <div>
-                    <label className="text-sm font-medium text-gray-700">Last Active</label>
-                    <p className="text-sm text-gray-900">
-                      {new Date(selectedUser.lastActive).toLocaleDateString()}
-                    </p>
-                  </div>
-                </div>
+              <div>
+                <p><strong>Username:</strong> {selectedUser.username}</p>
+                <p><strong>Email:</strong> {selectedUser.email}</p>
               </div>
             )}
           </DialogContent>
         </Dialog>
-
-        {/* Job Detail Dialog */}
+        
         <Dialog open={isJobDialogOpen} onOpenChange={setIsJobDialogOpen}>
-          <DialogContent className="max-w-2xl" style={{ zIndex: 1080 }} onClick={(e) => e.stopPropagation()}>
-            <DialogHeader>
-              <DialogTitle>Job Details</DialogTitle>
-            </DialogHeader>
-            {selectedJob && (
-              <div className="space-y-4">
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="col-span-2">
-                    <label className="text-sm font-medium text-gray-700">Title</label>
-                    <p className="text-sm text-gray-900">{selectedJob.title}</p>
-                  </div>
-                  <div className="col-span-2">
-                    <label className="text-sm font-medium text-gray-700">Description</label>
-                    <p className="text-sm text-gray-900">{selectedJob.description}</p>
-                  </div>
-                  <div>
-                    <label className="text-sm font-medium text-gray-700">Status</label>
-                    <p className="text-sm text-gray-900">{selectedJob.status}</p>
-                  </div>
-                  <div>
-                    <label className="text-sm font-medium text-gray-700">Payment</label>
-                    <p className="text-sm text-gray-900">${selectedJob.paymentAmount}</p>
-                  </div>
-                  <div className="col-span-2">
-                    <label className="text-sm font-medium text-gray-700">Location</label>
-                    <p className="text-sm text-gray-900">{selectedJob.location}</p>
-                  </div>
-                  <div>
-                    <label className="text-sm font-medium text-gray-700">Posted</label>
-                    <p className="text-sm text-gray-900">
-                      {new Date(selectedJob.datePosted).toLocaleDateString()}
-                    </p>
-                  </div>
-                </div>
-              </div>
-            )}
-          </DialogContent>
+            <DialogContent>
+                <DialogHeader><DialogTitle>Job Details</DialogTitle></DialogHeader>
+                {selectedJob && <div><p>{selectedJob.title}</p></div>}
+            </DialogContent>
         </Dialog>
 
-        {/* Support Ticket Dialog */}
         <Dialog open={isTicketDialogOpen} onOpenChange={setIsTicketDialogOpen}>
-          <DialogContent className="max-w-2xl" style={{ zIndex: 1080 }} onClick={(e) => e.stopPropagation()}>
-            <DialogHeader>
-              <DialogTitle>Support Ticket Details</DialogTitle>
-            </DialogHeader>
-            {selectedTicket && (
-              <div className="space-y-6">
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <label className="text-sm font-medium text-gray-700">User</label>
-                    <p className="text-sm text-gray-900">{selectedTicket.userName || `User ${selectedTicket.userId}`}</p>
-                  </div>
-                  <div>
-                    <label className="text-sm font-medium text-gray-700">Category</label>
-                    <p className="text-sm text-gray-900">{selectedTicket.category}</p>
-                  </div>
-                  <div>
-                    <label className="text-sm font-medium text-gray-700">Priority</label>
-                    <Badge className={`${getPriorityColor(selectedTicket.priority)} text-white`}>
-                      {selectedTicket.priority}
-                    </Badge>
-                  </div>
-                  <div>
-                    <label className="text-sm font-medium text-gray-700">Status</label>
-                    <Badge className={`${getStatusColor(selectedTicket.status)} text-white`}>
-                      {selectedTicket.status}
-                    </Badge>
-                  </div>
-                  <div className="col-span-2">
-                    <label className="text-sm font-medium text-gray-700">Issue Description</label>
-                    <p className="text-sm text-gray-900 mt-1 p-3 bg-gray-50 rounded-md">
-                      {selectedTicket.description}
-                    </p>
-                  </div>
-                  <div>
-                    <label className="text-sm font-medium text-gray-700">Created</label>
-                    <p className="text-sm text-gray-900">
-                      {new Date(selectedTicket.createdAt).toLocaleString()}
-                    </p>
-                  </div>
-                </div>
-
-                <div className="space-y-4">
-                  <div>
-                    <label className="text-sm font-medium text-gray-700">Admin Response</label>
-                    <Textarea
-                      value={ticketResponse}
-                      onChange={(e) => setTicketResponse(e.target.value)}
-                      placeholder="Type your response to the user..."
-                      className="mt-2"
-                      rows={4}
-                    />
-                  </div>
-                  
-                  <div className="flex gap-3 justify-end">
-                    <Button
-                      variant="outline"
-                      onClick={() => setIsTicketDialogOpen(false)}
-                    >
-                      Cancel
-                    </Button>
-                    <Button
-                      onClick={() => {
-                        if (ticketResponse.trim()) {
-                          addTicketResponseMutation.mutate({
-                            ticketId: selectedTicket.id,
-                            message: ticketResponse.trim()
-                          });
-                        }
-                      }}
-                      disabled={!ticketResponse.trim() || addTicketResponseMutation.isPending}
-                    >
-                      {addTicketResponseMutation.isPending ? (
-                        <>
-                          <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                          Sending...
-                        </>
-                      ) : (
-                        'Send Response'
-                      )}
-                    </Button>
-                    <Button
-                      variant="secondary"
-                      onClick={() => updateTicketStatusMutation.mutate({ 
-                        ticketId: selectedTicket.id, 
-                        status: "resolved",
-                        resolution: ticketResponse.trim() || "Issue resolved by admin"
-                      })}
-                      disabled={updateTicketStatusMutation.isPending}
-                    >
-                      {updateTicketStatusMutation.isPending ? (
-                        <>
-                          <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                          Resolving...
-                        </>
-                      ) : (
-                        'Mark as Resolved'
-                      )}
-                    </Button>
-                  </div>
-                </div>
-              </div>
-            )}
-          </DialogContent>
+            <DialogContent>
+                <DialogHeader><DialogTitle>Support Ticket</DialogTitle></DialogHeader>
+                {selectedTicket && (
+                    <div>
+                        <p><strong>Title:</strong> {selectedTicket.title}</p>
+                        <Textarea value={ticketResponse} onChange={(e) => setTicketResponse(e.target.value)} placeholder="Respond to ticket..."/>
+                        <Button>Send Response</Button>
+                    </div>
+                )}
+            </DialogContent>
         </Dialog>
 
-        {/* Create Job Dialog */}
-        <Dialog open={isCreateJobDialogOpen} onOpenChange={setIsCreateJobDialogOpen}>
-          <DialogTrigger asChild>
-            <Button>Create Job</Button>
-          </DialogTrigger>
-          <DialogContent className="max-w-2xl" style={{ zIndex: 1080 }} onClick={(e) => e.stopPropagation()}>
-            <DialogHeader>
-              <DialogTitle>Create New Job</DialogTitle>
-            </DialogHeader>
-            <div className="space-y-4">
-              <Input
-                placeholder="Job Title"
-                value={newJobTitle}
-                onChange={(e) => setNewJobTitle(e.target.value)}
-              />
-              <Textarea
-                placeholder="Job Description"
-                value={newJobDescription}
-                onChange={(e) => setNewJobDescription(e.target.value)}
-              />
-              <Input
-                type="number"
-                placeholder="Payment Amount"
-                value={newJobAmount}
-                onChange={(e) => setNewJobAmount(Number(e.target.value))}
-              />
-              <Input
-                placeholder="Location"
-                value={newJobLocation}
-                onChange={(e) => setNewJobLocation(e.target.value)}
-              />
-              <Input
-                placeholder="Category"
-                value={newJobCategory}
-                onChange={(e) => setNewJobCategory(e.target.value)}
-              />
-              <Input
-                placeholder="Skills Required (comma-separated)"
-                value={newJobSkills}
-                onChange={(e) => setNewJobSkills(e.target.value)}
-              />
-              <Button
-                onClick={() => createJobMutation.mutate()}
-                disabled={createJobMutation.isLoading || !newJobTitle || !newJobDescription || newJobAmount <= 0 || !newJobLocation || !newJobCategory}
-              >
-                {createJobMutation.isLoading ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : null}
-                Create Job
-              </Button>
-            </div>
-          </DialogContent>
-        </Dialog>
-      </div>
+      </main>
     </div>
   );
 }

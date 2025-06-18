@@ -953,4 +953,42 @@ export class UnifiedWebSocketService {
     this.cleanup();
     this.wss.close();
   }
+
+  private getConversationRoomName(userId1: number, userId2: number): string {
+    const sortedIds = [userId1, userId2].sort((a, b) => a - b);
+    return `conversation:${sortedIds[0]}-${sortedIds[1]}`;
+  }
+
+  private handleJoin(ws: AuthenticatedWebSocket, payload: any) {
+    if (payload.type === 'job' && payload.jobId) {
+      const room = `job:${payload.jobId}`;
+      ws.subscribe(room);
+      console.log(`User ${ws.userId} joined job room ${payload.jobId}`);
+    } else if (payload.type === 'conversation' && payload.contactId) {
+      if (ws.userId && payload.contactId) {
+        const room = this.getConversationRoomName(ws.userId, payload.contactId);
+        ws.subscribe(room);
+        console.log(`User ${ws.userId} joined conversation with ${payload.contactId}`);
+      }
+    }
+  }
+
+  private handleLeave(ws: AuthenticatedWebSocket, payload: any) {
+    if (payload.type === 'job' && payload.jobId) {
+      const room = `job:${payload.jobId}`;
+      ws.unsubscribe(room);
+      console.log(`User ${ws.userId} left job room ${payload.jobId}`);
+    } else if (payload.type === 'conversation' && payload.contactId) {
+      if (ws.userId && payload.contactId) {
+        const room = this.getConversationRoomName(ws.userId, payload.contactId);
+        ws.unsubscribe(room);
+        console.log(`User ${ws.userId} left conversation with ${payload.contactId}`);
+      }
+    }
+  }
+
+  public isUserOnline(userId: number): boolean {
+    const userConnection = this.connectedUsers.get(userId);
+    return userConnection && userConnection.socket.readyState === WebSocket.OPEN;
+  }
 }

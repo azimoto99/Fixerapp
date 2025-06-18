@@ -1,7 +1,7 @@
 import express from 'express';
 import { requireAuth } from '../middleware/auth.js';
-import { PREDEFINED_AVATARS } from '../../client/src/components/AvatarPicker.js';
-import { storage } from '../storage';
+import { PREDEFINED_AVATARS } from '../../shared/constants.js';
+import { storage } from '../storage/index.js';
 
 const router = express.Router();
 
@@ -10,11 +10,14 @@ const router = express.Router();
  * POST /api/user/avatar
  */
 router.post('/avatar', requireAuth, async (req, res) => {
+  if (!req.user) {
+    return res.status(401).json({ message: 'Unauthorized' });
+  }
   try {
     const { avatarName } = req.body;
     
     // Validate avatar name
-    if (!avatarName || !PREDEFINED_AVATARS.includes(avatarName)) {
+    if (!avatarName || !PREDEFINED_AVATARS.includes(avatarName as any)) {
       return res.status(400).json({
         error: 'Invalid avatar',
         message: 'Please select a valid avatar'

@@ -5,7 +5,7 @@
 import { storage } from './storage';
 import { db } from './db';
 import { users, jobs, applications, payments, earnings } from '@shared/schema';
-import { sql, eq, and, gte, lte, desc, count, sum, avg } from 'drizzle-orm';
+import { sql, eq, and, gte, lte, desc, asc, count, sum, avg, or, like } from 'drizzle-orm';
 import { DatabaseStorage } from './database-storage';
 
 // Add admin functions to the storage interface
@@ -27,16 +27,43 @@ const adminMethods = {
     return result[0].count;
   },
 
-  getAllUsers: async function(search?: string): Promise<any[]> {
+  getAllUsers: async function({ page = 1, limit = 10, search = '', status = 'all', sortBy = 'id', sortOrder = 'desc' }: {
+    page?: number;
+    limit?: number;
+    search?: string;
+    status?: 'all' | 'active' | 'inactive';
+    sortBy?: string;
+    sortOrder?: 'asc' | 'desc';
+  } = {}): Promise<{users: any[], total: number}> {
+    
+    const whereClauses = [];
     if (search) {
-      return await db.select().from(users)
-        .where(
-          sql`LOWER(${users.username}) LIKE ${`%${search.toLowerCase()}%`} OR 
-              LOWER(${users.fullName}) LIKE ${`%${search.toLowerCase()}%`} OR 
-              LOWER(${users.email}) LIKE ${`%${search.toLowerCase()}%`}`
-        );
+      const searchTerm = `%${search.toLowerCase()}%`;
+      whereClauses.push(or(
+        like(users.username, searchTerm),
+        like(users.fullName, searchTerm),
+        like(users.email, searchTerm)
+      ));
     }
-    return await db.select().from(users);
+
+    if (status !== 'all') {
+      whereClauses.push(eq(users.isActive, status === 'active'));
+    }
+
+    const query = db.select().from(users).where(and(...whereClauses));
+
+    const totalResult = await db.select({ count: count() }).from(users).where(and(...whereClauses));
+    const total = totalResult[0].count;
+
+    const column = users[sortBy as keyof typeof users.$inferSelect];
+    if (column) {
+      query.orderBy(sortOrder === 'asc' ? asc(column) : desc(column));
+    }
+
+    query.limit(limit).offset((page - 1) * limit);
+
+    const resultUsers = await query;
+    return { users: resultUsers, total };
   },
 
   resetUserPassword: async function(userId: number, tempPassword: string): Promise<boolean> {
@@ -55,16 +82,51 @@ const adminMethods = {
   },
 
   // Job-related functions
-  getJobCount: async function({ status }: { status?: string }): Promise<number> {
-    if (status) {
-      const result = await db.select({ count: count() })
-        .from(jobs)
-        .where(eq(jobs.status, status));
-      return result[0].count;
-    }
-    
+  getJobCount: async function(): Promise<number> {
     const result = await db.select({ count: count() }).from(jobs);
     return result[0].count;
+  },
+
+  getAllJobs: async function({ page = 1, limit = 10, search = '', status = 'all', sortBy = 'id', sortOrder = 'desc' }: {
+    page?: number;
+    limit?: number;
+    search?: string;
+    status?: 'all' | 'open' | 'in_progress' | 'completed' | 'canceled';
+    sortBy?: string;
+    sortOrder?: 'asc' | 'desc';
+  } = {}): Promise<{jobs: any[], total: number}> {
+    
+    const whereClauses = [];
+    if (search) {
+      const searchTerm = `%${search.toLowerCase()}%`;
+      whereClauses.push(or(
+        like(jobs.title, searchTerm),
+        like(jobs.description, searchTerm)
+      ));
+    }
+
+    if (status !== 'all') {
+      whereClauses.push(eq(jobs.status, status));
+    }
+
+    const query = db.select().from(jobs).where(and(...whereClauses));
+
+    const totalResult = await db.select({ count: count() }).from(jobs).where(and(...whereClauses));
+    const total = totalResult[0].count;
+
+    const column = jobs[sortBy as keyof typeof jobs.$inferSelect];
+    if (column) {
+      query.orderBy(sortOrder === 'asc' ? asc(column) : desc(column));
+    }
+
+    query.limit(limit).offset((page - 1) * limit);
+
+    const resultJobs = await query;
+    return { jobs: resultJobs, total };
+  },
+
+  getJobsByStatus: async function(status: string): Promise<any[]> {
+    // Implementation of getJobsByStatus function
   },
 
   updateJob: async function(jobId: number, data: any) {
@@ -312,10 +374,26 @@ declare module './database-storage' {
   interface DatabaseStorage {
     getUserCount(): Promise<number>;
     getNewUserCount(options: { days: number }): Promise<number>;
-    getAllUsers(search?: string): Promise<any[]>;
+    getAllUsers(options: {
+      page?: number;
+      limit?: number;
+      search?: string;
+      status?: 'all' | 'active' | 'inactive';
+      sortBy?: string;
+      sortOrder?: 'asc' | 'desc';
+    }): Promise<{users: any[], total: number}>;
     resetUserPassword(userId: number, tempPassword: string): Promise<boolean>;
     deleteUser(userId: number): Promise<boolean>;
-    getJobCount(options: { status?: string }): Promise<number>;
+    getJobCount(): Promise<number>;
+    getAllJobs(options: {
+      page?: number;
+      limit?: number;
+      search?: string;
+      status?: 'all' | 'open' | 'in_progress' | 'completed' | 'canceled';
+      sortBy?: string;
+      sortOrder?: 'asc' | 'desc';
+    }): Promise<{jobs: any[], total: number}>;
+    getJobsByStatus(status: string): Promise<any[]>;
     getTotalPaymentsAmount(): Promise<number>;
     getTotalServiceFees(): Promise<number>;
     getAllPayments(search?: string): Promise<any[]>;

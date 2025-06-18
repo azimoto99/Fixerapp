@@ -81,7 +81,23 @@ export function registerAdminRoutes(app: Express) {
   // Get all users for admin
   app.get("/api/admin/users", adminAuth, async (req, res) => {
     try {
-      const users = await storage.getAllUsers();
+      const { 
+        page = '1', 
+        limit = '10', 
+        search = '', 
+        status = 'all', 
+        sortBy = 'id', 
+        sortOrder = 'desc' 
+      } = req.query;
+
+      const { users, total } = await storage.getAllUsers({
+        page: parseInt(page as string),
+        limit: parseInt(limit as string),
+        search: search as string,
+        status: status as 'all' | 'active' | 'inactive',
+        sortBy: sortBy as string,
+        sortOrder: sortOrder as 'asc' | 'desc'
+      });
       
       // Remove sensitive information
       const safeUsers = users.map(user => ({
@@ -98,7 +114,12 @@ export function registerAdminRoutes(app: Express) {
         phoneVerified: user.phoneVerified
       }));
 
-      res.json(safeUsers);
+      res.json({
+        users: safeUsers,
+        total,
+        page: parseInt(page as string),
+        totalPages: Math.ceil(total / parseInt(limit as string))
+      });
     } catch (error) {
       console.error('Admin users error:', error);
       res.status(500).json({ message: "Failed to fetch users" });
@@ -155,8 +176,30 @@ export function registerAdminRoutes(app: Express) {
   // Get all jobs for admin
   app.get("/api/admin/jobs", adminAuth, async (req, res) => {
     try {
-      const jobs = await storage.getAllJobs();
-      res.json(jobs);
+      const { 
+        page = '1', 
+        limit = '10', 
+        search = '', 
+        status = 'all', 
+        sortBy = 'id', 
+        sortOrder = 'desc' 
+      } = req.query;
+
+      const { jobs, total } = await storage.getAllJobs({
+        page: parseInt(page as string),
+        limit: parseInt(limit as string),
+        search: search as string,
+        status: status as 'all' | 'open' | 'in_progress' | 'completed' | 'canceled',
+        sortBy: sortBy as string,
+        sortOrder: sortOrder as 'asc' | 'desc'
+      });
+      
+      res.json({
+        jobs,
+        total,
+        page: parseInt(page as string),
+        totalPages: Math.ceil(total / parseInt(limit as string))
+      });
     } catch (error) {
       console.error('Admin jobs error:', error);
       res.status(500).json({ message: "Failed to fetch jobs" });

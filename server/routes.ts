@@ -33,7 +33,8 @@ import {
   supportTickets,
   supportMessages,
   disputes,
-  refunds
+  refunds,
+  type DbUser // Import DbUser type
 } from "@shared/schema";
 import multer from 'multer';
 import path from 'path';
@@ -984,7 +985,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         .limit(10);
 
       // Don't return the current user
-      const filteredResults = searchResults.filter(user => user.id !== currentUserId);
+      const filteredResults = searchResults.filter((user: DbUser) => user.id !== currentUserId);
 
       res.json(filteredResults);
     } catch (error) {
@@ -2014,17 +2015,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       // Calculate stats for each user
       const usersWithStats = allUsers.map(user => {
-        const userJobs = allJobs.filter(job => job.posterId === user.id);
+        const postedJobs = allJobs.filter(job => job.posterId === user.id);
         const completedAsWorker = allJobs.filter(job => job.workerId === user.id && job.status === 'completed');
         
         return {
           ...user,
-          password: undefined, // Never return passwords
-          stats: {
-            jobsPosted: userJobs.length,
-            jobsCompleted: completedAsWorker.length,
-            avgRating: user.rating || null
-          }
+          postedJobs: postedJobs.length,
+          completedJobs: completedAsWorker.length,
+          verificationStatus: user.isActive ? 'verified' : 'pending',
+          lastLogin: user.lastActive || new Date().toISOString()
         };
       });
       
@@ -2577,6 +2576,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // Mount the API router to handle all /api routes
   app.use('/api', apiRouter);
+
+  // Health check endpoint
+  app.get('/api/health', (req: Request, res: Response) => {
+    res.status(200).json({ status: 'ok' });
+  });
 
   return httpServer;
 }

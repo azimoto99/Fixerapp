@@ -1,7 +1,7 @@
 // @ts-nocheck
 import { config } from 'dotenv';
 import { drizzle } from 'drizzle-orm/postgres-js';
-import { eq, and, like, notLike, desc, or, asc, gte, lte, count, sum, avg, sql } from 'drizzle-orm';
+import { eq, and, like, notLike, desc, or, asc, gte, lte, count, sum, avg, sql, ilike } from 'drizzle-orm';
 import { db, pool } from './db';
 import { IStorage } from './storage';
 import {
@@ -620,22 +620,55 @@ export class UnifiedStorage implements IStorage {
 
   // SUPPORT TICKET OPERATIONS
   async getSupportTickets(): Promise<any[]> {
-    return this.safeExecute(async () => {
-      return await db.select().from(supportTickets).orderBy(desc(supportTickets.createdAt));
-    }, [], 'getSupportTickets');
+    // This is now an alias for the paginated function with default values
+    return (await this.getAllSupportTickets({})).tickets;
   }
 
-  async getAllSupportTickets(): Promise<any[]> {
-    return this.safeExecute(async () => {
-      return await db.select().from(supportTickets).orderBy(desc(supportTickets.createdAt));
-    }, [], 'getAllSupportTickets');
+  async getAllSupportTickets({ page = 1, limit = 10, search = '', status, priority, sortBy = 'createdAt', sortOrder = 'desc' }) {
+    const offset = (page - 1) * limit;
+    let whereClauses = [];
+
+    if (search) {
+      const searchTerm = `%${search.toLowerCase()}%`;
+      whereClauses.push(
+        or(
+          ilike(supportTickets.title, searchTerm),
+          ilike(supportTickets.description, searchTerm),
+          ilike(supportTickets.userName, searchTerm),
+          ilike(supportTickets.userEmail, searchTerm)
+        )
+      );
+    }
+
+    if (status && status !== 'all') {
+      whereClauses.push(eq(supportTickets.status, status));
+    }
+
+    if (priority && priority !== 'all') {
+      whereClauses.push(eq(supportTickets.priority, priority));
+    }
+
+    const query = db.select().from(supportTickets).where(and(...whereClauses));
+
+    const totalResult = await db.select({ count: count() }).from(supportTickets).where(and(...whereClauses));
+    const total = totalResult[0].count;
+
+    const sortColumn = supportTickets[sortBy];
+    if (sortColumn) {
+      query.orderBy(sortOrder === 'asc' ? asc(sortColumn) : desc(sortColumn));
+    }
+
+    query.limit(limit).offset(offset);
+
+    const resultTickets = await query;
+    return { tickets: resultTickets, total };
   }
 
-  async getSupportTicket(id: number): Promise<any | null> {
+  async getTicketById(id: number): Promise<any | undefined> {
     return this.safeExecute(async () => {
       const result = await db.select().from(supportTickets).where(eq(supportTickets.id, id));
-      return result[0] || null;
-    }, null, `getSupportTicket(${id})`);
+      return result[0] || undefined;
+    }, undefined, `getTicketById(${id})`);
   }
 
   async createSupportTicket(ticketData: any): Promise<any> {
@@ -1168,6 +1201,56 @@ export class UnifiedStorage implements IStorage {
   async getUserBadges(userId: number): Promise<UserBadge[]> { return []; }
   async awardBadge(userBadge: InsertUserBadge): Promise<UserBadge> { return null as any; }
   async revokeBadge(userId: number, badgeId: number): Promise<boolean> { return true; }
+
+  async getAllPayments({ page = 1, limit = 10, search = '', status, type, sortBy = 'createdAt', sortOrder = 'desc' }) {
+    const offset = (page - 1) * limit;
+    let whereClause: any = {};
+
+    if (search) {
+      whereClause.OR = [
+        { description: { contains: search, mode: 'insensitive' } },
+        { user: { email: { contains: search, mode: 'insensitive' } } },
+        { user: { fullName: { contains: search, mode: 'insensitive' } } },
+      ];
+    }
+
+    if (status && status !== 'all') {
+      whereClause.status = status;
+    }
+
+    if (type && type !== 'all') {
+      whereClause.type = type;
+    }
+
+    const [payments, total] = await this.prisma.$transaction([
+      this.prisma.payment.findMany({
+        where: whereClause,
+        take: limit,
+        skip: offset,
+        orderBy: {
+          [sortBy]: sortOrder,
+        },
+        include: {
+          user: {
+            select: {
+              id: true,
+              email: true,
+              fullName: true,
+            },
+          },
+        },
+      }),
+      this.prisma.payment.count({ where: whereClause }),
+    ]);
+
+    const formattedPayments = payments.map(p => ({
+      ...p,
+      userName: p.user?.fullName,
+      userEmail: p.user?.email,
+    }));
+
+    return { payments: formattedPayments, total };
+  }
 }
 
 // Create and export a single instance

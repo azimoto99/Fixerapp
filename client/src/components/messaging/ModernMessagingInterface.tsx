@@ -4,6 +4,7 @@ import { cn } from '@/lib/utils';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { apiRequest } from '@/lib/queryClient';
 import { useToast } from '@/hooks/use-toast';
+import { useWebSocket } from '@/contexts/WebSocketContext';
 
 // Import our new components
 import { MessageBubble, type MessageData } from './MessageBubble';
@@ -11,25 +12,9 @@ import { ConversationHeader } from './ConversationHeader';
 import { MessageInput } from './MessageInput';
 import { TypingIndicator } from './TypingIndicator';
 
-// Safe WebSocket hook that provides fallback when context is not available
+// Use actual WebSocket context instead of fallback
 function useSafeWebSocket() {
-  const [fallbackState] = useState({
-    isConnected: false,
-    status: 'disconnected' as const,
-    messages: [],
-    typingUsers: [],
-    onlineUsers: [],
-    sendMessage: () => false,
-    joinRoom: () => false,
-    leaveRoom: () => false,
-    startTyping: () => false,
-    stopTyping: () => false,
-    markMessageAsRead: () => false
-  });
-
-  // For now, return fallback state to prevent crashes
-  // TODO: Implement proper WebSocket integration after fixing context issues
-  return fallbackState;
+  return useWebSocket();
 }
 
 interface ModernMessagingInterfaceProps {

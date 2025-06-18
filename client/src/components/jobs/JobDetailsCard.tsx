@@ -1,11 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import Portal from '@/components/Portal';
 import { createPortal } from 'react-dom';
-import { MessagingInterface } from '@/components/MessagingInterface';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '@/hooks/use-auth';
 import { apiRequest } from '@/lib/queryClient';
-import { useToast } from '@/hooks/use-toast';
+import { useToast, type ToastProps } from '@/hooks/use-toast';
 import { motion, AnimatePresence } from 'framer-motion';
 import { format } from 'date-fns';
 import { Badge } from '@/components/ui/badge';
@@ -70,6 +69,9 @@ import {
 } from "@/components/ui/alert-dialog";
 import { useGeolocation } from '@/hooks/use-react-geolocated';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { ModernMessagingInterface } from '@/components/messaging/ModernMessagingInterface';
+import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
+import { cn } from '@/lib/utils';
 
 // Import application management tab
 import JobApplicationsTab from './JobApplicationsTab';
@@ -78,12 +80,38 @@ import { RealTimeApplicationsDashboard } from '../applications/RealTimeApplicati
 import '../jobcard-fix.css';
 import '../ui/dialog-fix.css';
 import { useEffect as useWindowEffect } from 'react';
-import { cn } from '@/lib/utils';
 
 interface JobDetailsCardProps {
   jobId: number;
   isOpen: boolean;
   onClose: () => void;
+}
+
+// Define type for application
+interface Application {
+  id: number;
+  status: string;
+  workerId: number;
+  jobId: number;
+  createdAt: string;
+  updatedAt: string;
+  worker?: {
+    id: number;
+    fullName: string | null;
+    username: string;
+    avatarUrl: string | null;
+  };
+}
+
+// Define type for task
+interface Task {
+  id: number;
+  title: string;
+  description: string | null;
+  status: 'pending' | 'in_progress' | 'completed';
+  jobId: number;
+  createdAt: string;
+  updatedAt: string | null;
 }
 
 const JobDetailsCard: React.FC<JobDetailsCardProps> = ({ jobId, isOpen, onClose }) => {
@@ -156,7 +184,7 @@ const JobDetailsCard: React.FC<JobDetailsCardProps> = ({ jobId, isOpen, onClose 
         return [];
       }
       const data = await response.json();
-      return data.applications || [];
+      return (data.applications || []) as Application[];
     },
     enabled: isOpen && !!jobId && !!user && (user.accountType === 'poster' || user.id === job?.posterId),
   });
@@ -169,7 +197,7 @@ const JobDetailsCard: React.FC<JobDetailsCardProps> = ({ jobId, isOpen, onClose 
       if (!response.ok) {
         return [];
       }
-      return response.json();
+      return response.json() as Task[];
     },
     enabled: isOpen && !!jobId,
   });
@@ -1053,12 +1081,10 @@ const JobDetailsCard: React.FC<JobDetailsCardProps> = ({ jobId, isOpen, onClose 
                 {/* Messages Tab Content - Real-time job conversations for all workers */}
                 {activeTab === 'messages' && user && !isJobPoster && user.accountType === 'worker' && job && poster && (
                   <div className="h-96 border rounded-lg overflow-hidden">
-                    <MessagingInterface
-                      key={job.id}
-                      jobId={job.id}
-                      recipientId={job.posterId}
-                      recipientName={poster.fullName || poster.username}
-                      recipientAvatar={poster.avatarUrl}
+                    <ModernMessagingInterface
+                      contactId={job.posterId}
+                      contactName={poster?.fullName || poster?.username || 'Job Poster'}
+                      contactAvatar={poster?.avatarUrl}
                       currentUserId={user.id}
                       className="h-full"
                     />
@@ -1678,6 +1704,67 @@ const JobDetailsCard: React.FC<JobDetailsCardProps> = ({ jobId, isOpen, onClose 
         </AlertDialogContent>
       </AlertDialog>,
       document.body
+    )}
+
+    {/* Rating Dialog */}
+    <Dialog open={showRatingDialog} onOpenChange={setShowRatingDialog}>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>Rate {ratingType === 'worker' ? 'Worker' : 'Job Poster'}</DialogTitle>
+          <DialogDescription>
+            Please provide your feedback on your experience.
+          </DialogDescription>
+        </DialogHeader>
+        <div className="space-y-4">
+          <div className="flex justify-center space-x-1">
+            {[1, 2, 3, 4, 5].map((star) => (
+              <Button
+                key={star}
+                variant="ghost"
+                size="icon"
+                onClick={() => setRating(star)}
+                className={`h-10 w-10 ${star <= rating ? 'text-yellow-400' : 'text-gray-300'}`}
+              >
+                <Star className="h-6 w-6 fill-current" />
+              </Button>
+            ))}
+          </div>
+          <Textarea
+            placeholder="Share your experience (optional)"
+            value={review}
+            onChange={(e) => setReview(e.target.value)}
+            className="h-24"
+          />
+        </div>
+        <DialogFooter>
+          <Button
+            type="button"
+            variant="default"
+            onClick={handleSubmitRating}
+            disabled={rating === 0 || rateUserMutation.isPending}
+          >
+            {rateUserMutation.isPending ? (
+              <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+            ) : (
+              <Star className="h-4 w-4 mr-2 fill-yellow-400 text-yellow-400" />
+            )}
+            Submit Rating
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+
+    {/* Add button for worker to rate poster when job is completed */}
+    {user && !isJobPoster && job?.status === 'completed' && (
+      <Button
+        size="sm"
+        variant="outline"
+        onClick={handleRatePoster}
+        className="mt-4 w-full"
+      >
+        <Star className="h-4 w-4 mr-2 text-yellow-400 fill-yellow-400" />
+        Rate Job Poster
+      </Button>
     )}
   </>
   );
