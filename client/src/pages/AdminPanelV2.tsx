@@ -187,8 +187,8 @@ export default function AdminPanelV2() {
     },
     enabled: selectedTab === "financials",
   });
-  const transactions = paymentsResponse?.transactions || [];
-  const totalTransactions = paymentsResponse?.total || 0;
+  const transactions = paymentsResponse || [];
+  const totalTransactions = paymentsResponse?.length || 0;
 
   const handleUserSelect = (user: User) => {
     setSelectedUser(user);

@@ -1,12 +1,24 @@
 import { useState, useRef } from 'react';
 import { useMutation } from '@tanstack/react-query';
-import { queryClient } from '@/lib/queryClient';
+import { queryClient, apiRequest } from '@/lib/queryClient';
 import { useToast } from '@/hooks/use-toast';
 import { User } from '@shared/schema';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Upload, X } from 'lucide-react';
 import { uploadProfileImage, validateImageFile, resizeImage } from '@/lib/uploadService';
+
+// Predefined avatars list (should match server-side PREDEFINED_AVATARS)
+const PREDEFINED_AVATARS = [
+  'avatar-1.png',
+  'avatar-2.png',
+  'avatar-3.png',
+  'avatar-4.png',
+  'avatar-5.png',
+  'avatar-6.png',
+  'avatar-7.png',
+  'avatar-8.png',
+];
 
 interface ProfileImageUploaderProps {
   user: User;
@@ -17,6 +29,7 @@ export function ProfileImageUploader({ user }: ProfileImageUploaderProps) {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [previewImage, setPreviewImage] = useState<string | null>(user.avatarUrl);
   const [isUploading, setIsUploading] = useState(false);
+  const [showAvatarSelector, setShowAvatarSelector] = useState(false);
 
   const uploadMutation = useMutation({
     mutationFn: async (file: File) => {
@@ -56,6 +69,31 @@ export function ProfileImageUploader({ user }: ProfileImageUploaderProps) {
       setIsUploading(false);
       // Reset preview to original on error
       setPreviewImage(user.avatarUrl);
+    },
+  });
+
+  const updateAvatarMutation = useMutation({
+    mutationFn: async (avatarName: string) => {
+      const response = await apiRequest('POST', '/api/user/avatar', { avatarName });
+      return response.json();
+    },
+    onSuccess: (data) => {
+      queryClient.setQueryData(['/api/user'], data.user);
+      setPreviewImage(data.avatarUrl);
+      toast({
+        title: 'Avatar updated',
+        description: 'Your profile avatar has been updated successfully.',
+      });
+      setIsUploading(false);
+      setShowAvatarSelector(false);
+    },
+    onError: (error: Error) => {
+      toast({
+        title: 'Update failed',
+        description: error.message,
+        variant: 'destructive',
+      });
+      setIsUploading(false);
     },
   });
 
@@ -121,6 +159,11 @@ export function ProfileImageUploader({ user }: ProfileImageUploaderProps) {
     }
   };
 
+  const selectAvatar = (avatarName: string) => {
+    setIsUploading(true);
+    updateAvatarMutation.mutate(avatarName);
+  };
+
   return (
     <div className="flex flex-col items-center">
       <div className="relative group">
@@ -166,6 +209,37 @@ export function ProfileImageUploader({ user }: ProfileImageUploaderProps) {
       >
         {isUploading ? 'Uploading...' : 'Change Image'}
       </Button>
+      
+      <Button 
+        variant="outline" 
+        size="sm" 
+        className="mt-2"
+        onClick={() => setShowAvatarSelector(!showAvatarSelector)}
+        disabled={isUploading}
+      >
+        {showAvatarSelector ? 'Hide Avatars' : 'Select Avatar'}
+      </Button>
+      
+      {showAvatarSelector && (
+        <div className="mt-4 grid grid-cols-4 gap-2">
+          {PREDEFINED_AVATARS.map((avatarName) => (
+            <button
+              key={avatarName}
+              className="relative group/avatar"
+              onClick={() => selectAvatar(avatarName)}
+              disabled={isUploading}
+            >
+              <Avatar className="h-16 w-16 cursor-pointer border-2 border-background">
+                <AvatarImage src={`/avatars/${avatarName}`} alt={`Avatar ${avatarName}`} />
+                <AvatarFallback>A</AvatarFallback>
+              </Avatar>
+              <div className="absolute inset-0 bg-black bg-opacity-40 rounded-full flex items-center justify-center opacity-0 group-hover/avatar:opacity-100 transition-opacity cursor-pointer">
+                <span className="text-white text-sm">Select</span>
+              </div>
+            </button>
+          ))}
+        </div>
+      )}
     </div>
   );
 }

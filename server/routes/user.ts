@@ -8,6 +8,7 @@ const router = express.Router();
 /**
  * Update user's avatar
  * POST /api/user/avatar
+ * This endpoint works with the unified storage system to update the user's profile picture.
  */
 router.post('/avatar', requireAuth, async (req, res) => {
   if (!req.user) {
