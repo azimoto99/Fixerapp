@@ -31,6 +31,7 @@ import SettingsContent from './drawer-contents/SettingsContent';
 import SupportContent from './drawer-contents/SupportContent';
 import PaymentContent from './drawer-contents/PaymentContent';
 import EarningsContent from './drawer-contents/EarningsContent';
+import NotificationsContent from './drawer-contents/NotificationsContent';
 
 interface UserDrawerProps {
   children?: React.ReactNode;
@@ -210,178 +211,179 @@ const UserDrawerV2: React.FC<UserDrawerProps> = ({
         return <SettingsContent user={user} />;
       case "support":
         return <SupportContent user={user} />;
+      case "notifications":
+        return <NotificationsContent user={user} />;
       default:
         return <ProfileContentV2 user={user} onSignOut={handleLogout} />;
     }
   };
 
   return (
-    <>
-      {/* Children are now optional (only for backward compatibility) */}
+    <div className="relative">
       {children && (
-        <div 
-          className="cursor-pointer user-drawer-trigger"
-          onClick={() => {
-            setIsOpen(true);
-            console.log('UserDrawerV2 trigger clicked, setting isOpen to true');
-          }}
-        >
+        <div onClick={openDrawer} className="cursor-pointer">
           {children}
         </div>
       )}
-
-      {/* Drawer overlay and container with maximum z-index to ensure it's on top */}
-      {isOpen && (
-        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm user-drawer-backdrop">
-          <div
-            ref={drawerRef}
-            className="fixed top-0 right-0 bottom-0 w-[480px] max-w-[90vw] bg-background shadow-xl transform transition-transform duration-300 animate-in slide-in-from-right overflow-hidden user-drawer"
-          >
-            {/* Modernized drawer header with cleaner design */}
-            <div className="bg-primary/95 text-primary-foreground shadow-md">
-              <div className="px-4 pt-4 pb-3 relative">
-                {/* Top bar with close button - absolute positioning */}
-                <button 
-                  onClick={closeDrawer}
-                  className="absolute top-2 right-2 bg-primary-foreground/20 backdrop-blur-sm text-primary-foreground hover:bg-primary-foreground/30 rounded-full w-7 h-7 flex items-center justify-center transition-colors"
-                  aria-label="Close menu"
-                >
-                  <X className="h-4 w-4" />
-                </button>
-                {/* Header content */}
-                <div className="flex items-center gap-3 mt-2">
-                  <Avatar className="w-12 h-12 border-2 border-primary-foreground/30">
-                    <AvatarImage src={user.avatarUrl || undefined} alt={user.fullName || user.username} />
-                    <AvatarFallback>{user.fullName?.charAt(0) || user.username.charAt(0)}</AvatarFallback>
-                  </Avatar>
-                  <div className="flex-1 min-w-0">
-                    <h1 className="text-xl font-semibold truncate">{user.fullName || user.username}</h1>
-                    <div className="flex items-center gap-1.5 mt-0.5">
-                      <span className="text-xs opacity-90">@{user.username}</span>
-                      {user.isAdmin && (
-                        <Badge variant="secondary" className="bg-primary-foreground/20 text-primary-foreground px-2 py-0.5 h-auto text-[10px] font-medium uppercase tracking-wide">
-                          Admin
-                        </Badge>
-                      )}
-                    </div>
+      <div
+        ref={drawerRef}
+        className={cn(
+          "fixed inset-0 z-50 flex transform transition-transform duration-300 ease-in-out",
+          isOpen ? "translate-x-0" : "-translate-x-full"
+        )}
+      >
+        <div className="flex-1 bg-black/30" />
+        <div className="w-80 bg-background shadow-xl flex flex-col h-full border-r border-border/30">
+          <div className="flex justify-between items-center p-4 border-b border-border/30">
+            <h2 className="text-xl font-semibold flex items-center gap-2">
+              <User className="h-5 w-5" />
+              Account
+            </h2>
+            <Button variant="ghost" size="icon" onClick={closeDrawer}>
+              <X className="h-5 w-5" />
+            </Button>
+          </div>
+          <div className="flex-1 overflow-y-auto p-4 space-y-6">
+            <div className="space-y-4">
+              <div className="flex items-center gap-3 p-2 rounded-lg bg-muted/50">
+                <Avatar className="h-10 w-10">
+                  <AvatarImage src={user.avatar || undefined} />
+                  <AvatarFallback>{user.firstName?.charAt(0) || user.username?.charAt(0) || 'U'}</AvatarFallback>
+                </Avatar>
+                <div className="flex-1 overflow-hidden">
+                  <p className="font-medium truncate">{user.firstName || user.username || 'User'}</p>
+                  <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                    <span>{user.accountType || 'User'}</span>
+                    {user.emailVerified ? (
+                      <TooltipProvider>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <Shield className="h-3 w-3 text-blue-500" />
+                          </TooltipTrigger>
+                          <TooltipContent>Email verified</TooltipContent>
+                        </Tooltip>
+                      </TooltipProvider>
+                    ) : (
+                      <TooltipProvider>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <UserPlus className="h-3 w-3 text-amber-500" />
+                          </TooltipTrigger>
+                          <TooltipContent>Pending verification</TooltipContent>
+                        </Tooltip>
+                      </TooltipProvider>
+                    )}
                   </div>
                 </div>
+                <ChevronRight className="h-5 w-5 text-muted-foreground" />
+              </div>
+              <div className="grid grid-cols-2 gap-2">
+                <Button
+                  variant={activeTab === 'profile' ? 'default' : 'outline'}
+                  size="sm"
+                  onClick={() => handleTabChange('profile')}
+                  className="flex items-center gap-2"
+                >
+                  <User className="h-4 w-4" />
+                  Profile
+                </Button>
+                <Button
+                  variant={activeTab === 'wallet' ? 'default' : 'outline'}
+                  size="sm"
+                  onClick={() => handleTabChange('wallet')}
+                  className="flex items-center gap-2"
+                >
+                  <Wallet className="h-4 w-4" />
+                  Wallet
+                </Button>
+                <Button
+                  variant={activeTab === 'reviews' ? 'default' : 'outline'}
+                  size="sm"
+                  onClick={() => handleTabChange('reviews')}
+                  className="flex items-center gap-2"
+                >
+                  <StarIcon className="h-4 w-4" />
+                  Reviews
+                </Button>
+                <Button
+                  variant={activeTab === 'settings' ? 'default' : 'outline'}
+                  size="sm"
+                  onClick={() => handleTabChange('settings')}
+                  className="flex items-center gap-2"
+                >
+                  <Settings className="h-4 w-4" />
+                  Settings
+                </Button>
               </div>
             </div>
-
-            {/* Drawer content with scrollable area */}
-            <div className="flex h-[calc(100vh-80px)] overflow-hidden">
-              {/* Sidebar navigation - fixed width, scrollable on small screens */}
-              <div className="w-36 bg-muted/50 border-r border-muted-foreground/10 overflow-y-auto hidden md:block">
-                <nav className="p-2 space-y-1.5">
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className={cn(
-                      "w-full justify-start text-sm px-3 py-2 h-9",
-                      activeTab === "profile" && "bg-background/80 border border-muted-foreground/20"
-                    )}
-                    onClick={() => handleTabChange("profile")}
-                  >
-                    <User className="h-4 w-4 mr-2" />
-                    Profile
-                  </Button>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className={cn(
-                      "w-full justify-start text-sm px-3 py-2 h-9",
-                      activeTab === "wallet" && "bg-background/80 border border-muted-foreground/20"
-                    )}
-                    onClick={() => handleTabChange("wallet")}
-                  >
-                    <Wallet className="h-4 w-4 mr-2" />
-                    Wallet
-                  </Button>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className={cn(
-                      "w-full justify-start text-sm px-3 py-2 h-9",
-                      activeTab === "reviews" && "bg-background/80 border border-muted-foreground/20"
-                    )}
-                    onClick={() => handleTabChange("reviews")}
-                  >
-                    <StarIcon className="h-4 w-4 mr-2" />
-                    Reviews
-                  </Button>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className={cn(
-                      "w-full justify-start text-sm px-3 py-2 h-9",
-                      activeTab === "notifications" && "bg-background/80 border border-muted-foreground/20"
-                    )}
-                    onClick={() => handleTabChange("notifications")}
-                  >
-                    <Bell className="h-4 w-4 mr-2" />
-                    Notifications
-                  </Button>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className={cn(
-                      "w-full justify-start text-sm px-3 py-2 h-9",
-                      activeTab === "settings" && "bg-background/80 border border-muted-foreground/20"
-                    )}
-                    onClick={() => handleTabChange("settings")}
-                  >
-                    <Settings className="h-4 w-4 mr-2" />
-                    Settings
-                  </Button>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className={cn(
-                      "w-full justify-start text-sm px-3 py-2 h-9",
-                      activeTab === "support" && "bg-background/80 border border-muted-foreground/20"
-                    )}
-                    onClick={() => handleTabChange("support")}
-                  >
-                    <HelpCircle className="h-4 w-4 mr-2" />
-                    Support
-                  </Button>
-                  {user.isAdmin && (
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      className={cn(
-                        "w-full justify-start text-sm px-3 py-2 h-9",
-                        activeTab === "admin" && "bg-background/80 border border-muted-foreground/20"
-                      )}
-                      onClick={() => handleTabChange("admin")}
-                    >
-                      <Shield className="h-4 w-4 mr-2" />
-                      Admin
-                    </Button>
-                  )}
-                  <Separator className="my-1 opacity-50" />
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className="w-full justify-start text-sm text-destructive/80 hover:text-destructive px-3 py-2 h-9"
-                    onClick={handleLogout}
-                  >
-                    <LogOut className="h-4 w-4 mr-2" />
-                    Logout
-                  </Button>
-                </nav>
-              </div>
-
-              {/* Main content area - takes remaining space */}
-              <div className="flex-1 overflow-y-auto p-4">
-                {renderTabContent()}
-              </div>
+            <Separator className="opacity-50" />
+            <div className="flex-1 overflow-y-auto">
+              {renderTabContent()}
+            </div>
+            <Separator className="opacity-50" />
+            <div className="space-y-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => navigateTo('/')}
+                className="w-full justify-start flex items-center gap-2"
+              >
+                <Home className="h-4 w-4" />
+                Home
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => navigateTo('/explore')}
+                className="w-full justify-start flex items-center gap-2"
+              >
+                <Scroll className="h-4 w-4" />
+                Explore
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => navigateTo('/notifications')}
+                className="w-full justify-start flex items-center gap-2"
+              >
+                <Bell className="h-4 w-4" />
+                Notifications
+                <Badge className="ml-auto">3</Badge>
+              </Button>
+              <Button
+                variant={activeTab === 'support' ? 'default' : 'outline'}
+                size="sm"
+                onClick={() => handleTabChange('support')}
+                className="w-full justify-start flex items-center gap-2"
+              >
+                <HelpCircle className="h-4 w-4" />
+                Support
+              </Button>
+              {user.isAdmin && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => navigateTo('/admin')}
+                  className="w-full justify-start flex items-center gap-2"
+                >
+                  <LayoutDashboard className="h-4 w-4" />
+                  Admin Panel
+                </Button>
+              )}
+              <Button
+                variant="destructive"
+                size="sm"
+                onClick={handleLogout}
+                className="w-full justify-start flex items-center gap-2"
+              >
+                <LogOut className="h-4 w-4" />
+                Sign Out
+              </Button>
             </div>
           </div>
         </div>
-      )}
-    </>
+      </div>
+    </div>
   );
 };
 
