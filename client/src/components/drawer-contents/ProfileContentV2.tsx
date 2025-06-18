@@ -207,41 +207,6 @@ export default function ProfileContentV2({ user, onSignOut }: ProfileContentV2Pr
         </Card>
       )}
 
-      {/* Account Actions */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-base">Account Management</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-3">
-          {/* Removed Edit Profile and Settings buttons as they are already in the user drawer */}
-          
-          {/* Only show admin panel button for admin users */}
-          {(user.isAdmin || user.email?.includes('admin')) && (
-            <Button 
-              variant="outline" 
-              className="w-full justify-start" 
-              size="sm"
-              onClick={() => {
-                // Navigate to admin panel
-                window.location.href = '/admin';
-              }}
-            >
-              <Shield className="h-4 w-4 mr-2" />
-              Admin Panel
-            </Button>
-          )}
-          
-          <Button 
-            variant="outline" 
-            className="w-full justify-start text-red-500 hover:text-red-500" 
-            size="sm"
-            onClick={onSignOut}
-          >
-            <LogOut className="h-4 w-4 mr-2" />
-            Sign Out
-          </Button>
-        </CardContent>
-      </Card>
     </div>
   );
 }
