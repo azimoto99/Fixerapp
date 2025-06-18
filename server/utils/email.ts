@@ -36,22 +36,24 @@ export async function sendEmail(to: string, subject: string, html: string) {
 
   if (!cached) cached = await getTransport();
 
-  const info = await cached.sendMail({
-    from: process.env.EMAIL_FROM || 'no-reply@fixer.com',
-    to,
-    subject,
-    html,
-  });
+  try {
+    const info = await cached.sendMail({
+      from: process.env.EMAIL_FROM || 'support@fixer.gg',
+      to,
+      subject,
+      html,
+    });
 
-  if (process.env.NODE_ENV !== 'production') {
-    console.log('📧 Email sent:', info.messageId);
+    console.log('📧 Email sent attempt:', { to, subject, messageId: info.messageId });
     // Ethereal preview URL
     // @ts-ignore – types missing for helper
     if (nodemailer.getTestMessageUrl) {
       // eslint-disable-next-line no-console
       console.log('Preview URL:', nodemailer.getTestMessageUrl(info));
     }
+    return info;
+  } catch (error) {
+    console.error('Error sending email:', error, { to, subject });
+    throw error;
   }
-
-  return info;
 } 
