@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useCallback } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -270,6 +270,36 @@ export default function AdminPanelV2() {
       default: return 'bg-gray-500 text-white';
     }
   };
+
+  const fetchPayments = useCallback(async () => {
+    try {
+      const response = await fetch('/api/admin/payments')
+      if (!response.ok) {
+        throw new Error(`Failed to fetch payments: ${response.status} ${response.statusText}`)
+      }
+      const data = await response.json()
+      console.log('Payments data fetched:', data)
+      setPayments(data)
+    } catch (err) {
+      console.error('Error fetching payments:', err.message)
+      setError(`Failed to load payment data: ${err.message}`)
+    }
+  }, [])
+
+  const fetchUsers = useCallback(async () => {
+    try {
+      const response = await fetch('/api/admin/users')
+      if (!response.ok) {
+        throw new Error(`Failed to fetch users: ${response.status} ${response.statusText}`)
+      }
+      const data = await response.json()
+      console.log('Users data fetched:', data)
+      setUsers(data)
+    } catch (err) {
+      console.error('Error fetching users:', err.message)
+      setError(`Failed to load user data: ${err.message}`)
+    }
+  }, [])
 
   return (
     <div className="container mx-auto py-6 max-w-7xl">
