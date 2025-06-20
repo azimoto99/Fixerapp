@@ -9,8 +9,12 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Textarea } from "@/components/ui/textarea";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Skeleton } from "@/components/ui/skeleton";
-import { RefreshCw, ChevronLeft, ChevronRight, Menu, X } from "lucide-react";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { RefreshCw, ChevronLeft, ChevronRight, Menu, X, AlertCircle, User, Shield, CheckCircle } from "lucide-react";
 import { apiRequest } from "@/lib/queryClient";
+import { useAuth } from "@/hooks/use-auth";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from "@/components/ui/table";
 
 interface AdminStats {
   totalUsers: number;
@@ -25,6 +29,7 @@ interface User {
   email: string;
   accountType: string;
   isActive: boolean;
+  isAdmin: boolean;
 }
 
 interface Job {
@@ -51,7 +56,30 @@ interface Payment {
   userId: number;
 }
 
+// NEW: typed API responses for paginated endpoints
+interface UsersApiResponse {
+  users: User[];
+  total: number;
+}
+
+interface JobsApiResponse {
+  jobs: Job[];
+  total: number;
+}
+
+interface SupportApiResponse {
+  tickets: SupportTicket[];
+  total: number;
+}
+
+interface PaymentsApiResponse {
+  payments: Payment[];
+  total: number;
+}
+
 export default function AdminPanelV2() {
+  const { user } = useAuth();
+  
   const [selectedTab, setSelectedTab] = useState("overview");
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
   const [selectedJob, setSelectedJob] = useState<Job | null>(null);
@@ -87,14 +115,45 @@ export default function AdminPanelV2() {
     setCurrentPage(1);
   }, [debouncedSearch, filterStatus, ticketFilterStatus, ticketFilterPriority, paymentFilterStatus, paymentFilterType, selectedTab]);
 
-  const { data: dashboardStats, isLoading: isDashboardLoading, error: dashboardError } = useQuery<AdminStats>({
+  // Check if user is admin
+  const isAdmin = user?.isAdmin === true || user?.id === 20;
+  
+  // Early return if not admin
+  if (!user) {
+    return (
+      <div className="container mx-auto py-6 max-w-7xl">
+        <Alert>
+          <AlertCircle className="h-4 w-4" />
+          <AlertDescription>
+            Please log in to access the admin panel.
+          </AlertDescription>
+        </Alert>
+      </div>
+    );
+  }
+  
+  if (!isAdmin) {
+    return (
+      <div className="container mx-auto py-6 max-w-7xl">
+        <Alert>
+          <Shield className="h-4 w-4" />
+          <AlertDescription>
+            You don't have admin privileges. Access denied.
+          </AlertDescription>
+        </Alert>
+      </div>
+    );
+  }
+
+  const { data: dashboardStats, isLoading: isDashboardLoading, error: dashboardError } = useQuery<AdminStats, Error>({
     queryKey: ["/api/admin/stats"],
+    queryFn: async () => {
+      const response = await apiRequest('GET', '/api/admin/stats');
+      return (await response.json()) as AdminStats;
+    },
     refetchInterval: 30000,
     retry: 2,
     retryDelay: 1000,
-    onError: (error) => {
-      console.error('Error fetching dashboard stats:', error);
-    },
   });
 
   if (dashboardError) {
@@ -106,7 +165,7 @@ export default function AdminPanelV2() {
     { page: currentPage, pageSize, search: debouncedSearch, status: filterStatus, sortBy, sortOrder }
   ], [currentPage, pageSize, debouncedSearch, filterStatus, sortBy, sortOrder]);
 
-  const { data: usersResponse, isLoading: isUsersLoading, refetch: refetchUsers, error: usersError } = useQuery({
+  const { data: usersResponse, isLoading: isUsersLoading, refetch: refetchUsers, error: usersError } = useQuery<UsersApiResponse, Error>({
     queryKey: usersQueryKey,
     queryFn: async () => {
       const params = new URLSearchParams({
@@ -118,28 +177,22 @@ export default function AdminPanelV2() {
         sortOrder
       });
       const response = await apiRequest('GET', `/api/admin/users?${params.toString()}`);
-      return response.json();
+      return (await response.json()) as UsersApiResponse;
     },
     enabled: selectedTab === "users",
     retry: 2,
     retryDelay: 1000,
-    onError: (error) => {
-      console.error('Error fetching users:', error);
-    },
   });
-  if (usersError) {
-    console.error('Users query error:', usersError);
-  }
 
-  const users = usersResponse?.users || [];
-  const totalUsers = usersResponse?.total || 0;
+  const users: User[] = usersResponse?.users ?? [];
+  const totalUsers = usersResponse?.total ?? users.length;
 
   const jobsQueryKey = useMemo(() => [
     "/api/admin/jobs",
     { page: currentPage, pageSize, search: debouncedSearch, status: filterStatus, sortBy, sortOrder }
   ], [currentPage, pageSize, debouncedSearch, filterStatus, sortBy, sortOrder]);
 
-  const { data: jobsResponse, isLoading: isJobsLoading, refetch: refetchJobs, error: jobsError } = useQuery({
+  const { data: jobsResponse, isLoading: isJobsLoading, refetch: refetchJobs, error: jobsError } = useQuery<JobsApiResponse, Error>({
     queryKey: jobsQueryKey,
     queryFn: async () => {
       const params = new URLSearchParams({
@@ -151,28 +204,22 @@ export default function AdminPanelV2() {
         sortOrder
       });
       const response = await apiRequest('GET', `/api/admin/jobs?${params.toString()}`);
-      return response.json();
+      return (await response.json()) as JobsApiResponse;
     },
     enabled: selectedTab === "jobs",
     retry: 2,
     retryDelay: 1000,
-    onError: (error) => {
-      console.error('Error fetching jobs:', error);
-    },
   });
-  if (jobsError) {
-    console.error('Jobs query error:', jobsError);
-  }
 
-  const jobs = jobsResponse?.jobs || [];
-  const totalJobs = jobsResponse?.total || 0;
+  const jobs: Job[] = jobsResponse?.jobs ?? [];
+  const totalJobs = jobsResponse?.total ?? jobs.length;
 
   const supportQueryKey = useMemo(() => [
     "/api/admin/support-tickets",
     { page: currentPage, pageSize, search: debouncedSearch, status: ticketFilterStatus, priority: ticketFilterPriority, sortBy, sortOrder }
   ], [currentPage, pageSize, debouncedSearch, ticketFilterStatus, ticketFilterPriority, sortBy, sortOrder]);
 
-  const { data: supportResponse, isLoading: isSupportLoading, refetch: refetchSupport, error: supportError } = useQuery({
+  const { data: supportResponse, isLoading: isSupportLoading, refetch: refetchSupport, error: supportError } = useQuery<SupportApiResponse, Error>({
     queryKey: supportQueryKey,
     queryFn: async () => {
       const params = new URLSearchParams({
@@ -185,28 +232,22 @@ export default function AdminPanelV2() {
         sortOrder
       });
       const response = await apiRequest('GET', `/api/admin/support-tickets?${params.toString()}`);
-      return response.json();
+      return (await response.json()) as SupportApiResponse;
     },
     enabled: selectedTab === "support",
     retry: 2,
     retryDelay: 1000,
-    onError: (error) => {
-      console.error('Error fetching support tickets:', error);
-    },
   });
-  if (supportError) {
-    console.error('Support tickets query error:', supportError);
-  }
 
-  const supportTickets = supportResponse?.tickets || [];
-  const totalTickets = supportResponse?.total || 0;
+  const supportTickets: SupportTicket[] = supportResponse?.tickets ?? [];
+  const totalTickets = supportResponse?.total ?? supportTickets.length;
 
   const paymentsQueryKey = useMemo(() => [
     "/api/admin/payments",
     { page: currentPage, pageSize, search: debouncedSearch, status: paymentFilterStatus, type: paymentFilterType, sortBy, sortOrder }
   ], [currentPage, pageSize, debouncedSearch, paymentFilterStatus, paymentFilterType, sortBy, sortOrder]);
 
-  const { data: paymentsResponse, isLoading: isTransactionsLoading, refetch: refetchPayments, error: paymentsError } = useQuery({
+  const { data: paymentsResponse, isLoading: isTransactionsLoading, refetch: refetchPayments, error: paymentsError } = useQuery<PaymentsApiResponse, Error>({
     queryKey: paymentsQueryKey,
     queryFn: async () => {
       const params = new URLSearchParams({
@@ -219,21 +260,56 @@ export default function AdminPanelV2() {
         sortOrder,
       });
       const response = await apiRequest('GET', `/api/admin/payments?${params.toString()}`);
-      return response.json();
+      return (await response.json()) as PaymentsApiResponse;
     },
     enabled: selectedTab === "payments",
     retry: 2,
     retryDelay: 1000,
-    onError: (error) => {
-      console.error('Error fetching payments:', error);
-    },
   });
-  if (paymentsError) {
-    console.error('Payments query error:', paymentsError);
-  }
 
-  const transactions = paymentsResponse || [];
-  const totalTransactions = paymentsResponse?.length || 0;
+  const payments: Payment[] = paymentsResponse?.payments ?? [];
+  const totalTransactions = paymentsResponse?.total ?? payments.length;
+
+  // User management functions
+  const handleUserAction = async (userId: number, action: 'ban' | 'unban' | 'verify' | 'makeAdmin' | 'removeAdmin') => {
+    try {
+      let endpoint = '';
+      let body = {};
+      
+      switch (action) {
+        case 'ban':
+          endpoint = `/api/admin/users/${userId}/ban`;
+          body = { reason: 'Administrative action' };
+          break;
+        case 'unban':
+          endpoint = `/api/admin/users/${userId}/unban`;
+          body = { reason: 'Administrative action' };
+          break;
+        case 'verify':
+          endpoint = `/api/admin/users/${userId}/verify`;
+          break;
+        case 'makeAdmin':
+          endpoint = `/api/admin/users/${userId}`;
+          body = { isAdmin: true };
+          break;
+        case 'removeAdmin':
+          endpoint = `/api/admin/users/${userId}`;
+          body = { isAdmin: false };
+          break;
+      }
+      
+      const method = action === 'makeAdmin' || action === 'removeAdmin' ? 'PATCH' : 'POST';
+      await apiRequest(method, endpoint, body);
+      
+      // Refetch users data
+      refetchUsers();
+      
+      // Close dialog
+      setIsUserDialogOpen(false);
+    } catch (error) {
+      console.error(`Error performing ${action} on user:`, error);
+    }
+  };
 
   const handleUserSelect = (user: User) => {
     setSelectedUser(user);
@@ -271,43 +347,17 @@ export default function AdminPanelV2() {
     }
   };
 
-  const fetchPayments = useCallback(async () => {
-    try {
-      const response = await fetch('/api/admin/payments')
-      if (!response.ok) {
-        throw new Error(`Failed to fetch payments: ${response.status} ${response.statusText}`)
-      }
-      const data = await response.json()
-      console.log('Payments data fetched:', data)
-      setPayments(data)
-    } catch (err) {
-      console.error('Error fetching payments:', err.message)
-      setError(`Failed to load payment data: ${err.message}`)
-    }
-  }, [])
-
-  const fetchUsers = useCallback(async () => {
-    try {
-      const response = await fetch('/api/admin/users')
-      if (!response.ok) {
-        const errorText = await response.text().catch(() => 'Failed to read error response text');
-        throw new Error(`Failed to fetch users: ${response.status} ${response.statusText} - ${errorText}`)
-      }
-      const data = await response.json()
-      console.log('Users data fetched:', data)
-      setUsers(data)
-    } catch (err) {
-      console.error('Error fetching users:', err.message)
-      setError(`Failed to load user data: ${err.message}`)
-    }
-  }, [])
-
   return (
     <div className="container mx-auto py-6 max-w-7xl">
       <div className="flex justify-between items-center mb-6">
         <div>
           <h1 className="text-3xl font-bold tracking-tight">Admin Dashboard</h1>
           <p className="text-muted-foreground mt-2">Manage platform operations and view analytics</p>
+          <div className="flex items-center gap-2 mt-2">
+            <User className="h-4 w-4" />
+            <span className="text-sm">Logged in as: {user.username}</span>
+            {isAdmin && <Badge variant="secondary" className="text-xs"><Shield className="h-3 w-3 mr-1" />Admin</Badge>}
+          </div>
         </div>
         <div className="flex gap-2 items-center">
           <Button 
@@ -328,6 +378,21 @@ export default function AdminPanelV2() {
           </Button>
         </div>
       </div>
+
+      {/* Error Display */}
+      {(dashboardError || usersError || jobsError || supportError || paymentsError) && (
+        <Alert className="mb-6">
+          <AlertCircle className="h-4 w-4" />
+          <AlertDescription>
+            Some data couldn't be loaded. Please check your connection and try refreshing.
+            {dashboardError && <div>Dashboard: {dashboardError.message}</div>}
+            {usersError && <div>Users: {usersError.message}</div>}
+            {jobsError && <div>Jobs: {jobsError.message}</div>}
+            {supportError && <div>Support: {supportError.message}</div>}
+            {paymentsError && <div>Payments: {paymentsError.message}</div>}
+          </AlertDescription>
+        </Alert>
+      )}
 
       <Tabs defaultValue="overview" value={selectedTab} onValueChange={setSelectedTab} className="w-full">
         <div className={`md:block ${isMobileMenuOpen ? 'block' : 'hidden'} mb-6 md:mb-0`}>
@@ -363,7 +428,7 @@ export default function AdminPanelV2() {
                     <CardDescription>Registered users</CardDescription>
                   </CardHeader>
                   <CardContent>
-                    <div className="text-2xl font-bold">{dashboardStats.totalUsers.toLocaleString()}</div>
+                    <div className="text-2xl font-bold">{dashboardStats.totalUsers?.toLocaleString() || 0}</div>
                   </CardContent>
                 </Card>
                 <Card>
@@ -372,7 +437,7 @@ export default function AdminPanelV2() {
                     <CardDescription>Posted jobs</CardDescription>
                   </CardHeader>
                   <CardContent>
-                    <div className="text-2xl font-bold">{dashboardStats.totalJobs.toLocaleString()}</div>
+                    <div className="text-2xl font-bold">{dashboardStats.totalJobs?.toLocaleString() || 0}</div>
                   </CardContent>
                 </Card>
                 <Card>
@@ -381,7 +446,7 @@ export default function AdminPanelV2() {
                     <CardDescription>Platform revenue</CardDescription>
                   </CardHeader>
                   <CardContent>
-                    <div className="text-2xl font-bold">${dashboardStats.totalRevenue.toLocaleString()}</div>
+                    <div className="text-2xl font-bold">${dashboardStats.totalRevenue?.toLocaleString() || 0}</div>
                   </CardContent>
                 </Card>
                 <Card>
@@ -390,11 +455,18 @@ export default function AdminPanelV2() {
                     <CardDescription>Open issues</CardDescription>
                   </CardHeader>
                   <CardContent>
-                    <div className="text-2xl font-bold">{dashboardStats.pendingDisputes}</div>
+                    <div className="text-2xl font-bold">{dashboardStats.pendingDisputes || 0}</div>
                   </CardContent>
                 </Card>
               </>
-            ) : null}
+            ) : (
+              <>
+                <Card className="border-muted bg-muted/5"><CardHeader className="pb-2"><CardTitle>Total Users</CardTitle></CardHeader><CardContent><p className="text-muted-foreground">No data available</p></CardContent></Card>
+                <Card className="border-muted bg-muted/5"><CardHeader className="pb-2"><CardTitle>Total Jobs</CardTitle></CardHeader><CardContent><p className="text-muted-foreground">No data available</p></CardContent></Card>
+                <Card className="border-muted bg-muted/5"><CardHeader className="pb-2"><CardTitle>Total Revenue</CardTitle></CardHeader><CardContent><p className="text-muted-foreground">No data available</p></CardContent></Card>
+                <Card className="border-muted bg-muted/5"><CardHeader className="pb-2"><CardTitle>Pending Disputes</CardTitle></CardHeader><CardContent><p className="text-muted-foreground">No data available</p></CardContent></Card>
+              </>
+            )}
           </div>
         </TabsContent>
 
@@ -415,24 +487,48 @@ export default function AdminPanelV2() {
               <RefreshCw className={`h-4 w-4 ${isUsersLoading ? 'animate-spin' : ''}`} />
             </Button>
           </div>
-          <div className="rounded-lg border">
+          <ScrollArea className="rounded-lg border h-[500px]">
             {isUsersLoading ? (
               Array.from({ length: 5 }).map((_, i) => <Skeleton key={i} className="h-16 w-full" />)
             ) : users.length === 0 ? (
               <div className="text-center p-8">No users found.</div>
             ) : (
-              users.map((user) => (
-                <div key={user.id} className="border-b last:border-b-0 p-4 hover:bg-muted/50 transition-colors cursor-pointer" onClick={() => handleUserSelect(user)}>
-                  <div className="grid grid-cols-4 gap-4 items-center">
-                      <p className="font-semibold">{user.username}</p>
-                      <p className="text-sm text-muted-foreground">{user.email}</p>
-                      <p>{user.accountType}</p>
-                      <Badge variant={user.isActive ? "default" : "destructive"}>{user.isActive ? 'Active' : 'Inactive'}</Badge>
-                  </div>
-                </div>
-              ))
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>User</TableHead>
+                    <TableHead>Email</TableHead>
+                    <TableHead>Account</TableHead>
+                    <TableHead>Status</TableHead>
+                    <TableHead className="text-right">Actions</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {users.map((user: User) => (
+                    <TableRow key={user.id} className="cursor-pointer" onClick={() => handleUserSelect(user)}>
+                      <TableCell className="font-semibold">{user.username}</TableCell>
+                      <TableCell className="text-muted-foreground">{user.email}</TableCell>
+                      <TableCell>{user.accountType}</TableCell>
+                      <TableCell>
+                        <Badge variant={user.isActive ? "default" : "destructive"}>{user.isActive ? 'Active' : 'Inactive'}</Badge>
+                        {user.isAdmin && (
+                          <Badge variant="secondary" className="ml-2"><Shield className="h-3 w-3 mr-1" />Admin</Badge>
+                        )}
+                      </TableCell>
+                      <TableCell className="text-right space-x-2">
+                        <Button size="sm" variant="outline" onClick={(e) => { e.stopPropagation(); handleUserAction(user.id, user.isActive ? 'ban' : 'unban'); }}>
+                          {user.isActive ? 'Ban' : 'Unban'}
+                        </Button>
+                        <Button size="sm" variant="outline" onClick={(e) => { e.stopPropagation(); handleUserAction(user.id, user.isAdmin ? 'removeAdmin' : 'makeAdmin'); }}>
+                          {user.isAdmin ? 'Remove Admin' : 'Make Admin'}
+                        </Button>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
             )}
-          </div>
+          </ScrollArea>
           {totalUsers > 0 && (
             <div className="flex justify-end items-center gap-2 mt-4">
               <span className="text-sm text-muted-foreground">Page {currentPage} of {Math.ceil(totalUsers / pageSize)}</span>
@@ -449,19 +545,32 @@ export default function AdminPanelV2() {
             </div>
             <Button onClick={() => refetchJobs()} variant="outline" size="sm" disabled={isJobsLoading}><RefreshCw className={`h-4 w-4 ${isJobsLoading ? 'animate-spin' : ''}`} /></Button>
           </div>
-          <div className="rounded-lg border">
-              {isJobsLoading ? (
-                  Array.from({ length: 5 }).map((_, i) => <Skeleton key={i} className="h-16 w-full" />)
-              ) : jobs.length === 0 ? (
-                  <div className="text-center p-8">No jobs found.</div>
-              ) : (
-                  jobs.map((job) => (
-                    <div key={job.id} className="border-b last:border-b-0 p-4 hover:bg-muted/50 transition-colors cursor-pointer" onClick={() => handleJobSelect(job)}>
-                        <p>{job.title}</p>
-                    </div>
-                  ))
-              )}
-          </div>
+          <ScrollArea className="rounded-lg border h-[500px]">
+            {isJobsLoading ? (
+              Array.from({ length: 5 }).map((_, i) => <Skeleton key={i} className="h-16 w-full" />)
+            ) : jobs.length === 0 ? (
+              <div className="text-center p-8">No jobs found.</div>
+            ) : (
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Title</TableHead>
+                    <TableHead>Status</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {jobs.map((job: Job) => (
+                    <TableRow key={job.id} className="cursor-pointer" onClick={() => handleJobSelect(job)}>
+                      <TableCell className="font-semibold">{job.title}</TableCell>
+                      <TableCell>
+                        <Badge>{job.status}</Badge>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            )}
+          </ScrollArea>
           {totalJobs > 0 && (
               <div className="flex justify-end items-center gap-2 mt-4">
                 <span className="text-sm text-muted-foreground">Page {currentPage} of {Math.ceil(totalJobs / pageSize)}</span>
@@ -498,28 +607,35 @@ export default function AdminPanelV2() {
             </div>
             <Button onClick={() => refetchSupport()} variant="outline" size="sm" disabled={isSupportLoading}><RefreshCw className={`h-4 w-4 ${isSupportLoading ? 'animate-spin' : ''}`} /></Button>
           </div>
-          <div className="rounded-lg border">
+          <ScrollArea className="rounded-lg border h-[500px]">
             {isSupportLoading ? (
-                Array.from({ length: 5 }).map((_, i) => <Skeleton key={i} className="h-16 w-full" />)
+              Array.from({ length: 5 }).map((_, i) => <Skeleton key={i} className="h-16 w-full" />)
             ) : supportTickets.length === 0 ? (
-                <div className="text-center p-8">No support tickets found.</div>
+              <div className="text-center p-8">No support tickets found.</div>
             ) : (
-                supportTickets.map((ticket) => (
-                  <div key={ticket.id} className="border-b last:border-b-0 p-4 hover:bg-muted/50 transition-colors cursor-pointer" onClick={() => handleTicketSelect(ticket)}>
-                      <div className="flex justify-between items-start">
-                        <div className="space-y-1">
-                            <p className="font-semibold">{ticket.title}</p>
-                            <p className="text-sm text-muted-foreground">#{ticket.id} from {ticket.userName || ticket.userEmail}</p>
-                        </div>
-                        <div className="flex flex-col items-end space-y-1">
-                            <Badge variant="secondary" className={getPriorityColor(ticket.priority)}>{ticket.priority}</Badge>
-                            <Badge className={getStatusColor(ticket.status)}>{ticket.status}</Badge>
-                        </div>
-                      </div>
-                  </div>
-                ))
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Ticket</TableHead>
+                    <TableHead>Priority</TableHead>
+                    <TableHead>Status</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {supportTickets.map((ticket: SupportTicket) => (
+                    <TableRow key={ticket.id} className="cursor-pointer" onClick={() => handleTicketSelect(ticket)}>
+                      <TableCell className="font-semibold space-y-1">
+                        <div>{ticket.title}</div>
+                        <div className="text-xs text-muted-foreground">#{ticket.id} • {ticket.userName || ticket.userEmail}</div>
+                      </TableCell>
+                      <TableCell><Badge variant="secondary" className={getPriorityColor(ticket.priority)}>{ticket.priority}</Badge></TableCell>
+                      <TableCell><Badge className={getStatusColor(ticket.status)}>{ticket.status}</Badge></TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
             )}
-          </div>
+          </ScrollArea>
           {totalTickets > 0 && (
             <div className="flex justify-end items-center gap-2 mt-4">
               <span className="text-sm text-muted-foreground">Page {currentPage} of {Math.ceil(totalTickets / pageSize)}</span>
@@ -563,26 +679,34 @@ export default function AdminPanelV2() {
                 </Button>
               </div>
 
-              <div className="rounded-lg border">
+              <ScrollArea className="rounded-lg border h-[500px]">
                 {isTransactionsLoading ? (
                   Array.from({ length: 10 }).map((_, i) => <Skeleton key={i} className="h-16 w-full" />)
-                ) : transactions.length === 0 ? (
+                ) : payments.length === 0 ? (
                   <div className="text-center p-8">No transactions found.</div>
                 ) : (
-                  transactions.map((transaction: Payment) => (
-                    <div key={transaction.id} className="border-b last:border-b-0 p-4">
-                      <div className="grid grid-cols-5 gap-4 items-center">
-                        <p className="font-semibold col-span-2">{transaction.description}</p>
-                        <p className="text-sm text-muted-foreground">{transaction.userEmail}</p>
-                        <p className="font-semibold text-right">${transaction.amount.toFixed(2)}</p>
-                        <div className="flex justify-end">
-                          <Badge>{transaction.status}</Badge>
-                        </div>
-                      </div>
-                    </div>
-                  ))
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Description</TableHead>
+                        <TableHead>Email</TableHead>
+                        <TableHead className="text-right">Amount</TableHead>
+                        <TableHead>Status</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {payments.map((transaction: Payment) => (
+                        <TableRow key={transaction.id}>
+                          <TableCell className="font-semibold">{transaction.description}</TableCell>
+                          <TableCell className="text-muted-foreground">{transaction.userEmail}</TableCell>
+                          <TableCell className="text-right">${transaction.amount.toFixed(2)}</TableCell>
+                          <TableCell><Badge>{transaction.status}</Badge></TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
                 )}
-              </div>
+              </ScrollArea>
 
               {totalTransactions > 0 && (
                 <div className="flex justify-end items-center gap-2 mt-4">
@@ -599,11 +723,49 @@ export default function AdminPanelV2() {
       {/* Dialogs for details */}
       <Dialog open={isUserDialogOpen} onOpenChange={setIsUserDialogOpen}>
         <DialogContent>
-          <DialogHeader><DialogTitle>User Details</DialogTitle></DialogHeader>
+          <DialogHeader>
+            <DialogTitle>User Management</DialogTitle>
+          </DialogHeader>
           {selectedUser && (
-            <div>
-              <p><strong>Username:</strong> {selectedUser.username}</p>
-              <p><strong>Email:</strong> {selectedUser.email}</p>
+            <div className="space-y-4">
+              <div>
+                <h3 className="font-semibold">{selectedUser.username}</h3>
+                <p className="text-sm text-muted-foreground">{selectedUser.email}</p>
+                <div className="flex items-center gap-2 mt-2">
+                  <Badge variant={selectedUser.isActive ? "default" : "destructive"}>
+                    {selectedUser.isActive ? 'Active' : 'Inactive'}
+                  </Badge>
+                  {selectedUser.isAdmin && (
+                    <Badge variant="secondary">
+                      <Shield className="h-3 w-3 mr-1" />Admin
+                    </Badge>
+                  )}
+                </div>
+              </div>
+              
+              <div className="flex flex-wrap gap-2">
+                <Button 
+                  variant={selectedUser.isActive ? "destructive" : "default"}
+                  onClick={() => handleUserAction(selectedUser.id, selectedUser.isActive ? 'ban' : 'unban')}
+                >
+                  {selectedUser.isActive ? 'Ban User' : 'Unban User'}
+                </Button>
+                
+                <Button 
+                  variant="outline"
+                  onClick={() => handleUserAction(selectedUser.id, selectedUser.isAdmin ? 'removeAdmin' : 'makeAdmin')}
+                >
+                  {selectedUser.isAdmin ? 'Remove Admin' : 'Make Admin'}
+                </Button>
+                
+                <Button 
+                  variant="outline"
+                  onClick={() => handleUserAction(selectedUser.id, 'verify')}
+                >
+                  <CheckCircle className="h-4 w-4 mr-1" />
+                  Verify User
+                </Button>
+              </div>
             </div>
           )}
         </DialogContent>

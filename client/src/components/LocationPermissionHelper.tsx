@@ -55,9 +55,31 @@ export const LocationPermissionHelper: React.FC<LocationPermissionHelperProps> =
     }
   }, [userLocation, isUsingFallback, onLocationObtained]);
 
+  // inside useEffect after permissions query add visibilitychange listener
+  useEffect(() => {
+    const handleVisibility = () => {
+      if (document.visibilityState === 'visible' && 'permissions' in navigator) {
+        navigator.permissions.query({ name: 'geolocation' as PermissionName })
+          .then((result) => setPermissionState(result.state))
+          .catch(() => {});
+      }
+    };
+    document.addEventListener('visibilitychange', handleVisibility);
+    return () => document.removeEventListener('visibilitychange', handleVisibility);
+  }, []);
+
   const handleRequestPermission = async () => {
     setIsRequestingPermission(true);
     try {
+      if (permissionState === 'prompt' || permissionState === 'denied') {
+        await new Promise((resolve, reject) => {
+          navigator.geolocation.getCurrentPosition(
+            () => resolve(null),
+            (err) => reject(err),
+            { enableHighAccuracy: false, timeout: 10000 }
+          );
+        });
+      }
       await refreshLocation();
     } catch (error) {
       console.error('Failed to get location:', error);

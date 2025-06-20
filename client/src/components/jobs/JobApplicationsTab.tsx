@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Loader2, CheckCheck, X, User, MessageCircle, Clock, DollarSign } from 'lucide-react';
 import { format } from 'date-fns';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
 interface JobApplicationsTabProps {
   applications: any[];
@@ -17,6 +18,19 @@ const JobApplicationsTab: React.FC<JobApplicationsTabProps> = ({ applications, j
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [processingApplicationId, setProcessingApplicationId] = useState<number | null>(null);
+  const [sortOption, setSortOption] = useState<'date' | 'rating' | 'hourlyRate'>('date');
+
+  const sortedApplications = React.useMemo(() => {
+    const apps = [...applications];
+    switch (sortOption) {
+      case 'rating':
+        return apps.sort((a, b) => (b.worker?.rating || 0) - (a.worker?.rating || 0));
+      case 'hourlyRate':
+        return apps.sort((a, b) => (b.hourlyRate || 0) - (a.hourlyRate || 0));
+      default:
+        return apps.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+    }
+  }, [applications, sortOption]);
 
   // Handle application actions (accept/reject)
   const handleApplicationAction = (applicationId: number, status: 'accepted' | 'rejected') => {
@@ -87,7 +101,23 @@ const JobApplicationsTab: React.FC<JobApplicationsTabProps> = ({ applications, j
 
   return (
     <div className="space-y-3">
-      {applications.map((application) => (
+      <div className="flex items-center justify-between mb-4">
+        <h3 className="text-lg font-medium">Applications ({applications.length})</h3>
+        <div className="flex items-center gap-2">
+          <span className="text-sm text-muted-foreground">Sort by:</span>
+          <Select value={sortOption} onValueChange={(val) => setSortOption(val as any)}>
+            <SelectTrigger className="w-[140px] h-8">
+              <SelectValue placeholder="Sort by" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="date">Recent</SelectItem>
+              <SelectItem value="rating">Rating</SelectItem>
+              <SelectItem value="hourlyRate">Hourly Rate</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+      </div>
+      {sortedApplications.map((application) => (
         <div 
           key={application.id} 
           className="application-card transition-all"

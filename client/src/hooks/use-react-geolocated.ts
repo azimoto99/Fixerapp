@@ -250,26 +250,53 @@ export function useGeolocation(): GeolocationHook {
             locationAccuracy: locationAccuracy,
           }));
 
-          console.log(`High accuracy location acquired: ${locationSource} (${locationAccuracy} accuracy: ${accuracy?.toFixed(0)}m)`);
+          console.log(`High accuracy location obtained (${accuracy?.toFixed(0) || 'unknown'}m)`);
+
           resolve(newLocation);
         },
         (error) => {
-          let errorMessage = error.message;
-          if (error.code === error.TIMEOUT) {
-            errorMessage = 'High accuracy location request timed out. GPS signal may be weak.';
-          } else if (error.code === error.PERMISSION_DENIED) {
-            errorMessage = 'Location access denied. Please enable location services.';
-          } else if (error.code === error.POSITION_UNAVAILABLE) {
-            errorMessage = 'High accuracy location unavailable. GPS signal may be blocked.';
-          }
+          console.warn('High accuracy location failed, falling back to low accuracy', error);
 
-          console.warn('High accuracy location failed:', errorMessage);
-          reject(new Error(errorMessage));
+          // Fallback to low-accuracy location request
+          navigator.geolocation.getCurrentPosition(
+            (fallbackPosition) => {
+              const accuracy = fallbackPosition.coords.accuracy;
+              const locationAccuracy = getLocationAccuracy(accuracy);
+              const locationSource = getLocationSource(accuracy);
+
+              const fallbackLocation: Coordinates = {
+                latitude: fallbackPosition.coords.latitude,
+                longitude: fallbackPosition.coords.longitude,
+                accuracy: accuracy,
+                source: locationSource
+              };
+
+              setState(prev => ({
+                ...prev,
+                userLocation: fallbackLocation,
+                locationError: 'High accuracy location unavailable. Using coarse location.',
+                isLoading: false,
+                isUsingFallback: false,
+                locationAccuracy: locationAccuracy,
+              }));
+
+              resolve(fallbackLocation);
+            },
+            (fallbackError) => {
+              console.error('Low accuracy fallback also failed', fallbackError);
+              reject(fallbackError);
+            },
+            {
+              enableHighAccuracy: false,
+              timeout: 10000,
+              maximumAge: 60000,
+            }
+          );
         },
         {
           enableHighAccuracy: true,
-          timeout: 20000, // Longer timeout for GPS acquisition
-          maximumAge: 0 // Always get fresh location
+          timeout: 10000,
+          maximumAge: 0,
         }
       );
     });

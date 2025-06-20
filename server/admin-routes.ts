@@ -1,4 +1,4 @@
-import type { Express } from "express";
+import type { Express, Request, Response } from "express";
 import { storage } from "./storage";
 import { 
   enhancedAdminAuth, 
@@ -2188,5 +2188,34 @@ export function registerAdminRoutes(app: Express) {
   app.get('/api/admin/support', (req, res) => {
     const qs = new URLSearchParams(req.query as any).toString();
     res.redirect(307, `/api/admin/support-tickets${qs ? '?' + qs : ''}`);
+  });
+
+  // Validate admin token endpoint
+  app.get("/api/admin/validate-token", adminAuth, (req: Request, res: Response) => {
+    // If this endpoint is reached, it means authentication passed
+    // Return admin permissions based on the user
+    const adminUser = req.user!; // Use non-null assertion since adminAuth middleware ensures req.user exists
+    
+    // Default admin permissions
+    const permissions = [
+      'view_dashboard', 
+      'manage_users', 
+      'view_jobs',
+    ];
+    
+    // Add special permissions for super admin
+    if (adminUser.id === 20) { // Special admin ID - Replace with your actual super admin ID
+      permissions.push('manage_settings');
+      permissions.push('manage_payments');
+      permissions.push('view_system_logs');
+    }
+    
+    res.json({
+      isValid: true,
+      token: req.session?.id || '', // Use session ID as token with fallback
+      permissions,
+      userId: adminUser.id,
+      username: adminUser.username
+    });
   });
 }

@@ -72,6 +72,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ModernMessagingInterface } from '@/components/messaging/ModernMessagingInterface';
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { cn } from '@/lib/utils';
+import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '@/components/ui/select';
 
 // Import application management tab
 import JobApplicationsTab from './JobApplicationsTab';
@@ -525,6 +526,18 @@ const JobDetailsCard: React.FC<JobDetailsCardProps> = ({ jobId, isOpen, onClose 
     setShowCompleteDialog(false);
   };
 
+  // Handle status change from dropdown
+  const handleStatusChange = (newStatus: 'open' | 'assigned' | 'in_progress' | 'completed' | 'canceled') => {
+    if (newStatus === job.status) return;
+    if (newStatus === 'in_progress') {
+      handleStartJob();
+    } else if (newStatus === 'completed') {
+      handleCompleteJob();
+    } else {
+      updateJobStatusMutation.mutate({ status: newStatus });
+    }
+  };
+
   // Clear state when component unmounts or job changes
   useEffect(() => {
     if (!isOpen) {
@@ -673,6 +686,20 @@ const JobDetailsCard: React.FC<JobDetailsCardProps> = ({ jobId, isOpen, onClose 
               <Badge variant={getStatusVariant(job.status)} className={getStatusClass(job.status)}>
                 {job.status.charAt(0).toUpperCase() + job.status.slice(1).replace('_', ' ')}
               </Badge>
+              {(isJobPoster || user?.id === job.workerId) && (
+                <Select value={job.status} onValueChange={(val) => handleStatusChange(val as any)}>
+                  <SelectTrigger className="ml-2 h-8 w-32 text-xs">
+                    <SelectValue placeholder="Update" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="open">Open</SelectItem>
+                    {isJobPoster && <SelectItem value="assigned">Assigned</SelectItem>}
+                    {user?.id === job.workerId && <SelectItem value="in_progress">In Progress</SelectItem>}
+                    {(isJobPoster || user?.id === job.workerId) && <SelectItem value="completed">Completed</SelectItem>}
+                    {isJobPoster && <SelectItem value="canceled">Canceled</SelectItem>}
+                  </SelectContent>
+                </Select>
+              )}
             </div>
             
             <div className="text-xs text-muted-foreground">
