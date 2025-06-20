@@ -3,7 +3,7 @@ import { IStorage } from "./storage";
 import { DatabaseStorage } from "./database-storage";
 import connectPg from "connect-pg-simple";
 import session from "express-session";
-import { uploadProfileImage as uploadToS3, base64ToBuffer, validateImageFile } from './services/s3Service.js';
+import { uploadProfileImage as uploadToS3, base64ToBuffer, validateImageFile } from './services/s3Service';
 import { pool, db } from "./db";
 import { eq, desc, sql } from "drizzle-orm";
 import { supportTickets, supportMessages, users } from "@shared/schema";

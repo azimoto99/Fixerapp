@@ -21,7 +21,7 @@ export interface MessageData {
   recipientId: number;
   isRead: boolean;
   readAt?: Date;
-  createdAt: Date;
+  sentAt: Date;
   editedAt?: Date;
   status?: 'sending' | 'sent' | 'delivered' | 'read' | 'failed';
   senderName?: string;
@@ -204,7 +204,7 @@ export function MessageBubble({
             "flex items-center gap-1 mt-1 text-xs",
             isOwn ? "text-primary/70" : "text-muted-foreground"
           )}>
-            <span>{formatMessageTime(message.createdAt)}</span>
+            <span>{formatMessageTime(message.sentAt)}</span>
             {getStatusIcon()}
           </div>
         )}

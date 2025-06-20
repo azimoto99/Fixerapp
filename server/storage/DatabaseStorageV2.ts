@@ -23,6 +23,8 @@ export type Application = typeof schema.applications.$inferSelect;
 export type InsertApplication = typeof schema.applications.$inferInsert;
 export type Notification = typeof schema.notifications.$inferSelect;
 export type InsertNotification = typeof schema.notifications.$inferInsert;
+export type UserPrivacySettings = typeof schema.userPrivacySettings.$inferSelect;
+export type InsertUserPrivacySettings = typeof schema.userPrivacySettings.$inferInsert;
 
 // Basic helpers that we will progressively expand.
 export const Storage = {
@@ -107,5 +109,45 @@ export const Storage = {
       .where(eq(schema.jobs.id, id))
       .returning();
     return row;
+  },
+
+  /** Get user's privacy settings */
+  getUserPrivacySettings: async (userId: number) => {
+    const [settings] = await db
+      .select()
+      .from(schema.userPrivacySettings)
+      .where(eq(schema.userPrivacySettings.userId, userId))
+      .limit(1);
+    return settings ?? null;
+  },
+
+  /** Create user privacy settings */
+  createUserPrivacySettings: async (data: InsertUserPrivacySettings) => {
+    const [row] = await db
+      .insert(schema.userPrivacySettings)
+      .values(data)
+      .returning();
+    return row;
+  },
+
+  /** Update user privacy settings */
+  updateUserPrivacySettings: async (userId: number, data: Partial<InsertUserPrivacySettings>) => {
+    const [row] = await db
+      .update(schema.userPrivacySettings)
+      .set({ ...data, updatedAt: new Date() })
+      .where(eq(schema.userPrivacySettings.userId, userId))
+      .returning();
+    return row;
+  },
+
+  /** Create or update user privacy settings */
+  upsertUserPrivacySettings: async (userId: number, data: Partial<InsertUserPrivacySettings>) => {
+    const existing = await Storage.getUserPrivacySettings(userId);
+    
+    if (existing) {
+      return Storage.updateUserPrivacySettings(userId, data);
+    } else {
+      return Storage.createUserPrivacySettings({ ...data, userId } as InsertUserPrivacySettings);
+    }
   },
 }; 

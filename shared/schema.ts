@@ -816,6 +816,32 @@ export const platformSettings = pgTable("platform_settings", {
   updatedAt: timestamp("updated_at").defaultNow(),
 });
 
+// User privacy settings table
+export const userPrivacySettings = pgTable("user_privacy_settings", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id").references(() => users.id).notNull().unique(),
+  showLocationToAll: boolean("show_location_to_all").notNull().default(false),
+  showLocationToJobPosters: boolean("show_location_to_job_posters").notNull().default(true),
+  showLocationRadius: integer("show_location_radius").notNull().default(1000), // in meters
+  showPhoneToAll: boolean("show_phone_to_all").notNull().default(false),
+  showPhoneToJobPosters: boolean("show_phone_to_job_posters").notNull().default(true),
+  showEmailToAll: boolean("show_email_to_all").notNull().default(false),
+  showEmailToJobPosters: boolean("show_email_to_job_posters").notNull().default(false),
+  showFullNameToAll: boolean("show_full_name_to_all").notNull().default(false),
+  showFullNameToJobPosters: boolean("show_full_name_to_job_posters").notNull().default(true),
+  showProfilePictureToAll: boolean("show_profile_picture_to_all").notNull().default(true),
+  showRatingsToAll: boolean("show_ratings_to_all").notNull().default(true),
+  showJobHistoryToAll: boolean("show_job_history_to_all").notNull().default(false),
+  allowMessagesFromAll: boolean("allow_messages_from_all").notNull().default(false),
+  allowMessagesFromJobPostersOnly: boolean("allow_messages_from_job_posters_only").notNull().default(true),
+  allowJobRecommendations: boolean("allow_job_recommendations").notNull().default(true),
+  allowMarketingEmails: boolean("allow_marketing_emails").notNull().default(false),
+  allowPushNotifications: boolean("allow_push_notifications").notNull().default(true),
+  dataRetentionPeriod: integer("data_retention_period").notNull().default(0), // in days, 0 = indefinite
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
 // Admin schemas
 export const insertAdminUserSchema = createInsertSchema(adminUsers).pick({
   userId: true,
@@ -894,6 +920,28 @@ export const insertPlatformSettingsSchema = createInsertSchema(platformSettings)
   updatedBy: true,
 });
 
+export const insertUserPrivacySettingsSchema = createInsertSchema(userPrivacySettings).pick({
+  userId: true,
+  showLocationToAll: true,
+  showLocationToJobPosters: true,
+  showLocationRadius: true,
+  showPhoneToAll: true,
+  showPhoneToJobPosters: true,
+  showEmailToAll: true,
+  showEmailToJobPosters: true,
+  showFullNameToAll: true,
+  showFullNameToJobPosters: true,
+  showProfilePictureToAll: true,
+  showRatingsToAll: true,
+  showJobHistoryToAll: true,
+  allowMessagesFromAll: true,
+  allowMessagesFromJobPostersOnly: true,
+  allowJobRecommendations: true,
+  allowMarketingEmails: true,
+  allowPushNotifications: true,
+  dataRetentionPeriod: true,
+});
+
 // Admin types
 export type AdminUser = typeof adminUsers.$inferSelect;
 export type InsertAdminUser = z.infer<typeof insertAdminUserSchema>;
@@ -915,6 +963,9 @@ export type InsertSystemAlert = z.infer<typeof insertSystemAlertSchema>;
 
 export type PlatformSettings = typeof platformSettings.$inferSelect;
 export type InsertPlatformSettings = z.infer<typeof insertPlatformSettingsSchema>;
+
+export type UserPrivacySettings = typeof userPrivacySettings.$inferSelect;
+export type InsertUserPrivacySettings = z.infer<typeof insertUserPrivacySettingsSchema>;
 
 // Admin permission constants
 export const ADMIN_ROLES = [

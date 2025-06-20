@@ -19,6 +19,7 @@ import "./seed";
 import userRoutes from './routes/user';
 import helmet from 'helmet';
 import { securityConfig } from './security-config';
+import { WebSocketServer as WSServer } from 'ws';
 
 // Log environment variables (excluding sensitive ones)
 log('Environment check:');
@@ -145,8 +146,10 @@ app.use((req, res, next) => {
   next();
 });
 
-// Serve uploaded avatars statically
-app.use('/avatars', express.static('public/avatars'));
+app.use(express.static('public'));
+
+// Remove the specific static route for avatars as they are now served from S3
+// app.use('/avatars', express.static('public/avatars'));
 
 app.use((req, res, next) => {
   const start = Date.now();
@@ -177,6 +180,9 @@ app.use((req, res, next) => {
 
   next();
 });
+
+// Register user routes BEFORE main routes to prevent interception
+app.use('/api/user', userRoutes);
 
 (async () => {
   const server = await registerRoutes(app);
@@ -210,7 +216,12 @@ app.use((req, res, next) => {
   }, () => {
     log(`serving on ${host}:${port}`);
   });
-
-  // Add after other route registrations:
-  app.use('/api/user', userRoutes);
 })();
+
+// WebSocket server setup
+const wss = new WSServer({ noServer: true });
+
+// Handle WebSocket connections
+wss.on('connection', (ws) => {
+  // ... existing code ...
+});

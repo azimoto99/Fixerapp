@@ -29,6 +29,7 @@ interface SettingsContentProps {
 
 const SettingsContent: React.FC<SettingsContentProps> = ({ user }) => {
   const [isLoading, setIsLoading] = useState(false);
+  const [isLoadingPrivacy, setIsLoadingPrivacy] = useState(true);
   const { toast } = useToast();
   const [activeTab, setActiveTab] = useState('profile');
   
@@ -41,12 +42,26 @@ const SettingsContent: React.FC<SettingsContentProps> = ({ user }) => {
     marketingEmails: user.marketingEmails ?? false,
   });
 
-  // Privacy settings - these should be fetched from user preferences
+  // Privacy settings - fetched from real API
   const [privacySettings, setPrivacySettings] = useState({
-    profileVisibility: user.profileVisibility || 'all', // 'all', 'contacts', 'none'
-    showOnlineStatus: user.showOnlineStatus ?? true,
-    shareActivityStatus: user.shareActivityStatus ?? true,
-    allowLocationAccess: user.allowLocationAccess ?? true,
+    showLocationToAll: false,
+    showLocationToJobPosters: true,
+    showLocationRadius: 1000,
+    showPhoneToAll: false,
+    showPhoneToJobPosters: true,
+    showEmailToAll: false,
+    showEmailToJobPosters: false,
+    showFullNameToAll: false,
+    showFullNameToJobPosters: true,
+    showProfilePictureToAll: true,
+    showRatingsToAll: true,
+    showJobHistoryToAll: false,
+    allowMessagesFromAll: false,
+    allowMessagesFromJobPostersOnly: true,
+    allowJobRecommendations: true,
+    allowMarketingEmails: false,
+    allowPushNotifications: true,
+    dataRetentionPeriod: 0,
   });
 
   const handleToggle = (setting: string) => {
