@@ -99,8 +99,8 @@ export function registerAdminRoutes(app: Express) {
         sortOrder: sortOrder as 'asc' | 'desc'
       });
       
-      // Remove sensitive information
-      const safeUsers = users.map(user => ({
+      // Remove sensitive information, ensure users is an array
+      const safeUsers = Array.isArray(users) ? users.map(user => ({
         id: user.id,
         username: user.username,
         fullName: user.fullName,
@@ -112,13 +112,13 @@ export function registerAdminRoutes(app: Express) {
         lastActive: user.lastActive,
         emailVerified: user.emailVerified,
         phoneVerified: user.phoneVerified
-      }));
+      })) : [];
 
       res.json({
         users: safeUsers,
-        total,
+        total: total || 0,
         page: parseInt(page as string),
-        totalPages: Math.ceil(total / parseInt(limit as string))
+        totalPages: Math.ceil((total || 0) / parseInt(limit as string))
       });
     } catch (error) {
       console.error('Admin users error:', error);
