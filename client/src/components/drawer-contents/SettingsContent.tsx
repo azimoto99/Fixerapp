@@ -9,7 +9,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { apiRequest, queryClient } from '@/lib/queryClient';
 import { useToast } from '@/hooks/use-toast';
 import { ThemeToggle } from '@/components/theme/ThemeToggle';
-import { AvatarUpload } from '@/components/AvatarUpload';
+import { ProfileImageUploader } from '@/components/profile/ProfileImageUploader';
 import {
   Save,
   Bell,
@@ -140,17 +140,8 @@ const SettingsContent: React.FC<SettingsContentProps> = ({ user }) => {
               <CardDescription>Upload and manage your profile avatar</CardDescription>
             </CardHeader>
             <CardContent className="flex flex-col items-center space-y-6">
-              <AvatarUpload
-                currentAvatarUrl={user.avatarUrl || undefined}
-                userId={user.id}
-                onAvatarUpdate={(newUrl) => {
-                  // Update local user data
-                  queryClient.invalidateQueries({ queryKey: ['/api/user'] });
-                  toast({
-                    title: "Success! 🎉",
-                    description: "Your profile picture has been updated.",
-                  });
-                }}
+              <ProfileImageUploader
+                user={user}
                 className="w-full max-w-sm"
               />
               

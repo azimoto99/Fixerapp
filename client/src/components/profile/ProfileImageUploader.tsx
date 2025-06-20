@@ -5,56 +5,66 @@ import { useToast } from '@/hooks/use-toast';
 import { User } from '@shared/schema';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { Upload, X } from 'lucide-react';
-import { uploadProfileImage, validateImageFile, resizeImage } from '@/lib/uploadService';
-
-// Predefined avatars list (should match server-side PREDEFINED_AVATARS)
-const PREDEFINED_AVATARS = [
-  'avatar-1.png',
-  'avatar-2.png',
-  'avatar-3.png',
-  'avatar-4.png',
-  'avatar-5.png',
-  'avatar-6.png',
-  'avatar-7.png',
-  'avatar-8.png',
-];
+import { Upload, X, Camera } from 'lucide-react';
 
 interface ProfileImageUploaderProps {
   user: User;
+  className?: string;
 }
 
-export function ProfileImageUploader({ user }: ProfileImageUploaderProps) {
+export function ProfileImageUploader({ user, className = "" }: ProfileImageUploaderProps) {
   const { toast } = useToast();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [previewImage, setPreviewImage] = useState<string | null>(user.avatarUrl);
   const [isUploading, setIsUploading] = useState(false);
-  const [showAvatarSelector, setShowAvatarSelector] = useState(false);
 
   const uploadMutation = useMutation({
     mutationFn: async (file: File) => {
-      // Validate the image file
-      validateImageFile(file);
-
-      // Resize image if it's too large (optional optimization)
-      let processedFile = file;
-      if (file.size > 1024 * 1024) { // If larger than 1MB, resize
-        processedFile = await resizeImage(file, 400, 400, 0.8);
+      // Validate file
+      const maxSize = 5 * 1024 * 1024; // 5MB
+      const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp'];
+      
+      if (!allowedTypes.includes(file.type)) {
+        throw new Error('Please select a valid image file (JPEG, PNG, GIF, or WebP)');
+      }
+      
+      if (file.size > maxSize) {
+        throw new Error('Image must be smaller than 5MB');
       }
 
-      // Upload to S3 via our new service
-      const result = await uploadProfileImage(processedFile);
-      return result;
+      // Create form data
+      const formData = new FormData();
+      formData.append('avatar', file);
+
+      // Upload the file
+      const response = await apiRequest('POST', '/api/user/avatar/upload', formData);
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.message || 'Failed to upload image');
+      }
+      return response.json();
     },
     onSuccess: (result) => {
-      // Update the cache with new user data if available
-      if (result.user) {
-        queryClient.setQueryData(['/api/user'], result.user);
+      // Update the preview and cache
+      if (result.avatarUrl) {
+        setPreviewImage(result.avatarUrl);
       }
 
+      // Update the user cache
+      queryClient.setQueryData(['/api/user'], (oldData: any) => {
+        if (oldData) {
+          return { ...oldData, avatarUrl: result.avatarUrl };
+        }
+        return oldData;
+      });
+
+      // Invalidate user queries to refresh everywhere
+      queryClient.invalidateQueries({ queryKey: ['/api/user'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/users'] });
+
       toast({
-        title: 'Profile image updated',
-        description: 'Your profile image has been uploaded to secure cloud storage.',
+        title: 'Profile image updated! 🎉',
+        description: 'Your profile image has been uploaded successfully.',
       });
 
       setIsUploading(false);
@@ -72,83 +82,21 @@ export function ProfileImageUploader({ user }: ProfileImageUploaderProps) {
     },
   });
 
-  const updateAvatarMutation = useMutation({
-    mutationFn: async (avatarName: string) => {
-      const response = await apiRequest('POST', '/api/user/avatar', { avatarName });
-      if (!response.ok) {
-        throw new Error('Failed to update avatar');
-      }
-      return response.json();
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['user', user.id] });
-      toast({
-        title: "Avatar Updated",
-        description: "Your avatar has been updated successfully",
-      });
-      setShowAvatarSelector(false);
-    },
-    onError: (error) => {
-      toast({
-        title: "Error",
-        description: error instanceof Error ? error.message : "Failed to update avatar",
-        variant: "destructive",
-      });
-    },
-  });
-
-  const uploadCustomAvatarMutation = useMutation({
-    mutationFn: async (file: File) => {
-      const formData = new FormData();
-      formData.append('customAvatar', file);
-      const response = await apiRequest('POST', '/api/user/avatar', formData);
-      if (!response.ok) {
-        throw new Error('Failed to upload custom avatar');
-      }
-      return response.json();
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['user', user.id] });
-      toast({
-        title: "Custom Avatar Uploaded",
-        description: "Your custom avatar has been uploaded successfully",
-      });
-    },
-    onError: (error) => {
-      toast({
-        title: "Error",
-        description: error instanceof Error ? error.message : "Failed to upload custom avatar",
-        variant: "destructive",
-      });
-    },
-  });
-
   const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (!file) return;
 
-    try {
-      // Validate file using our new validation function
-      validateImageFile(file);
+    // Create preview immediately
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const imageData = e.target?.result as string;
+      setPreviewImage(imageData);
+    };
+    reader.readAsDataURL(file);
 
-      // Create preview
-      const reader = new FileReader();
-      reader.onload = (e) => {
-        const imageData = e.target?.result as string;
-        setPreviewImage(imageData);
-      };
-      reader.readAsDataURL(file);
-
-      // Upload file
-      setIsUploading(true);
-      uploadMutation.mutate(file);
-    } catch (error) {
-      toast({
-        title: 'Invalid file',
-        description: error instanceof Error ? error.message : 'Please select a valid image file.',
-        variant: 'destructive',
-      });
-    }
+    // Upload file
+    setIsUploading(true);
+    uploadMutation.mutate(file);
   };
 
   const triggerFileInput = () => {
@@ -156,50 +104,51 @@ export function ProfileImageUploader({ user }: ProfileImageUploaderProps) {
   };
 
   const removeImage = async () => {
-    // If there's no image to remove, just return
     if (!previewImage) return;
 
     try {
-      // Create a 1x1 transparent pixel as a placeholder
-      const canvas = document.createElement('canvas');
-      canvas.width = 1;
-      canvas.height = 1;
-      const ctx = canvas.getContext('2d');
-      ctx!.clearRect(0, 0, 1, 1);
+      setIsUploading(true);
+      const response = await apiRequest('DELETE', '/api/user/avatar');
+      
+      if (!response.ok) {
+        throw new Error('Failed to remove image');
+      }
 
-      // Convert to blob and then to file
-      canvas.toBlob((blob) => {
-        if (blob) {
-          const placeholderFile = new File([blob], 'placeholder.png', { type: 'image/png' });
-          setIsUploading(true);
-          uploadMutation.mutate(placeholderFile);
-          setPreviewImage(null);
+      setPreviewImage(null);
+      
+      // Update cache
+      queryClient.setQueryData(['/api/user'], (oldData: any) => {
+        if (oldData) {
+          return { ...oldData, avatarUrl: null };
         }
-      }, 'image/png');
+        return oldData;
+      });
+
+      queryClient.invalidateQueries({ queryKey: ['/api/user'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/users'] });
+
+      toast({
+        title: 'Profile image removed',
+        description: 'Your profile image has been removed successfully.',
+      });
     } catch (error) {
       toast({
         title: 'Error',
         description: 'Failed to remove image',
         variant: 'destructive',
       });
+    } finally {
+      setIsUploading(false);
     }
   };
 
-  const handleAvatarSelect = (avatarName: string) => {
-    updateAvatarMutation.mutate(avatarName);
-  };
-
-  const handleCustomAvatarUpload = (file: File) => {
-    uploadCustomAvatarMutation.mutate(file);
-  };
-
   return (
-    <div className="flex flex-col items-center">
+    <div className={`flex flex-col items-center space-y-4 ${className}`}>
       <div className="relative group">
-        <Avatar className="h-24 w-24 cursor-pointer">
-          <AvatarImage src={previewImage || undefined} alt={user.fullName} />
-          <AvatarFallback className="text-2xl bg-primary text-white">
-            {user.fullName.charAt(0)}
+        <Avatar className="h-24 w-24 cursor-pointer border-2 border-border">
+          <AvatarImage src={previewImage || undefined} alt={user.fullName || user.username} />
+          <AvatarFallback className="text-2xl bg-primary/10 text-primary">
+            {(user.fullName || user.username || 'U').charAt(0).toUpperCase()}
           </AvatarFallback>
         </Avatar>
         
@@ -207,13 +156,14 @@ export function ProfileImageUploader({ user }: ProfileImageUploaderProps) {
           className="absolute inset-0 bg-black bg-opacity-40 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer"
           onClick={triggerFileInput}
         >
-          <Upload className="text-white h-6 w-6" />
+          <Camera className="text-white h-6 w-6" />
         </div>
         
         {previewImage && (
           <button 
             onClick={removeImage}
-            className="absolute -top-1 -right-1 bg-red-500 text-white rounded-full p-1"
+            disabled={isUploading}
+            className="absolute -top-1 -right-1 bg-red-500 hover:bg-red-600 text-white rounded-full p-1 shadow-lg transition-colors disabled:opacity-50"
             aria-label="Remove image"
           >
             <X className="h-4 w-4" />
@@ -229,46 +179,27 @@ export function ProfileImageUploader({ user }: ProfileImageUploaderProps) {
         className="hidden"
       />
       
-      <Button 
-        variant="outline" 
-        size="sm" 
-        className="mt-2"
-        onClick={triggerFileInput}
-        disabled={isUploading}
-      >
-        {isUploading ? 'Uploading...' : 'Change Image'}
-      </Button>
-      
-      <Button 
-        variant="outline" 
-        size="sm" 
-        className="mt-2"
-        onClick={() => setShowAvatarSelector(!showAvatarSelector)}
-        disabled={isUploading}
-      >
-        {showAvatarSelector ? 'Hide Avatars' : 'Select Avatar'}
-      </Button>
-      
-      {showAvatarSelector && (
-        <div className="mt-4 grid grid-cols-4 gap-2">
-          {PREDEFINED_AVATARS.map((avatarName) => (
-            <button
-              key={avatarName}
-              className="relative group/avatar"
-              onClick={() => handleAvatarSelect(avatarName)}
-              disabled={isUploading}
-            >
-              <Avatar className="h-16 w-16 cursor-pointer border-2 border-background">
-                <AvatarImage src={`/avatars/${avatarName}`} alt={`Avatar ${avatarName}`} />
-                <AvatarFallback>A</AvatarFallback>
-              </Avatar>
-              <div className="absolute inset-0 bg-black bg-opacity-40 rounded-full flex items-center justify-center opacity-0 group-hover/avatar:opacity-100 transition-opacity cursor-pointer">
-                <span className="text-white text-sm">Select</span>
-              </div>
-            </button>
-          ))}
+      <div className="text-center space-y-2">
+        <Button 
+          variant="outline" 
+          size="sm" 
+          onClick={triggerFileInput}
+          disabled={isUploading}
+          className="flex items-center gap-2"
+        >
+          <Upload className="h-4 w-4" />
+          {isUploading ? 'Uploading...' : 'Upload Image'}
+        </Button>
+        
+        <div className="text-center space-y-1">
+          <p className="text-sm text-muted-foreground">
+            Upload a profile picture to help others recognize you
+          </p>
+          <p className="text-xs text-muted-foreground">
+            Recommended: Square image, at least 200x200 pixels, max 5MB
+          </p>
         </div>
-      )}
+      </div>
     </div>
   );
 }

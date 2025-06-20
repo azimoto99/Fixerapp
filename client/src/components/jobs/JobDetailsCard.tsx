@@ -144,11 +144,17 @@ const JobDetailsCard: React.FC<JobDetailsCardProps> = ({ jobId, isOpen, onClose 
     queryFn: async () => {
       const response = await apiRequest('GET', `/api/jobs/${jobId}`);
       if (!response.ok) {
-        throw new Error('Failed to fetch job details');
+        const errorData = await response.json().catch(() => ({ message: 'Failed to fetch job details' }));
+        throw new Error(errorData.message || 'Failed to fetch job details');
       }
       return response.json();
     },
     enabled: isOpen && !!jobId,
+    retry: 3,
+    retryDelay: attemptIndex => Math.min(1000 * 2 ** attemptIndex, 30000),
+    onError: (error) => {
+      console.error('Error fetching job details:', error);
+    },
   });
 
   // Fetch poster details
@@ -623,6 +629,39 @@ const JobDetailsCard: React.FC<JobDetailsCardProps> = ({ jobId, isOpen, onClose 
   }
 
   if (!job) {
+    // Check if there was an error vs still loading
+    if (jobError) {
+      return (
+        <AnimatePresence>
+          <motion.div
+            className="fixed bottom-0 left-0 right-0 z-50 p-4 sm:p-6 flex justify-center"
+            initial="hidden"
+            animate="visible"
+            exit="exit"
+            variants={variants}
+          >
+            <Card className="w-full max-w-3xl shadow-lg border rounded-xl overflow-hidden relative">
+              <CardContent className="py-8">
+                <div className="text-center">
+                  <X className="h-12 w-12 mx-auto mb-2 text-destructive" />
+                  <h3 className="text-lg font-medium">Error Loading Job</h3>
+                  <p className="text-muted-foreground mt-1">
+                    {jobError instanceof Error ? jobError.message : 'Failed to load job details'}
+                  </p>
+                  <div className="flex gap-2 mt-4 justify-center">
+                    <Button onClick={() => window.location.reload()} variant="outline">
+                      Retry
+                    </Button>
+                    <Button onClick={onClose}>Close</Button>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </motion.div>
+        </AnimatePresence>
+      );
+    }
+
     return (
       <AnimatePresence>
         <motion.div
