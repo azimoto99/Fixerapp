@@ -471,4 +471,287 @@ export function registerMessagingRoutes(app: Express) {
       res.status(500).json({ error: 'Failed to initiate call' });
     }
   });
+
+  /**
+   * Create a group conversation for a job
+   * @route POST /api/conversations/group
+   * @middleware isAuthenticated - User must be logged in
+   * @body { jobId: number, title?: string, participants: number[] }
+   * @returns The created conversation with participants
+   */
+  app.post("/api/conversations/group", async (req: Request, res: Response) => {
+    if (!req.isAuthenticated()) {
+      return res.status(401).json({ message: "Unauthorized - Please login again" });
+    }
+
+    try {
+      const conversationSchema = z.object({
+        jobId: z.number().positive("Job ID is required"),
+        title: z.string().optional(),
+        participants: z.array(z.number().positive()).min(1, "At least one participant is required")
+      });
+
+      const validatedData = conversationSchema.parse(req.body);
+      const userId = req.user?.id;
+
+      if (!userId) {
+        return res.status(401).json({ message: "User ID not found" });
+      }
+
+      // Check if user has access to the job
+      const job = await storage.getJob(validatedData.jobId);
+      if (!job) {
+        return res.status(404).json({ message: "Job not found" });
+      }
+
+      // Check if user is the job poster or an applicant
+      const applications = await storage.getApplicationsForJob(validatedData.jobId);
+      const isJobPoster = job.posterId === userId;
+      const isApplicant = applications.some(app => app.userId === userId);
+
+      if (!isJobPoster && !isApplicant) {
+        return res.status(403).json({ message: "You don't have access to create conversations for this job" });
+      }
+
+      // Create conversation
+      const conversation = await storage.createGroupConversation({
+        jobId: validatedData.jobId,
+        title: validatedData.title || `${job.title} - Group Chat`,
+        createdBy: userId,
+        type: 'job_group',
+        participants: [userId, ...validatedData.participants].filter((id, index, arr) => arr.indexOf(id) === index) // Remove duplicates
+      });
+
+      res.status(201).json(conversation);
+    } catch (error) {
+      console.error("Error creating group conversation:", error);
+      if (error instanceof z.ZodError) {
+        res.status(400).json({ message: error.errors[0].message });
+      } else {
+        res.status(500).json({ message: "Failed to create group conversation" });
+      }
+    }
+  });
+
+  /**
+   * Send a message to a group conversation
+   * @route POST /api/conversations/:conversationId/messages
+   * @middleware isAuthenticated - User must be logged in
+   * @body { content: string }
+   * @returns The created message
+   */
+  app.post("/api/conversations/:conversationId/messages", async (req: Request, res: Response) => {
+    if (!req.isAuthenticated()) {
+      return res.status(401).json({ message: "Unauthorized - Please login again" });
+    }
+
+    try {
+      const conversationId = parseInt(req.params.conversationId);
+      if (isNaN(conversationId)) {
+        return res.status(400).json({ message: "Invalid conversation ID" });
+      }
+
+      const messageSchema = z.object({
+        content: z.string().min(1, "Message content is required"),
+        messageType: z.string().optional(),
+        attachmentUrl: z.string().optional(),
+        attachmentType: z.string().optional()
+      });
+
+      const validatedData = messageSchema.parse(req.body);
+      const userId = req.user?.id;
+
+      if (!userId) {
+        return res.status(401).json({ message: "User ID not found" });
+      }
+
+      // Check if user is a participant in the conversation
+      const isParticipant = await storage.isConversationParticipant(conversationId, userId);
+      if (!isParticipant) {
+        return res.status(403).json({ message: "You are not a participant in this conversation" });
+      }
+
+      // Create the message
+      const message = await storage.createGroupMessage({
+        conversationId,
+        senderId: userId,
+        content: validatedData.content,
+        messageType: validatedData.messageType || 'text',
+        attachmentUrl: validatedData.attachmentUrl,
+        attachmentType: validatedData.attachmentType
+      });
+
+      // Update conversation last message timestamp
+      await storage.updateConversationLastMessage(conversationId);
+
+      // Get conversation details for broadcasting
+      const conversation = await storage.getConversation(conversationId);
+      if (conversation) {
+        // Broadcast to all participants via WebSocket
+        // This would be handled by the WebSocket service
+      }
+
+      res.status(201).json(message);
+    } catch (error) {
+      console.error("Error sending group message:", error);
+      if (error instanceof z.ZodError) {
+        res.status(400).json({ message: error.errors[0].message });
+      } else {
+        res.status(500).json({ message: "Failed to send group message" });
+      }
+    }
+  });
+
+  /**
+   * Get group conversation messages
+   * @route GET /api/conversations/:conversationId/messages
+   * @middleware isAuthenticated - User must be logged in
+   * @returns Array of messages with read receipts
+   */
+  app.get("/api/conversations/:conversationId/messages", async (req: Request, res: Response) => {
+    if (!req.isAuthenticated()) {
+      return res.status(401).json({ message: "Unauthorized - Please login again" });
+    }
+
+    try {
+      const conversationId = parseInt(req.params.conversationId);
+      if (isNaN(conversationId)) {
+        return res.status(400).json({ message: "Invalid conversation ID" });
+      }
+
+      const userId = req.user?.id;
+      if (!userId) {
+        return res.status(401).json({ message: "User ID not found" });
+      }
+
+      // Check if user is a participant in the conversation
+      const isParticipant = await storage.isConversationParticipant(conversationId, userId);
+      if (!isParticipant) {
+        return res.status(403).json({ message: "You are not a participant in this conversation" });
+      }
+
+      // Get messages with read receipts
+      const messages = await storage.getConversationMessages(conversationId);
+      
+      // Mark messages as read for current user
+      await storage.markConversationMessagesAsRead(conversationId, userId);
+
+      res.json(messages);
+    } catch (error) {
+      console.error("Error fetching conversation messages:", error);
+      res.status(500).json({ message: "Failed to retrieve conversation messages" });
+    }
+  });
+
+  /**
+   * Get user's group conversations
+   * @route GET /api/conversations
+   * @middleware isAuthenticated - User must be logged in
+   * @returns Array of conversations the user is part of
+   */
+  app.get("/api/conversations", async (req: Request, res: Response) => {
+    if (!req.isAuthenticated()) {
+      return res.status(401).json({ message: "Unauthorized - Please login again" });
+    }
+
+    try {
+      const userId = req.user?.id;
+      if (!userId) {
+        return res.status(401).json({ message: "User ID not found" });
+      }
+
+      const conversations = await storage.getUserConversations(userId);
+      res.json(conversations);
+    } catch (error) {
+      console.error("Error fetching conversations:", error);
+      res.status(500).json({ message: "Failed to retrieve conversations" });
+    }
+  });
+
+  /**
+   * Add participants to a group conversation
+   * @route POST /api/conversations/:conversationId/participants
+   * @middleware isAuthenticated - User must be logged in
+   * @body { participants: number[] }
+   * @returns Updated conversation with new participants
+   */
+  app.post("/api/conversations/:conversationId/participants", async (req: Request, res: Response) => {
+    if (!req.isAuthenticated()) {
+      return res.status(401).json({ message: "Unauthorized - Please login again" });
+    }
+
+    try {
+      const conversationId = parseInt(req.params.conversationId);
+      if (isNaN(conversationId)) {
+        return res.status(400).json({ message: "Invalid conversation ID" });
+      }
+
+      const participantsSchema = z.object({
+        participants: z.array(z.number().positive()).min(1, "At least one participant is required")
+      });
+
+      const validatedData = participantsSchema.parse(req.body);
+      const userId = req.user?.id;
+
+      if (!userId) {
+        return res.status(401).json({ message: "User ID not found" });
+      }
+
+      // Check if user has admin role in the conversation
+      const userRole = await storage.getConversationParticipantRole(conversationId, userId);
+      if (!userRole || (userRole !== 'admin' && userRole !== 'owner')) {
+        return res.status(403).json({ message: "You don't have permission to add participants" });
+      }
+
+      // Add participants
+      const updatedConversation = await storage.addConversationParticipants(conversationId, validatedData.participants);
+      
+      res.json(updatedConversation);
+    } catch (error) {
+      console.error("Error adding participants:", error);
+      if (error instanceof z.ZodError) {
+        res.status(400).json({ message: error.errors[0].message });
+      } else {
+        res.status(500).json({ message: "Failed to add participants" });
+      }
+    }
+  });
+
+  /**
+   * Leave a group conversation
+   * @route POST /api/conversations/:conversationId/leave
+   * @middleware isAuthenticated - User must be logged in
+   * @returns Success message
+   */
+  app.post("/api/conversations/:conversationId/leave", async (req: Request, res: Response) => {
+    if (!req.isAuthenticated()) {
+      return res.status(401).json({ message: "Unauthorized - Please login again" });
+    }
+
+    try {
+      const conversationId = parseInt(req.params.conversationId);
+      if (isNaN(conversationId)) {
+        return res.status(400).json({ message: "Invalid conversation ID" });
+      }
+
+      const userId = req.user?.id;
+      if (!userId) {
+        return res.status(401).json({ message: "User ID not found" });
+      }
+
+      // Check if user is a participant
+      const isParticipant = await storage.isConversationParticipant(conversationId, userId);
+      if (!isParticipant) {
+        return res.status(404).json({ message: "You are not a participant in this conversation" });
+      }
+
+      // Leave conversation
+      await storage.leaveConversation(conversationId, userId);
+
+      res.json({ message: "Successfully left the conversation" });
+    } catch (error) {
+      console.error("Error leaving conversation:", error);
+      res.status(500).json({ message: "Failed to leave conversation" });
+    }
+  });
 }

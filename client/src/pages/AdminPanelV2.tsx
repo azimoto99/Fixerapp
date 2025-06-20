@@ -7,14 +7,15 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { RefreshCw, ChevronLeft, ChevronRight, Menu, X, AlertCircle, User, Shield, CheckCircle } from "lucide-react";
+import { RefreshCw, ChevronLeft, ChevronRight, Menu, X, AlertCircle, User, Shield, CheckCircle, Clock, AlertTriangle } from "lucide-react";
 import { apiRequest } from "@/lib/queryClient";
 import { useAuth } from "@/hooks/use-auth";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from "@/components/ui/table";
+import { Label } from "@/components/ui/label";
 
 interface AdminStats {
   totalUsers: number;
@@ -30,6 +31,7 @@ interface User {
   accountType: string;
   isActive: boolean;
   isAdmin: boolean;
+  strikes?: UserStrike[];
 }
 
 interface Job {
@@ -54,6 +56,16 @@ interface Payment {
   amount: number;
   status: string;
   userId: number;
+}
+
+interface UserStrike {
+  id: number;
+  type: string;
+  reason: string;
+  details?: string;
+  createdAt: string;
+  expiresAt?: string;
+  isActive: boolean;
 }
 
 // NEW: typed API responses for paginated endpoints
@@ -88,6 +100,18 @@ export default function AdminPanelV2() {
   const [isJobDialogOpen, setIsJobDialogOpen] = useState(false);
   const [isTicketDialogOpen, setIsTicketDialogOpen] = useState(false);
   const [ticketResponse, setTicketResponse] = useState("");
+  
+  // Enhanced user management state
+  const [isActionDialogOpen, setIsActionDialogOpen] = useState(false);
+  const [pendingAction, setPendingAction] = useState<{
+    type: 'suspend' | 'ban' | 'strike' | 'warn';
+    userId: number;
+    username: string;
+  } | null>(null);
+  const [actionReason, setActionReason] = useState("");
+  const [actionDetails, setActionDetails] = useState("");
+  const [suspensionDuration, setSuspensionDuration] = useState("7"); // days
+  const [isStrikesDialogOpen, setIsStrikesDialogOpen] = useState(false);
   
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
@@ -304,6 +328,67 @@ export default function AdminPanelV2() {
       setIsUserDialogOpen(false);
     } catch (error) {
       console.error(`Error performing ${action} on user:`, error);
+    }
+  };
+
+  const handleEnhancedAction = (type: 'suspend' | 'ban' | 'strike' | 'warn', userId: number, username: string) => {
+    setPendingAction({ type, userId, username });
+    setActionReason("");
+    setActionDetails("");
+    setSuspensionDuration("7");
+    setIsActionDialogOpen(true);
+  };
+
+  const executeEnhancedAction = async () => {
+    if (!pendingAction) return;
+    
+    try {
+      let endpoint = '';
+      let body: any = {
+        reason: actionReason,
+        details: actionDetails
+      };
+      
+      switch (pendingAction.type) {
+        case 'suspend':
+          endpoint = `/api/admin/users/${pendingAction.userId}/suspend`;
+          body.duration = parseInt(suspensionDuration);
+          break;
+        case 'ban':
+          endpoint = `/api/admin/users/${pendingAction.userId}/ban`;
+          break;
+        case 'strike':
+          endpoint = `/api/admin/users/${pendingAction.userId}/strike`;
+          body.type = 'strike';
+          break;
+        case 'warn':
+          endpoint = `/api/admin/users/${pendingAction.userId}/strike`;
+          body.type = 'warning';
+          break;
+      }
+      
+      await apiRequest('POST', endpoint, body);
+      
+      // Refetch users data
+      refetchUsers();
+      
+      // Close dialogs
+      setIsActionDialogOpen(false);
+      setIsUserDialogOpen(false);
+      setPendingAction(null);
+    } catch (error) {
+      console.error(`Error performing ${pendingAction.type} on user:`, error);
+    }
+  };
+
+  const viewUserStrikes = async (userId: number) => {
+    try {
+      const response = await apiRequest('GET', `/api/admin/users/${userId}/strikes`);
+      const strikes = await response.json();
+      setSelectedUser(prev => prev ? { ...prev, strikes } : null);
+      setIsStrikesDialogOpen(true);
+    } catch (error) {
+      console.error('Error fetching user strikes:', error);
     }
   };
 
@@ -716,14 +801,14 @@ export default function AdminPanelV2() {
         </TabsContent>
       </Tabs>
 
-      {/* Dialogs for details */}
+      {/* Enhanced User Management Dialog */}
       <Dialog open={isUserDialogOpen} onOpenChange={setIsUserDialogOpen}>
-        <DialogContent>
+        <DialogContent className="max-w-2xl">
           <DialogHeader>
             <DialogTitle>User Management</DialogTitle>
           </DialogHeader>
           {selectedUser && (
-            <div className="space-y-4">
+            <div className="space-y-6">
               <div>
                 <h3 className="font-semibold">{selectedUser.username}</h3>
                 <p className="text-sm text-muted-foreground">{selectedUser.email}</p>
@@ -736,10 +821,17 @@ export default function AdminPanelV2() {
                       <Shield className="h-3 w-3 mr-1" />Admin
                     </Badge>
                   )}
+                  {selectedUser.strikes && selectedUser.strikes.length > 0 && (
+                    <Badge variant="destructive">
+                      <AlertTriangle className="h-3 w-3 mr-1" />
+                      {selectedUser.strikes.filter(s => s.isActive).length} Active Strikes
+                    </Badge>
+                  )}
                 </div>
               </div>
               
-              <div className="flex flex-wrap gap-2">
+              <div className="grid grid-cols-2 gap-3">
+                {/* Basic Actions */}
                 <Button 
                   variant={selectedUser.isActive ? "destructive" : "default"}
                   onClick={() => handleUserAction(selectedUser.id, selectedUser.isActive ? 'ban' : 'unban')}
@@ -760,6 +852,42 @@ export default function AdminPanelV2() {
                 >
                   <CheckCircle className="h-4 w-4 mr-1" />
                   Verify User
+                </Button>
+
+                {/* Enhanced Actions */}
+                <Button 
+                  variant="outline"
+                  onClick={() => handleEnhancedAction('suspend', selectedUser.id, selectedUser.username)}
+                >
+                  <Clock className="h-4 w-4 mr-1" />
+                  Suspend
+                </Button>
+
+                <Button 
+                  variant="outline"
+                  onClick={() => handleEnhancedAction('strike', selectedUser.id, selectedUser.username)}
+                >
+                  <AlertTriangle className="h-4 w-4 mr-1" />
+                  Issue Strike
+                </Button>
+
+                <Button 
+                  variant="outline"
+                  onClick={() => handleEnhancedAction('warn', selectedUser.id, selectedUser.username)}
+                >
+                  <AlertCircle className="h-4 w-4 mr-1" />
+                  Issue Warning
+                </Button>
+              </div>
+
+              {/* View Strikes */}
+              <div className="pt-4 border-t">
+                <Button
+                  variant="ghost"
+                  onClick={() => viewUserStrikes(selectedUser.id)}
+                  className="w-full"
+                >
+                  View Strike History
                 </Button>
               </div>
             </div>
@@ -785,6 +913,132 @@ export default function AdminPanelV2() {
                   </div>
               )}
           </DialogContent>
+      </Dialog>
+
+      {/* Enhanced Action Dialog */}
+      <Dialog open={isActionDialogOpen} onOpenChange={setIsActionDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>
+              {pendingAction?.type === 'suspend' && 'Suspend User'}
+              {pendingAction?.type === 'ban' && 'Ban User'}
+              {pendingAction?.type === 'strike' && 'Issue Strike'}
+              {pendingAction?.type === 'warn' && 'Issue Warning'}
+            </DialogTitle>
+          </DialogHeader>
+          
+          {pendingAction && (
+            <div className="space-y-4">
+              <div>
+                <p className="text-sm text-muted-foreground">
+                  You are about to {pendingAction.type} user: <strong>{pendingAction.username}</strong>
+                </p>
+              </div>
+
+              {pendingAction.type === 'suspend' && (
+                <div className="space-y-2">
+                  <Label htmlFor="duration">Suspension Duration</Label>
+                  <Select value={suspensionDuration} onValueChange={setSuspensionDuration}>
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="1">1 Day</SelectItem>
+                      <SelectItem value="3">3 Days</SelectItem>
+                      <SelectItem value="7">7 Days</SelectItem>
+                      <SelectItem value="14">14 Days</SelectItem>
+                      <SelectItem value="30">30 Days</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
+
+              <div className="space-y-2">
+                <Label htmlFor="reason">Reason *</Label>
+                <Input
+                  id="reason"
+                  placeholder="Enter reason for this action..."
+                  value={actionReason}
+                  onChange={(e) => setActionReason(e.target.value)}
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="details">Additional Details</Label>
+                <Textarea
+                  id="details"
+                  placeholder="Additional context or details..."
+                  value={actionDetails}
+                  onChange={(e) => setActionDetails(e.target.value)}
+                  rows={3}
+                />
+              </div>
+            </div>
+          )}
+
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsActionDialogOpen(false)}>
+              Cancel
+            </Button>
+            <Button 
+              onClick={executeEnhancedAction}
+              disabled={!actionReason.trim()}
+              variant={pendingAction?.type === 'ban' ? "destructive" : "default"}
+            >
+              Confirm {pendingAction?.type}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* User Strikes Dialog */}
+      <Dialog open={isStrikesDialogOpen} onOpenChange={setIsStrikesDialogOpen}>
+        <DialogContent className="max-w-3xl">
+          <DialogHeader>
+            <DialogTitle>Strike History - {selectedUser?.username}</DialogTitle>
+          </DialogHeader>
+          
+          <div className="space-y-4">
+            {selectedUser?.strikes && selectedUser.strikes.length > 0 ? (
+              <ScrollArea className="h-96">
+                <div className="space-y-3">
+                  {selectedUser.strikes.map((strike) => (
+                    <Card key={strike.id} className={strike.isActive ? "border-red-200" : "border-gray-200"}>
+                      <CardContent className="p-4">
+                        <div className="flex items-start justify-between">
+                          <div className="space-y-2">
+                            <div className="flex items-center gap-2">
+                              <Badge variant={strike.type === 'warning' ? "secondary" : "destructive"}>
+                                {strike.type}
+                              </Badge>
+                              <Badge variant={strike.isActive ? "destructive" : "secondary"}>
+                                {strike.isActive ? "Active" : "Expired"}
+                              </Badge>
+                            </div>
+                            <p className="font-medium">{strike.reason}</p>
+                            {strike.details && (
+                              <p className="text-sm text-muted-foreground">{strike.details}</p>
+                            )}
+                          </div>
+                          <div className="text-right text-sm text-muted-foreground">
+                            <p>Issued: {new Date(strike.createdAt).toLocaleDateString()}</p>
+                            {strike.expiresAt && (
+                              <p>Expires: {new Date(strike.expiresAt).toLocaleDateString()}</p>
+                            )}
+                          </div>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  ))}
+                </div>
+              </ScrollArea>
+            ) : (
+              <div className="text-center py-8">
+                <p className="text-muted-foreground">No strikes found for this user.</p>
+              </div>
+            )}
+          </div>
+        </DialogContent>
       </Dialog>
 
     </div>

@@ -1,6 +1,9 @@
 import React, { useState, useEffect, useRef, forwardRef } from 'react';
-import { Input, InputProps } from '@/components/ui/input';
+import { Input } from '@/components/ui/input';
 import { MapPin } from 'lucide-react';
+
+// Define InputProps locally since it's not exported from the ui/input component
+interface InputProps extends React.InputHTMLAttributes<HTMLInputElement> {}
 
 interface AddressAutocompleteProps extends Omit<InputProps, 'onChange'> {
   onAddressSelect: (address: string, lat: number, lng: number) => void;

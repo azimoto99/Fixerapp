@@ -2099,6 +2099,131 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // User Strikes Management
+  apiRouter.post("/admin/users/:id/strike", isAuthenticated, isAdmin, async (req: Request, res: Response) => {
+    try {
+      const userId = parseInt(req.params.id);
+      const { type, reason, details, duration } = req.body;
+      
+      // Calculate expiration date for temporary actions
+      let expiresAt: Date | undefined = undefined;
+      if (type === 'suspension' && duration) {
+        expiresAt = new Date(Date.now() + duration * 24 * 60 * 60 * 1000); // Convert days to milliseconds
+      }
+      
+      // Create strike record using the proper insert schema
+      const strikeData: any = {
+        userId,
+        adminId: req.user!.id,
+        type,
+        reason,
+        isActive: true
+      };
+      
+      if (details) {
+        strikeData.details = details;
+      }
+      
+      if (expiresAt) {
+        strikeData.expiresAt = expiresAt;
+      }
+      
+      await db.insert(userStrikes).values(strikeData);
+      
+      // If it's a suspension, also deactivate the user
+      if (type === 'suspension') {
+        await db.update(users)
+          .set({ 
+            isActive: false,
+            updatedAt: new Date()
+          })
+          .where(eq(users.id, userId));
+      }
+      
+      // Log admin action
+      await db.insert(adminAuditLog).values({
+        adminId: req.user!.id,
+        action: `issue_${type}`,
+        targetType: 'user',
+        targetId: userId,
+        details: { reason, details, duration },
+        timestamp: new Date()
+      });
+      
+      res.json({ message: `${type} issued successfully` });
+    } catch (error) {
+      console.error('Issue strike error:', error);
+      res.status(500).json({ message: 'Failed to issue strike' });
+    }
+  });
+
+  // Get user strikes
+  apiRouter.get("/admin/users/:id/strikes", isAuthenticated, isAdmin, async (req: Request, res: Response) => {
+    try {
+      const userId = parseInt(req.params.id);
+      
+      const strikes = await db.select()
+        .from(userStrikes)
+        .where(eq(userStrikes.userId, userId))
+        .orderBy(desc(userStrikes.createdAt));
+      
+      res.json(strikes);
+    } catch (error) {
+      console.error('Get user strikes error:', error);
+      res.status(500).json({ message: 'Failed to fetch user strikes' });
+    }
+  });
+
+  // Enhanced suspend endpoint with duration support (replace existing)
+  apiRouter.post("/admin/users/:id/suspend", isAuthenticated, isAdmin, async (req: Request, res: Response) => {
+    try {
+      const userId = parseInt(req.params.id);
+      const { reason, details, duration } = req.body;
+      
+      // Calculate expiration date
+      const expiresAt = new Date(Date.now() + (duration || 7) * 24 * 60 * 60 * 1000);
+      
+      // Update user status
+      await db.update(users)
+        .set({ 
+          isActive: false,
+          updatedAt: new Date()
+        })
+        .where(eq(users.id, userId));
+      
+      // Create suspension strike record
+      const suspensionData: any = {
+        userId,
+        adminId: req.user!.id,
+        type: 'suspension',
+        reason,
+        isActive: true,
+        expiresAt
+      };
+      
+      if (details) {
+        suspensionData.details = details;
+      }
+      
+      await db.insert(userStrikes).values(suspensionData);
+      
+      // Log admin action
+      await db.insert(adminAuditLog).values({
+        adminId: req.user!.id,
+        action: 'suspend_user',
+        targetType: 'user',
+        targetId: userId,
+        details: { reason, details, duration },
+        timestamp: new Date()
+      });
+      
+      res.json({ message: 'User suspended successfully' });
+    } catch (error) {
+      console.error('Suspend user error:', error);
+      res.status(500).json({ message: 'Failed to suspend user' });
+    }
+  });
+
   // Admin Transactions endpoint (missing endpoint causing 503)
   apiRouter.get("/admin/transactions", isAuthenticated, isAdmin, async (req: Request, res: Response) => {
     try {

@@ -719,17 +719,6 @@ if (pool) {
 //   app.use('/api/stripe/connect', stripeConnectRouter);
 // If not, frontend requests will 404 or fail.
 
-// Periodic connection check
-setInterval(async () => {
-  try {
-    if (pool) {
-      await pool.query('SELECT 1');
-    }
-  } catch (error) {
-    console.error('Periodic connection check failed:', error);
-  }
-}, 30000); // Check every 30 seconds
-
 // Get the onboarding page route
 stripeConnectRouter.get('/onboarding', isAuthenticated, async (req, res) => {
   console.log('[STRIPE CONNECT] Onboarding page request received');

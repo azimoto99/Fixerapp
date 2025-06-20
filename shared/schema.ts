@@ -249,8 +249,9 @@ export const contactRequests = pgTable("contact_requests", {
 export const messages = pgTable("messages", {
   id: serial("id").primaryKey(),
   jobId: integer("job_id").references(() => jobs.id), // Optional job context for messages
+  conversationId: integer("conversation_id").references(() => conversations.id), // Reference to group conversation
   senderId: integer("sender_id").notNull().references(() => users.id), // References users.id (sender)
-  recipientId: integer("recipient_id").notNull().references(() => users.id), // References users.id (recipient)
+  recipientId: integer("recipient_id").references(() => users.id), // References users.id (recipient) - null for group messages
   content: text("content").notNull(), // Message content
   messageType: varchar("message_type", { length: 20 }).default("text"), // "text", "image", "file"
   isRead: boolean("is_read").notNull().default(false), // Whether the message has been read
@@ -261,6 +262,45 @@ export const messages = pgTable("messages", {
   isEdited: boolean("is_edited").default(false), // Whether the message was edited
   editedAt: timestamp("edited_at"), // When the message was last edited
 });
+
+// Conversations table for group messaging
+export const conversations = pgTable("conversations", {
+  id: serial("id").primaryKey(),
+  jobId: integer("job_id").references(() => jobs.id), // Job this conversation relates to
+  type: varchar("type", { length: 20 }).notNull().default("direct"), // "direct", "group", "job_group"
+  title: varchar("title", { length: 255 }), // Optional conversation title
+  createdBy: integer("created_by").notNull().references(() => users.id), // User who created the conversation
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+  isActive: boolean("is_active").notNull().default(true), // Whether conversation is active
+  lastMessageAt: timestamp("last_message_at"), // Timestamp of last message
+});
+
+// Conversation participants table
+export const conversationParticipants = pgTable("conversation_participants", {
+  id: serial("id").primaryKey(),
+  conversationId: integer("conversation_id").notNull().references(() => conversations.id),
+  userId: integer("user_id").notNull().references(() => users.id),
+  role: varchar("role", { length: 20 }).notNull().default("member"), // "member", "admin", "owner"
+  joinedAt: timestamp("joined_at").defaultNow(),
+  leftAt: timestamp("left_at"), // When user left the conversation (null if still active)
+  lastReadAt: timestamp("last_read_at"), // Last time user read messages in this conversation
+  isActive: boolean("is_active").notNull().default(true), // Whether user is actively participating
+}, (table) => [
+  // Unique constraint to prevent duplicate participants
+  unique("unique_conversation_participant", [table.conversationId, table.userId])
+]);
+
+// Message read receipts for group messaging
+export const messageReadReceipts = pgTable("message_read_receipts", {
+  id: serial("id").primaryKey(),
+  messageId: integer("message_id").notNull().references(() => messages.id),
+  userId: integer("user_id").notNull().references(() => users.id),
+  readAt: timestamp("read_at").defaultNow(),
+}, (table) => [
+  // Unique constraint to prevent duplicate read receipts
+  unique("unique_message_read", [table.messageId, table.userId])
+]);
 
 // Insert schemas
 export const insertUserSchema = createInsertSchema(users).pick({
@@ -425,6 +465,7 @@ export const insertContactSchema = createInsertSchema(contacts).pick({
 
 export const insertMessageSchema = createInsertSchema(messages).pick({
   jobId: true,
+  conversationId: true,
   senderId: true,
   recipientId: true,
   content: true,
