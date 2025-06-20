@@ -5,7 +5,7 @@ import dns from 'node:dns';
 dns.setDefaultResultOrder('ipv4first');
 
 import express, { type Request, Response, NextFunction } from "express";
-import { registerRoutes } from "./routes";
+import { registerRoutes } from './routes';
 import { setupVite, serveStatic, log } from "./vite";
 import { healthCheckMiddleware } from './middleware/health-check';
 import { sessionActivityMiddleware } from './middleware/session-activity';
@@ -13,13 +13,15 @@ import { sessionRecoveryMiddleware } from './middleware/session-recovery';
 import { systemMonitor } from './system-monitor';
 import { DatabaseResilience } from './utils/database-resilience';
 import { storage } from './storage';
-import { globalErrorHandler } from './utils/global-error-handler';
+import { errorHandler } from './middleware/error-handler';
 // Import seed script to create initial data
 import "./seed";
 import userRoutes from './routes/user';
+import helmet from 'helmet';
+import { securityConfig } from './security-config';
 
 // Initialize global error handler early
-globalErrorHandler.setupGlobalHandlers();
+errorHandler.initialize();
 
 // Log environment variables (excluding sensitive ones)
 log('Environment check:');
@@ -81,8 +83,26 @@ if (pool) {
 // Initialize authentication first
 setupAuth(app);
 
+// Security middleware
+app.use(helmet({
+  contentSecurityPolicy: false, // Disable CSP for now to avoid blocking inline scripts
+  crossOriginEmbedderPolicy: false
+}));
+
+// Apply security configuration
+app.use('/api/auth', securityConfig.rateLimits.auth);
+app.use('/api/jobs', securityConfig.rateLimits.jobPosting);
+app.use('/api/stripe', securityConfig.rateLimits.payment);
+app.use('/api/admin', securityConfig.rateLimits.admin);
+app.use('/api', securityConfig.rateLimits.api);
+
+// Temporarily disable aggressive health check middleware to resolve database overload
+// app.use(healthCheckMiddleware);
+
+// Enable trust proxy for proper IP detection behind reverse proxy
+app.set('trust proxy', 1);
+
 // Then add resilience middleware
-app.use(healthCheckMiddleware);
 app.use(sessionActivityMiddleware);
 app.use(sessionRecoveryMiddleware);
 
