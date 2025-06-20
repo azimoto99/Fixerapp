@@ -403,16 +403,26 @@ export function registerMessagingRoutes(app: Express) {
   // This helps avoid conflicts with duplicate endpoints
 
   // Endpoint for uploading message attachments
-  app.post('/upload-attachment', async (req: Request, res: Response) => {
+  app.post('/api/messages/upload-attachment', async (req: Request, res: Response) => {
+    if (!req.isAuthenticated()) {
+      return res.status(401).json({ message: "Unauthorized - Please login again" });
+    }
+
     try {
       if (!req.file) {
         return res.status(400).json({ error: 'No file uploaded' });
       }
 
+      // Check if S3 is configured
+      const bucketName = process.env.S3_BUCKET_NAME;
+      if (!bucketName) {
+        return res.status(500).json({ error: 'File upload not configured' });
+      }
+
       // Upload the file to S3
       const fileKey = `uploads/${Date.now()}-${req.file.originalname}`;
       const uploadParams = {
-        Bucket: process.env.S3_BUCKET_NAME,
+        Bucket: bucketName,
         Key: fileKey,
         Body: req.file.buffer,
         ContentType: req.file.mimetype
@@ -420,7 +430,7 @@ export function registerMessagingRoutes(app: Express) {
 
       const command = new PutObjectCommand(uploadParams);
       const uploadResult = await s3Client.send(command);
-      const fileUrl = `https://${process.env.S3_BUCKET_NAME}.s3.amazonaws.com/${fileKey}`;
+      const fileUrl = `https://${bucketName}.s3.amazonaws.com/${fileKey}`;
       const fileType = req.file.mimetype.startsWith('image/') ? 'image' : 'document';
 
       res.json({

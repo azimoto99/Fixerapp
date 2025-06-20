@@ -4,7 +4,7 @@ import { createPortal } from 'react-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '@/hooks/use-auth';
 import { apiRequest } from '@/lib/queryClient';
-import { useToast, type ToastProps } from '@/hooks/use-toast';
+import { useToast } from '@/hooks/use-toast';
 import { motion, AnimatePresence } from 'framer-motion';
 import { format } from 'date-fns';
 import { Badge } from '@/components/ui/badge';
@@ -78,6 +78,7 @@ import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '@
 import JobApplicationsTab from './JobApplicationsTab';
 import { InstantApplyButton } from '../applications/InstantApplyButton';
 import { RealTimeApplicationsDashboard } from '../applications/RealTimeApplicationsDashboard';
+import DisputeForm from '../payments/DisputeForm';
 import '../jobcard-fix.css';
 import '../ui/dialog-fix.css';
 import { useEffect as useWindowEffect } from 'react';
@@ -148,14 +149,6 @@ const JobDetailsCard: React.FC<JobDetailsCardProps> = ({ jobId, isOpen, onClose 
       return response.json();
     },
     enabled: isOpen && !!jobId,
-    onError: (error) => {
-      console.error('Error fetching job details:', error);
-      toast({
-        title: 'Error',
-        description: 'Failed to load job details. Please try again.',
-        variant: 'destructive',
-      });
-    },
   });
 
   // Fetch poster details
@@ -169,9 +162,6 @@ const JobDetailsCard: React.FC<JobDetailsCardProps> = ({ jobId, isOpen, onClose 
       return response.json();
     },
     enabled: isOpen && !!job?.posterId,
-    onError: (error) => {
-      console.error('Error fetching poster details:', error);
-    },
   });
 
   // Fetch application status if user is a worker
@@ -185,9 +175,6 @@ const JobDetailsCard: React.FC<JobDetailsCardProps> = ({ jobId, isOpen, onClose 
       return response.json();
     },
     enabled: isOpen && !!jobId && !!user && user.accountType === 'worker',
-    onError: (error) => {
-      console.error('Error fetching application status:', error);
-    },
   });
   
   // Fetch all applications for the job if user is the job poster
@@ -1630,13 +1617,19 @@ const JobDetailsCard: React.FC<JobDetailsCardProps> = ({ jobId, isOpen, onClose 
                     )}
                     
                     {job.status === 'completed' && (
-                      <Button
-                        variant="default"
-                        className="flex-1 bg-green-600 hover:bg-green-700"
-                      >
-                        <DollarSign className="h-4 w-4 mr-2" />
-                        Process Payment
-                      </Button>
+                      <>
+                        <Button
+                          variant="default"
+                          className="flex-1 bg-green-600 hover:bg-green-700"
+                        >
+                          <DollarSign className="h-4 w-4 mr-2" />
+                          Process Payment
+                        </Button>
+                        <DisputeForm 
+                          jobId={jobId} 
+                          job={job}
+                        />
+                      </>
                     )}
                   </>
                 )}

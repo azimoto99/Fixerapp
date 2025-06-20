@@ -205,8 +205,8 @@ export default function AdminPanelV2() {
       const response = await apiRequest('GET', `/api/admin/jobs?${params.toString()}`);
       return (await response.json()) as JobsApiResponse;
     },
-    retry: 2,
-    retryDelay: 1000,
+    retry: 3,
+    retryDelay: (attempt) => Math.min(attempt * 1000, 3000),
   });
 
   const jobs: Job[] = jobsResponse?.jobs ?? [];

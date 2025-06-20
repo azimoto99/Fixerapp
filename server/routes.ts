@@ -68,6 +68,7 @@ import stripeConnectRouter from "./api/stripe-connect";
 import { processPayment } from "./api/process-payment";
 import { preauthorizePayment } from "./api/preauthorize-payment";
 import { taskRouter } from "./api/task-api";
+import { disputeRouter } from "./api/disputes";
 import createPaymentIntentRouter from "./api/stripe-api-create-payment-intent";
 import { setupStripeWebhooks } from "./api/stripe-webhooks";
 import { setupStripeTransfersRoutes } from "./api/stripe-transfers";
@@ -354,6 +355,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // Mount payment routes
   apiRouter.use('/payments', paymentsRouter);
+  
+  // Mount disputes routes
+  apiRouter.use('/disputes', disputeRouter);
 
   // Set up Stripe payment methods routes
   setupStripePaymentMethodsRoutes(app);
