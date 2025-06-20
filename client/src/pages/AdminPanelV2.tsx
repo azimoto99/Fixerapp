@@ -290,7 +290,8 @@ export default function AdminPanelV2() {
     try {
       const response = await fetch('/api/admin/users')
       if (!response.ok) {
-        throw new Error(`Failed to fetch users: ${response.status} ${response.statusText}`)
+        const errorText = await response.text().catch(() => 'Failed to read error response text');
+        throw new Error(`Failed to fetch users: ${response.status} ${response.statusText} - ${errorText}`)
       }
       const data = await response.json()
       console.log('Users data fetched:', data)
