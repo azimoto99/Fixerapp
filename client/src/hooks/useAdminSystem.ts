@@ -92,7 +92,10 @@ export function useAdminSystem() {
     queryKey: ['/api/admin/users'],
     queryFn: async () => {
       const response = await apiRequest('GET', '/api/admin/users');
-      if (!response.ok) throw new Error('Failed to fetch users');
+      if (!response.ok) {
+        const errorText = await response.text().catch(() => 'Failed to read error response text');
+        throw new Error(`Failed to fetch users: ${response.status} ${response.statusText} - ${errorText}`);
+      }
       return await response.json();
     },
     enabled: isAdmin
