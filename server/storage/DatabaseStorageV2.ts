@@ -3,6 +3,7 @@ import postgres from 'postgres';
 import * as schema from '../../migrations/schema';
 import type { InferInsertModel, InferSelectModel } from 'drizzle-orm';
 import { eq } from 'drizzle-orm';
+import { encryptLocation, decryptLocation, EncryptedData } from '../utils/encryption';
 
 // Creates a typed Drizzle instance we can reuse across the API routes.
 
@@ -43,11 +44,30 @@ export const Storage = {
       where: (j, { eq }) => eq(j.id, id),
       limit: 1,
     });
+
+    if (job && job.location_encrypted) {
+      try {
+        const decrypted = decryptLocation(JSON.parse(job.location_encrypted) as EncryptedData);
+        job.latitude = decrypted.lat;
+        job.longitude = decrypted.lng;
+      } catch (e) {
+        console.error(`Failed to decrypt location for job ${job.id}`, e);
+        // Leave lat/lng as null if decryption fails
+      }
+    }
+
     return job ?? null;
   },
 
   /** Create a job */
   createJob: async (data: typeof schema.jobs.$inferInsert) => {
+    if (data.latitude && data.longitude) {
+      const encryptedLocation = encryptLocation(data.latitude, data.longitude);
+      data.location_encrypted = JSON.stringify(encryptedLocation);
+      data.latitude = null;
+      data.longitude = null;
+    }
+
     const [row] = await db
       .insert(schema.jobs)
       .values(data)

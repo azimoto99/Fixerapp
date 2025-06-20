@@ -1,94 +1,61 @@
-# ---- General -------------------------------------------------
-# Logs
+# See https://help.github.com/articles/ignoring-files/ for more about ignoring files.
+
+# dependencies
+/node_modules
+/.pnp
+.pnp.js
+
+# testing
+/coverage
+
+# production
+/build
+/dist
+.next/
+/out/
+
+# misc
+.DS_Store
+*.pem
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
-*.log
 
-# Dependency directories
-node_modules/
-.pnp.*
-.yarn/
-
-# Build output
-build/
-dist/
-out/
-coverage/
-lib/
-
-# Runtime data
-pids/
-*.pid
-*.seed
-*.pid.lock
-
-# Compiled output
-*.tsbuildinfo
-*.class
-*.exe
-*.dll
-*.so
-*.dylib
-
-# Environment files
-.env
-.env.*
-
-# Temporary files
-*.swp
-*.swo
-*.tmp
-
-# OS / Editor junk
-.DS_Store
-Thumbs.db
-.idea/
+# IDEs
+.idea
 .vscode/
-*.iml
 
-# ---- Front-end (Vite / React) --------------------------------
-# Vite cache
-vite.cache/
+# From Fixer/.gitignore
+# =====================
 
-# React Native / Expo / Capacitor
+# Expo
 .expo/
-.expo-shared/
-android/.gradle/
-android/app/build/
-android/build/
-android/gradle/
-android/gradle-wrapper.jar
-android/gradle-wrapper.properties
-ios/build/
-ios/Pods/
+web-build/
+expo-env.d.ts
 
-# React Native bundles
-*.android.jsbundle
-*.ios.jsbundle
+# Native
+.kotlin/
+*.orig.*
+*.jks
+*.p8
+*.p12
+*.key
+*.mobileprovision
 
-# ---- Testing --------------------------------------------------
-coverage/
-jest-coverage/
+# Metro
+.metro-health-check*
 
-# ---- Database / ORM ------------------------------------------
-/.supabase/
-/.postgres/
+# debug
+npm-debug.*
+yarn-debug.*
+yarn-error.*
 
-# Drizzle / Prisma migrations caches
-migrations/*-lock.json
-prisma/*.db
+# typescript
+*.tsbuildinfo
 
-# ---- Patch files ---------------------------------------------
-patches/*.patch
-
-# ---- Generated assets ----------------------------------------
-
-# ---- IDE specific --------------------------------------------
-*.sublime*
-*.code-workspace
-
-# Allow the client upload service utility to be tracked
-!client/src/lib/uploadService.ts
-
-# End of .gitignore 
+app-example 

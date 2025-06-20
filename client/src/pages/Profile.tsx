@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Link, useLocation } from 'wouter';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/hooks/use-toast';
 import { apiRequest } from '@/lib/queryClient';
@@ -28,7 +28,8 @@ import {
   ProfileImageUploader,
   SkillsManager,
   BadgesDisplay,
-  ProfileEditor
+  ProfileEditor,
+  PrivacySettingsForm,
 } from '@/components/profile';
 
 export default function Profile() {
@@ -37,6 +38,7 @@ export default function Profile() {
   const { toast } = useToast();
   const [activeTab, setActiveTab] = useState('info');
   const [editMode, setEditMode] = useState(false);
+  const queryClient = useQueryClient();
   
   // Redirect to login if not authenticated
   if (!user) {
@@ -57,6 +59,32 @@ export default function Profile() {
   const { data: userBadges = [] } = useQuery({
     queryKey: [`/api/users/${user.id}/badges`],
     enabled: !!user,
+  });
+
+  const { data: privacySettings, isLoading: isLoadingPrivacySettings } = useQuery({
+    queryKey: ['/api/privacy'],
+    queryFn: async () => {
+      const res = await apiRequest('GET', '/api/privacy');
+      if (!res.ok) {
+        if (res.status === 404) {
+          return { showLocation: true, showProfile: true };
+        }
+        throw new Error('Failed to fetch privacy settings');
+      }
+      return res.json();
+    },
+    enabled: !!user,
+  });
+
+  const updatePrivacySettingsMutation = useMutation({
+    mutationFn: (values) => apiRequest('POST', '/api/privacy', values),
+    onSuccess: () => {
+      toast({ title: 'Privacy settings updated' });
+      queryClient.invalidateQueries(['/api/privacy']);
+    },
+    onError: () => {
+      toast({ title: 'Failed to update settings', variant: 'destructive' });
+    },
   });
 
   const handleLogout = () => {
@@ -151,7 +179,7 @@ export default function Profile() {
           {/* Tabs */}
           {!editMode && (
             <Tabs defaultValue="info" onValueChange={setActiveTab} value={activeTab}>
-              <TabsList className="grid grid-cols-6 mb-6">
+              <TabsList className="grid grid-cols-7 mb-6">
                 <TabsTrigger value="info">Information</TabsTrigger>
                 <TabsTrigger value="jobs">
                   {user.accountType === 'poster' ? 'My Jobs' : 'Applications'}
@@ -170,6 +198,7 @@ export default function Profile() {
                 </TabsTrigger>
                 <TabsTrigger value="reviews">Reviews</TabsTrigger>
                 <TabsTrigger value="badges">Badges</TabsTrigger>
+                <TabsTrigger value="privacy">Privacy</TabsTrigger>
               </TabsList>
               
               {/* Information Tab */}
@@ -369,6 +398,29 @@ export default function Profile() {
                   </CardHeader>
                   <CardContent>
                     <BadgesDisplay userId={user.id} />
+                  </CardContent>
+                </Card>
+              </TabsContent>
+
+              {/* Privacy Tab */}
+              <TabsContent value="privacy">
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Privacy Settings</CardTitle>
+                    <CardDescription>
+                      Control what information is visible to other users.
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    {isLoadingPrivacySettings ? (
+                      <div>Loading...</div>
+                    ) : (
+                      <PrivacySettingsForm
+                        initialValues={privacySettings}
+                        onSubmit={(values) => updatePrivacySettingsMutation.mutate(values)}
+                        isSubmitting={updatePrivacySettingsMutation.isLoading}
+                      />
+                    )}
                   </CardContent>
                 </Card>
               </TabsContent>

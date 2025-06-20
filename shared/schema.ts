@@ -1,5 +1,5 @@
 // @ts-nocheck
-import { pgTable, text, serial, integer, boolean, doublePrecision, timestamp, varchar, jsonb, uniqueIndex, date, unique } from "drizzle-orm/pg-core";
+import { pgTable, text, serial, integer, boolean, doublePrecision, timestamp, varchar, jsonb, uniqueIndex, date, unique, json } from "drizzle-orm/pg-core";
 import { sql } from "drizzle-orm";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
@@ -86,6 +86,7 @@ export const jobs = pgTable("jobs", {
   location: text("location").notNull(), // Address description
   latitude: doublePrecision("latitude").notNull(),
   longitude: doublePrecision("longitude").notNull(),
+  location_encrypted: text("location_encrypted"),
   datePosted: timestamp("date_posted").defaultNow(),
   dateNeeded: timestamp("date_needed").notNull(),
   requiredSkills: text("required_skills").array().notNull().default(sql`'{}'::text[]`), // Skills needed for the job
@@ -1018,5 +1019,11 @@ export const transactionSchema = z.object({
 export type RawUser = z.infer<typeof userSchema>;
 
 export type User = DbUser;
+
+export const sessions = pgTable("sessions", {
+  sid: varchar("sid").primaryKey(),
+  sess: json("sess").notNull(),
+  expire: timestamp("expire", { precision: 6, withTimezone: true }).notNull(),
+});
 
 

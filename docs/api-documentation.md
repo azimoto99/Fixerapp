@@ -94,6 +94,39 @@ All responses are returned in JSON format with the following structure:
   ```
 - **Response**: Updated user object
 
+## Privacy Endpoints
+
+### Get Privacy Settings
+- **URL**: `/api/privacy`
+- **Method**: `GET`
+- **Description**: Returns the currently authenticated user's privacy settings.
+- **Authentication**: Required
+- **Response Example**:
+  ```json
+  {
+    "id": 1,
+    "userId": 123,
+    "show_location": true,
+    "show_profile": true,
+    "createdAt": "2023-10-27T10:00:00.000Z",
+    "updatedAt": "2023-10-27T10:00:00.000Z"
+  }
+  ```
+
+### Update Privacy Settings
+- **URL**: `/api/privacy`
+- **Method**: `POST`
+- **Description**: Updates the user's privacy settings.
+- **Authentication**: Required
+- **Request Body Example**:
+  ```json
+  {
+    "showLocation": false,
+    "showProfile": true
+  }
+  ```
+- **Response**: Updated privacy settings object.
+
 ## Job Endpoints
 
 ### Get All Jobs
@@ -132,7 +165,7 @@ All responses are returned in JSON format with the following structure:
     "requiredSkills": ["plumbing"]
   }
   ```
-- **Response**: Created job object
+- **Response**: Created job object. The `latitude` and `longitude` values are encrypted at rest and will not be returned in this response.
 
 ### Update Job
 - **URL**: `/api/jobs/:id`

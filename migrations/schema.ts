@@ -441,6 +441,7 @@ export const jobs = pgTable("jobs", {
 	location: text().notNull(),
 	latitude: doublePrecision().notNull(),
 	longitude: doublePrecision().notNull(),
+	location_encrypted: text('location_encrypted'),
 	datePosted: timestamp("date_posted", { mode: 'string' }).defaultNow(),
 	dateNeeded: timestamp("date_needed", { mode: 'string' }).notNull(),
 	requiredSkills: text("required_skills").array().default([""]).notNull(),

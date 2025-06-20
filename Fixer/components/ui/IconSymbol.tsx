@@ -13,6 +13,7 @@ type IconSymbolName = keyof typeof MAPPING;
  * - see Material Icons in the [Icons Directory](https://icons.expo.fyi).
  * - see SF Symbols in the [SF Symbols](https://developer.apple.com/sf-symbols/) app.
  */
+// IMPORTANT: When adding a new icon, you must add it to this mapping to avoid crashes on Android and web.
 const MAPPING = {
   'house.fill': 'home',
   'paperplane.fill': 'send',

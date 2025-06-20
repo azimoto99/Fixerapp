@@ -10,8 +10,8 @@ declare global {
       email: string;
       fullName?: string;
       isAdmin?: boolean;
-      stripeCustomerId?: string;
-      stripeConnectAccountId?: string;
+      stripeCustomerId?: string | null;
+      stripeConnectAccountId?: string | null;
       isActive: boolean;
     }
   }
@@ -33,8 +33,7 @@ export async function isAuthenticated(req: Request, res: Response, next: NextFun
     }
 
     // Check for expired session cookie
-    const hasCookieExpired = req.session.cookie && req.session.cookie.maxAge <= 0;
-    if (hasCookieExpired) {
+    if (req.session.cookie && req.session.cookie.maxAge && req.session.cookie.maxAge <= 0) {
       return res.status(401).json({ 
         success: false,
         message: 'Session expired, please login again',
@@ -146,11 +145,6 @@ export async function requireAdmin(req: Request, res: Response, next: NextFuncti
         message: 'Authentication required',
         code: 'NOT_AUTHENTICATED'
       });
-    }
-
-    // Direct admin access for user ID 20 (verified admin)
-    if (req.user.id === 20) {
-      return next();
     }
 
     // Check if user has admin privileges
