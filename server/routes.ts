@@ -2551,6 +2551,196 @@ export async function registerRoutes(app: Express): Promise<Server> {
     res.json({ success: true, review });
   });
 
+  // Rating API Endpoints
+  
+  // Create a rating/review for a specific user related to a job
+  apiRouter.post("/ratings", isAuthenticated, async (req: Request, res: Response) => {
+    try {
+      const { ratedUserId, rating, review, jobId } = req.body;
+      const reviewerId = (req.user as any).id;
+
+      // Validate required fields
+      if (!ratedUserId || !rating || !jobId) {
+        return res.status(400).json({ 
+          message: 'Missing required fields: ratedUserId, rating, and jobId are required' 
+        });
+      }
+
+      // Validate rating range
+      if (rating < 1 || rating > 5) {
+        return res.status(400).json({ 
+          message: 'Rating must be between 1 and 5' 
+        });
+      }
+
+      // Check if job exists
+      const job = await storage.getJob(jobId);
+      if (!job) {
+        return res.status(404).json({ message: 'Job not found' });
+      }
+
+      // Check if user is authorized to rate (must be either poster or worker)
+      if (reviewerId !== job.posterId && reviewerId !== job.workerId) {
+        return res.status(403).json({ 
+          message: 'You can only rate users from jobs you are involved in' 
+        });
+      }
+
+      // Check if the ratedUserId is valid (must be the other party in the job)
+      if (reviewerId === job.posterId && ratedUserId !== job.workerId) {
+        return res.status(400).json({ 
+          message: 'You can only rate the assigned worker for this job' 
+        });
+      }
+      if (reviewerId === job.workerId && ratedUserId !== job.posterId) {
+        return res.status(400).json({ 
+          message: 'You can only rate the job poster for this job' 
+        });
+      }
+
+      // Check if user has already rated this person for this job
+      const existingReviews = await storage.getReviewsForJob(jobId);
+      const existingRating = existingReviews.find(r => 
+        r.reviewerId === reviewerId && r.revieweeId === ratedUserId
+      );
+      
+      if (existingRating) {
+        return res.status(400).json({ 
+          message: 'You have already rated this user for this job' 
+        });
+      }
+
+      // Create the review
+      const reviewData = {
+        jobId,
+        reviewerId,
+        revieweeId: ratedUserId,
+        rating,
+        comment: review || null
+      };
+
+      const createdReview = await storage.createReview(reviewData);
+
+      // Update user's average rating
+      await updateUserAverageRating(ratedUserId);
+
+      res.json({ 
+        success: true, 
+        review: createdReview,
+        message: 'Rating submitted successfully'
+      });
+
+    } catch (error) {
+      console.error('Error creating rating:', error);
+      res.status(500).json({ 
+        message: 'Failed to submit rating',
+        error: error instanceof Error ? error.message : 'Unknown error'
+      });
+    }
+  });
+
+  // Get ratings for a specific user
+  apiRouter.get("/ratings/user/:userId", async (req: Request, res: Response) => {
+    try {
+      const userId = parseInt(req.params.userId);
+      if (isNaN(userId)) {
+        return res.status(400).json({ message: "Invalid user ID" });
+      }
+
+      const reviews = await storage.getReviewsForUser(userId);
+      
+      // Enhance reviews with additional information
+      const enhancedReviews = await Promise.all(reviews.map(async (review) => {
+        const reviewer = await storage.getUser(review.reviewerId);
+        const job = review.jobId ? await storage.getJob(review.jobId) : null;
+        
+        return {
+          ...review,
+          reviewer: reviewer ? {
+            id: reviewer.id,
+            fullName: reviewer.fullName,
+            username: reviewer.username,
+            avatarUrl: reviewer.avatarUrl
+          } : null,
+          job: job ? {
+            id: job.id,
+            title: job.title,
+            category: job.category,
+            datePosted: job.datePosted
+          } : null
+        };
+      }));
+
+      res.json(enhancedReviews);
+    } catch (error) {
+      console.error('Error fetching user ratings:', error);
+      res.status(500).json({ 
+        message: 'Failed to fetch user ratings',
+        error: error instanceof Error ? error.message : 'Unknown error'
+      });
+    }
+  });
+
+  // Get ratings for a specific job
+  apiRouter.get("/ratings/job/:jobId", async (req: Request, res: Response) => {
+    try {
+      const jobId = parseInt(req.params.jobId);
+      if (isNaN(jobId)) {
+        return res.status(400).json({ message: "Invalid job ID" });
+      }
+
+      const reviews = await storage.getReviewsForJob(jobId);
+      
+      // Enhance reviews with additional information
+      const enhancedReviews = await Promise.all(reviews.map(async (review) => {
+        const reviewer = await storage.getUser(review.reviewerId);
+        const reviewee = await storage.getUser(review.revieweeId);
+        
+        return {
+          ...review,
+          reviewer: reviewer ? {
+            id: reviewer.id,
+            fullName: reviewer.fullName,
+            username: reviewer.username,
+            avatarUrl: reviewer.avatarUrl
+          } : null,
+          reviewee: reviewee ? {
+            id: reviewee.id,
+            fullName: reviewee.fullName,
+            username: reviewee.username,
+            avatarUrl: reviewee.avatarUrl
+          } : null
+        };
+      }));
+
+      res.json(enhancedReviews);
+    } catch (error) {
+      console.error('Error fetching job ratings:', error);
+      res.status(500).json({ 
+        message: 'Failed to fetch job ratings',
+        error: error instanceof Error ? error.message : 'Unknown error'
+      });
+    }
+  });
+
+  // Helper function to update user's average rating
+  async function updateUserAverageRating(userId: number) {
+    try {
+      const reviews = await storage.getReviewsForUser(userId);
+      if (reviews.length === 0) {
+        await storage.updateUser(userId, { rating: null });
+        return;
+      }
+
+      const totalRating = reviews.reduce((sum, review) => sum + review.rating, 0);
+      const averageRating = totalRating / reviews.length;
+      
+      await storage.updateUser(userId, { rating: averageRating });
+    } catch (error) {
+      console.error('Error updating user average rating:', error);
+    }
+  }
+
   // Add fallback routes for common missing endpoints to prevent 404s
   apiRouter.get('/dashboard-stats', (req: Request, res: Response) => {
     res.redirect('/api/admin/dashboard-stats');

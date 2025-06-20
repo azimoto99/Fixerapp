@@ -137,6 +137,12 @@ const JobDetailsCard: React.FC<JobDetailsCardProps> = ({ jobId, isOpen, onClose 
     estimatedHours: '',
     location: ''
   });
+  
+  // Rating system state
+  const [showRatingDialog, setShowRatingDialog] = useState(false);
+  const [ratingType, setRatingType] = useState<'worker' | 'poster'>('worker');
+  const [rating, setRating] = useState(0);
+  const [review, setReview] = useState('');
 
   // Fetch job details
   const { data: job, isLoading, error: jobError } = useQuery({
@@ -214,6 +220,19 @@ const JobDetailsCard: React.FC<JobDetailsCardProps> = ({ jobId, isOpen, onClose 
     onError: (error) => {
       console.error('Error fetching tasks:', error);
     },
+  });
+
+  // Fetch existing ratings for this job
+  const { data: jobRatings = [] } = useQuery({
+    queryKey: ['/api/ratings/job', jobId],
+    queryFn: async () => {
+      const response = await apiRequest('GET', `/api/ratings/job/${jobId}`);
+      if (!response.ok) {
+        return [];
+      }
+      return response.json();
+    },
+    enabled: isOpen && !!jobId,
   });
 
   // Job status update mutation
@@ -302,7 +321,42 @@ const JobDetailsCard: React.FC<JobDetailsCardProps> = ({ jobId, isOpen, onClose 
     },
   });
   
-
+  // Rating user mutation
+  const rateUserMutation = useMutation({
+    mutationFn: async (data: { 
+      ratedUserId: number;
+      rating: number;
+      review?: string;
+      jobId: number;
+    }) => {
+      const response = await apiRequest('POST', '/api/ratings', data);
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({ message: 'Failed to submit rating' }));
+        throw new Error(errorData.message || 'Failed to submit rating');
+      }
+      return response.json();
+    },
+    onSuccess: (data) => {
+      toast({
+        title: 'Rating Submitted',
+        description: data.message || 'Thank you for your feedback!',
+      });
+      setShowRatingDialog(false);
+      setRating(0);
+      setReview('');
+      // Invalidate queries to refresh data
+      queryClient.invalidateQueries({ queryKey: ['/api/jobs'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/users'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/ratings'] });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: 'Error',
+        description: error.message || 'Failed to submit rating. Please try again.',
+        variant: 'destructive',
+      });
+    },
+  });
 
   // Application management mutations
   const acceptApplicationMutation = useMutation({
@@ -602,6 +656,116 @@ const JobDetailsCard: React.FC<JobDetailsCardProps> = ({ jobId, isOpen, onClose 
       case 'rejected': return 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400 border-red-200 dark:border-red-800';
       default: return 'bg-gray-100 text-gray-800 dark:bg-gray-800/50 dark:text-gray-300 border-gray-200 dark:border-gray-700';
     }
+  };
+
+  // Check if user has already rated someone for this job
+  const hasUserRated = (targetUserId: number) => {
+    if (!user || !jobRatings) return false;
+    return jobRatings.some((rating: any) => 
+      rating.reviewerId === user.id && rating.revieweeId === targetUserId
+    );
+  };
+
+  // Get existing rating for display
+  const getUserRating = (targetUserId: number) => {
+    if (!user || !jobRatings) return null;
+    return jobRatings.find((rating: any) => 
+      rating.reviewerId === user.id && rating.revieweeId === targetUserId
+    );
+  };
+
+  // Rating handlers
+  const handleSubmitRating = () => {
+    if (rating === 0) {
+      toast({
+        title: 'Error',
+        description: 'Please select a rating',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    let ratedUserId: number;
+    if (ratingType === 'worker') {
+      // Rating the worker - get the assigned worker ID
+      const assignedWorker = applications.find(app => app.status === 'accepted')?.worker;
+      if (!assignedWorker) {
+        toast({
+          title: 'Error',
+          description: 'No assigned worker found',
+          variant: 'destructive',
+        });
+        return;
+      }
+      ratedUserId = assignedWorker.id;
+    } else {
+      // Rating the poster
+      if (!job?.posterId) {
+        toast({
+          title: 'Error',
+          description: 'Job poster not found',
+          variant: 'destructive',
+        });
+        return;
+      }
+      ratedUserId = job.posterId;
+    }
+
+    // Check if already rated
+    if (hasUserRated(ratedUserId)) {
+      toast({
+        title: 'Already Rated',
+        description: 'You have already rated this user for this job',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    rateUserMutation.mutate({
+      ratedUserId,
+      rating,
+      review: review.trim(),
+      jobId: job.id,
+    });
+  };
+
+  const handleRatePoster = () => {
+    if (!job?.posterId) return;
+    
+    // Check if already rated
+    if (hasUserRated(job.posterId)) {
+      const existingRating = getUserRating(job.posterId);
+      toast({
+        title: 'Already Rated',
+        description: `You already gave this job poster ${existingRating?.rating} stars`,
+      });
+      return;
+    }
+
+    setRatingType('poster');
+    setRating(0);
+    setReview('');
+    setShowRatingDialog(true);
+  };
+
+  const handleRateWorker = () => {
+    const assignedWorker = applications.find(app => app.status === 'accepted')?.worker;
+    if (!assignedWorker) return;
+    
+    // Check if already rated
+    if (hasUserRated(assignedWorker.id)) {
+      const existingRating = getUserRating(assignedWorker.id);
+      toast({
+        title: 'Already Rated',
+        description: `You already gave this worker ${existingRating?.rating} stars`,
+      });
+      return;
+    }
+
+    setRatingType('worker');
+    setRating(0);
+    setReview('');
+    setShowRatingDialog(true);
   };
 
   // If the card is closed, don't render anything
@@ -1834,7 +1998,7 @@ const JobDetailsCard: React.FC<JobDetailsCardProps> = ({ jobId, isOpen, onClose 
     </Dialog>
 
     {/* Add button for worker to rate poster when job is completed */}
-    {user && !isJobPoster && job?.status === 'completed' && (
+    {user && !isJobPoster && job?.status === 'completed' && !hasUserRated(job.posterId) && (
       <Button
         size="sm"
         variant="outline"
@@ -1844,6 +2008,78 @@ const JobDetailsCard: React.FC<JobDetailsCardProps> = ({ jobId, isOpen, onClose 
         <Star className="h-4 w-4 mr-2 text-yellow-400 fill-yellow-400" />
         Rate Job Poster
       </Button>
+    )}
+
+    {/* Add button for job poster to rate worker when job is completed */}
+    {user && isJobPoster && job?.status === 'completed' && job?.workerId && !hasUserRated(job.workerId) && (
+      <Button
+        size="sm"
+        variant="outline"
+        onClick={handleRateWorker}
+        className="mt-4 w-full"
+      >
+        <Star className="h-4 w-4 mr-2 text-yellow-400 fill-yellow-400" />
+        Rate Worker
+      </Button>
+    )}
+
+    {/* Show existing rating if user has already rated */}
+    {user && job?.status === 'completed' && (
+      <>
+        {/* Show poster rating if worker has rated them */}
+        {!isJobPoster && hasUserRated(job.posterId) && (
+          <div className="mt-4 p-3 bg-muted rounded-lg">
+            <div className="text-sm text-muted-foreground mb-1">Your rating for job poster:</div>
+            <div className="flex items-center">
+              {[1, 2, 3, 4, 5].map((star) => (
+                <Star
+                  key={star}
+                  className={`h-4 w-4 ${
+                    star <= (getUserRating(job.posterId)?.rating || 0)
+                      ? 'text-yellow-400 fill-yellow-400'
+                      : 'text-gray-300'
+                  }`}
+                />
+              ))}
+              <span className="ml-2 text-sm font-medium">
+                {getUserRating(job.posterId)?.rating}/5
+              </span>
+            </div>
+            {getUserRating(job.posterId)?.comment && (
+              <div className="mt-2 text-sm text-muted-foreground">
+                "{getUserRating(job.posterId)?.comment}"
+              </div>
+            )}
+          </div>
+        )}
+        
+        {/* Show worker rating if poster has rated them */}
+        {isJobPoster && job?.workerId && hasUserRated(job.workerId) && (
+          <div className="mt-4 p-3 bg-muted rounded-lg">
+            <div className="text-sm text-muted-foreground mb-1">Your rating for worker:</div>
+            <div className="flex items-center">
+              {[1, 2, 3, 4, 5].map((star) => (
+                <Star
+                  key={star}
+                  className={`h-4 w-4 ${
+                    star <= (getUserRating(job.workerId)?.rating || 0)
+                      ? 'text-yellow-400 fill-yellow-400'
+                      : 'text-gray-300'
+                  }`}
+                />
+              ))}
+              <span className="ml-2 text-sm font-medium">
+                {getUserRating(job.workerId)?.rating}/5
+              </span>
+            </div>
+            {getUserRating(job.workerId)?.comment && (
+              <div className="mt-2 text-sm text-muted-foreground">
+                "{getUserRating(job.workerId)?.comment}"
+              </div>
+            )}
+          </div>
+        )}
+      </>
     )}
   </>
   );
