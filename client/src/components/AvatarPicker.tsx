@@ -3,6 +3,7 @@ import { Check } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useToast } from '@/hooks/use-toast';
+import { apiRequest } from '@/lib/queryClient';
 import { PREDEFINED_AVATARS } from '../../../shared/constants';
 
 interface AvatarPickerProps {
@@ -19,12 +20,8 @@ export function AvatarPicker({ currentAvatarUrl, userId, onAvatarUpdate, classNa
 
   const updateMutation = useMutation({
     mutationFn: async (avatarName: string) => {
-      const response = await fetch('/api/user/avatar', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ avatarName }),
-      });
-
+      const response = await apiRequest('POST', '/api/user/avatar', { avatarName });
+      
       if (!response.ok) {
         const error = await response.json();
         throw new Error(error.message || 'Failed to update avatar');

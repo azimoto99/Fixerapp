@@ -16,7 +16,7 @@ import { storage } from './storage';
 import { globalErrorHandler } from './utils/global-error-handler';
 // Import seed script to create initial data
 import "./seed";
-import userRoutes from './routes/user.js';
+import userRoutes from './routes/user';
 
 // Initialize global error handler early
 globalErrorHandler.setupGlobalHandlers();

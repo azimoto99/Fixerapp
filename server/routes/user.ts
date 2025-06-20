@@ -1,7 +1,7 @@
 import express from 'express';
-import { requireAuth } from '../middleware/auth.js';
-import { PREDEFINED_AVATARS } from '../../shared/constants.js';
-import { storage } from '../storage/index.js';
+import { requireAuth } from '../middleware/auth';
+import { PREDEFINED_AVATARS } from '../../shared/constants';
+import { storage } from '../storage';
 
 const router = express.Router();
 

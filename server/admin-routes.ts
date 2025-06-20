@@ -90,17 +90,48 @@ export function registerAdminRoutes(app: Express) {
         sortOrder = 'desc' 
       } = req.query;
 
-      const { users, total } = await storage.getAllUsers({
-        page: parseInt(page as string),
-        limit: parseInt(limit as string),
-        search: search as string,
-        status: status as 'all' | 'active' | 'inactive',
-        sortBy: sortBy as string,
-        sortOrder: sortOrder as 'asc' | 'desc'
+      // Get all users from storage (returns User[])
+      const allUsers = await storage.getAllUsers();
+      let filteredUsers = allUsers || [];
+
+      // Apply search filter
+      if (search) {
+        const searchTerm = (search as string).toLowerCase();
+        filteredUsers = filteredUsers.filter(user => 
+          user.username?.toLowerCase().includes(searchTerm) ||
+          user.fullName?.toLowerCase().includes(searchTerm) ||
+          user.email?.toLowerCase().includes(searchTerm)
+        );
+      }
+
+      // Apply status filter
+      if (status !== 'all') {
+        filteredUsers = filteredUsers.filter(user => {
+          if (status === 'active') return user.isActive;
+          if (status === 'inactive') return !user.isActive;
+          return true;
+        });
+      }
+
+      // Sort users
+      filteredUsers.sort((a, b) => {
+        const aValue = a[sortBy as keyof typeof a] || '';
+        const bValue = b[sortBy as keyof typeof b] || '';
+        
+        if (sortOrder === 'asc') {
+          return aValue > bValue ? 1 : -1;
+        } else {
+          return aValue < bValue ? 1 : -1;
+        }
       });
+
+      // Apply pagination
+      const startIndex = (parseInt(page as string) - 1) * parseInt(limit as string);
+      const endIndex = startIndex + parseInt(limit as string);
+      const paginatedUsers = filteredUsers.slice(startIndex, endIndex);
       
-      // Remove sensitive information, ensure users is an array
-      const safeUsers = Array.isArray(users) ? users.map(user => ({
+      // Remove sensitive information
+      const safeUsers = paginatedUsers.map(user => ({
         id: user.id,
         username: user.username,
         fullName: user.fullName,
@@ -112,13 +143,13 @@ export function registerAdminRoutes(app: Express) {
         lastActive: user.lastActive,
         emailVerified: user.emailVerified,
         phoneVerified: user.phoneVerified
-      })) : [];
+      }));
 
       res.json({
         users: safeUsers,
-        total: total || 0,
+        total: filteredUsers.length,
         page: parseInt(page as string),
-        totalPages: Math.ceil((total || 0) / parseInt(limit as string))
+        totalPages: Math.ceil(filteredUsers.length / parseInt(limit as string))
       });
     } catch (error) {
       console.error('Admin users error:', error);
@@ -156,7 +187,7 @@ export function registerAdminRoutes(app: Express) {
       const userId = parseInt(req.params.userId);
 
       // Don't allow deleting yourself
-      if (userId === req.user.id) {
+      if (userId === req.user?.id) {
         return res.status(400).json({ message: "Cannot delete your own account" });
       }
 
@@ -185,20 +216,47 @@ export function registerAdminRoutes(app: Express) {
         sortOrder = 'desc' 
       } = req.query;
 
-      const { jobs, total } = await storage.getAllJobs({
-        page: parseInt(page as string),
-        limit: parseInt(limit as string),
-        search: search as string,
-        status: status as 'all' | 'open' | 'in_progress' | 'completed' | 'canceled',
-        sortBy: sortBy as string,
-        sortOrder: sortOrder as 'asc' | 'desc'
+      // Get all jobs from storage (returns Job[])
+      const allJobs = await storage.getAllJobs();
+      let filteredJobs = allJobs || [];
+
+      // Apply search filter
+      if (search) {
+        const searchTerm = (search as string).toLowerCase();
+        filteredJobs = filteredJobs.filter(job => 
+          job.title?.toLowerCase().includes(searchTerm) ||
+          job.description?.toLowerCase().includes(searchTerm) ||
+          job.category?.toLowerCase().includes(searchTerm)
+        );
+      }
+
+      // Apply status filter
+      if (status !== 'all') {
+        filteredJobs = filteredJobs.filter(job => job.status === status);
+      }
+
+      // Sort jobs
+      filteredJobs.sort((a, b) => {
+        const aValue = a[sortBy as keyof typeof a] || '';
+        const bValue = b[sortBy as keyof typeof b] || '';
+        
+        if (sortOrder === 'asc') {
+          return aValue > bValue ? 1 : -1;
+        } else {
+          return aValue < bValue ? 1 : -1;
+        }
       });
+
+      // Apply pagination
+      const startIndex = (parseInt(page as string) - 1) * parseInt(limit as string);
+      const endIndex = startIndex + parseInt(limit as string);
+      const paginatedJobs = filteredJobs.slice(startIndex, endIndex);
       
       res.json({
-        jobs,
-        total,
+        jobs: paginatedJobs,
+        total: filteredJobs.length,
         page: parseInt(page as string),
-        totalPages: Math.ceil(total / parseInt(limit as string))
+        totalPages: Math.ceil(filteredJobs.length / parseInt(limit as string))
       });
     } catch (error) {
       console.error('Admin jobs error:', error);
@@ -211,7 +269,7 @@ export function registerAdminRoutes(app: Express) {
     try {
       const jobId = parseInt(req.params.jobId);
 
-      const job = await storage.getJobById(jobId);
+      const job = await storage.getJob(jobId);
       if (!job) {
         return res.status(404).json({ message: "Job not found" });
       }
@@ -227,8 +285,74 @@ export function registerAdminRoutes(app: Express) {
   // Get all payments for admin
   app.get("/api/admin/payments", adminAuth, async (req, res) => {
     try {
-      const payments = await storage.getAllPayments();
-      res.json(payments);
+      const { 
+        page = '1', 
+        limit = '10', 
+        search = '', 
+        status = 'all', 
+        type = 'all',
+        sortBy = 'createdAt', 
+        sortOrder = 'desc' 
+      } = req.query;
+
+      const allPayments = await storage.getAllPayments();
+      let filteredPayments = allPayments || [];
+
+      // Apply search filter
+      if (search) {
+        const searchTerm = (search as string).toLowerCase();
+        filteredPayments = filteredPayments.filter(payment => 
+          payment.description?.toLowerCase().includes(searchTerm) ||
+          payment.userEmail?.toLowerCase().includes(searchTerm) ||
+          payment.id.toString().includes(searchTerm)
+        );
+      }
+
+      // Apply status filter
+      if (status !== 'all') {
+        filteredPayments = filteredPayments.filter(payment => payment.status === status);
+      }
+
+      // Apply type filter (if needed)
+      if (type !== 'all') {
+        filteredPayments = filteredPayments.filter(payment => payment.type === type);
+      }
+
+      // Sort payments
+      filteredPayments.sort((a, b) => {
+        const aValue = a[sortBy as keyof typeof a] || '';
+        const bValue = b[sortBy as keyof typeof b] || '';
+        
+        if (sortOrder === 'asc') {
+          return aValue > bValue ? 1 : -1;
+        } else {
+          return aValue < bValue ? 1 : -1;
+        }
+      });
+
+      // Apply pagination
+      const startIndex = (parseInt(page as string) - 1) * parseInt(limit as string);
+      const endIndex = startIndex + parseInt(limit as string);
+      const paginatedPayments = filteredPayments.slice(startIndex, endIndex);
+
+      // Ensure payments have required fields for frontend
+      const safePayments = paginatedPayments.map(payment => ({
+        id: payment.id,
+        description: payment.description || `Payment #${payment.id}`,
+        userEmail: payment.userEmail || 'Unknown',
+        amount: payment.amount || 0,
+        status: payment.status || 'pending',
+        userId: payment.userId,
+        createdAt: payment.createdAt,
+        serviceFee: payment.serviceFee || 0
+      }));
+
+      res.json({
+        payments: safePayments,
+        total: filteredPayments.length,
+        page: parseInt(page as string),
+        totalPages: Math.ceil(filteredPayments.length / parseInt(limit as string))
+      });
     } catch (error) {
       console.error('Admin payments error:', error);
       res.status(500).json({ message: "Failed to fetch payments" });
@@ -238,8 +362,75 @@ export function registerAdminRoutes(app: Express) {
   // Get support tickets - now using real database data
   app.get("/api/admin/support-tickets", adminAuth, async (req, res) => {
     try {
-      const tickets = await storage.getSupportTickets();
-      res.json(tickets);
+      const { 
+        page = '1', 
+        limit = '10', 
+        search = '', 
+        status = 'all', 
+        priority = 'all',
+        sortBy = 'createdAt', 
+        sortOrder = 'desc' 
+      } = req.query;
+
+      const allTickets = await storage.getSupportTickets();
+      let filteredTickets = allTickets || [];
+
+      // Apply search filter
+      if (search) {
+        const searchTerm = (search as string).toLowerCase();
+        filteredTickets = filteredTickets.filter(ticket => 
+          ticket.title?.toLowerCase().includes(searchTerm) ||
+          ticket.userName?.toLowerCase().includes(searchTerm) ||
+          ticket.userEmail?.toLowerCase().includes(searchTerm) ||
+          ticket.id.toString().includes(searchTerm)
+        );
+      }
+
+      // Apply status filter
+      if (status !== 'all') {
+        filteredTickets = filteredTickets.filter(ticket => ticket.status === status);
+      }
+
+      // Apply priority filter
+      if (priority !== 'all') {
+        filteredTickets = filteredTickets.filter(ticket => ticket.priority === priority);
+      }
+
+      // Sort tickets
+      filteredTickets.sort((a, b) => {
+        const aValue = a[sortBy as keyof typeof a] || '';
+        const bValue = b[sortBy as keyof typeof b] || '';
+        
+        if (sortOrder === 'asc') {
+          return aValue > bValue ? 1 : -1;
+        } else {
+          return aValue < bValue ? 1 : -1;
+        }
+      });
+
+      // Apply pagination
+      const startIndex = (parseInt(page as string) - 1) * parseInt(limit as string);
+      const endIndex = startIndex + parseInt(limit as string);
+      const paginatedTickets = filteredTickets.slice(startIndex, endIndex);
+
+      // Ensure tickets have required fields for frontend
+      const safeTickets = paginatedTickets.map(ticket => ({
+        id: ticket.id,
+        title: ticket.title || `Ticket #${ticket.id}`,
+        userName: ticket.userName || 'Unknown User',
+        userEmail: ticket.userEmail || 'unknown@example.com',
+        priority: ticket.priority || 'medium',
+        status: ticket.status || 'open',
+        createdAt: ticket.createdAt,
+        description: ticket.description
+      }));
+
+      res.json({
+        tickets: safeTickets,
+        total: filteredTickets.length,
+        page: parseInt(page as string),
+        totalPages: Math.ceil(filteredTickets.length / parseInt(limit as string))
+      });
     } catch (error) {
       console.error('Admin support tickets error:', error);
       res.status(500).json({ message: "Failed to fetch support tickets" });
