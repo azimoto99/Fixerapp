@@ -20,9 +20,6 @@ import userRoutes from './routes/user';
 import helmet from 'helmet';
 import { securityConfig } from './security-config';
 
-// Initialize global error handler early
-errorHandler.initialize();
-
 // Log environment variables (excluding sensitive ones)
 log('Environment check:');
 log(`NODE_ENV: ${process.env.NODE_ENV}`);
