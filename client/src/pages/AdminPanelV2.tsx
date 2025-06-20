@@ -179,7 +179,6 @@ export default function AdminPanelV2() {
       const response = await apiRequest('GET', `/api/admin/users?${params.toString()}`);
       return (await response.json()) as UsersApiResponse;
     },
-    enabled: selectedTab === "users",
     retry: 2,
     retryDelay: 1000,
   });
@@ -206,7 +205,6 @@ export default function AdminPanelV2() {
       const response = await apiRequest('GET', `/api/admin/jobs?${params.toString()}`);
       return (await response.json()) as JobsApiResponse;
     },
-    enabled: selectedTab === "jobs",
     retry: 2,
     retryDelay: 1000,
   });
@@ -234,7 +232,6 @@ export default function AdminPanelV2() {
       const response = await apiRequest('GET', `/api/admin/support-tickets?${params.toString()}`);
       return (await response.json()) as SupportApiResponse;
     },
-    enabled: selectedTab === "support",
     retry: 2,
     retryDelay: 1000,
   });
@@ -262,7 +259,6 @@ export default function AdminPanelV2() {
       const response = await apiRequest('GET', `/api/admin/payments?${params.toString()}`);
       return (await response.json()) as PaymentsApiResponse;
     },
-    enabled: selectedTab === "payments",
     retry: 2,
     retryDelay: 1000,
   });
@@ -396,7 +392,7 @@ export default function AdminPanelV2() {
 
       <Tabs defaultValue="overview" value={selectedTab} onValueChange={setSelectedTab} className="w-full">
         <div className={`md:block ${isMobileMenuOpen ? 'block' : 'hidden'} mb-6 md:mb-0`}>
-          <TabsList className="flex flex-col items-start p-2 space-y-1">
+          <TabsList className="grid w-full grid-cols-5 p-2">
             <TabsTrigger value="overview" className="w-full justify-start">Overview</TabsTrigger>
             <TabsTrigger value="users" className="w-full justify-start">Users</TabsTrigger>
             <TabsTrigger value="jobs" className="w-full justify-start">Jobs</TabsTrigger>
