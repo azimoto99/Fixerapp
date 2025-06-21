@@ -308,7 +308,6 @@ export default function Home() {
     queryKey: ['/api/jobs/my-posted-jobs', user?.id],
     queryFn: async () => {
       if (!user?.id) {
-        console.warn('No user ID available for fetching posted jobs');
         return [];
       }
 
@@ -322,12 +321,12 @@ export default function Home() {
         // Client-side security check - ensure all jobs belong to current user
         const userJobs = jobs.filter((job: Job) => job.posterId === user.id);
         if (userJobs.length !== jobs.length) {
-          console.error('Security warning: Server returned jobs not belonging to current user');
+          // Log security issue but don't expose it to user
+          // Admin notification could be added here in production
         }
 
         return userJobs;
       } catch (error) {
-        console.error('Error fetching posted jobs:', error);
         throw error;
       }
     },

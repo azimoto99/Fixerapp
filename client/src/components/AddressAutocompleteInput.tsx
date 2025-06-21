@@ -37,7 +37,6 @@ export function AddressAutocompleteInput({
     
     setIsLoading(true);
     try {
-      console.log('Attempting to geocode address:', query);
       const endpoint = `https://api.mapbox.com/geocoding/v5/mapbox.places/${encodeURIComponent(query)}.json`;
       const params = new URLSearchParams({
         access_token: MAPBOX_ACCESS_TOKEN,
@@ -57,7 +56,6 @@ export function AddressAutocompleteInput({
         setShowSuggestions(true);
       }
     } catch (error) {
-      console.error('Error fetching address suggestions:', error);
       // Try using Nominatim as fallback (OpenStreetMap)
       try {
         const endpoint = `https://nominatim.openstreetmap.org/search`;
@@ -76,7 +74,6 @@ export function AddressAutocompleteInput({
           }
         });
         const data = await response.json();
-        console.log('Nominatim response:', data);
         
         if (Array.isArray(data) && data.length > 0) {
           setSuggestions(data.map((item: any) => ({
@@ -86,7 +83,7 @@ export function AddressAutocompleteInput({
           setShowSuggestions(true);
         }
       } catch (fallbackError) {
-        console.error('Error with fallback geocoding:', fallbackError);
+        // Silent fail for fallback
       }
     } finally {
       setIsLoading(false);

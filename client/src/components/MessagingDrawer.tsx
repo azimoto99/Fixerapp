@@ -216,7 +216,6 @@ export function MessagingDrawer({ open, onOpenChange }: MessagingDrawerProps) {
       toast({
         title: "Contact Request Sent",
         description: "Your contact request has been sent successfully",
-        duration: 3000,
       });
       setTab("requests");
       setSearchQuery(""); // Clear search after sending
@@ -249,7 +248,6 @@ export function MessagingDrawer({ open, onOpenChange }: MessagingDrawerProps) {
       toast({
         title: variables.status === 'accepted' ? "Request Accepted" : "Request Rejected",
         description: `Contact request has been ${variables.status} successfully`,
-        duration: 3000,
       });
     },
     onError: (error: Error) => {
@@ -282,7 +280,6 @@ export function MessagingDrawer({ open, onOpenChange }: MessagingDrawerProps) {
       toast({
         title: "Contact Removed",
         description: "User has been removed from your contacts",
-        duration: 3000,
       });
     },
     onError: (error: Error) => {
@@ -515,13 +512,13 @@ export function MessagingDrawer({ open, onOpenChange }: MessagingDrawerProps) {
                 {/* Contact List */}
                 <ContactList
                   contacts={contacts}
-                  selectedContactId={selectedContactId}
+                  selectedContactId={selectedContactId || undefined}
                   onContactSelect={handleContactSelect}
-                  onContactCall={(contactId) => console.log('Call:', contactId)}
-                  onContactVideoCall={(contactId) => console.log('Video call:', contactId)}
-                  onContactPin={(contactId) => console.log('Pin:', contactId)}
-                  onContactArchive={(contactId) => console.log('Archive:', contactId)}
-                  onContactDelete={(contactId) => console.log('Delete:', contactId)}
+                  onContactCall={(contactId) => {/* TODO: Implement call functionality */}}
+                  onContactVideoCall={(contactId) => {/* TODO: Implement video call functionality */}}
+                  onContactPin={(contactId) => {/* TODO: Implement pin functionality */}}
+                  onContactArchive={(contactId) => {/* TODO: Implement archive functionality */}}
+                  onContactDelete={(contactId) => {/* TODO: Implement delete functionality */}}
                   isLoading={contactsLoading}
                   className="flex-1"
                 />
@@ -533,7 +530,7 @@ export function MessagingDrawer({ open, onOpenChange }: MessagingDrawerProps) {
             <div className="flex justify-between items-center mb-3">
               <div className="flex items-center gap-2">
                 <h3 className="text-sm font-medium text-foreground">Contact Requests</h3>
-                <Shield className="h-3 w-3 text-green-500" title="Secure requests" />
+                <Shield className="h-3 w-3 text-green-500" />
               </div>
               <Badge variant="outline" className="text-xs">
                 {receivedRequestsLoading ? '...' : `${receivedRequests.length} pending`}
@@ -648,7 +645,7 @@ export function MessagingDrawer({ open, onOpenChange }: MessagingDrawerProps) {
             <div className="flex justify-between items-center mb-3">
               <div className="flex items-center gap-2">
                 <h3 className="text-sm font-medium text-foreground">Add Contact</h3>
-                <Shield className="h-3 w-3 text-green-500" title="Secure contact requests" />
+                <Shield className="h-3 w-3 text-green-500" />
               </div>
             </div>
 

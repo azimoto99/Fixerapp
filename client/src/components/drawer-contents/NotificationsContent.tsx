@@ -17,9 +17,14 @@ export default function NotificationsContent({ user }: NotificationsContentProps
         </CardTitle>
       </CardHeader>
       <CardContent>
-        <div className="space-y-4">
-          <p className="text-sm text-muted-foreground">You have no new notifications.</p>
-          {/* TODO: Implement fetching and displaying user notifications */}
+        <div className="p-4">
+          <h3 className="text-lg font-semibold mb-4">Notifications</h3>
+          
+          <div className="text-center text-muted-foreground">
+            <Bell className="h-12 w-12 mx-auto mb-4 opacity-50" />
+            <p className="text-sm">No notifications yet</p>
+            <p className="text-xs mt-2">You'll see job updates, messages, and system notifications here</p>
+          </div>
         </div>
       </CardContent>
     </Card>
