@@ -172,33 +172,58 @@ export function ModernMessagingInterface({
     return () => clearTimeout(timer);
   }, [contactId, scrollToBottom]);
 
-  // Join room on mount  
+  // Join conversation room on mount using raw WebSocket messages
   useEffect(() => {
     if (contactId && currentUserId) {
-      const roomId = Math.min(currentUserId, contactId) * 10000 + Math.max(currentUserId, contactId);
-      joinRoom(roomId);
+      const roomId = `conversation_${Math.min(currentUserId, contactId)}_${Math.max(currentUserId, contactId)}`;
+      
+      // Use sendRawMessage for conversation room management
+      sendRawMessage({
+        type: 'join_conversation_room',
+        roomId,
+        userId: currentUserId,
+        contactId
+      });
     }
     
     return () => {
       if (contactId && currentUserId) {
-        const roomId = Math.min(currentUserId, contactId) * 10000 + Math.max(currentUserId, contactId);
-        leaveRoom(roomId);
+        const roomId = `conversation_${Math.min(currentUserId, contactId)}_${Math.max(currentUserId, contactId)}`;
+        
+        sendRawMessage({
+          type: 'leave_conversation_room',
+          roomId,
+          userId: currentUserId,
+          contactId
+        });
       }
     };
-  }, [contactId, currentUserId, joinRoom, leaveRoom]);
+  }, [contactId, currentUserId, sendRawMessage]);
 
-  // Handle typing indicators
+  // Handle typing indicators for conversations
   const handleTypingStart = useCallback(() => {
-    if (!typingUsers.includes(contactId)) {
-      startTyping(contactId);
+    if (!typingUsers.includes(contactId) && currentUserId) {
+      const roomId = `conversation_${Math.min(currentUserId, contactId)}_${Math.max(currentUserId, contactId)}`;
+      sendRawMessage({
+        type: 'typing',
+        roomId,
+        userId: currentUserId,
+        recipientId: contactId
+      });
     }
-  }, [typingUsers, startTyping, contactId]);
+  }, [typingUsers, contactId, currentUserId, sendRawMessage]);
 
   const handleTypingStop = useCallback(() => {
-    if (typingUsers.includes(contactId)) {
-      stopTyping(contactId);
+    if (typingUsers.includes(contactId) && currentUserId) {
+      const roomId = `conversation_${Math.min(currentUserId, contactId)}_${Math.max(currentUserId, contactId)}`;
+      sendRawMessage({
+        type: 'stop_typing',
+        roomId,
+        userId: currentUserId,
+        recipientId: contactId
+      });
     }
-  }, [typingUsers, stopTyping, contactId]);
+  }, [typingUsers, contactId, currentUserId, sendRawMessage]);
 
   // Handle send message
   const handleSendMessage = useCallback((content: string, attachments?: File[]) => {
