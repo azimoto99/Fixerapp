@@ -1,6 +1,6 @@
 import { useStripe, Elements, PaymentElement, useElements } from '@stripe/react-stripe-js';
 import { loadStripe } from '@stripe/stripe-js';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, Component, ReactNode } from 'react';
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { useLocation } from "wouter";
@@ -13,9 +13,64 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 // recreating the `Stripe` object on every render.
 const stripeKey = import.meta.env.VITE_STRIPE_PUBLIC_KEY;
 if (!stripeKey) {
-  console.error('Missing required Stripe key: VITE_STRIPE_PUBLIC_KEY');
+  const errorMessage = 'Missing required environment variable: VITE_STRIPE_PUBLIC_KEY. Stripe functionality cannot be initialized.';
+  console.error(errorMessage);
+  throw new Error(errorMessage);
 }
-const stripePromise = stripeKey ? loadStripe(stripeKey) : null;
+const stripePromise = loadStripe(stripeKey);
+
+// Error boundary to catch Stripe initialization errors
+class StripeErrorBoundary extends Component<
+  { children: ReactNode },
+  { hasError: boolean; error: Error | null }
+> {
+  constructor(props: { children: ReactNode }) {
+    super(props);
+    this.state = { hasError: false, error: null };
+  }
+
+  static getDerivedStateFromError(error: Error): { hasError: boolean; error: Error } {
+    return { hasError: true, error };
+  }
+
+  componentDidCatch(error: Error, errorInfo: any) {
+    console.error('Stripe initialization error:', error, errorInfo);
+  }
+
+  render() {
+    if (this.state.hasError) {
+      return (
+        <div className="max-w-md mx-auto mt-12">
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-red-600 flex items-center">
+                <AlertCircle className="mr-2 h-5 w-5" />
+                Payment System Error
+              </CardTitle>
+              <CardDescription>Stripe payment system failed to initialize</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <Alert variant="destructive">
+                <AlertCircle className="h-4 w-4" />
+                <AlertTitle>Configuration Error</AlertTitle>
+                <AlertDescription>
+                  {this.state.error?.message || 'Payment system is not properly configured. Please contact support.'}
+                </AlertDescription>
+              </Alert>
+            </CardContent>
+            <CardFooter>
+              <Button onClick={() => window.location.href = '/jobs'} className="w-full">
+                Return to Jobs
+              </Button>
+            </CardFooter>
+          </Card>
+        </div>
+      );
+    }
+
+    return this.props.children;
+  }
+}
 
 const CheckoutForm = ({ jobData }: { jobData: any }) => {
   const stripe = useStripe();
@@ -234,9 +289,11 @@ export default function Checkout() {
             </div>
           </div>
 
-          <Elements stripe={stripePromise} options={{ clientSecret }}>
-            <CheckoutForm jobData={jobData} />
-          </Elements>
+          <StripeErrorBoundary>
+            <Elements stripe={stripePromise} options={{ clientSecret }}>
+              <CheckoutForm jobData={jobData} />
+            </Elements>
+          </StripeErrorBoundary>
         </CardContent>
       </Card>
     </div>
