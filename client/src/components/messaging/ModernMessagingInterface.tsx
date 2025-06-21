@@ -39,6 +39,7 @@ export function ModernMessagingInterface({
   const [messageText, setMessageText] = useState('');
   const [replyTo, setReplyTo] = useState<MessageData | null>(null);
   const scrollAreaRef = useRef<HTMLDivElement>(null);
+  const messagesEndRef = useRef<HTMLDivElement>(null);
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
@@ -153,11 +154,8 @@ export function ModernMessagingInterface({
 
   // Auto-scroll to bottom with improved reliability
   const scrollToBottom = useCallback(() => {
-    if (scrollAreaRef.current) {
-      scrollAreaRef.current.scrollTo({
-        top: scrollAreaRef.current.scrollHeight,
-        behavior: 'smooth'
-      });
+    if (messagesEndRef.current) {
+      messagesEndRef.current.scrollIntoView({ behavior: 'smooth' });
     }
   }, []);
 
@@ -166,15 +164,25 @@ export function ModernMessagingInterface({
     scrollToBottom();
   }, [messages.length, scrollToBottom]);
 
-  // Join room on mount
+  // Also scroll when the component first loads and when contact changes
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      scrollToBottom();
+    }, 100); // Small delay to ensure messages are rendered
+    return () => clearTimeout(timer);
+  }, [contactId, scrollToBottom]);
+
+  // Join room on mount  
   useEffect(() => {
     if (contactId && currentUserId) {
-      joinRoom(`conversation_${Math.min(currentUserId, contactId)}_${Math.max(currentUserId, contactId)}`);
+      const roomId = Math.min(currentUserId, contactId) * 10000 + Math.max(currentUserId, contactId);
+      joinRoom(roomId);
     }
     
     return () => {
       if (contactId && currentUserId) {
-        leaveRoom(`conversation_${Math.min(currentUserId, contactId)}_${Math.max(currentUserId, contactId)}`);
+        const roomId = Math.min(currentUserId, contactId) * 10000 + Math.max(currentUserId, contactId);
+        leaveRoom(roomId);
       }
     };
   }, [contactId, currentUserId, joinRoom, leaveRoom]);
@@ -182,13 +190,13 @@ export function ModernMessagingInterface({
   // Handle typing indicators
   const handleTypingStart = useCallback(() => {
     if (!typingUsers.includes(contactId)) {
-      startTyping(contactId.toString());
+      startTyping(contactId);
     }
   }, [typingUsers, startTyping, contactId]);
 
   const handleTypingStop = useCallback(() => {
     if (typingUsers.includes(contactId)) {
-      stopTyping(contactId.toString());
+      stopTyping(contactId);
     }
   }, [typingUsers, stopTyping, contactId]);
 
@@ -285,6 +293,8 @@ export function ModernMessagingInterface({
               </div>
             ))
           )}
+          {/* Invisible div to mark the end of messages for scrolling */}
+          <div ref={messagesEndRef} />
         </div>
       </ScrollArea>
       <div className="p-4 border-t bg-background">
@@ -296,10 +306,14 @@ export function ModernMessagingInterface({
         <MessageInput
           value={messageText}
           onChange={setMessageText}
-          onSendMessage={handleSendMessage}
-          isSending={sendMessageMutation.isPending}
-          replyTo={replyTo}
-          onClearReply={() => setReplyTo(null)}
+          onSend={handleSendMessage}
+          isLoading={sendMessageMutation.isPending}
+          replyTo={replyTo ? {
+            id: replyTo.id,
+            content: replyTo.content,
+            senderName: replyTo.senderName || 'Unknown'
+          } : null}
+          onCancelReply={() => setReplyTo(null)}
         />
       </div>
     </div>
