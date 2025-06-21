@@ -43,9 +43,16 @@ const StripeRequirementsCheck: React.FC<StripeRequirementsCheckProps> = ({
       console.log('Invalidating user data after Stripe terms completion');
       // Directly query the API to re-fetch the latest user data before hiding the form
       apiRequest('GET', '/api/user')
-      .then(response => {
-        console.log('User data refreshed successfully');
-        return response.json();
+      .then(async (response) => {
+        // apiRequest already validates response.ok internally, so we can trust this response
+        try {
+          const userData = await response.json();
+          console.log('User data refreshed successfully:', userData);
+          return userData;
+        } catch (jsonError) {
+          console.error('Failed to parse user data response as JSON:', jsonError);
+          throw new Error('Invalid JSON response from user data endpoint');
+        }
       })
       .then(() => {
         console.log('Setting showTermsAcceptance to false');
@@ -53,6 +60,14 @@ const StripeRequirementsCheck: React.FC<StripeRequirementsCheckProps> = ({
       })
       .catch(error => {
         console.error('Error fetching user data:', error);
+        
+        // Provide more specific error logging
+        if (error.message.includes('Authentication failed')) {
+          console.error('User authentication failed during data refresh');
+        } else if (error.message.includes('Invalid JSON')) {
+          console.error('Server returned invalid JSON response');
+        }
+        
         // Still hide the form even if refresh fails, as the form was already submitted successfully
         setShowTermsAcceptance(false);
       });
