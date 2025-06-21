@@ -27,28 +27,47 @@ const upload = multer({
  * POST /api/user/avatar/upload
  */
 router.post('/avatar/upload', requireAuth, upload.single('avatar'), async (req, res) => {
+  console.log('🔍 Avatar upload request received');
+  console.log('User authenticated:', !!req.user);
+  console.log('File received:', !!req.file);
+  console.log('Request body:', req.body);
+  console.log('Request headers:', req.headers);
+  
   if (!req.user) {
+    console.log('❌ No user in request');
     return res.status(401).json({ message: 'Unauthorized' });
   }
 
   try {
     if (!req.file) {
+      console.log('❌ No file in request');
       return res.status(400).json({ message: 'No file uploaded' });
     }
 
+    console.log('📁 File details:', {
+      originalname: req.file.originalname,
+      mimetype: req.file.mimetype,
+      size: req.file.size,
+      bufferLength: req.file.buffer.length
+    });
+
     // Upload to S3
+    console.log('☁️ Uploading to S3...');
     const { url: avatarUrl } = await uploadProfileImage(req.user.id, req.file.buffer, req.file.originalname);
+    console.log('✅ S3 upload successful:', avatarUrl);
     
     // Update user profile with new avatar URL
+    console.log('💾 Updating user profile...');
     const updatedUser = await storage.updateUser(req.user.id, {
       avatarUrl
     });
     
     if (!updatedUser) {
-      // Note: No file to clean up from filesystem
+      console.log('❌ Failed to update user in database');
       return res.status(500).json({ message: 'Failed to update user avatar' });
     }
     
+    console.log('✅ Avatar upload completed successfully');
     res.json({
       message: 'Avatar uploaded successfully',
       avatarUrl,
@@ -60,9 +79,8 @@ router.post('/avatar/upload', requireAuth, upload.single('avatar'), async (req, 
       }
     });
   } catch (error) {
-    console.error('Avatar upload error:', error);
-    
-    // Note: No file to clean up from filesystem
+    console.error('❌ Avatar upload error:', error);
+    console.error('Error stack:', error instanceof Error ? error.stack : 'No stack trace');
     
     res.status(500).json({
       message: error instanceof Error ? error.message : 'Failed to upload avatar'
