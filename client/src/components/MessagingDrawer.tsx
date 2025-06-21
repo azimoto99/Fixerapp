@@ -418,7 +418,8 @@ export function MessagingDrawer({ open, onOpenChange }: MessagingDrawerProps) {
 
   const handleContactSelect = (contactId: number) => {
     setSelectedContactId(contactId);
-    setTab('messages');
+    // Stay on the contacts tab since the messaging interface is rendered within it
+    // setTab('messages'); // Remove this line - there's no 'messages' tab
   };
 
   const getInitials = (name: string | null): string => {

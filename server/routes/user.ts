@@ -45,7 +45,6 @@ router.post('/avatar/upload', requireAuth, upload.single('avatar'), async (req, 
     });
     
     if (!updatedUser) {
-      // Note: No file to clean up from filesystem
       return res.status(500).json({ message: 'Failed to update user avatar' });
     }
     
@@ -61,8 +60,6 @@ router.post('/avatar/upload', requireAuth, upload.single('avatar'), async (req, 
     });
   } catch (error) {
     console.error('Avatar upload error:', error);
-    
-    // Note: No file to clean up from filesystem
     
     res.status(500).json({
       message: error instanceof Error ? error.message : 'Failed to upload avatar'
