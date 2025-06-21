@@ -32,7 +32,7 @@ export function useSessionMonitor(options: SessionMonitorOptions = {}) {
   const { toast } = useToast();
   const [sessionHealth, setSessionHealth] = useState<SessionHealth | null>(null);
   const [isChecking, setIsChecking] = useState(false);
-  const checkSessionHealth = async () => {
+  const checkSessionHealth = async (): Promise<boolean> => {
     try {
       setIsChecking(true);
       const res = await apiRequest('GET', '/api/session/check', {});
@@ -45,19 +45,13 @@ export function useSessionMonitor(options: SessionMonitorOptions = {}) {
       
       // Detect session issues
       if (!health.hasSession || !health.isAuthenticated || health.cookieExpired) {
-        const message = {
+        toast({
           title: 'Session Expired',
-          description: 'Please log in again to continue.',
-          variant: 'destructive' as const,
-          action: autoRedirect ? undefined : {
-            label: 'Login',
-            onClick: () => {
-              window.location.href = '/login?redirect=' + encodeURIComponent(window.location.pathname);
-            }
-          }
-        };
-        
-        toast(message);
+          description: autoRedirect 
+            ? 'Please log in again to continue.' 
+            : 'Please log in again to continue. Click here to go to login.',
+          variant: 'destructive'
+        });
         
         if (onSessionExpired) {
           onSessionExpired();
@@ -65,8 +59,8 @@ export function useSessionMonitor(options: SessionMonitorOptions = {}) {
         
         if (autoRedirect) {
           window.location.href = '/login?redirect=' + encodeURIComponent(window.location.pathname);
-          return false;
         }
+        return false;
       }
       
       // Check for inactive user
@@ -78,9 +72,12 @@ export function useSessionMonitor(options: SessionMonitorOptions = {}) {
         });
         return false;
       }
+      
+      return true;
     } catch (error) {
       console.error('Session health check failed:', error);
       setSessionHealth(null);
+      return false;
     } finally {
       setIsChecking(false);
     }
@@ -109,24 +106,22 @@ export function useSessionMonitor(options: SessionMonitorOptions = {}) {
     };
     document.addEventListener('visibilitychange', handleVisibilityChange);
     
-    // Increase check frequency for long sessions
+    // Set up frequent interval for long sessions
+    let frequentInterval: NodeJS.Timeout | null = null;
     if (sessionDuration > 120) { // After 2 hours
-      const frequentInterval = setInterval(checkSessionHealth, Math.min(checkInterval, 30000));
-      return () => {
-        clearInterval(healthInterval);
-        clearInterval(durationInterval);
-        clearInterval(frequentInterval);
-        document.removeEventListener('visibilitychange', handleVisibilityChange);
-      };
+      frequentInterval = setInterval(checkSessionHealth, Math.min(checkInterval, 30000));
     }
     
     // Clean up
     return () => {
       clearInterval(healthInterval);
       clearInterval(durationInterval);
+      if (frequentInterval) {
+        clearInterval(frequentInterval);
+      }
       document.removeEventListener('visibilitychange', handleVisibilityChange);
     };
-  }, [checkInterval]);
+  }, [checkInterval, sessionDuration]);
 
   return {
     sessionHealth,

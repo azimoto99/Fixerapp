@@ -18,7 +18,7 @@ export function useStripeConnectMonitor(options = { pollInterval: 30000 }) {
   const { sessionHealth, checkSessionHealth } = useSessionMonitor();
 
   // Query for Stripe account status
-  const { data: accountStatus, isError } = useQuery({
+  const { data: accountStatus, isError, isLoading } = useQuery({
     queryKey: ['/api/stripe/connect/account-status'],
     queryFn: async () => {
       const res = await apiRequest('GET', '/api/stripe/connect/account-status');
@@ -60,6 +60,7 @@ export function useStripeConnectMonitor(options = { pollInterval: 30000 }) {
   return {
     accountStatus,
     isError,
+    isLoading,
     refreshAccountStatus
   };
 }

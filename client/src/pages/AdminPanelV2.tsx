@@ -140,7 +140,7 @@ export default function AdminPanelV2() {
   }, [debouncedSearch, filterStatus, ticketFilterStatus, ticketFilterPriority, paymentFilterStatus, paymentFilterType, selectedTab]);
 
   // Check if user is admin
-  const isAdmin = user?.isAdmin === true || user?.id === 20;
+  const isAdmin = user?.isAdmin === true;
   
   // Early return if not admin
   if (!user) {

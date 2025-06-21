@@ -21,7 +21,7 @@ const StripeConnectContext = createContext<StripeConnectContextType | undefined>
 
 export function StripeConnectProvider({ children }: { children: React.ReactNode }) {
   const { toast } = useToast();
-  const { accountStatus, isError, refreshAccountStatus } = useStripeConnectMonitor({
+  const { accountStatus, isError, refreshAccountStatus, isLoading } = useStripeConnectMonitor({
     pollInterval: 60000 // Check every minute by default
   });
   const openAccountSettings = useCallback(async () => {
@@ -43,7 +43,7 @@ export function StripeConnectProvider({ children }: { children: React.ReactNode 
     <StripeConnectContext.Provider
       value={{
         accountStatus,
-        isLoading: false,
+        isLoading,
         isError,
         refreshStatus: refreshAccountStatus,
         openAccountSettings
