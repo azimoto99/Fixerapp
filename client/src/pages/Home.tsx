@@ -3,7 +3,6 @@ import { useState, useEffect, lazy, Suspense } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import Header from '@/components/Header';
 import MobileNav from '@/components/MobileNav';
-import JobSearch from '@/components/JobSearch';
 // ViewToggle and JobListSection removed - using unified modal approach
 import NewJobButton from '@/components/NewJobButton';
 import PostJobDrawer from '@/components/PostJobDrawer';
@@ -44,20 +43,15 @@ const WorkerDashboard = () => {
   const [selectedJob, setSelectedJob] = useState<Job | undefined>(undefined);
   const [cancelJobId, setCancelJobId] = useState<number | null>(null);
   const [showCancelDialog, setShowCancelDialog] = useState(false);
-  const [searchParams, setSearchParams] = useState({
-    query: '',
-    searchMode: 'description' as 'location' | 'description',
-    coordinates: undefined as { latitude: number; longitude: number } | undefined
-  });
 
   // Keep all custom hook calls after useState hooks
   // When in worker view, we want to show all available jobs EXCEPT our own
   // This ensures workers see jobs from other users on the map
   const { jobs, isLoading } = useJobs({
-    nearbyOnly: searchParams.searchMode === 'location',
+    nearbyOnly: false,
     radiusMiles: 5,
     poster: false // Never filter by poster in worker view to ensure jobs appear on map
-  }, searchParams);
+  });
   const { toast } = useToast();
   const queryClient = useQueryClient();
   
@@ -92,22 +86,6 @@ const WorkerDashboard = () => {
     }
   });
 
-  const handleSearch = (params: {
-    query: string;
-    searchMode?: 'location' | 'description';
-    coordinates?: { latitude: number; longitude: number };
-    radiusMiles?: number;
-  }) => {
-    // Preserve existing searchMode if not provided
-    const newSearchMode = params.searchMode || searchParams.searchMode;
-
-    setSearchParams({
-      query: params.query,
-      searchMode: newSearchMode,
-      coordinates: params.coordinates
-    });
-  };
-
   const handleSelectJob = (job: Job) => {
     setSelectedJob(job);
   };
@@ -141,29 +119,12 @@ const WorkerDashboard = () => {
               jobs={jobs || []}
               selectedJob={selectedJob}
               onSelectJob={handleSelectJob}
-              searchCoordinates={searchParams.coordinates}
             />
           </Suspense>
           
           {/* Post Job Button positioned beneath UserDrawerV2 with lower z-index */}
           <div className="fixed top-20 right-4 z-[30]">
             <NewJobButton />
-          </div>
-          
-          {/* Search Bar at bottom for mobile */}
-          <div className="mobile-search-container md:hidden">
-            <div className="p-3">
-              <JobSearch onSearch={handleSearch} />
-            </div>
-          </div>
-
-          {/* Desktop search positioning */}
-          <div className="hidden md:block fixed bottom-4 left-4 right-4 z-[30] max-w-md mx-auto">
-            <div className="bg-card border border-border shadow-lg rounded-lg">
-              <div className="p-4">
-                <JobSearch onSearch={handleSearch} />
-              </div>
-            </div>
           </div>
         </div>
       </div>
