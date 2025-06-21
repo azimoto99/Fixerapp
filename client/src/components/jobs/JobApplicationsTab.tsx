@@ -105,7 +105,7 @@ const JobApplicationsTab: React.FC<JobApplicationsTabProps> = ({ applications, j
         <h3 className="text-lg font-medium">Applications ({applications.length})</h3>
         <div className="flex items-center gap-2">
           <span className="text-sm text-muted-foreground">Sort by:</span>
-          <Select value={sortOption} onValueChange={(val) => setSortOption(val as any)}>
+          <Select<SortOption> value={sortOption} onValueChange={(val) => setSortOption(val)}>
             <SelectTrigger className="w-[140px] h-8">
               <SelectValue placeholder="Sort by" />
             </SelectTrigger>
