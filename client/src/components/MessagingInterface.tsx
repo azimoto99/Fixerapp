@@ -343,15 +343,7 @@ export function MessagingInterface({
     );
   }
 
-  // Debug: Log current state
-  console.log('MessagingInterface state:', {
-    recipientId,
-    jobId,
-    currentUserId,
-    conversationData,
-    isLoading,
-    conversationError
-  });
+
   
   return (
     <div className={`flex flex-col h-full bg-background border rounded-lg ${className}`}>

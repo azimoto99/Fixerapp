@@ -29,15 +29,9 @@ interface MapSectionProps {
 const MapSection: React.FC<MapSectionProps> = ({ jobs, selectedJob, onSelectJob, searchCoordinates }) => {
   const { userLocation, locationError, isUsingFallback, refreshLocation } = useGeolocation();
 
-  // Debug logging for location
-  useEffect(() => {
-    console.log('MapSection location state:', { userLocation, locationError, isUsingFallback });
-  }, [userLocation, locationError, isUsingFallback]);
-
   // Try to get location on mount if we don't have it
   useEffect(() => {
     if (!userLocation && !locationError && refreshLocation) {
-      console.log('Attempting to refresh location...');
       refreshLocation();
     }
   }, [userLocation, locationError, refreshLocation]);
@@ -53,7 +47,6 @@ const MapSection: React.FC<MapSectionProps> = ({ jobs, selectedJob, onSelectJob,
   useEffect(() => {
     const handleJobPinUpdate = (event: CustomEvent) => {
       const { action, job } = event.detail;
-      console.log('📍 Map received job pin update:', action, job);
 
       // Invalidate queries to refresh job data
       queryClient.invalidateQueries({ queryKey: ['/api/jobs'] });
@@ -74,7 +67,6 @@ const MapSection: React.FC<MapSectionProps> = ({ jobs, selectedJob, onSelectJob,
   const [showJobDetailsCard, setShowJobDetailsCard] = useState(false);
   
   const handleUserDrawerChange = useCallback((isOpen: boolean) => {
-    console.log('MapSection: User drawer state changed to:', isOpen);
     setIsUserDrawerOpen(isOpen);
   }, []);
   const [showStripeConnectRequired, setShowStripeConnectRequired] = useState(false);
@@ -84,7 +76,6 @@ const MapSection: React.FC<MapSectionProps> = ({ jobs, selectedJob, onSelectJob,
   // Update map style when view changes
   useEffect(() => {
     // We'll implement heatmap functionality later
-    console.log(`Map view changed to: ${mapView}`);
   }, [mapView]);
 
   // Add event listener for centering map on a specific job
@@ -104,7 +95,6 @@ const MapSection: React.FC<MapSectionProps> = ({ jobs, selectedJob, onSelectJob,
       latitude: number;
       longitude: number;
     }>) => {
-      console.log('Centering map on job:', event.detail);
       setFocusMapCoordinates({
         jobId: event.detail.jobId,
         latitude: event.detail.latitude,
@@ -133,7 +123,6 @@ const MapSection: React.FC<MapSectionProps> = ({ jobs, selectedJob, onSelectJob,
   const position = useMemo(() => {
     // Prioritize search coordinates over geolocation
     if (searchCoordinates) {
-      console.log('Using search coordinates for position:', searchCoordinates);
       return {
         latitude: searchCoordinates.latitude,
         longitude: searchCoordinates.longitude
@@ -145,7 +134,6 @@ const MapSection: React.FC<MapSectionProps> = ({ jobs, selectedJob, onSelectJob,
           longitude: userLocation.longitude
         }
       : null;
-    console.log('Position calculated:', result, 'from userLocation:', userLocation);
     return result;
   }, [searchCoordinates, userLocation]);
   
@@ -330,9 +318,6 @@ const MapSection: React.FC<MapSectionProps> = ({ jobs, selectedJob, onSelectJob,
         // Check if this is a highlighted job
         const isHighlighted = job.id === highlightedJobId;
         
-        // Log creation for debugging
-        // console.log('Creating marker for job:', job.id, job.title, job.latitude, job.longitude);
-        
         // Force number conversion and ensure coordinates are valid numbers
         const lat = typeof job.latitude === 'string' ? parseFloat(job.latitude) : job.latitude;
         const lng = typeof job.longitude === 'string' ? parseFloat(job.longitude) : job.longitude;
@@ -357,7 +342,6 @@ const MapSection: React.FC<MapSectionProps> = ({ jobs, selectedJob, onSelectJob,
     
     // Add user location marker
     if (position) {
-      console.log('Creating user location marker at:', position);
       markers.push({
         latitude: position.latitude,
         longitude: position.longitude,
@@ -365,13 +349,10 @@ const MapSection: React.FC<MapSectionProps> = ({ jobs, selectedJob, onSelectJob,
         description: 'You are here',
         onClick: () => {}
       });
-    } else {
-      console.log('No position available for user location marker. userLocation:', userLocation, 'searchCoordinates:', searchCoordinates);
     }
     
     // If we have focus coordinates from "Show on Map", add a special highlighted marker
     if (focusMapCoordinates) {
-      console.log('Adding special marker for focused job at:', focusMapCoordinates);
       markers.push({
         latitude: focusMapCoordinates.latitude,
         longitude: focusMapCoordinates.longitude,

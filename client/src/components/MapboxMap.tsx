@@ -199,13 +199,6 @@ export default function MapboxMap({
     });
     circleLayerIds.current = [];
     
-    // Debug: log all marker coordinates
-    console.log('Adding markers to map:', markers.map(m => ({
-      lng: m.longitude,
-      lat: m.latitude,
-      title: m.title
-    })));
-    
     // Add new markers
     markers.forEach(marker => {
       if (!marker.latitude || !marker.longitude) return;
@@ -280,7 +273,6 @@ export default function MapboxMap({
         if (map.current) {
           mapboxMarker.addTo(map.current);
           currentLocationMarker.current = mapboxMarker;
-          console.log(`Current location marker successfully added at [${marker.longitude}, ${marker.latitude}]`);
 
           // Exit early to avoid creating a duplicate generic marker using the same DOM element.
           // We intentionally do NOT push the current-location marker to mapMarkers so it
@@ -376,8 +368,6 @@ export default function MapboxMap({
         if (map.current) {
           mapboxMarker.addTo(map.current);
           mapMarkers.current.push(mapboxMarker);
-          
-          console.log(`Marker successfully added at [${marker.longitude}, ${marker.latitude}] for: ${marker.title}`);
         }
       } catch (error) {
         console.error(`Failed to add marker at [${marker.longitude}, ${marker.latitude}]`, error);
