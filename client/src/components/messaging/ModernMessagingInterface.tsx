@@ -56,7 +56,8 @@ export function ModernMessagingInterface({
     leaveRoom,
     startTyping,
     stopTyping,
-    markMessageAsRead
+    markMessageAsRead,
+    sendRawMessage
   } = webSocketState;
 
   // Fetch messages
