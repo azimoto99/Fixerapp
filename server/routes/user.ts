@@ -3,6 +3,7 @@ import { requireAuth } from '../middleware/auth';
 import { storage } from '../storage';
 import multer from 'multer';
 import { uploadProfileImage } from '../services/s3Service';
+import { Request, Response } from 'express';
 
 const router = express.Router();
 
@@ -312,6 +313,58 @@ router.patch('/settings', requireAuth, async (req, res) => {
     res.status(500).json({
       message: error instanceof Error ? error.message : 'Failed to update settings'
     });
+  }
+});
+
+// Get contact info for accepted applicants (for call/text functionality)
+router.get('/contact-info/:userId', requireAuth, async (req: Request, res: Response) => {
+  try {
+    const targetUserId = parseInt(req.params.userId);
+    const currentUserId = req.user?.id;
+
+    if (!currentUserId || isNaN(targetUserId)) {
+      return res.status(400).json({ message: 'Invalid user ID' });
+    }
+
+    // Get the target user's info
+    const targetUser = await storage.getUserById(targetUserId);
+    if (!targetUser) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+
+    // Check if users are connected through an accepted job application
+    // This prevents random users from getting contact info
+    const jobs = await storage.getJobs({ 
+      $or: [
+        { posterId: currentUserId, workerId: targetUserId },
+        { posterId: targetUserId, workerId: currentUserId }
+      ]
+    });
+
+    const hasConnectionThroughJob = jobs.some(job => 
+      job.status === 'assigned' || job.status === 'in_progress' || job.status === 'completed'
+    );
+
+    if (!hasConnectionThroughJob) {
+      return res.status(403).json({ message: 'You can only access contact info for accepted job connections' });
+    }
+
+    // Only return contact info if phone is verified and user allows contact
+    const contactInfo: any = {};
+    
+    if (targetUser.phoneVerified && targetUser.phone) {
+      // Check privacy settings - allow contact for job-related communication
+      contactInfo.phone = targetUser.phone;
+      contactInfo.phoneVerified = true;
+    }
+
+    contactInfo.fullName = targetUser.fullName || targetUser.username;
+    contactInfo.username = targetUser.username;
+
+    res.json(contactInfo);
+  } catch (error) {
+    console.error('Error fetching contact info:', error);
+    res.status(500).json({ message: 'Error fetching contact info' });
   }
 });
 
