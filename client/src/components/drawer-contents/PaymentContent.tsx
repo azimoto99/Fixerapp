@@ -57,10 +57,13 @@ const PaymentContent: React.FC<PaymentContentProps> = ({ user }) => {
 
   // Fetch payments data
   const { data: payments, isLoading: paymentsLoading } = useQuery({
-    queryKey: ['/api/payments'],
+    queryKey: ['/api/payments/user', user.id],
     queryFn: async () => {
-      const response = await apiRequest('GET', '/api/payments');
-      return response;
+      const response = await apiRequest('GET', `/api/payments/user/${user.id}`);
+      if (!response.ok) {
+        throw new Error('Failed to fetch payment history');
+      }
+      return response.json();
     },
     enabled: !!user,
   });
@@ -258,37 +261,87 @@ const PaymentContent: React.FC<PaymentContentProps> = ({ user }) => {
       <Card>
         <CardHeader className="pb-3">
           <CardTitle className="text-base flex items-center gap-2">
-            <ArrowDownLeft className="h-4 w-4" />
+            <Download className="h-4 w-4" />
             Payment History
           </CardTitle>
-        </CardHeader>        <CardContent>
+          <CardDescription>
+            View your recent transactions and payments
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
           <ScrollArea className="h-64">
-            {payments && Array.isArray(payments) && payments.length > 0 ? (
-              <div className="space-y-2">
-                {payments.map((payment: any) => (
-                  <div key={payment.id} className="flex items-center justify-between p-3 border rounded-lg">
-                    <div className="flex items-center gap-3">
-                      <ArrowDownLeft className="h-4 w-4 text-red-600" />
-                      <div>
-                        <p className="text-sm font-medium">{payment.description || 'Job Payment'}</p>
-                        <p className="text-xs text-gray-500">{formatDate(payment.createdAt)}</p>
+            {paymentsLoading ? (
+              <div className="flex justify-center py-8">
+                <Loader2 className="h-8 w-8 animate-spin text-primary" />
+              </div>
+            ) : payments && Array.isArray(payments) && payments.length > 0 ? (
+              <div className="space-y-3">
+                {payments
+                  .sort((a: any, b: any) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+                  .map((payment: any) => {
+                    const isIncoming = payment.amount > 0;
+                    const isWithdrawal = payment.type === 'withdrawal';
+                    
+                    return (
+                      <div key={payment.id} className="flex items-center justify-between p-3 border rounded-lg hover:bg-muted/50 transition-colors">
+                        <div className="flex items-center gap-3">
+                          <div className={`p-2 rounded-full ${
+                            isWithdrawal ? 'bg-orange-100 text-orange-600' :
+                            isIncoming ? 'bg-green-100 text-green-600' : 'bg-red-100 text-red-600'
+                          }`}>
+                            {isWithdrawal ? (
+                              <Download className="h-4 w-4" />
+                            ) : isIncoming ? (
+                              <ArrowDownLeft className="h-4 w-4 rotate-180" />
+                            ) : (
+                              <ArrowDownLeft className="h-4 w-4" />
+                            )}
+                          </div>
+                          <div>
+                            <p className="text-sm font-medium">
+                              {payment.description || 
+                               (isWithdrawal ? 'Withdrawal' : 
+                                isIncoming ? 'Payment Received' : 'Job Payment')}
+                            </p>
+                            <p className="text-xs text-muted-foreground">
+                              {formatDate(payment.createdAt)}
+                            </p>
+                            {payment.jobId && (
+                              <p className="text-xs text-muted-foreground">
+                                Job ID: {payment.jobId}
+                              </p>
+                            )}
+                          </div>
+                        </div>
+                        <div className="text-right">
+                          <p className={`text-sm font-semibold ${
+                            isWithdrawal ? 'text-orange-600' :
+                            isIncoming ? 'text-green-600' : 'text-red-600'
+                          }`}>
+                            {isIncoming ? '+' : ''}{formatCurrency(Math.abs(payment.amount || 0))}
+                          </p>
+                          <Badge 
+                            variant={
+                              payment.status === 'completed' ? 'default' : 
+                              payment.status === 'pending' ? 'secondary' : 
+                              payment.status === 'failed' ? 'destructive' : 'outline'
+                            } 
+                            className="text-xs"
+                          >
+                            {payment.status}
+                          </Badge>
+                        </div>
                       </div>
-                    </div>
-                    <div className="text-right">
-                      <p className="text-sm font-semibold text-red-600">
-                        -{formatCurrency(payment.amount || 0)}
-                      </p>
-                      <Badge variant={payment.status === 'completed' ? 'default' : 'secondary'} className="text-xs">
-                        {payment.status}
-                      </Badge>
-                    </div>
-                  </div>
-                ))}
+                    );
+                  })}
               </div>
             ) : (
-              <div className="text-center py-6 text-gray-500">
-                <ArrowDownLeft className="h-8 w-8 mx-auto mb-2 opacity-50" />
-                <p className="text-sm">No payments yet</p>
+              <div className="text-center py-8 space-y-3">
+                <Download className="h-12 w-12 mx-auto text-muted-foreground/30" />
+                <div>
+                  <p className="font-medium text-muted-foreground">No payment history</p>
+                  <p className="text-sm text-muted-foreground/70">Your payment transactions will appear here</p>
+                </div>
               </div>
             )}
           </ScrollArea>

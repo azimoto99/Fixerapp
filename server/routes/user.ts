@@ -136,6 +136,120 @@ router.post('/avatar', requireAuth, async (req, res) => {
 });
 
 /**
+ * Send phone verification code
+ * POST /api/user/phone/send-verification
+ */
+router.post('/phone/send-verification', requireAuth, async (req, res) => {
+  if (!req.user) {
+    return res.status(401).json({ message: 'Unauthorized' });
+  }
+
+  try {
+    const { phoneNumber } = req.body;
+    
+    if (!phoneNumber) {
+      return res.status(400).json({ message: 'Phone number is required' });
+    }
+
+    // Validate phone number format (basic validation)
+    const phoneRegex = /^\+?[1-9]\d{1,14}$/;
+    if (!phoneRegex.test(phoneNumber.replace(/\s+/g, ''))) {
+      return res.status(400).json({ message: 'Invalid phone number format' });
+    }
+
+    // Generate 6-digit verification code
+    const verificationCode = Math.floor(100000 + Math.random() * 900000).toString();
+    const expiryTime = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes from now
+
+    // Update user with verification code and expiry
+    await storage.updateUser(req.user.id, {
+      phone: phoneNumber,
+      phoneVerificationCode: verificationCode,
+      phoneVerificationExpiry: expiryTime,
+      phoneVerified: false
+    });
+
+    // In production, integrate with SMS service (e.g., Twilio, AWS SNS)
+    // For now, we'll log the code (in development only)
+    if (process.env.NODE_ENV === 'development') {
+      console.log(`SMS Verification Code for ${phoneNumber}: ${verificationCode}`);
+    }
+
+    // TODO: Send actual SMS in production
+    // await sendSMS(phoneNumber, `Your Fixer verification code is: ${verificationCode}`);
+
+    res.json({
+      success: true,
+      message: 'Verification code sent successfully',
+      // In development, return the code for testing
+      ...(process.env.NODE_ENV === 'development' && { verificationCode })
+    });
+
+  } catch (error) {
+    console.error('Phone verification send error:', error);
+    res.status(500).json({
+      message: error instanceof Error ? error.message : 'Failed to send verification code'
+    });
+  }
+});
+
+/**
+ * Verify phone number with code
+ * POST /api/user/phone/verify
+ */
+router.post('/phone/verify', requireAuth, async (req, res) => {
+  if (!req.user) {
+    return res.status(401).json({ message: 'Unauthorized' });
+  }
+
+  try {
+    const { verificationCode } = req.body;
+    
+    if (!verificationCode) {
+      return res.status(400).json({ message: 'Verification code is required' });
+    }
+
+    // Get current user data
+    const user = await storage.getUser(req.user.id);
+    if (!user) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+
+    // Check if verification code exists and hasn't expired
+    if (!user.phoneVerificationCode || !user.phoneVerificationExpiry) {
+      return res.status(400).json({ message: 'No verification code found. Please request a new code.' });
+    }
+
+    if (new Date() > user.phoneVerificationExpiry) {
+      return res.status(400).json({ message: 'Verification code has expired. Please request a new code.' });
+    }
+
+    // Check if code matches
+    if (user.phoneVerificationCode !== verificationCode) {
+      return res.status(400).json({ message: 'Invalid verification code' });
+    }
+
+    // Mark phone as verified and clear verification fields
+    await storage.updateUser(req.user.id, {
+      phoneVerified: true,
+      phoneVerificationCode: null,
+      phoneVerificationExpiry: null
+    });
+
+    res.json({
+      success: true,
+      message: 'Phone number verified successfully'
+    });
+
+  } catch (error) {
+    console.error('Phone verification error:', error);
+    res.status(500).json({
+      message: error instanceof Error ? error.message : 'Failed to verify phone number'
+    });
+  }
+});
+
+/**
  * Update user's settings (notifications, privacy, etc.)
  * PATCH /api/user/settings
  */

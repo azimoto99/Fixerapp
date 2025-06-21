@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { User } from '@shared/schema';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -10,6 +10,7 @@ import { apiRequest, queryClient } from '@/lib/queryClient';
 import { useToast } from '@/hooks/use-toast';
 import { ThemeToggle } from '@/components/theme/ThemeToggle';
 import { ProfileImageUploader } from '@/components/profile/ProfileImageUploader';
+import { useMutation } from '@tanstack/react-query';
 import {
   Save,
   Bell,
@@ -23,7 +24,10 @@ import {
   Camera,
   Key,
   Globe,
-  Smartphone
+  Smartphone,
+  Phone,
+  CheckCircle2,
+  Clock
 } from 'lucide-react';
 
 interface SettingsContentProps {
@@ -50,6 +54,122 @@ const SettingsContent: React.FC<SettingsContentProps> = ({ user }) => {
     allowLocationAccess: true,
     shareActivityStatus: false,
   });
+
+  // Phone verification state
+  const [phoneNumber, setPhoneNumber] = useState(user?.phone || '');
+  const [verificationCode, setVerificationCode] = useState('');
+  const [isVerificationSent, setIsVerificationSent] = useState(false);
+  const [verificationTimer, setVerificationTimer] = useState(0);
+
+  // Phone verification mutations
+  const sendVerificationMutation = useMutation({
+    mutationFn: async (phone: string) => {
+      const response = await apiRequest('POST', '/api/user/phone/send-verification', { phoneNumber: phone });
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.message || 'Failed to send verification code');
+      }
+      return response.json();
+    },
+    onSuccess: (data) => {
+      setIsVerificationSent(true);
+      setVerificationTimer(600); // 10 minutes
+      toast({
+        title: 'Verification Code Sent',
+        description: 'Check your phone for the verification code',
+      });
+      // In development, show the code
+      if (data.verificationCode) {
+        toast({
+          title: 'Development Mode',
+          description: `Verification code: ${data.verificationCode}`,
+          duration: 10000,
+        });
+      }
+    },
+    onError: (error: Error) => {
+      toast({
+        variant: 'destructive',
+        title: 'Error',
+        description: error.message,
+      });
+    }
+  });
+
+  const verifyPhoneMutation = useMutation({
+    mutationFn: async (code: string) => {
+      const response = await apiRequest('POST', '/api/user/phone/verify', { verificationCode: code });
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.message || 'Failed to verify phone number');
+      }
+      return response.json();
+    },
+    onSuccess: () => {
+      setIsVerificationSent(false);
+      setVerificationCode('');
+      setVerificationTimer(0);
+      queryClient.invalidateQueries({ queryKey: ['user'] });
+      toast({
+        title: 'Phone Verified',
+        description: 'Your phone number has been successfully verified',
+      });
+    },
+    onError: (error: Error) => {
+      toast({
+        variant: 'destructive',
+        title: 'Verification Failed',
+        description: error.message,
+      });
+    }
+  });
+
+  // Timer countdown effect
+  useEffect(() => {
+    let interval: NodeJS.Timeout;
+    if (verificationTimer > 0) {
+      interval = setInterval(() => {
+        setVerificationTimer(prev => {
+          if (prev <= 1) {
+            setIsVerificationSent(false);
+            return 0;
+          }
+          return prev - 1;
+        });
+      }, 1000);
+    }
+    return () => clearInterval(interval);
+  }, [verificationTimer]);
+
+  const handleSendVerification = () => {
+    if (!phoneNumber.trim()) {
+      toast({
+        variant: 'destructive',
+        title: 'Error',
+        description: 'Please enter a phone number',
+      });
+      return;
+    }
+    sendVerificationMutation.mutate(phoneNumber);
+  };
+
+  const handleVerifyPhone = () => {
+    if (!verificationCode.trim()) {
+      toast({
+        variant: 'destructive',
+        title: 'Error',
+        description: 'Please enter the verification code',
+      });
+      return;
+    }
+    verifyPhoneMutation.mutate(verificationCode);
+  };
+
+  const formatTime = (seconds: number) => {
+    const mins = Math.floor(seconds / 60);
+    const secs = seconds % 60;
+    return `${mins}:${secs.toString().padStart(2, '0')}`;
+  };
 
   const handleNotificationToggle = (setting: string) => {
     setNotificationSettings(prev => ({
@@ -380,6 +500,73 @@ const SettingsContent: React.FC<SettingsContentProps> = ({ user }) => {
             >
               <Trash2 className="h-4 w-4 mr-2" />
               Delete Account
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Phone Verification */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-lg flex items-center gap-2">
+            <Phone className="h-5 w-5 text-primary" />
+            Phone Verification
+          </CardTitle>
+          <CardDescription>Verify your phone number</CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="space-y-2">
+            <Label htmlFor="phone-number">Phone Number</Label>
+            <Input
+              id="phone-number"
+              type="tel"
+              value={phoneNumber}
+              onChange={(e) => setPhoneNumber(e.target.value)}
+            />
+          </div>
+          
+          <Separator />
+          
+          <div className="space-y-2">
+            <Label htmlFor="verification-code">Verification Code</Label>
+            <Input
+              id="verification-code"
+              type="text"
+              value={verificationCode}
+              onChange={(e) => setVerificationCode(e.target.value)}
+            />
+          </div>
+          
+          <Separator />
+          
+          <div className="space-y-2">
+            <Label htmlFor="verification-status">Verification Status</Label>
+            <p className="text-sm text-muted-foreground">
+              {isVerificationSent ? formatTime(verificationTimer) : 'Not sent'}
+            </p>
+          </div>
+          
+          <Separator />
+          
+          <div className="space-y-2">
+            <Button 
+              variant="outline" 
+              className="w-full justify-start"
+              onClick={handleSendVerification}
+            >
+              Send Verification Code
+            </Button>
+          </div>
+          
+          <Separator />
+          
+          <div className="space-y-2">
+            <Button 
+              variant="outline" 
+              className="w-full justify-start"
+              onClick={handleVerifyPhone}
+            >
+              Verify Phone
             </Button>
           </div>
         </CardContent>

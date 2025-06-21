@@ -2,183 +2,239 @@
  * WebSocket Context Provider - Singleton WebSocket connection
  * Prevents multiple WebSocket connections from being created
  */
-import React, { createContext, useContext, ReactNode, useCallback } from 'react';
-import { useWebSocketUnified, UseWebSocketOptions } from '@/hooks/useWebSocketUnified';
-import { useAuth } from '@/hooks/use-auth';
+import React, { createContext, useContext, useEffect, useState, useCallback, useRef } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
+import { useAuth } from '@/hooks/use-auth';
 import { useToast } from '@/hooks/use-toast';
 
 interface WebSocketContextType {
   // Connection state
-  status: 'disconnected' | 'connecting' | 'connected' | 'reconnecting' | 'error';
   isConnected: boolean;
-  lastConnected?: Date;
-  reconnectAttempts: number;
-  connectionId?: string;
-  error?: string;
+  connectionStatus: 'connecting' | 'connected' | 'disconnected' | 'error';
+  reconnectAttempt: number;
   
-  // Message state
-  messages: any[];
-  typingUsers: number[];
+  // User state
   onlineUsers: number[];
-  unreadCounts: Map<number, number>;
   
-  // Actions
-  connect: () => void;
-  disconnect: () => void;
-  forceReconnect: () => void;
-  sendMessage: (content: string, recipientId: number, jobId?: number) => boolean;
-  joinRoom: (jobId: number) => boolean;
-  leaveRoom: (jobId: number) => boolean;
-  startTyping: (recipientId: number, jobId?: number) => boolean;
-  stopTyping: (recipientId: number, jobId?: number) => boolean;
-  markMessageAsRead: (messageId: number) => boolean;
+  // Raw WebSocket methods
   sendRawMessage: (message: any) => boolean;
   
-  // Stats
+  // Statistics
   queuedMessages: number;
-  connectionAttempts: number;
-  circuitBreakerOpen: boolean;
 }
 
-const WebSocketContext = createContext<WebSocketContextType | null>(null);
+const WebSocketContext = createContext<WebSocketContextType | undefined>(undefined);
 
 interface WebSocketProviderProps {
-  children: ReactNode;
-  options?: UseWebSocketOptions;
+  children: React.ReactNode;
   onMessage?: (message: any) => void;
-  onConnect?: () => void;
-  onDisconnect?: () => void;
-  onError?: (error: string) => void;
 }
 
 export function WebSocketProvider({ 
   children, 
-  options = {},
-  onMessage,
-  onConnect,
-  onDisconnect,
-  onError
+  onMessage 
 }: WebSocketProviderProps) {
+  // Connection state
+  const [isConnected, setIsConnected] = useState(false);
+  const [connectionStatus, setConnectionStatus] = useState<'connecting' | 'connected' | 'disconnected' | 'error'>('disconnected');
+  const [reconnectAttempt, setReconnectAttempt] = useState(0);
+  
+  // User state
+  const [onlineUsers, setOnlineUsers] = useState<number[]>([]);
+  
+  // Statistics
+  const [queuedMessages, setQueuedMessages] = useState(0);
+  
+  // Dependencies
+  const queryClient = useQueryClient();
   const { user } = useAuth();
   const { toast } = useToast();
-  const queryClient = useQueryClient();
-
-  // Default event handlers for common app events
+  
+  // WebSocket ref
+  const wsRef = useRef<WebSocket | null>(null);
+  const reconnectTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  
   const handleMessage = useCallback((message: any) => {
     console.log('WebSocket Context - Message received:', message);
     
     switch (message.type) {
-      case 'job_update':
-        // Invalidate job-related queries
-        queryClient.invalidateQueries({ queryKey: ['/api/jobs'] });
-        queryClient.invalidateQueries({ queryKey: ['/api/applications'] });
+      case 'user_online':
+        setOnlineUsers(prev => [...new Set([...prev, message.userId])]);
         break;
-      case 'payment_update':
-        // Invalidate payment-related queries
-        queryClient.invalidateQueries({ queryKey: ['/api/payments'] });
-        queryClient.invalidateQueries({ queryKey: ['/api/earnings'] });
+        
+      case 'user_offline':
+        setOnlineUsers(prev => prev.filter(id => id !== message.userId));
         break;
-      case 'new_message':
-        // Invalidate message queries
-        queryClient.invalidateQueries({ queryKey: ['/api/messages'] });
-        break;
+        
       case 'notification':
-        // Only show notification if it's for this user
         if (message.data.userId === user?.id) {
           toast({
             title: message.data.title,
             description: message.data.message,
           });
         }
-        // Invalidate notification queries
-        queryClient.invalidateQueries({ queryKey: ['/api/notifications'] });
         break;
-
-      case 'instant_application':
-        // Only show to job poster
+        
+      case 'new_application':
         if (message.posterId === user?.id) {
           toast({
-            title: "⚡ New Application!",
+            title: "New Job Application",
             description: `${message.workerName} just applied for your job!`,
-            duration: 6000,
           });
-
-          // Refresh applications
-          queryClient.invalidateQueries({ queryKey: [`/api/applications/job/${message.jobId}`] });
         }
+        
+        queryClient.invalidateQueries({ queryKey: [`/api/applications/job/${message.jobId}`] });
         break;
-
-      case 'application_accepted':
-        // Only show to the worker whose application was accepted
+        
+      case 'application_status_update':
         if (message.workerId === user?.id) {
+          const status = message.status === 'accepted' ? 'accepted' : 'rejected';
           toast({
-            title: "🎉 Application Accepted!",
-            description: "Your application has been accepted!",
-            duration: 5000,
+            title: `Application ${status.charAt(0).toUpperCase() + status.slice(1)}`,
+            description: `Your application for "${message.jobTitle}" has been ${status}.`,
+            variant: status === 'accepted' ? 'default' : 'destructive',
           });
-
-          // Refresh applications and jobs
-          queryClient.invalidateQueries({ queryKey: ['/api/applications'] });
-          queryClient.invalidateQueries({ queryKey: ['/api/jobs'] });
         }
         break;
+        
       case 'job_pin_update':
         console.log('📍 Job pin update:', message.data);
-
-        // Invalidate jobs query to update the map pins
+        
         queryClient.invalidateQueries({ queryKey: ['/api/jobs'] });
-
-        // Emit custom event for map components to listen to
-        window.dispatchEvent(new CustomEvent('jobPinUpdate', {
+        queryClient.invalidateQueries({ queryKey: ['/api/jobs/nearby'] });
+        
+        // Emit custom event for map updates
+        window.dispatchEvent(new CustomEvent('job-pin-update', {
           detail: {
             action: message.data.action,
             job: message.data.job
           }
         }));
         break;
+        
+      default:
+        console.log('Unhandled message type:', message.type);
+        break;
     }
     
-    // Call custom handler if provided
     onMessage?.(message);
   }, [queryClient, onMessage, user, toast]);
-
-  const handleConnect = useCallback(() => {
-    console.log('WebSocket Context - Connected');
-    toast({
-      title: "Connected",
-      description: "Real-time updates are now active.",
-    });
-    onConnect?.();
-  }, [toast, onConnect]);
-
-  const handleDisconnect = useCallback(() => {
-    console.log('WebSocket Context - Disconnected');
-    onDisconnect?.();
-  }, [onDisconnect]);
-
-  const handleError = useCallback((error: string) => {
-    console.error('WebSocket Context - Error:', error);
-    toast({
-      title: "Connection Issue",
-      description: "Experiencing connectivity issues. Retrying...",
-      variant: "destructive",
-    });
-    onError?.(error);
-  }, [toast, onError]);
-
-  const webSocketState = useWebSocketUnified({
-    autoReconnect: true,
-    maxReconnectAttempts: 10,
-    onMessage: handleMessage,
-    onConnect: handleConnect,
-    onDisconnect: handleDisconnect,
-    onError: handleError,
-    ...options
-  });
-
+  
+  const connect = useCallback(() => {
+    if (!user) return;
+    
+    if (wsRef.current?.readyState === WebSocket.CONNECTING || wsRef.current?.readyState === WebSocket.OPEN) {
+      return;
+    }
+    
+    setConnectionStatus('connecting');
+    
+    try {
+      const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+      const wsUrl = `${protocol}//${window.location.host}/ws?userId=${user.id}`;
+      
+      wsRef.current = new WebSocket(wsUrl);
+      
+      wsRef.current.onopen = () => {
+        console.log('WebSocket connected');
+        setIsConnected(true);
+        setConnectionStatus('connected');
+        setReconnectAttempt(0);
+        setQueuedMessages(0);
+      };
+      
+      wsRef.current.onmessage = (event) => {
+        try {
+          const message = JSON.parse(event.data);
+          handleMessage(message);
+        } catch (error) {
+          console.error('Failed to parse WebSocket message:', error);
+        }
+      };
+      
+      wsRef.current.onclose = (event) => {
+        console.log('WebSocket closed:', event.code, event.reason);
+        setIsConnected(false);
+        setConnectionStatus('disconnected');
+        
+        // Attempt to reconnect if it wasn't a clean close
+        if (event.code !== 1000 && user) {
+          const delay = Math.min(1000 * Math.pow(2, reconnectAttempt), 30000);
+          
+          reconnectTimeoutRef.current = setTimeout(() => {
+            setReconnectAttempt(prev => prev + 1);
+            connect();
+          }, delay);
+        }
+      };
+      
+      wsRef.current.onerror = (error) => {
+        console.error('WebSocket error:', error);
+        setConnectionStatus('error');
+      };
+      
+    } catch (error) {
+      console.error('Failed to create WebSocket connection:', error);
+      setConnectionStatus('error');
+    }
+  }, [user, reconnectAttempt, handleMessage]);
+  
+  const disconnect = useCallback(() => {
+    if (reconnectTimeoutRef.current) {
+      clearTimeout(reconnectTimeoutRef.current);
+      reconnectTimeoutRef.current = null;
+    }
+    
+    if (wsRef.current) {
+      wsRef.current.close(1000, 'Component unmounting');
+      wsRef.current = null;
+    }
+    
+    setIsConnected(false);
+    setConnectionStatus('disconnected');
+    setReconnectAttempt(0);
+  }, []);
+  
+  const sendRawMessage = useCallback((message: any): boolean => {
+    if (wsRef.current?.readyState === WebSocket.OPEN) {
+      try {
+        wsRef.current.send(JSON.stringify(message));
+        return true;
+      } catch (error) {
+        console.error('Failed to send WebSocket message:', error);
+        setQueuedMessages(prev => prev + 1);
+        return false;
+      }
+    } else {
+      setQueuedMessages(prev => prev + 1);
+      return false;
+    }
+  }, []);
+  
+  // Connect when user is available
+  useEffect(() => {
+    if (user) {
+      connect();
+    } else {
+      disconnect();
+    }
+    
+    return () => {
+      disconnect();
+    };
+  }, [user, connect, disconnect]);
+  
+  const contextValue: WebSocketContextType = {
+    isConnected,
+    connectionStatus,
+    reconnectAttempt,
+    onlineUsers,
+    sendRawMessage,
+    queuedMessages,
+  };
+  
   return (
-    <WebSocketContext.Provider value={webSocketState}>
+    <WebSocketContext.Provider value={contextValue}>
       {children}
     </WebSocketContext.Provider>
   );
@@ -186,7 +242,7 @@ export function WebSocketProvider({
 
 export function useWebSocket() {
   const context = useContext(WebSocketContext);
-  if (!context) {
+  if (context === undefined) {
     throw new Error('useWebSocket must be used within a WebSocketProvider');
   }
   return context;
