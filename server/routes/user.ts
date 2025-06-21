@@ -327,22 +327,18 @@ router.get('/contact-info/:userId', requireAuth, async (req: Request, res: Respo
     }
 
     // Get the target user's info
-    const targetUser = await storage.getUserById(targetUserId);
+    const targetUser = await storage.getUser(targetUserId);
     if (!targetUser) {
       return res.status(404).json({ message: 'User not found' });
     }
 
     // Check if users are connected through an accepted job application
     // This prevents random users from getting contact info
-    const jobs = await storage.getJobs({ 
-      $or: [
-        { posterId: currentUserId, workerId: targetUserId },
-        { posterId: targetUserId, workerId: currentUserId }
-      ]
-    });
-
+    const jobs = await storage.getJobs({});
     const hasConnectionThroughJob = jobs.some(job => 
-      job.status === 'assigned' || job.status === 'in_progress' || job.status === 'completed'
+      ((job.posterId === currentUserId && job.workerId === targetUserId) ||
+       (job.posterId === targetUserId && job.workerId === currentUserId)) &&
+      (job.status === 'assigned' || job.status === 'in_progress' || job.status === 'completed')
     );
 
     if (!hasConnectionThroughJob) {

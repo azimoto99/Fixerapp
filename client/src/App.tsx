@@ -1,6 +1,6 @@
 import React from "@/lib/ensure-react";
 import { Switch, Route, useLocation, useRoute } from "wouter";
-import { QueryClientProvider, QueryClient } from "@tanstack/react-query";
+import { QueryClientProvider } from "@tanstack/react-query";
 import { queryClient } from "./lib/queryClient";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { Toaster } from "@/components/ui/toaster";
@@ -58,8 +58,6 @@ import { SupportPage } from "@/pages/support-page";
 import { PrivacyPage } from "@/pages/privacy-page";
 import { TermsPage } from "@/pages/terms-page";
 import { AboutPage } from "@/pages/about-page";
-
-const queryClient = new QueryClient();
 
 // Redirect component for old routes
 function RedirectToAuth() {
@@ -140,14 +138,6 @@ function RouterWithAuth() {
 function AuthenticatedContent() {
   const { user } = useAuth();
   
-  // Initialize the comprehensive connection system
-  const {
-    isConnected,
-    connectionStatus,
-    notifications,
-    unreadCount
-  } = useAppConnections();
-  
   return (
     <>
       <RouterWithAuth />
@@ -166,22 +156,31 @@ function AuthenticatedContent() {
       {/* JobCardFix ensures job details card appears on top of other UI elements */}
       {user && <JobCardFix />}
       
-      {/* Connection status indicator */}
-      {user && connectionStatus !== 'connected' && (
-        <div className="fixed top-4 right-4 z-50 bg-orange-500 text-white px-3 py-1 rounded-md text-sm">
-          {connectionStatus === 'connecting' ? 'Connecting...' : 'Reconnecting...'}
-        </div>
-      )}
-      
       <Toaster />
-      
-      {/* Temporary debug component - remove in production */}
-      {process.env.NODE_ENV === 'development' && <WebSocketDebug />}
     </>
   );
 }
 
 function App() {
+  return (
+    <QueryClientProvider client={queryClient}>
+      <ThemeProvider defaultTheme="system" storageKey="vite-ui-theme">
+        <CrossPlatformProvider>
+          <AuthProvider>
+            <WebSocketProvider>
+              <StripeConnectProvider>
+                <AppContent />
+              </StripeConnectProvider>
+            </WebSocketProvider>
+          </AuthProvider>
+        </CrossPlatformProvider>
+      </ThemeProvider>
+      <ReactQueryDevtools initialIsOpen={false} />
+    </QueryClientProvider>
+  );
+}
+
+function AppContent() {
   const { user, isLoading } = useAuth();
   const [location] = useLocation();
   const isMobile = useMobile();
@@ -201,82 +200,60 @@ function App() {
   // Show auth page if user is not authenticated and not on a public route
   if (!user && !isPublicRoute) {
     return (
-      <QueryClientProvider client={queryClient}>
-        <ThemeProvider defaultTheme="system" storageKey="vite-ui-theme">
-          <CrossPlatformProvider>
-            <div className="min-h-screen bg-background">
-              <AuthPage />
-              <Toaster />
-            </div>
-          </CrossPlatformProvider>
-        </ThemeProvider>
-      </QueryClientProvider>
+      <div className="min-h-screen bg-background">
+        <AuthPage />
+        <Toaster />
+      </div>
     );
   }
 
   // Show account type selection if user hasn't selected an account type
   if (user && !user.accountType && !isPublicRoute) {
     return (
-      <QueryClientProvider client={queryClient}>
-        <ThemeProvider defaultTheme="system" storageKey="vite-ui-theme">
-          <CrossPlatformProvider>
-            <div className="min-h-screen bg-background">
-              <AccountTypeSelection />
-              <Toaster />
-            </div>
-          </CrossPlatformProvider>
-        </ThemeProvider>
+      <div className="min-h-screen bg-background">
+        <AccountTypeSelection />
+        <Toaster />
+      </div>
     );
   }
 
   return (
-    <QueryClientProvider client={queryClient}>
-      <ThemeProvider defaultTheme="system" storageKey="vite-ui-theme">
-        <CrossPlatformProvider>
-          <WebSocketProvider>
-            <StripeConnectProvider>
-              <div className={cn("min-h-screen bg-background", isMobile && "pb-16")}>
-                {/* Header for desktop, hidden on mobile */}
-                <div className="hidden md:block">
-                  <Header />
-                </div>
+    <div className={cn("min-h-screen bg-background", isMobile && "pb-16")}>
+      {/* Header for desktop, hidden on mobile */}
+      <div className="hidden md:block">
+        <Header />
+      </div>
 
-                {/* Main content */}
-                <main className="container mx-auto px-4 py-8 md:py-12">
-                  <AccountTypeRoute path="/" component={Home} />
-                  <AccountTypeRoute path="/explore" component={ExplorePage} />
-                  <AccountTypeRoute path="/profile" component={Profile} />
-                  <AccountTypeRoute path="/admin" component={AdminPanelV2} requiredRole="admin" />
-                  <AccountTypeRoute path="/verify-email" component={VerifyEmail} />
-                  <AccountTypeRoute path="/notifications" component={NotificationsPage} />
-                  <AccountTypeRoute path="/payments" component={PaymentsPage} />
-                  <AccountTypeRoute path="/support" component={SupportPage} />
-                  <AccountTypeRoute path="/privacy" component={PrivacyPage} />
-                  <AccountTypeRoute path="/terms" component={TermsPage} />
-                  <AccountTypeRoute path="/about" component={AboutPage} />
-                </main>
+      {/* Main content */}
+      <main className="container mx-auto px-4 py-8 md:py-12">
+        <AccountTypeRoute path="/" component={Home} />
+        <AccountTypeRoute path="/explore" component={ExplorePage} />
+        <AccountTypeRoute path="/profile" component={Profile} />
+        <AccountTypeRoute path="/admin" component={AdminPanelV2} requiredRole="admin" />
+        <AccountTypeRoute path="/verify-email" component={VerifyEmail} />
+        <AccountTypeRoute path="/notifications" component={NotificationsPage} />
+        <AccountTypeRoute path="/payments" component={PaymentsPage} />
+        <AccountTypeRoute path="/support" component={SupportPage} />
+        <AccountTypeRoute path="/privacy" component={PrivacyPage} />
+        <AccountTypeRoute path="/terms" component={TermsPage} />
+        <AccountTypeRoute path="/about" component={AboutPage} />
+      </main>
 
-                {/* Welcome message for new users */}
-                {user && (
-                  <WelcomeMessage />
-                )}
+      {/* Welcome message for new users */}
+      {user && (
+        <WelcomeMessage />
+      )}
 
-                {/* Mobile navigation */}
-                <div className="md:hidden">
-                  <MobileNav />
-                </div>
+      {/* Mobile navigation */}
+      <div className="md:hidden">
+        <MobileNav />
+      </div>
 
-                {/* Global Payment Dialog Manager */}
-                <PaymentDialogManager />
+      {/* Global Payment Dialog Manager */}
+      <PaymentDialogManager />
 
-                <Toaster />
-              </div>
-            </StripeConnectProvider>
-          </WebSocketProvider>
-        </CrossPlatformProvider>
-      </ThemeProvider>
-      <ReactQueryDevtools initialIsOpen={false} />
-    </QueryClientProvider>
+      <Toaster />
+    </div>
   );
 }
 

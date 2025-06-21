@@ -139,7 +139,7 @@ const SettingsContent: React.FC<SettingsContentProps> = ({ user }) => {
       }, 1000);
     }
     return () => clearInterval(interval);
-  }, [verificationTimer]);
+  }, []);
 
   const handleSendVerification = () => {
     if (!phoneNumber.trim()) {

@@ -356,6 +356,31 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Mount payment routes
   apiRouter.use('/payments', paymentsRouter);
   
+  // Add user-specific payment endpoint
+  apiRouter.get("/payments/user/:userId", isAuthenticated, async (req: Request, res: Response) => {
+    try {
+      const userId = parseInt(req.params.userId);
+      const currentUserId = req.user?.id;
+
+      if (!currentUserId || isNaN(userId)) {
+        return res.status(400).json({ message: 'Invalid user ID' });
+      }
+
+      // Users can only access their own payment history
+      if (currentUserId !== userId) {
+        return res.status(403).json({ message: 'You can only access your own payment history' });
+      }
+
+      // Get all payments for the user (both as payer and payee)
+      const payments = await storage.getPaymentsForUser(userId);
+      
+      res.json(payments);
+    } catch (error) {
+      console.error('Error fetching user payments:', error);
+      res.status(500).json({ message: 'Error fetching payment history' });
+    }
+  });
+  
   // Mount disputes routes
   apiRouter.use('/disputes', disputeRouter);
 
@@ -2950,6 +2975,37 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get('/api/health', (req: Request, res: Response) => {
     res.status(200).json({ status: 'ok' });
   });
+
+  // Register payments API routes
+  const paymentsRouter = await import('./api/payments');
+  apiRouter.use('/payments', paymentsRouter.default);
+
+  // Add user-specific payment endpoint
+  apiRouter.get("/payments/user/:userId", isAuthenticated, async (req: Request, res: Response) => {
+    try {
+      const userId = parseInt(req.params.userId);
+      const currentUserId = req.user?.id;
+
+      if (!currentUserId || isNaN(userId)) {
+        return res.status(400).json({ message: 'Invalid user ID' });
+      }
+
+      // Users can only access their own payment history
+      if (currentUserId !== userId) {
+        return res.status(403).json({ message: 'You can only access your own payment history' });
+      }
+
+      // Get all payments for the user (both as payer and payee)
+      const payments = await storage.getPaymentsForUser(userId);
+      
+      res.json(payments);
+    } catch (error) {
+      console.error('Error fetching user payments:', error);
+      res.status(500).json({ message: 'Error fetching payment history' });
+    }
+  });
+
+  // Register disputes API routes
 
   return httpServer;
 }
