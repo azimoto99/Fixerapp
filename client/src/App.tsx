@@ -31,20 +31,33 @@ import { ProtectedRoute } from "@/lib/protected-route";
 import { useAuth } from "@/hooks/use-auth";
 import { StripeConnectCheck, StripeRequirementsCheck } from "@/components/stripe";
 import WelcomeMessage from "@/components/WelcomeMessage";
-import { ThemeProvider } from "@/components/theme";
+import { ThemeProvider } from "@/components/theme/theme-provider";
 import { OnboardingProvider } from "@/components/onboarding/OnboardingProvider";
 import ContextualTips from "@/components/onboarding/ContextualTips";
 import { SimpleToastProvider } from "@/hooks/use-simple-toast";
-import { MessagingDrawer } from "@/components/MessagingDrawer";
+
 import ExpoConnectGuide from "@/components/ExpoConnectGuide";
 import JobCardFix from "@/components/JobCardFix";
 import { useState, useEffect } from "react";
 import { WebSocketProvider } from "@/contexts/WebSocketContext";
+import { Header } from "@/components/Header";
+import { MobileNav } from "@/components/MobileNav";
+import { AccountTypeSelection } from "@/pages/AccountTypeSelection";
+import { AccountTypeRoute } from "@/lib/account-type-route";
+import { CrossPlatformProvider } from "@/lib/cross-platform";
+import { ReactQueryDevtools } from "@tanstack/react-query-devtools";
+import { StripeConnectProvider } from "@/contexts/stripe-connect-context";
+import { PaymentDialogManager } from "@/components/payments/PaymentDialogManager";
+import { useMobile } from "@/hooks/use-mobile";
+import { cn } from "@/lib/utils";
 
-// Import new system components
-import { ErrorBoundarySystem, NetworkErrorRecovery, ChunkErrorRecovery } from "@/components/ErrorBoundarySystem";
-import { useAppConnections } from "@/hooks/useAppConnections";
-import { WebSocketDebug } from "@/components/WebSocketDebug";
+// Pages
+import ExplorePage from "@/pages/ExplorePage";
+import Profile from "@/pages/Profile";
+import { SupportPage } from "@/pages/support-page";
+import { PrivacyPage } from "@/pages/privacy-page";
+import { TermsPage } from "@/pages/terms-page";
+import { AboutPage } from "@/pages/about-page";
 
 // Redirect component for old routes
 function RedirectToAuth() {
@@ -124,40 +137,6 @@ function RouterWithAuth() {
 // This component uses auth context, so it must be inside the AuthProvider
 function AuthenticatedContent() {
   const { user } = useAuth();
-  const [isMessagingOpen, setIsMessagingOpen] = useState(false);
-  const [selectedUserId, setSelectedUserId] = useState<number | null>(null);
-  
-  // Initialize the comprehensive connection system
-  const {
-    isConnected,
-    connectionStatus,
-    notifications,
-    unreadCount
-  } = useAppConnections();
-  
-  // Listen for messaging events
-  useEffect(() => {
-    const handleOpenMessaging = (event: CustomEvent) => {
-      setIsMessagingOpen(true);
-      // Handle both userId (from UserProfile) and contactId (from JobDetailsCard)
-      const targetUserId = event.detail?.userId || event.detail?.contactId;
-      if (targetUserId) {
-        setSelectedUserId(targetUserId);
-      }
-    };
-
-    window.addEventListener('open-messaging' as any, handleOpenMessaging);
-
-    return () => {
-      window.removeEventListener('open-messaging' as any, handleOpenMessaging);
-    };
-  }, []);
-  
-  // Update document title with unread count
-  useEffect(() => {
-    const baseTitle = 'Fixer - Gig Economy Platform';
-    document.title = unreadCount > 0 ? `(${unreadCount}) ${baseTitle}` : baseTitle;
-  }, [unreadCount]);
   
   return (
     <>
@@ -177,54 +156,104 @@ function AuthenticatedContent() {
       {/* JobCardFix ensures job details card appears on top of other UI elements */}
       {user && <JobCardFix />}
       
-      {/* Connection status indicator */}
-      {user && connectionStatus !== 'connected' && (
-        <div className="fixed top-4 right-4 z-50 bg-orange-500 text-white px-3 py-1 rounded-md text-sm">
-          {connectionStatus === 'connecting' ? 'Connecting...' : 'Reconnecting...'}
-        </div>
-      )}
-      
       <Toaster />
-      
-      {/* Temporary debug component - remove in production */}
-      {process.env.NODE_ENV === 'development' && <WebSocketDebug />}
     </>
   );
 }
 
 function App() {
   return (
-    <ErrorBoundarySystem 
-      queryClient={queryClient}
-      onError={(error, errorInfo) => {
-        console.error('App Error Boundary:', error, errorInfo);
-        // In production, send to error monitoring service
-      }}
-    >
-      <ChunkErrorRecovery>
-        <NetworkErrorRecovery>
-          <QueryClientProvider client={queryClient}>
-            <ThemeProvider defaultTheme="system" storageKey="fixer-theme">
-              <TooltipProvider>
-                <SimpleToastProvider>
-                  <AuthProvider>
-                    <NotificationProvider>
-                      <PaymentDialogProvider>
-                        <OnboardingProvider>
-                          <WebSocketProvider>
-                            <AuthenticatedContent />
-                          </WebSocketProvider>
-                        </OnboardingProvider>
-                      </PaymentDialogProvider>
-                    </NotificationProvider>
-                  </AuthProvider>
-                </SimpleToastProvider>
-              </TooltipProvider>
-            </ThemeProvider>
-          </QueryClientProvider>
-        </NetworkErrorRecovery>
-      </ChunkErrorRecovery>
-    </ErrorBoundarySystem>
+    <QueryClientProvider client={queryClient}>
+      <ThemeProvider defaultTheme="system" storageKey="vite-ui-theme">
+        <CrossPlatformProvider>
+          <AuthProvider>
+            <WebSocketProvider>
+              <StripeConnectProvider>
+                <AppContent />
+              </StripeConnectProvider>
+            </WebSocketProvider>
+          </AuthProvider>
+        </CrossPlatformProvider>
+      </ThemeProvider>
+      <ReactQueryDevtools initialIsOpen={false} />
+    </QueryClientProvider>
+  );
+}
+
+function AppContent() {
+  const { user, isLoading } = useAuth();
+  const [location] = useLocation();
+  const isMobile = useMobile();
+
+  // Check if we're on a public route that doesn't require authentication
+  const isPublicRoute = ['/terms', '/privacy', '/about'].includes(location);
+
+  // Show loading state while checking authentication
+  if (isLoading && !isPublicRoute) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+      </div>
+    );
+  }
+
+  // Show auth page if user is not authenticated and not on a public route
+  if (!user && !isPublicRoute) {
+    return (
+      <div className="min-h-screen bg-background">
+        <AuthPage />
+        <Toaster />
+      </div>
+    );
+  }
+
+  // Show account type selection if user hasn't selected an account type
+  if (user && !user.accountType && !isPublicRoute) {
+    return (
+      <div className="min-h-screen bg-background">
+        <AccountTypeSelection />
+        <Toaster />
+      </div>
+    );
+  }
+
+  return (
+    <div className={cn("min-h-screen bg-background", isMobile && "pb-16")}>
+      {/* Header for desktop, hidden on mobile */}
+      <div className="hidden md:block">
+        <Header />
+      </div>
+
+      {/* Main content */}
+      <main className="container mx-auto px-4 py-8 md:py-12">
+        <AccountTypeRoute path="/" component={Home} />
+        <AccountTypeRoute path="/explore" component={ExplorePage} />
+        <AccountTypeRoute path="/profile" component={Profile} />
+        <AccountTypeRoute path="/admin" component={AdminPanelV2} requiredRole="admin" />
+        <AccountTypeRoute path="/verify-email" component={VerifyEmail} />
+        <AccountTypeRoute path="/notifications" component={NotificationsPage} />
+        <AccountTypeRoute path="/payments" component={PaymentsPage} />
+        <AccountTypeRoute path="/support" component={SupportPage} />
+        <AccountTypeRoute path="/privacy" component={PrivacyPage} />
+        <AccountTypeRoute path="/terms" component={TermsPage} />
+        <AccountTypeRoute path="/about" component={AboutPage} />
+      </main>
+
+      {/* Welcome message for new users */}
+      {user && (
+        <WelcomeMessage />
+      )}
+
+      {/* Mobile navigation */}
+      <div className="md:hidden">
+        <MobileNav />
+      </div>
+
+      {/* Global Payment Dialog Manager */}
+      <PaymentDialogManager />
+
+      <Toaster />
+    </div>
   );
 }
 

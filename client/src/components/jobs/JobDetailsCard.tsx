@@ -54,7 +54,8 @@ import {
   Star,
   TrendingUp,
   Users,
-  Bell
+  Bell,
+  MessageCircle
 } from 'lucide-react';
 import {
   AlertDialog,
@@ -69,7 +70,6 @@ import {
 } from "@/components/ui/alert-dialog";
 import { useGeolocation } from '@/hooks/use-react-geolocated';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { ModernMessagingInterface } from '@/components/messaging/ModernMessagingInterface';
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { cn } from '@/lib/utils';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '@/components/ui/select';
@@ -130,6 +130,7 @@ const JobDetailsCard: React.FC<JobDetailsCardProps> = ({ jobId, isOpen, onClose 
   const [isCheckingLocation, setIsCheckingLocation] = useState(false);
   const [showWorkerMap, setShowWorkerMap] = useState(false);
   const [showEditForm, setShowEditForm] = useState(false);
+  const [contactInfo, setContactInfo] = useState<{phone?: string, phoneVerified?: boolean} | null>(null);
   const [editFormData, setEditFormData] = useState({
     title: '',
     description: '',
@@ -439,10 +440,12 @@ const JobDetailsCard: React.FC<JobDetailsCardProps> = ({ jobId, isOpen, onClose 
   const editJobMutation = useMutation({
     mutationFn: async (data: any) => {
       const response = await apiRequest('PUT', `/api/jobs/${jobId}`, data);
+      
       if (!response.ok) {
         const errorData = await response.json();
         throw new Error(errorData.message || 'Failed to update job');
       }
+      
       return response.json();
     },
     onSuccess: () => {
@@ -450,17 +453,17 @@ const JobDetailsCard: React.FC<JobDetailsCardProps> = ({ jobId, isOpen, onClose 
       queryClient.invalidateQueries({ queryKey: ['/api/jobs', jobId] });
       setShowEditForm(false);
       toast({
-        title: "Job Updated Successfully",
-        description: "Your job details have been saved.",
+        title: 'Job Updated',
+        description: 'Your job has been updated successfully.',
       });
     },
     onError: (error: Error) => {
       toast({
-        title: "Update Failed",
+        title: 'Error',
         description: error.message,
-        variant: "destructive",
+        variant: 'destructive',
       });
-    }
+    },
   });
 
   const handleSaveEditJob = () => {
@@ -768,6 +771,26 @@ const JobDetailsCard: React.FC<JobDetailsCardProps> = ({ jobId, isOpen, onClose 
     setShowRatingDialog(true);
   };
 
+  // Helper functions for phone call and text messaging
+  const handlePhoneCall = (phoneNumber: string) => {
+    if (phoneNumber) {
+      // Remove any non-numeric characters except + for international numbers
+      const cleanNumber = phoneNumber.replace(/[^\d+]/g, '');
+      window.location.href = `tel:${cleanNumber}`;
+    }
+  };
+
+  const handleTextMessage = (phoneNumber: string, message?: string) => {
+    if (phoneNumber) {
+      // Remove any non-numeric characters except + for international numbers
+      const cleanNumber = phoneNumber.replace(/[^\d+]/g, '');
+      const smsUrl = message 
+        ? `sms:${cleanNumber}?body=${encodeURIComponent(message)}`
+        : `sms:${cleanNumber}`;
+      window.location.href = smsUrl;
+    }
+  };
+
   // If the card is closed, don't render anything
   if (!isOpen) return null;
 
@@ -957,19 +980,32 @@ const JobDetailsCard: React.FC<JobDetailsCardProps> = ({ jobId, isOpen, onClose 
                         <Briefcase className="h-4 w-4 mr-1" />
                         Manage
                       </button>
+                      
+                      {/* Contact tab for job posters to contact assigned workers */}
+                      {job?.workerId && (
+                        <button
+                          className={`px-3 py-2 ${activeTab === 'contact' ? 'border-b-2 border-primary text-primary' : 'text-muted-foreground'} transition-colors`}
+                          onClick={() => setActiveTab('contact')}
+                        >
+                          <Phone className="h-4 w-4 mr-1" />
+                          Contact Worker
+                        </button>
+                      )}
                     </>
                   )}
                   {/* Enhanced worker view tabs */}
                   {!isJobPoster && user?.accountType === 'worker' && (
                     <>
-                      {/* Messages tab available to all workers */}
-                      <button
-                        className={`px-3 py-2 ${activeTab === 'messages' ? 'border-b-2 border-primary text-primary' : 'text-muted-foreground'} transition-colors`}
-                        onClick={() => setActiveTab('messages')}
-                      >
-                        <MessageSquare className="h-4 w-4 mr-1" />
-                        Messages
-                      </button>
+                      {/* Contact tab available to assigned workers only */}
+                      {job?.workerId === user?.id && (
+                        <button
+                          className={`px-3 py-2 ${activeTab === 'contact' ? 'border-b-2 border-primary text-primary' : 'text-muted-foreground'} transition-colors`}
+                          onClick={() => setActiveTab('contact')}
+                        >
+                          <Phone className="h-4 w-4 mr-1" />
+                          Contact
+                        </button>
+                      )}
 
                       {/* Worker info tab only for applied/assigned workers */}
                       {(hasApplied || (job?.workerId && job.workerId === user?.id)) && (
@@ -1078,18 +1114,18 @@ const JobDetailsCard: React.FC<JobDetailsCardProps> = ({ jobId, isOpen, onClose 
                             </p>
                           </div>
                         </div>
-                        {user && user.id !== job.posterId && (
+                        {user && user.id !== job.posterId && job?.workerId === user?.id && (
                           <Button
                             size="sm"
                             variant="outline"
                             onClick={() => {
-                              // Switch to messages tab to enable job-based messaging
-                              setActiveTab('messages');
+                              // Switch to contact tab for accepted workers
+                              setActiveTab('contact');
                             }}
                             className="text-xs"
                           >
-                            <Send className="h-3 w-3 mr-1" />
-                            Message
+                            <Phone className="h-3 w-3 mr-1" />
+                            Contact
                           </Button>
                         )}
                       </div>
@@ -1315,16 +1351,123 @@ const JobDetailsCard: React.FC<JobDetailsCardProps> = ({ jobId, isOpen, onClose 
                   </div>
                 )}
                 
-                {/* Messages Tab Content - Real-time job conversations for all workers */}
-                {activeTab === 'messages' && user && !isJobPoster && user.accountType === 'worker' && job && poster && (
-                  <div className="h-96 border rounded-lg overflow-hidden">
-                    <ModernMessagingInterface
-                      contactId={job.posterId}
-                      contactName={poster?.fullName || poster?.username || 'Job Poster'}
-                      contactAvatar={poster?.avatarUrl}
-                      currentUserId={user.id}
-                      className="h-full"
-                    />
+                {/* Contact Tab Content - Call/Text functionality for accepted applicants */}
+                {activeTab === 'contact' && user && job && (
+                  <div className="space-y-4">
+                    {/* Contact section for accepted workers */}
+                    {!isJobPoster && user.accountType === 'worker' && job.workerId === user.id && poster && (
+                      <div className="border rounded-lg p-4">
+                        <h3 className="text-lg font-semibold mb-3 flex items-center">
+                          <Phone className="h-5 w-5 mr-2 text-primary" />
+                          Contact Job Poster
+                        </h3>
+                        <div className="flex items-center space-x-4">
+                          <Avatar className="h-12 w-12">
+                            <AvatarImage src={poster.avatarUrl || ''} />
+                            <AvatarFallback>
+                              {(poster.fullName || poster.username || 'JP').split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase()}
+                            </AvatarFallback>
+                          </Avatar>
+                          <div className="flex-1">
+                            <p className="font-medium">{poster.fullName || poster.username}</p>
+                            <p className="text-sm text-muted-foreground">Job Poster</p>
+                          </div>
+                          <div className="space-x-2">
+                            {poster.phoneVerified && poster.phone ? (
+                              <>
+                                <Button 
+                                  variant="outline" 
+                                  size="sm"
+                                  onClick={() => handlePhoneCall(poster.phone!)}
+                                  className="flex items-center"
+                                >
+                                  <Phone className="h-4 w-4 mr-2" />
+                                  Call
+                                </Button>
+                                <Button 
+                                  variant="outline" 
+                                  size="sm"
+                                  onClick={() => handleTextMessage(poster.phone!)}
+                                  className="flex items-center"
+                                >
+                                  <MessageCircle className="h-4 w-4 mr-2" />
+                                  Text
+                                </Button>
+                              </>
+                            ) : (
+                              <div className="text-sm text-muted-foreground bg-gray-100 px-3 py-2 rounded">
+                                Phone not verified
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Contact section for job poster */}
+                    {isJobPoster && job.workerId && assignedWorker && (
+                      <div className="border rounded-lg p-4">
+                        <h3 className="text-lg font-semibold mb-3 flex items-center">
+                          <Phone className="h-5 w-5 mr-2 text-primary" />
+                          Contact Assigned Worker
+                        </h3>
+                        <div className="flex items-center space-x-4">
+                          <Avatar className="h-12 w-12">
+                            <AvatarImage src={assignedWorker.avatarUrl || ''} />
+                            <AvatarFallback>
+                              {(assignedWorker.fullName || assignedWorker.username || 'W').split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase()}
+                            </AvatarFallback>
+                          </Avatar>
+                          <div className="flex-1">
+                            <p className="font-medium">{assignedWorker.fullName || assignedWorker.username}</p>
+                            <p className="text-sm text-muted-foreground">Assigned Worker</p>
+                          </div>
+                          <div className="space-x-2">
+                            {assignedWorker.phoneVerified && assignedWorker.phone ? (
+                              <>
+                                <Button 
+                                  variant="outline" 
+                                  size="sm"
+                                  onClick={() => handlePhoneCall(assignedWorker.phone!)}
+                                  className="flex items-center"
+                                >
+                                  <Phone className="h-4 w-4 mr-2" />
+                                  Call
+                                </Button>
+                                <Button 
+                                  variant="outline" 
+                                  size="sm"
+                                  onClick={() => handleTextMessage(assignedWorker.phone!)}
+                                  className="flex items-center"
+                                >
+                                  <MessageCircle className="h-4 w-4 mr-2" />
+                                  Text
+                                </Button>
+                              </>
+                            ) : (
+                              <div className="text-sm text-muted-foreground bg-gray-100 px-3 py-2 rounded">
+                                Phone not verified
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Info for non-accepted applicants */}
+                    {!isJobPoster && user.accountType === 'worker' && job.workerId !== user.id && (
+                      <div className="border border-yellow-200 bg-yellow-50 dark:bg-yellow-900/20 dark:border-yellow-800 rounded-lg p-4">
+                        <div className="flex items-start space-x-3">
+                          <AlertCircle className="h-5 w-5 text-yellow-600 dark:text-yellow-400 mt-0.5" />
+                          <div>
+                            <h4 className="text-sm font-medium text-yellow-800 dark:text-yellow-200">Contact Unavailable</h4>
+                            <p className="text-sm text-yellow-700 dark:text-yellow-300 mt-1">
+                              Contact information is only available after you've been accepted for the job.
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+                    )}
                   </div>
                 )}
 

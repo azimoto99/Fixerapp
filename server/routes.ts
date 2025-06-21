@@ -356,6 +356,31 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Mount payment routes
   apiRouter.use('/payments', paymentsRouter);
   
+  // Add user-specific payment endpoint
+  apiRouter.get("/payments/user/:userId", isAuthenticated, async (req: Request, res: Response) => {
+    try {
+      const userId = parseInt(req.params.userId);
+      const currentUserId = req.user?.id;
+
+      if (!currentUserId || isNaN(userId)) {
+        return res.status(400).json({ message: 'Invalid user ID' });
+      }
+
+      // Users can only access their own payment history
+      if (currentUserId !== userId) {
+        return res.status(403).json({ message: 'You can only access your own payment history' });
+      }
+
+      // Get all payments for the user (both as payer and payee)
+      const payments = await storage.getPaymentsForUser(userId);
+      
+      res.json(payments);
+    } catch (error) {
+      console.error('Error fetching user payments:', error);
+      res.status(500).json({ message: 'Error fetching payment history' });
+    }
+  });
+  
   // Mount disputes routes
   apiRouter.use('/disputes', disputeRouter);
 
@@ -371,13 +396,74 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Register the admin API routes
   registerAdminRoutes(app);
 
-  // Register messaging API routes
-  const { registerMessagingRoutes } = await import('./api/messaging-api');
-  registerMessagingRoutes(app);
+
 
   // Register applications API routes
   const applicationsRouter = await import('./api/applications');
   apiRouter.use('/applications', applicationsRouter.default);
+
+  // Add missing specific job-related endpoints
+  
+  // Get application by job and worker
+  apiRouter.get("/jobs/:jobId/applications/worker/:workerId", isAuthenticated, async (req: Request, res: Response) => {
+    try {
+      const jobId = parseInt(req.params.jobId);
+      const workerId = parseInt(req.params.workerId);
+      
+      if (isNaN(jobId) || isNaN(workerId)) {
+        return res.status(400).json({ message: "Invalid job ID or worker ID" });
+      }
+
+      // Check if user has permission to view this application
+      if (!req.user || (req.user.id !== workerId)) {
+        // Allow job posters to view applications to their jobs
+        const job = await storage.getJob(jobId);
+        if (!job || job.posterId !== req.user?.id) {
+          return res.status(403).json({ message: "You don't have permission to view this application" });
+        }
+      }
+
+      // Get all applications for the job and find the one by this worker
+      const applications = await storage.getApplicationsByJobId(jobId);
+      const application = applications.find(app => app.workerId === workerId);
+
+      if (!application) {
+        return res.status(404).json({ message: "Application not found" });
+      }
+
+      res.json(application);
+    } catch (error) {
+      console.error("Error fetching application:", error);
+      res.status(500).json({ message: "Error fetching application" });
+    }
+  });
+
+  // Get tasks for a job
+  apiRouter.get("/jobs/:jobId/tasks", isAuthenticated, async (req: Request, res: Response) => {
+    try {
+      const jobId = parseInt(req.params.jobId);
+      
+      if (isNaN(jobId)) {
+        return res.status(400).json({ message: "Invalid job ID" });
+      }
+
+      const job = await storage.getJob(jobId);
+      if (!job) {
+        return res.status(404).json({ message: "Job not found" });
+      }
+
+      // Verify the user has access to this job (either poster or assigned worker)
+      if (!req.user || (job.posterId !== req.user.id && job.workerId !== req.user.id)) {
+        return res.status(403).json({ message: "You don't have access to this job's tasks" });
+      }
+
+      const tasks = await storage.getTasksForJob(jobId);
+      res.json(tasks);
+    } catch (error) {
+      console.error("Error fetching tasks for job:", error);
+      res.status(500).json({ message: "Error fetching tasks" });
+    }
+  });
 
   // Add missing API routes that are being called by the frontend
   
@@ -2889,6 +2975,37 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get('/api/health', (req: Request, res: Response) => {
     res.status(200).json({ status: 'ok' });
   });
+
+  // Register payments API routes
+  const paymentsRouter = await import('./api/payments');
+  apiRouter.use('/payments', paymentsRouter.default);
+
+  // Add user-specific payment endpoint
+  apiRouter.get("/payments/user/:userId", isAuthenticated, async (req: Request, res: Response) => {
+    try {
+      const userId = parseInt(req.params.userId);
+      const currentUserId = req.user?.id;
+
+      if (!currentUserId || isNaN(userId)) {
+        return res.status(400).json({ message: 'Invalid user ID' });
+      }
+
+      // Users can only access their own payment history
+      if (currentUserId !== userId) {
+        return res.status(403).json({ message: 'You can only access your own payment history' });
+      }
+
+      // Get all payments for the user (both as payer and payee)
+      const payments = await storage.getPaymentsForUser(userId);
+      
+      res.json(payments);
+    } catch (error) {
+      console.error('Error fetching user payments:', error);
+      res.status(500).json({ message: 'Error fetching payment history' });
+    }
+  });
+
+  // Register disputes API routes
 
   return httpServer;
 }
