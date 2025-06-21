@@ -349,23 +349,11 @@ export const PaymentDialogProvider: React.FC<{ children: React.ReactNode }> = ({
     closeAddPaymentMethod();
   };
 
-  // Debug logging for clientSecret
-  useEffect(() => {
-    if (clientSecret) {
-      console.log('Client secret received:', clientSecret.substring(0, 20) + '...');
-      console.log('Stripe promise:', stripePromise);
-    }
-  }, [clientSecret]);
+  
 
-  // Debug logging for dialog state
-  useEffect(() => {
-    console.log('Payment dialog state:', {
-      isOpen: isAddPaymentMethodOpen,
-      isPending: setupIntent.isPending,
-      isError: setupIntent.isError,
-      hasClientSecret: !!clientSecret
-    });
-  }, [isAddPaymentMethodOpen, setupIntent.isPending, setupIntent.isError, clientSecret]);
+
+  
+  
 
   // When modal is opened/closed, handle body scroll
   useEffect(() => {

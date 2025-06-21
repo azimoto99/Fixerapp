@@ -292,26 +292,6 @@ export function SkillsManager({ user, readOnly = false }: SkillsManagerProps) {
               Add Skill
             </Button>
           )}
-
-          {/* Verify option is shown for development but would be admin-only in prod */}
-          {userSkills.length > 0 && (
-            <Button
-              variant="ghost"
-              size="sm"
-              className="ml-2"
-              onClick={() => {
-                // For demo purposes, verify all skills
-                userSkills.forEach(skill => {
-                  if (!getSkillVerificationStatus(skill)) {
-                    handleVerifySkill(skill, true);
-                  }
-                });
-              }}
-              disabled={verifySkillMutation.isPending}
-            >
-              Verify All
-            </Button>
-          )}
         </div>
       )}
 

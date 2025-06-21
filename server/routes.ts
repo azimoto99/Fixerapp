@@ -1333,7 +1333,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // In a real application, you would send an SMS with the verification code
       // For demo purposes, we'll just return the code in the response
       
-      // TODO: In a production app, we would send an actual SMS here
+      // In production, integrate with SMS service (e.g., Twilio, AWS SNS)
       // sendSMS(user.phone, `Your verification code is: ${verificationCode}`);
       
       res.json({ 
@@ -1509,21 +1509,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Stripe terms of service and representative endpoint
   apiRouter.post("/users/:id/stripe-terms", isAuthenticated, async (req: Request, res: Response) => {
     try {
-      console.log('Stripe terms acceptance endpoint called');
-      console.log('User in session:', req.user ? `ID: ${req.user.id}` : 'No user');
-      console.log('isAuthenticated:', req.isAuthenticated());
-      console.log('Session ID:', req.sessionID);
-      
-      // Safely check if the passport property exists in the session
-      const passportObj = req.session && typeof req.session === 'object' ? (req.session as any).passport : undefined;
-      console.log('Session passport:', passportObj);
-      
       const id = parseInt(req.params.id);
-      console.log(`User ID from params: ${id}`);
       
       // Add fallback for missing authentication
       if (!req.user) {
-        console.warn('User not authenticated in Stripe terms endpoint despite middleware');
         // Try to fetch the user directly since we have the ID
         const user = await storage.getUser(id);
         if (!user) {

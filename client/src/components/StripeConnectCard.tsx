@@ -1,13 +1,14 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Loader2, CreditCard, ArrowRight, AlertTriangle } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useLocation } from 'wouter';
+import { useQuery } from '@tanstack/react-query';
+import { Alert, AlertDescription } from './ui/alert';
 
-// Debugging helper
-const DEBUG = true;
-const log = (...args: any[]) => DEBUG && console.log(...args);
+
+
 
 interface StripeConnectCardProps {
   onComplete?: () => void;
@@ -23,7 +24,7 @@ const StripeConnectCard: React.FC<StripeConnectCardProps> = ({ onComplete }) => 
     setIsLoading(true);
     setError(null);
     try {
-      log('Navigating to custom Stripe Connect onboarding...');
+  
       
       // Navigate to our custom onboarding page
       navigate('/stripe-connect/onboarding');

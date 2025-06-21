@@ -57,9 +57,8 @@ const stripeCSP = helmet({
 // Apply CSP middleware
 stripeConnectRouter.use(stripeCSP);
 
-// Add a health check endpoint for debugging
+// Health check endpoint
 stripeConnectRouter.get('/health', (req, res) => {
-  console.log('[STRIPE CONNECT] Health check request received');
   return res.status(200).json({ status: 'ok', message: 'Stripe Connect router is working' });
 });
 
@@ -75,15 +74,10 @@ interface StripeTransferWithMetadata extends Stripe.Transfer {
 
 // Create a Connect account for a worker
 stripeConnectRouter.post('/create-account', isAuthenticated, async (req: Request, res: Response) => {
-  console.log('[STRIPE CONNECT] Create account request received');
-  
   try {
     if (!req.user) {
-      console.log('[STRIPE CONNECT] No user in request');
       return res.status(401).json({ message: 'User not authenticated' });
     }
-    
-    console.log(`[STRIPE CONNECT] User authenticated: ${req.user.id}`);
     const user = await storage.getUser(req.user.id);
     if (!user) {
       return res.status(404).json({ message: 'User not found' });
@@ -98,10 +92,7 @@ stripeConnectRouter.post('/create-account', isAuthenticated, async (req: Request
     if (accountId) {
       try {
         const existingAccount = await stripe.accounts.retrieve(accountId);
-        // You might want to check existingAccount.details_submitted or existingAccount.charges_enabled
-        // to decide if re-onboarding is necessary or if you should redirect to a dashboard.
-        // For now, we allow re-triggering onboarding.
-        console.log(`[STRIPE CONNECT] User ${user.id} already has Stripe account: ${accountId}. Proceeding to create new link.`);
+        // Allow re-triggering onboarding for existing accounts
       } catch (retrieveError: any) {
         if (retrieveError.code === 'account_invalid' || retrieveError.code === 'resource_missing') { // More specific error codes
           console.warn(`[STRIPE CONNECT] Stripe account ${accountId} for user ${user.id} is invalid or not found in Stripe. Clearing from DB and creating a new one.`, retrieveError.message);

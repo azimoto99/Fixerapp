@@ -239,10 +239,9 @@ export function ModernMessagingInterface({
   }, []);
 
   // Handle reactions (placeholder)
-  const handleReact = useCallback((messageId: number, emoji: string) => {
-    console.log('React to message:', messageId, emoji);
-    // TODO: Implement reaction functionality
-  }, []);
+  const handleReaction = (messageId: number, emoji: string) => {
+    // Reaction functionality not implemented yet
+  };
 
   // Handle call initiation
   const handleCall = useCallback(() => {
@@ -313,7 +312,7 @@ export function ModernMessagingInterface({
                     message={message}
                     isOwn={message.senderId === currentUserId}
                     onReply={handleReply}
-                    onReact={handleReact}
+                    onReact={handleReaction}
                   />
                 ))}
               </div>
