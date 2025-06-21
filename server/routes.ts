@@ -506,45 +506,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Update job endpoint
-  apiRouter.put("/jobs/:id", isAuthenticated, async (req: Request, res: Response) => {
-    try {
-      const jobId = parseInt(req.params.id);
-      const userId = req.user?.id;
-
-      if (!userId) {
-        return res.status(401).json({ message: "User not authenticated" });
-      }
-
-      if (isNaN(jobId)) {
-        return res.status(400).json({ message: "Invalid job ID" });
-      }
-
-      // Get the existing job to verify ownership
-      const existingJob = await storage.getJob(jobId);
-      if (!existingJob) {
-        return res.status(404).json({ message: "Job not found" });
-      }
-
-      // Verify the user owns this job
-      if (existingJob.posterId !== userId) {
-        return res.status(403).json({ message: "You can only edit your own jobs" });
-      }
-
-      // Only allow editing if job is still open
-      if (existingJob.status !== 'open') {
-        return res.status(400).json({ message: "You can only edit open jobs" });
-      }
-
-      // Update the job
-      const updatedJob = await storage.updateJob(jobId, req.body);
-      res.json(updatedJob);
-    } catch (error) {
-      console.error("Error updating job:", error);
-      res.status(500).json({ message: "Error updating job" });
-    }
-  });
-
   // Jobs routes
   apiRouter.get("/jobs", async (req: Request, res: Response) => {
     try {
@@ -2976,36 +2937,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     res.status(200).json({ status: 'ok' });
   });
 
-  // Register payments API routes
-  const paymentsRouter = await import('./api/payments');
-  apiRouter.use('/payments', paymentsRouter.default);
 
-  // Add user-specific payment endpoint
-  apiRouter.get("/payments/user/:userId", isAuthenticated, async (req: Request, res: Response) => {
-    try {
-      const userId = parseInt(req.params.userId);
-      const currentUserId = req.user?.id;
-
-      if (!currentUserId || isNaN(userId)) {
-        return res.status(400).json({ message: 'Invalid user ID' });
-      }
-
-      // Users can only access their own payment history
-      if (currentUserId !== userId) {
-        return res.status(403).json({ message: 'You can only access your own payment history' });
-      }
-
-      // Get all payments for the user (both as payer and payee)
-      const payments = await storage.getPaymentsForUser(userId);
-      
-      res.json(payments);
-    } catch (error) {
-      console.error('Error fetching user payments:', error);
-      res.status(500).json({ message: 'Error fetching payment history' });
-    }
-  });
-
-  // Register disputes API routes
 
   return httpServer;
 }
