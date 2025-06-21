@@ -34,6 +34,9 @@ export function BadgesDisplay({ userId }: BadgesDisplayProps) {
     queryKey: [`/api/users/${userId}/badges`],
     queryFn: async () => {
       const response = await apiRequest('GET', `/api/users/${userId}/badges`);
+      if (!response.ok) {
+        throw new Error(`Failed to fetch user badges: ${response.status}`);
+      }
       return response.json();
     },
   });
@@ -43,6 +46,9 @@ export function BadgesDisplay({ userId }: BadgesDisplayProps) {
     queryKey: ['/api/badges'],
     queryFn: async () => {
       const response = await apiRequest('GET', '/api/badges');
+      if (!response.ok) {
+        throw new Error(`Failed to fetch badges: ${response.status}`);
+      }
       return response.json();
     },
   });
