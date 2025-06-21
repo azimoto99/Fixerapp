@@ -379,6 +379,77 @@ export async function registerRoutes(app: Express): Promise<Server> {
   const applicationsRouter = await import('./api/applications');
   apiRouter.use('/applications', applicationsRouter.default);
 
+  // Register jobs API routes
+  const jobsRouter = await import('./api/jobs');
+  apiRouter.use('/jobs', jobsRouter.default);
+
+  // Register tasks API routes  
+  const tasksRouter = await import('./api/task-api');
+  apiRouter.use('/tasks', tasksRouter.default);
+
+  // Add missing specific job-related endpoints
+  
+  // Get application by job and worker
+  apiRouter.get("/jobs/:jobId/applications/worker/:workerId", isAuthenticated, async (req: Request, res: Response) => {
+    try {
+      const jobId = parseInt(req.params.jobId);
+      const workerId = parseInt(req.params.workerId);
+      
+      if (isNaN(jobId) || isNaN(workerId)) {
+        return res.status(400).json({ message: "Invalid job ID or worker ID" });
+      }
+
+      // Check if user has permission to view this application
+      if (!req.user || (req.user.id !== workerId)) {
+        // Allow job posters to view applications to their jobs
+        const job = await storage.getJob(jobId);
+        if (!job || job.posterId !== req.user?.id) {
+          return res.status(403).json({ message: "You don't have permission to view this application" });
+        }
+      }
+
+      // Get all applications for the job and find the one by this worker
+      const applications = await storage.getApplicationsByJobId(jobId);
+      const application = applications.find(app => app.workerId === workerId);
+
+      if (!application) {
+        return res.status(404).json({ message: "Application not found" });
+      }
+
+      res.json(application);
+    } catch (error) {
+      console.error("Error fetching application:", error);
+      res.status(500).json({ message: "Error fetching application" });
+    }
+  });
+
+  // Get tasks for a job
+  apiRouter.get("/jobs/:jobId/tasks", isAuthenticated, async (req: Request, res: Response) => {
+    try {
+      const jobId = parseInt(req.params.jobId);
+      
+      if (isNaN(jobId)) {
+        return res.status(400).json({ message: "Invalid job ID" });
+      }
+
+      const job = await storage.getJob(jobId);
+      if (!job) {
+        return res.status(404).json({ message: "Job not found" });
+      }
+
+      // Verify the user has access to this job (either poster or assigned worker)
+      if (!req.user || (job.posterId !== req.user.id && job.workerId !== req.user.id)) {
+        return res.status(403).json({ message: "You don't have access to this job's tasks" });
+      }
+
+      const tasks = await storage.getTasksForJob(jobId);
+      res.json(tasks);
+    } catch (error) {
+      console.error("Error fetching tasks for job:", error);
+      res.status(500).json({ message: "Error fetching tasks" });
+    }
+  });
+
   // Add missing API routes that are being called by the frontend
   
   // Update job endpoint
@@ -2892,3 +2963,68 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   return httpServer;
 }
+
+// ... existing code ...
+
+  // Get application by job and worker
+  apiRouter.get("/jobs/:jobId/applications/worker/:workerId", isAuthenticated, async (req: Request, res: Response) => {
+    try {
+      const jobId = parseInt(req.params.jobId);
+      const workerId = parseInt(req.params.workerId);
+      
+      if (isNaN(jobId) || isNaN(workerId)) {
+        return res.status(400).json({ message: "Invalid job ID or worker ID" });
+      }
+
+      // Check if user has permission to view this application
+      if (!req.user || (req.user.id !== workerId)) {
+        // Allow job posters to view applications to their jobs
+        const job = await storage.getJob(jobId);
+        if (!job || job.posterId !== req.user?.id) {
+          return res.status(403).json({ message: "You don't have permission to view this application" });
+        }
+      }
+
+      // Get all applications for the job and find the one by this worker
+      const applications = await storage.getApplicationsByJobId(jobId);
+      const application = applications.find(app => app.workerId === workerId);
+
+      if (!application) {
+        return res.status(404).json({ message: "Application not found" });
+      }
+
+      res.json(application);
+    } catch (error) {
+      console.error("Error fetching application:", error);
+      res.status(500).json({ message: "Error fetching application" });
+    }
+  });
+
+  // Get tasks for a job
+  apiRouter.get("/jobs/:jobId/tasks", isAuthenticated, async (req: Request, res: Response) => {
+    try {
+      const jobId = parseInt(req.params.jobId);
+      
+      if (isNaN(jobId)) {
+        return res.status(400).json({ message: "Invalid job ID" });
+      }
+
+      const job = await storage.getJob(jobId);
+      if (!job) {
+        return res.status(404).json({ message: "Job not found" });
+      }
+
+      // Verify the user has access to this job (either poster or assigned worker)
+      if (!req.user || (job.posterId !== req.user.id && job.workerId !== req.user.id)) {
+        return res.status(403).json({ message: "You don't have access to this job's tasks" });
+      }
+
+      const tasks = await storage.getTasksForJob(jobId);
+      res.json(tasks);
+    } catch (error) {
+      console.error("Error fetching tasks for job:", error);
+      res.status(500).json({ message: "Error fetching tasks" });
+    }
+  });
+
+// ... existing code ...
