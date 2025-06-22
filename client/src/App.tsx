@@ -51,7 +51,7 @@ import { useMobile } from "@/hooks/use-mobile";
 import { cn } from "@/lib/utils";
 
 // Pages
-import ExplorePage from "@/pages/ExplorePage";
+
 import Profile from "@/pages/Profile";
 import { SupportPage } from "@/pages/support-page";
 import { PrivacyPage } from "@/pages/privacy-page";
@@ -225,7 +225,6 @@ function AppContent() {
       {/* Main content */}
       <main className="container mx-auto px-4 py-8 md:py-12">
         <AccountTypeRoute path="/" component={Home} />
-        <AccountTypeRoute path="/explore" component={ExplorePage} />
         <AccountTypeRoute path="/profile" component={Profile} />
         <AccountTypeRoute path="/admin" component={AdminPanelV2} requiredRole="admin" />
         <AccountTypeRoute path="/verify-email" component={VerifyEmail} />
