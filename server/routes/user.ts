@@ -251,6 +251,43 @@ router.post('/phone/verify', requireAuth, async (req, res) => {
 });
 
 /**
+ * Get user's current settings
+ * GET /api/user/settings
+ */
+router.get('/settings', requireAuth, async (req, res) => {
+  if (!req.user) {
+    return res.status(401).json({ message: 'Unauthorized' });
+  }
+
+  try {
+    const user = await storage.getUser(req.user.id);
+    if (!user) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+
+    // Return current settings with defaults for missing values
+    const settings = {
+      emailNotifications: user.emailNotifications ?? true,
+      pushNotifications: user.pushNotifications ?? true,
+      newJobAlerts: user.newJobAlerts ?? true,
+      paymentUpdates: user.paymentUpdates ?? true,
+      marketingEmails: user.marketingEmails ?? false,
+      profileVisibility: user.profileVisibility ?? 'job_contacts',
+      showOnlineStatus: user.showOnlineStatus ?? true,
+      allowLocationAccess: user.allowLocationAccess ?? true,
+      shareActivityStatus: user.shareActivityStatus ?? false,
+    };
+
+    res.json(settings);
+  } catch (error) {
+    console.error('Settings fetch error:', error);
+    res.status(500).json({
+      message: error instanceof Error ? error.message : 'Failed to fetch settings'
+    });
+  }
+});
+
+/**
  * Update user's settings (notifications, privacy, etc.)
  * PATCH /api/user/settings
  */

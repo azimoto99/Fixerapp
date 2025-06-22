@@ -10,7 +10,7 @@ import { apiRequest, queryClient } from '@/lib/queryClient';
 import { useToast } from '@/hooks/use-toast';
 import { ThemeToggle } from '@/components/theme/ThemeToggle';
 import { ProfileImageUploader } from '@/components/profile/ProfileImageUploader';
-import { useMutation } from '@tanstack/react-query';
+import { useMutation, useQuery } from '@tanstack/react-query';
 import {
   Save,
   Bell,
@@ -38,22 +38,55 @@ const SettingsContent: React.FC<SettingsContentProps> = ({ user }) => {
   const [isLoading, setIsLoading] = useState(false);
   const { toast } = useToast();
   
-  // Notification settings
+  // Fetch user settings from API
+  const { data: userSettings, isLoading: settingsLoading } = useQuery({
+    queryKey: ['/api/user/settings'],
+    queryFn: async () => {
+      const response = await apiRequest('GET', '/api/user/settings');
+      if (!response.ok) {
+        throw new Error('Failed to fetch user settings');
+      }
+      return response.json();
+    },
+    staleTime: 5 * 60 * 1000, // 5 minutes
+  });
+  
+  // Notification settings - initialize with API data or defaults
   const [notificationSettings, setNotificationSettings] = useState({
-    emailNotifications: true,
-    pushNotifications: true,
-    newJobAlerts: true,
-    paymentUpdates: true,
-    marketingEmails: false,
+    emailNotifications: userSettings?.emailNotifications ?? true,
+    pushNotifications: userSettings?.pushNotifications ?? true,
+    newJobAlerts: userSettings?.newJobAlerts ?? true,
+    paymentUpdates: userSettings?.paymentUpdates ?? true,
+    marketingEmails: userSettings?.marketingEmails ?? false,
   });
 
-  // Privacy settings
+  // Privacy settings - initialize with API data or defaults
   const [privacySettings, setPrivacySettings] = useState({
-    profileVisibility: 'job_contacts', // 'public', 'job_contacts', 'private'
-    showOnlineStatus: true,
-    allowLocationAccess: true,
-    shareActivityStatus: false,
+    profileVisibility: userSettings?.profileVisibility ?? 'job_contacts', // 'public', 'job_contacts', 'private'
+    showOnlineStatus: userSettings?.showOnlineStatus ?? true,
+    allowLocationAccess: userSettings?.allowLocationAccess ?? true,
+    shareActivityStatus: userSettings?.shareActivityStatus ?? false,
   });
+
+  // Update settings when API data is loaded
+  useEffect(() => {
+    if (userSettings) {
+      setNotificationSettings({
+        emailNotifications: userSettings.emailNotifications ?? true,
+        pushNotifications: userSettings.pushNotifications ?? true,
+        newJobAlerts: userSettings.newJobAlerts ?? true,
+        paymentUpdates: userSettings.paymentUpdates ?? true,
+        marketingEmails: userSettings.marketingEmails ?? false,
+      });
+      
+      setPrivacySettings({
+        profileVisibility: userSettings.profileVisibility ?? 'job_contacts',
+        showOnlineStatus: userSettings.showOnlineStatus ?? true,
+        allowLocationAccess: userSettings.allowLocationAccess ?? true,
+        shareActivityStatus: userSettings.shareActivityStatus ?? false,
+      });
+    }
+  }, [userSettings]);
 
   // Phone verification state
   const [phoneNumber, setPhoneNumber] = useState(user?.phone || '');
@@ -124,7 +157,7 @@ const SettingsContent: React.FC<SettingsContentProps> = ({ user }) => {
     }
   });
 
-  // Timer countdown effect
+  // Timer countdown effect - FIX: Add verificationTimer to dependency array
   useEffect(() => {
     let interval: NodeJS.Timeout;
     if (verificationTimer > 0) {
@@ -139,7 +172,7 @@ const SettingsContent: React.FC<SettingsContentProps> = ({ user }) => {
       }, 1000);
     }
     return () => clearInterval(interval);
-  }, []);
+  }, [verificationTimer]);
 
   const handleSendVerification = () => {
     if (!phoneNumber.trim()) {
