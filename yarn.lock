@@ -4277,17 +4277,29 @@
     "@tailwindcss/oxide" "4.1.6"
     tailwindcss "4.1.6"
 
-"@tanstack/query-core@5.75.7":
-  version "5.75.7"
-  resolved "https://registry.npmjs.org/@tanstack/query-core/-/query-core-5.75.7.tgz"
-  integrity sha512-4BHu0qnxUHOSnTn3ow9fIoBKTelh0GY08yn1IO9cxjBTsGvnxz1ut42CHZqUE3Vl/8FAjcHsj8RNJMoXvjgHEA==
+"@tanstack/query-core@5.81.2":
+  version "5.81.2"
+  resolved "https://registry.npmjs.org/@tanstack/query-core/-/query-core-5.81.2.tgz"
+  integrity sha512-QLYkPdrudoMATDFa3MiLEwRhNnAlzHWDf0LKaXUqJd0/+QxN8uTPi7bahRlxoAyH0UbLMBdeDbYzWALj7THOtw==
 
-"@tanstack/react-query@^5.60.5":
-  version "5.75.7"
-  resolved "https://registry.npmjs.org/@tanstack/react-query/-/react-query-5.75.7.tgz"
-  integrity sha512-JYcH1g5pNjKXNQcvvnCU/PueaYg05uKBDHlWIyApspv7r5C0BM12n6ysa2QF2T+1tlPnNXOob8vr8o96Nx0GxQ==
+"@tanstack/query-devtools@5.81.2":
+  version "5.81.2"
+  resolved "https://registry.npmjs.org/@tanstack/query-devtools/-/query-devtools-5.81.2.tgz"
+  integrity sha512-jCeJcDCwKfoyyBXjXe9+Lo8aTkavygHHsUHAlxQKKaDeyT0qyQNLKl7+UyqYH2dDF6UN/14873IPBHchcsU+Zg==
+
+"@tanstack/react-query-devtools@^5.81.2":
+  version "5.81.2"
+  resolved "https://registry.npmjs.org/@tanstack/react-query-devtools/-/react-query-devtools-5.81.2.tgz"
+  integrity sha512-TX0OQ4cbgX6z2uN8c9x0QUNbyePGyUGdcgrGnV6TYEJc7KPT8PqeASuzoA5NGw1CiMGvyFAkIGA2KipvhM9d1g==
   dependencies:
-    "@tanstack/query-core" "5.75.7"
+    "@tanstack/query-devtools" "5.81.2"
+
+"@tanstack/react-query@^5.60.5", "@tanstack/react-query@^5.81.2":
+  version "5.81.2"
+  resolved "https://registry.npmjs.org/@tanstack/react-query/-/react-query-5.81.2.tgz"
+  integrity sha512-pe8kFlTrL2zFLlcAj2kZk9UaYYHDk9/1hg9EBaoO3cxDhOZf1FRGJeziSXKrVZyxIfs7b3aoOj/bw7Lie0mDUg==
+  dependencies:
+    "@tanstack/query-core" "5.81.2"
 
 "@trysound/sax@0.2.0":
   version "0.2.0"

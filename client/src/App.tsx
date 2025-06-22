@@ -45,7 +45,6 @@ import { MobileNav } from "@/components/MobileNav";
 import { AccountTypeSelection } from "@/pages/AccountTypeSelection";
 import { AccountTypeRoute } from "@/lib/account-type-route";
 import { CrossPlatformProvider } from "@/lib/cross-platform";
-import { ReactQueryDevtools } from "@tanstack/react-query-devtools";
 import { StripeConnectProvider } from "@/contexts/stripe-connect-context";
 import { PaymentDialogManager } from "@/components/payments/PaymentDialogManager";
 import { useMobile } from "@/hooks/use-mobile";
@@ -175,7 +174,6 @@ function App() {
           </AuthProvider>
         </CrossPlatformProvider>
       </ThemeProvider>
-      <ReactQueryDevtools initialIsOpen={false} />
     </QueryClientProvider>
   );
 }
