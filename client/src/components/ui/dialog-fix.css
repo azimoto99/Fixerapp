@@ -137,8 +137,10 @@ div[role="dialog"] {
 .support-dialog {
   z-index: var(--z-index-support-dialog) !important;
   pointer-events: auto !important;
-  position: relative !important;
-  isolation: isolate !important;
+  position: fixed !important;
+  top: 50% !important;
+  left: 50% !important;
+  transform: translate(-50%, -50%) !important;
 }
 
 .support-dialog * {
