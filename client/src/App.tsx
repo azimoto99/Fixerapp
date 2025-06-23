@@ -40,6 +40,7 @@ import ExpoConnectGuide from "@/components/ExpoConnectGuide";
 import JobCardFix from "@/components/JobCardFix";
 import { useState, useEffect } from "react";
 import { WebSocketProvider } from "@/contexts/WebSocketContext";
+import { ProfilePopup } from "@/components/ProfilePopup";
 
 // Import new system components
 import { ErrorBoundarySystem, NetworkErrorRecovery, ChunkErrorRecovery } from "@/components/ErrorBoundarySystem";
@@ -126,6 +127,7 @@ function AuthenticatedContent() {
   const { user } = useAuth();
   const [isMessagingOpen, setIsMessagingOpen] = useState(false);
   const [selectedUserId, setSelectedUserId] = useState<number | null>(null);
+  const [isProfileOpen, setIsProfileOpen] = useState(false);
   
   // Initialize the comprehensive connection system
   const {
@@ -151,6 +153,17 @@ function AuthenticatedContent() {
     return () => {
       window.removeEventListener('open-messaging' as any, handleOpenMessaging);
     };
+  }, []);
+  
+  // Listen for profile popup events
+  useEffect(() => {
+    const handleOpenProfile = (event: CustomEvent<{ userId: number }>) => {
+      setSelectedUserId(event.detail.userId);
+      setIsProfileOpen(true);
+    };
+
+    window.addEventListener('open-profile', handleOpenProfile as EventListener);
+    return () => window.removeEventListener('open-profile', handleOpenProfile as EventListener);
   }, []);
   
   // Update document title with unread count
@@ -188,6 +201,9 @@ function AuthenticatedContent() {
       
       {/* Temporary debug component - remove in production */}
       {process.env.NODE_ENV === 'development' && <WebSocketDebug />}
+
+      {/* Profile popup */}
+      <ProfilePopup open={isProfileOpen} onOpenChange={setIsProfileOpen} userId={selectedUserId} />
     </>
   );
 }

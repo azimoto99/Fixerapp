@@ -131,7 +131,14 @@ const JobApplicationsTab: React.FC<JobApplicationsTabProps> = ({ applications, j
               
               <div>
                 <div className="flex items-center gap-2">
-                  <h4 className="font-medium">{application.worker?.username || 'Worker'}</h4>
+                  <h4 className="font-medium">
+                    <button
+                      onClick={() => window.dispatchEvent(new CustomEvent('open-profile', { detail: { userId: application.workerId } }))}
+                      className="hover:underline text-left"
+                    >
+                      {application.worker?.fullName || application.worker?.username || 'Worker'}
+                    </button>
+                  </h4>
                   <Badge className={getApplicationClass(application.status)}>
                     {application.status.charAt(0).toUpperCase() + application.status.slice(1)}
                   </Badge>

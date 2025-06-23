@@ -1070,9 +1070,12 @@ const JobDetailsCard: React.FC<JobDetailsCardProps> = ({ jobId, isOpen, onClose 
                             <User className="h-5 w-5 text-primary" />
                           </div>
                           <div>
-                            <p className="font-medium">
+                            <button
+                              onClick={() => window.dispatchEvent(new CustomEvent('open-profile', { detail: { userId: job.posterId } }))}
+                              className="font-medium hover:underline text-left"
+                            >
                               {poster?.fullName || poster?.username || `User #${job.posterId}`}
-                            </p>
+                            </button>
                             <p className="text-sm text-muted-foreground">
                               Job Poster
                             </p>
