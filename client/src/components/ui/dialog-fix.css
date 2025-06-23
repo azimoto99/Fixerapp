@@ -352,3 +352,9 @@ body > [data-radix-alert-dialog-overlay] {
 body > [data-radix-alert-dialog-overlay] [data-radix-alert-dialog-content] {
   z-index: 10002 !important;
 }
+
+/* User settings scroll helper */
+.user-settings-scroll {
+  height: calc(100vh - 120px);
+  overflow-y: auto;
+}
