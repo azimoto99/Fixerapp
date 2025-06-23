@@ -6,10 +6,6 @@ import MobileNav from '@/components/MobileNav';
 // ViewToggle and JobListSection removed - using unified modal approach
 import NewJobButton from '@/components/NewJobButton';
 import PostJobDrawer from '@/components/PostJobDrawer';
-import { MessagingDrawer } from '@/components/MessagingDrawer';
-
-// Lazy load heavy components
-const MapSection = lazy(() => import('@/components/MapSection'));
 // Dialog imports removed - using unified JobDetailsCard modal
 
 import { useJobs } from '@/hooks/useJobs';
@@ -268,7 +264,6 @@ export default function Home() {
   const { user } = useAuth();
   const [selectedRole, setSelectedRole] = useState<'worker' | 'poster'>('worker');
   const [showPostedJobs, setShowPostedJobs] = useState(false);
-  const [showMessaging, setShowMessaging] = useState(false);
   // showJobDetails and selectedJob removed - using unified JobDetailsCard modal
   const [showEditJob, setShowEditJob] = useState(false);
   const [jobToEdit, setJobToEdit] = useState<Job | null>(null);
@@ -368,10 +363,6 @@ export default function Home() {
   const togglePostedJobs = () => {
     setShowPostedJobs(!showPostedJobs);
   };
-  
-  const toggleMessaging = () => {
-    setShowMessaging(!showMessaging);
-  };
 
   return (
     <div className="flex flex-col min-h-screen">
@@ -379,7 +370,6 @@ export default function Home() {
         selectedRole={selectedRole}
         onRoleChange={setSelectedRole}
         onTogglePostedJobs={togglePostedJobs}
-        onToggleMessaging={toggleMessaging}
         postedJobsCount={postedJobs?.length || 0}
       />
 
@@ -405,12 +395,6 @@ export default function Home() {
         />
       )}
       
-      {/* Messaging Drawer */}
-      <MessagingDrawer
-        open={showMessaging}
-        onOpenChange={setShowMessaging}
-      />
-
       {/* Edit Job Modal */}
       <EditJobModal
         job={jobToEdit}
