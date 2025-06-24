@@ -375,17 +375,24 @@ export async function registerRoutes(app: Express): Promise<Server> {
   registerAdminRoutes(app);
 
   // Register enterprise API routes
-  app.get('/api/enterprise/profile', isAuthenticated, enterpriseApi.getBusinessProfile);
-  app.post('/api/enterprise/profile', isAuthenticated, enterpriseApi.createBusinessProfile);
+  app.get('/api/enterprise/business', isAuthenticated, enterpriseApi.getBusinessProfile);
+  app.post('/api/enterprise/business', isAuthenticated, enterpriseApi.createBusinessProfile);
+  app.put('/api/enterprise/business', isAuthenticated, enterpriseApi.updateBusinessProfile);
   app.get('/api/enterprise/stats', isAuthenticated, enterpriseApi.getBusinessStats);
   
   // Hub pins endpoints
-  app.get('/api/enterprise/hub-pins', isAuthenticated, enterpriseApi.getActiveHubPins);
+  app.get('/api/enterprise/hub-pins', isAuthenticated, enterpriseApi.getHubPins);
+  app.get('/api/enterprise/hub-pins/active', enterpriseApi.getActiveHubPins);
   app.post('/api/enterprise/hub-pins', isAuthenticated, enterpriseApi.createHubPin);
+  app.put('/api/enterprise/hub-pins/:id', isAuthenticated, enterpriseApi.updateHubPin);
+  app.delete('/api/enterprise/hub-pins/:id', isAuthenticated, enterpriseApi.deleteHubPin);
   app.get('/api/enterprise/hub-pins/:id', enterpriseApi.getHubPinDetails);
   
   // Positions endpoints
+  app.get('/api/enterprise/positions', isAuthenticated, enterpriseApi.getPositions);
   app.post('/api/enterprise/positions', isAuthenticated, enterpriseApi.createPosition);
+  app.put('/api/enterprise/positions/:id', isAuthenticated, enterpriseApi.updatePosition);
+  app.delete('/api/enterprise/positions/:id', isAuthenticated, enterpriseApi.deletePosition);
   app.post('/api/enterprise/positions/:id/apply', isAuthenticated, enterpriseApi.applyToPosition);
   
   // Applications endpoints

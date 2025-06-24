@@ -11,7 +11,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Plus, Edit, Trash2, MapPin, Eye, EyeOff } from 'lucide-react';
 import { apiRequest } from '@/lib/queryClient';
 import { useToast } from '@/hooks/use-toast';
-import AddressAutocompleteInput from '@/components/AddressAutocompleteInput';
+import { AddressAutocompleteInput } from '@/components/AddressAutocompleteInput';
 
 interface HubPin {
   id: number;

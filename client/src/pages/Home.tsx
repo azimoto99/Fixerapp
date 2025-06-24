@@ -270,6 +270,13 @@ export default function Home() {
   const [jobToEdit, setJobToEdit] = useState<Job | null>(null);
   const { toast } = useToast();
   const queryClient = useQueryClient();
+
+  // Redirect enterprise users to their dashboard
+  useEffect(() => {
+    if (user?.accountType === 'enterprise') {
+      window.location.href = '/enterprise-dashboard';
+    }
+  }, [user?.accountType]);
   
   // Connection system available but not used in this component
   

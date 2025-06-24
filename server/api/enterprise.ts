@@ -549,4 +549,307 @@ export async function verifyBusiness(req: Request, res: Response) {
     console.error('Error verifying business:', error);
     res.status(500).json({ message: 'Failed to verify business' });
   }
+}
+
+// Update business profile
+export async function updateBusinessProfile(req: Request, res: Response) {
+  try {
+    const userId = req.user?.id;
+    if (!userId) {
+      return res.status(401).json({ message: 'Unauthorized' });
+    }
+
+    const {
+      businessName,
+      businessDescription,
+      businessWebsite,
+      businessPhone,
+      businessEmail,
+      businessLogo,
+      businessType
+    } = req.body;
+
+    const [updated] = await db.update(enterpriseBusinesses)
+      .set({
+        businessName,
+        businessDescription,
+        businessWebsite,
+        businessPhone,
+        businessEmail,
+        businessLogo,
+        businessType,
+        updatedAt: new Date().toISOString()
+      })
+      .where(eq(enterpriseBusinesses.userId, userId))
+      .returning();
+
+    if (!updated) {
+      return res.status(404).json({ message: 'Business not found' });
+    }
+
+    res.json(updated);
+  } catch (error) {
+    console.error('Error updating business profile:', error);
+    res.status(500).json({ message: 'Failed to update business profile' });
+  }
+}
+
+// Get hub pins for business
+export async function getHubPins(req: Request, res: Response) {
+  try {
+    const userId = req.user?.id;
+    if (!userId) {
+      return res.status(401).json({ message: 'Unauthorized' });
+    }
+
+    const [business] = await db.select()
+      .from(enterpriseBusinesses)
+      .where(eq(enterpriseBusinesses.userId, userId))
+      .limit(1);
+
+    if (!business) {
+      return res.status(404).json({ message: 'Business not found' });
+    }
+
+    const pins = await db.select()
+      .from(hubPins)
+      .where(eq(hubPins.enterpriseId, business.id))
+      .orderBy(desc(hubPins.createdAt));
+
+    res.json(pins);
+  } catch (error) {
+    console.error('Error fetching hub pins:', error);
+    res.status(500).json({ message: 'Failed to fetch hub pins' });
+  }
+}
+
+// Update hub pin
+export async function updateHubPin(req: Request, res: Response) {
+  try {
+    const userId = req.user?.id;
+    if (!userId) {
+      return res.status(401).json({ message: 'Unauthorized' });
+    }
+
+    const { id } = req.params;
+    const hubPinId = parseInt(id);
+
+    // Verify ownership
+    const [hubPin] = await db.select()
+      .from(hubPins)
+      .innerJoin(enterpriseBusinesses, eq(hubPins.enterpriseId, enterpriseBusinesses.id))
+      .where(
+        and(
+          eq(hubPins.id, hubPinId),
+          eq(enterpriseBusinesses.userId, userId)
+        )
+      )
+      .limit(1);
+
+    if (!hubPin) {
+      return res.status(404).json({ message: 'Hub pin not found' });
+    }
+
+    const {
+      title,
+      description,
+      location,
+      latitude,
+      longitude,
+      pinSize,
+      pinColor,
+      iconUrl,
+      priority,
+      isActive
+    } = req.body;
+
+    const [updated] = await db.update(hubPins)
+      .set({
+        title,
+        description,
+        location,
+        latitude,
+        longitude,
+        pinSize,
+        pinColor,
+        iconUrl,
+        priority,
+        isActive,
+        updatedAt: new Date().toISOString()
+      })
+      .where(eq(hubPins.id, hubPinId))
+      .returning();
+
+    res.json(updated);
+  } catch (error) {
+    console.error('Error updating hub pin:', error);
+    res.status(500).json({ message: 'Failed to update hub pin' });
+  }
+}
+
+// Delete hub pin
+export async function deleteHubPin(req: Request, res: Response) {
+  try {
+    const userId = req.user?.id;
+    if (!userId) {
+      return res.status(401).json({ message: 'Unauthorized' });
+    }
+
+    const { id } = req.params;
+    const hubPinId = parseInt(id);
+
+    // Verify ownership
+    const [hubPin] = await db.select()
+      .from(hubPins)
+      .innerJoin(enterpriseBusinesses, eq(hubPins.enterpriseId, enterpriseBusinesses.id))
+      .where(
+        and(
+          eq(hubPins.id, hubPinId),
+          eq(enterpriseBusinesses.userId, userId)
+        )
+      )
+      .limit(1);
+
+    if (!hubPin) {
+      return res.status(404).json({ message: 'Hub pin not found' });
+    }
+
+    await db.delete(hubPins).where(eq(hubPins.id, hubPinId));
+
+    res.json({ message: 'Hub pin deleted successfully' });
+  } catch (error) {
+    console.error('Error deleting hub pin:', error);
+    res.status(500).json({ message: 'Failed to delete hub pin' });
+  }
+}
+
+// Get positions for business
+export async function getPositions(req: Request, res: Response) {
+  try {
+    const userId = req.user?.id;
+    if (!userId) {
+      return res.status(401).json({ message: 'Unauthorized' });
+    }
+
+    const [business] = await db.select()
+      .from(enterpriseBusinesses)
+      .where(eq(enterpriseBusinesses.userId, userId))
+      .limit(1);
+
+    if (!business) {
+      return res.status(404).json({ message: 'Business not found' });
+    }
+
+    const positions = await db.select()
+      .from(enterprisePositions)
+      .where(eq(enterprisePositions.enterpriseId, business.id))
+      .orderBy(desc(enterprisePositions.createdAt));
+
+    res.json(positions);
+  } catch (error) {
+    console.error('Error fetching positions:', error);
+    res.status(500).json({ message: 'Failed to fetch positions' });
+  }
+}
+
+// Update position
+export async function updatePosition(req: Request, res: Response) {
+  try {
+    const userId = req.user?.id;
+    if (!userId) {
+      return res.status(401).json({ message: 'Unauthorized' });
+    }
+
+    const { id } = req.params;
+    const positionId = parseInt(id);
+
+    // Verify ownership
+    const [position] = await db.select()
+      .from(enterprisePositions)
+      .innerJoin(enterpriseBusinesses, eq(enterprisePositions.enterpriseId, enterpriseBusinesses.id))
+      .where(
+        and(
+          eq(enterprisePositions.id, positionId),
+          eq(enterpriseBusinesses.userId, userId)
+        )
+      )
+      .limit(1);
+
+    if (!position) {
+      return res.status(404).json({ message: 'Position not found' });
+    }
+
+    const {
+      title,
+      description,
+      positionType,
+      paymentType,
+      paymentAmount,
+      paymentFrequency,
+      requiredSkills,
+      benefits,
+      schedule,
+      positionsAvailable,
+      isActive
+    } = req.body;
+
+    const [updated] = await db.update(enterprisePositions)
+      .set({
+        title,
+        description,
+        positionType,
+        paymentType,
+        paymentAmount,
+        paymentFrequency,
+        requiredSkills: requiredSkills || [],
+        benefits,
+        schedule,
+        positionsAvailable,
+        isActive,
+        updatedAt: new Date().toISOString()
+      })
+      .where(eq(enterprisePositions.id, positionId))
+      .returning();
+
+    res.json(updated);
+  } catch (error) {
+    console.error('Error updating position:', error);
+    res.status(500).json({ message: 'Failed to update position' });
+  }
+}
+
+// Delete position
+export async function deletePosition(req: Request, res: Response) {
+  try {
+    const userId = req.user?.id;
+    if (!userId) {
+      return res.status(401).json({ message: 'Unauthorized' });
+    }
+
+    const { id } = req.params;
+    const positionId = parseInt(id);
+
+    // Verify ownership
+    const [position] = await db.select()
+      .from(enterprisePositions)
+      .innerJoin(enterpriseBusinesses, eq(enterprisePositions.enterpriseId, enterpriseBusinesses.id))
+      .where(
+        and(
+          eq(enterprisePositions.id, positionId),
+          eq(enterpriseBusinesses.userId, userId)
+        )
+      )
+      .limit(1);
+
+    if (!position) {
+      return res.status(404).json({ message: 'Position not found' });
+    }
+
+    await db.delete(enterprisePositions).where(eq(enterprisePositions.id, positionId));
+
+    res.json({ message: 'Position deleted successfully' });
+  } catch (error) {
+    console.error('Error deleting position:', error);
+    res.status(500).json({ message: 'Failed to delete position' });
+  }
 } 
