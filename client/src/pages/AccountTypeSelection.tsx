@@ -3,7 +3,7 @@ import { useLocation, useRoute } from 'wouter';
 import { useToast } from '@/hooks/use-toast';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { BriefcaseIcon, UserIcon } from 'lucide-react';
+import { BriefcaseIcon, UserIcon, Building2Icon } from 'lucide-react';
 import { useAuth } from '@/hooks/use-auth';
 import { apiRequest } from '@/lib/queryClient';
 
@@ -36,7 +36,7 @@ export default function AccountTypeSelection() {
     return null;
   }
   
-  const handleAccountTypeSelection = async (accountType: 'worker' | 'poster') => {
+  const handleAccountTypeSelection = async (accountType: 'worker' | 'poster' | 'enterprise') => {
     if (!userId || !provider) return;
     
     setIsPending(true);
@@ -59,7 +59,7 @@ export default function AccountTypeSelection() {
   
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-primary/10 to-secondary/10 p-4">
-      <div className="w-full max-w-3xl">
+      <div className="w-full max-w-5xl">
         <div className="text-center mb-8">
           <h1 className="text-3xl md:text-4xl font-bold text-foreground mb-2">
             Choose Your Account Type
@@ -69,7 +69,7 @@ export default function AccountTypeSelection() {
           </p>
         </div>
         
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           <Card className="overflow-hidden border-2 hover:border-primary transition-all duration-300 cursor-pointer"
                 onClick={() => !isPending && handleAccountTypeSelection('worker')}>
             <CardHeader className="space-y-1 bg-muted/50">
@@ -249,13 +249,106 @@ export default function AccountTypeSelection() {
               </Button>
             </CardFooter>
           </Card>
+          
+          <Card className="overflow-hidden border-2 hover:border-primary transition-all duration-300 cursor-pointer relative"
+                onClick={() => !isPending && handleAccountTypeSelection('enterprise')}>
+            <div className="absolute top-0 right-0 bg-primary text-primary-foreground px-3 py-1 text-xs font-semibold rounded-bl-lg">
+              NEW
+            </div>
+            <CardHeader className="space-y-1 bg-muted/50">
+              <CardTitle className="text-2xl flex items-center space-x-2">
+                <Building2Icon className="h-6 w-6 text-primary" />
+                <span>Business Account</span>
+              </CardTitle>
+              <CardDescription>
+                Enterprise features for businesses
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="p-6">
+              <ul className="space-y-2 mb-6">
+                <li className="flex items-center">
+                  <div className="rounded-full bg-primary/20 p-1 mr-2">
+                    <svg
+                      width="16"
+                      height="16"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="2"
+                      className="text-primary"
+                    >
+                      <polyline points="20 6 9 17 4 12" />
+                    </svg>
+                  </div>
+                  <span>Featured hub pins on the map</span>
+                </li>
+                <li className="flex items-center">
+                  <div className="rounded-full bg-primary/20 p-1 mr-2">
+                    <svg
+                      width="16"
+                      height="16"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="2"
+                      className="text-primary"
+                    >
+                      <polyline points="20 6 9 17 4 12" />
+                    </svg>
+                  </div>
+                  <span>Manage multiple job positions</span>
+                </li>
+                <li className="flex items-center">
+                  <div className="rounded-full bg-primary/20 p-1 mr-2">
+                    <svg
+                      width="16"
+                      height="16"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="2"
+                      className="text-primary"
+                    >
+                      <polyline points="20 6 9 17 4 12" />
+                    </svg>
+                  </div>
+                  <span>Advanced analytics dashboard</span>
+                </li>
+                <li className="flex items-center">
+                  <div className="rounded-full bg-primary/20 p-1 mr-2">
+                    <svg
+                      width="16"
+                      height="16"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="2"
+                      className="text-primary"
+                    >
+                      <polyline points="20 6 9 17 4 12" />
+                    </svg>
+                  </div>
+                  <span>Team management features</span>
+                </li>
+              </ul>
+            </CardContent>
+            <CardFooter className="px-6 pb-6 pt-0">
+              <Button
+                disabled={isPending}
+                className="w-full h-12 text-md"
+                onClick={() => handleAccountTypeSelection('enterprise')}
+              >
+                {isPending ? 'Processing...' : 'Continue as Business'}
+              </Button>
+            </CardFooter>
+          </Card>
         </div>
         
         <div className="mt-8 text-center text-muted-foreground">
           <p>
-            You can create both account types with the same email address. 
+            You can create multiple account types with the same email address. 
             <br />
-            Just log in again and select the other account type.
+            Just log in again and select a different account type.
           </p>
         </div>
       </div>

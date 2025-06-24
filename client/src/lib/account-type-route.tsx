@@ -10,7 +10,7 @@ export function AccountTypeRoute({
 }: {
   path: string;
   component: React.ComponentType<any>;
-  allowedType: 'worker' | 'poster';
+  allowedType: 'worker' | 'poster' | 'enterprise';
 }) {
   const { user, isLoading } = useAuth();
   const { toast } = useToast();
@@ -42,9 +42,12 @@ export function AccountTypeRoute({
 
         if (user.accountType !== allowedType) {
           // Show error message
+          const accountTypeLabel = allowedType === 'worker' ? 'workers' : 
+                                  allowedType === 'poster' ? 'job posters' : 
+                                  'businesses';
           toast({
             title: "Access Denied",
-            description: `This page is only available to ${allowedType === 'worker' ? 'workers' : 'job posters'}`,
+            description: `This page is only available to ${accountTypeLabel}`,
             variant: "destructive",
           });
           

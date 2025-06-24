@@ -16,6 +16,7 @@ import { useQueryClient } from '@tanstack/react-query';
 import { StripeConnectRequired } from '@/components/stripe';
 import JobDetailsCard from './jobs/JobDetailsCard';
 import { useAllJobsForMap } from '@/hooks/useAllJobsForMap';
+import EnterpriseJobCard from './enterprise/EnterpriseJobCard';
 
 
 interface MapSectionProps {
@@ -292,6 +293,27 @@ const MapSection: React.FC<MapSectionProps> = ({ jobs, selectedJob, onSelectJob,
     return (jobs && jobs.length > 0) ? jobs : (allJobsWithCoordinates || []);
   }, [jobs, allJobsWithCoordinates]);
 
+  const [showEnterpriseCard, setShowEnterpriseCard] = useState(false);
+  const [selectedHubPinId, setSelectedHubPinId] = useState<number | null>(null);
+  
+  // Fetch hub pins for the map
+  const { data: hubPins } = useQuery({
+    queryKey: ['/api/enterprise/hub-pins/active'],
+    queryFn: async () => {
+      const res = await apiRequest('GET', '/api/enterprise/hub-pins/active');
+      return res.json();
+    }
+  });
+  
+  // Handle selecting a hub pin when clicked
+  const handleHubPinClick = (hubPinId: number) => {
+    setSelectedHubPinId(hubPinId);
+    setShowEnterpriseCard(true);
+    // Close other panels
+    setShowJobDetail(false);
+    setShowJobDetailsCard(false);
+  };
+  
   // Create markers for Mapbox map
   const jobMarkers = useMemo(() => {
     // Create a typed array to avoid TypeScript errors
@@ -308,7 +330,31 @@ const MapSection: React.FC<MapSectionProps> = ({ jobs, selectedJob, onSelectJob,
       paymentAmount?: number;
       requiredSkills?: string[];
       status?: string;
+      // Enterprise properties
+      isEnterprise?: boolean;
+      enterpriseColor?: string;
+      enterpriseIcon?: string;
+      priority?: number;
     }[] = [];
+    
+    // Add enterprise hub pins first (they have higher priority)
+    if (hubPins && hubPins.length > 0) {
+      hubPins.forEach((hubPin: any) => {
+        if (hubPin.isActive && hubPin.latitude && hubPin.longitude) {
+          markers.push({
+            latitude: hubPin.latitude,
+            longitude: hubPin.longitude,
+            title: hubPin.title,
+            description: hubPin.description || hubPin.business?.businessName || '',
+            onClick: () => handleHubPinClick(hubPin.id),
+            isEnterprise: true,
+            enterpriseColor: hubPin.pinColor,
+            enterpriseIcon: hubPin.iconUrl || '🏢',
+            priority: hubPin.priority
+          });
+        }
+      });
+    }
 
     if (sourceJobs && sourceJobs.length > 0) {
       // Only keep jobs that have coordinates
@@ -364,7 +410,7 @@ const MapSection: React.FC<MapSectionProps> = ({ jobs, selectedJob, onSelectJob,
     }
     
     return markers;
-  }, [sourceJobs, handleMarkerClick, position, focusMapCoordinates, highlightedJobId]);
+  }, [sourceJobs, handleMarkerClick, position, focusMapCoordinates, highlightedJobId, hubPins, handleHubPinClick]);
   
   return (
     <div className="w-full h-full relative">
@@ -381,6 +427,27 @@ const MapSection: React.FC<MapSectionProps> = ({ jobs, selectedJob, onSelectJob,
           onSkip={() => setShowStripeConnectRequired(false)}
         />
       )}
+      
+      {/* Enterprise Job Card Modal */}
+      {showEnterpriseCard && selectedHubPinId && (
+        <div className="absolute inset-0 z-50 bg-black/50 flex items-center justify-center p-4">
+          <EnterpriseJobCard
+            hubPinId={selectedHubPinId}
+            onClose={() => {
+              setShowEnterpriseCard(false);
+              setSelectedHubPinId(null);
+            }}
+            onApply={(positionId) => {
+              // Handle application to enterprise position
+              window.dispatchEvent(new CustomEvent('enterprise-apply', { 
+                detail: { positionId }
+              }));
+              setShowEnterpriseCard(false);
+            }}
+          />
+        </div>
+      )}
+      
       <div className="relative h-screen max-h-[calc(100vh-64px)] w-full">
         <style>{`
           /* Animation for markers */
@@ -394,6 +461,18 @@ const MapSection: React.FC<MapSectionProps> = ({ jobs, selectedJob, onSelectJob,
             0% { transform: scale(1); opacity: 0.8; }
             50% { transform: scale(1.3); opacity: 0.3; }
             100% { transform: scale(1.6); opacity: 0; }
+          }
+          
+          @keyframes pulse {
+            0% {
+              box-shadow: 0 0 0 0 rgba(255, 107, 107, 0.7);
+            }
+            70% {
+              box-shadow: 0 0 0 20px rgba(255, 107, 107, 0);
+            }
+            100% {
+              box-shadow: 0 0 0 0 rgba(255, 107, 107, 0);
+            }
           }
           
           .animate-bounce-in {

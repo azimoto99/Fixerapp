@@ -565,3 +565,126 @@ export const globalNotifications = pgTable("global_notifications", {
 	createdBy: integer("created_by"),
 	createdAt: timestamp("created_at", { mode: 'string' }).defaultNow(),
 });
+
+export const enterpriseBusinesses = pgTable("enterprise_businesses", {
+	id: serial().primaryKey().notNull(),
+	userId: integer("user_id").notNull(),
+	businessName: text("business_name").notNull(),
+	businessDescription: text("business_description"),
+	businessLogo: text("business_logo"),
+	businessType: text("business_type").default('company').notNull(),
+	businessWebsite: text("business_website"),
+	businessPhone: text("business_phone"),
+	businessEmail: text("business_email"),
+	verificationStatus: text("verification_status").default('pending').notNull(),
+	stripeSubscriptionId: text("stripe_subscription_id"),
+	isActive: boolean("is_active").default(true).notNull(),
+	createdAt: timestamp("created_at", { mode: 'string' }).defaultNow(),
+	updatedAt: timestamp("updated_at", { mode: 'string' }).defaultNow(),
+}, (table) => [
+	foreignKey({
+		columns: [table.userId],
+		foreignColumns: [users.id],
+		name: "enterprise_businesses_user_id_users_id_fk"
+	}),
+	unique("enterprise_businesses_user_id_unique").on(table.userId),
+]);
+
+export const hubPins = pgTable("hub_pins", {
+	id: serial().primaryKey().notNull(),
+	enterpriseId: integer("enterprise_id").notNull(),
+	title: text().notNull(),
+	description: text(),
+	location: text().notNull(),
+	latitude: doublePrecision().notNull(),
+	longitude: doublePrecision().notNull(),
+	pinSize: text("pin_size").default('large').notNull(),
+	pinColor: text("pin_color").default('#FF6B6B').notNull(),
+	iconUrl: text("icon_url"),
+	isActive: boolean("is_active").default(true).notNull(),
+	priority: integer().default(1).notNull(),
+	createdAt: timestamp("created_at", { mode: 'string' }).defaultNow(),
+	updatedAt: timestamp("updated_at", { mode: 'string' }).defaultNow(),
+}, (table) => [
+	foreignKey({
+		columns: [table.enterpriseId],
+		foreignColumns: [enterpriseBusinesses.id],
+		name: "hub_pins_enterprise_id_enterprise_businesses_id_fk"
+	}),
+	index("idx_hub_pins_enterprise_id").using("btree", table.enterpriseId.asc().nullsLast().op("int4_ops")),
+	index("idx_hub_pins_location").using("btree", table.latitude.asc().nullsLast().op("float8_ops"), table.longitude.asc().nullsLast().op("float8_ops")),
+	index("idx_hub_pins_active").using("btree", table.isActive.asc().nullsLast().op("bool_ops")),
+]);
+
+export const enterprisePositions = pgTable("enterprise_positions", {
+	id: serial().primaryKey().notNull(),
+	enterpriseId: integer("enterprise_id").notNull(),
+	hubPinId: integer("hub_pin_id"),
+	title: text().notNull(),
+	description: text().notNull(),
+	positionType: text("position_type").notNull(),
+	paymentType: text("payment_type").notNull(),
+	paymentAmount: doublePrecision("payment_amount").notNull(),
+	paymentFrequency: text("payment_frequency"),
+	requiredSkills: text("required_skills").array().default([""]).notNull(),
+	benefits: text(),
+	schedule: text(),
+	isActive: boolean("is_active").default(true).notNull(),
+	positionsAvailable: integer("positions_available").default(1).notNull(),
+	createdAt: timestamp("created_at", { mode: 'string' }).defaultNow(),
+	updatedAt: timestamp("updated_at", { mode: 'string' }).defaultNow(),
+}, (table) => [
+	foreignKey({
+		columns: [table.enterpriseId],
+		foreignColumns: [enterpriseBusinesses.id],
+		name: "enterprise_positions_enterprise_id_enterprise_businesses_id_fk"
+	}),
+	foreignKey({
+		columns: [table.hubPinId],
+		foreignColumns: [hubPins.id],
+		name: "enterprise_positions_hub_pin_id_hub_pins_id_fk"
+	}),
+	index("idx_enterprise_positions_enterprise_id").using("btree", table.enterpriseId.asc().nullsLast().op("int4_ops")),
+	index("idx_enterprise_positions_hub_pin_id").using("btree", table.hubPinId.asc().nullsLast().op("int4_ops")),
+]);
+
+export const enterpriseApplications = pgTable("enterprise_applications", {
+	id: serial().primaryKey().notNull(),
+	positionId: integer("position_id").notNull(),
+	applicantId: integer("applicant_id").notNull(),
+	enterpriseId: integer("enterprise_id").notNull(),
+	status: text().default('pending').notNull(),
+	coverLetter: text("cover_letter"),
+	expectedSalary: doublePrecision("expected_salary"),
+	availableStartDate: date("available_start_date"),
+	notes: text(),
+	reviewedBy: integer("reviewed_by"),
+	reviewedAt: timestamp("reviewed_at", { mode: 'string' }),
+	createdAt: timestamp("created_at", { mode: 'string' }).defaultNow(),
+	updatedAt: timestamp("updated_at", { mode: 'string' }).defaultNow(),
+}, (table) => [
+	foreignKey({
+		columns: [table.positionId],
+		foreignColumns: [enterprisePositions.id],
+		name: "enterprise_applications_position_id_enterprise_positions_id_fk"
+	}),
+	foreignKey({
+		columns: [table.applicantId],
+		foreignColumns: [users.id],
+		name: "enterprise_applications_applicant_id_users_id_fk"
+	}),
+	foreignKey({
+		columns: [table.enterpriseId],
+		foreignColumns: [enterpriseBusinesses.id],
+		name: "enterprise_applications_enterprise_id_enterprise_businesses_id_fk"
+	}),
+	foreignKey({
+		columns: [table.reviewedBy],
+		foreignColumns: [users.id],
+		name: "enterprise_applications_reviewed_by_users_id_fk"
+	}),
+	unique("enterprise_applications_position_applicant_unique").on(table.positionId, table.applicantId),
+	index("idx_enterprise_applications_position_id").using("btree", table.positionId.asc().nullsLast().op("int4_ops")),
+	index("idx_enterprise_applications_applicant_id").using("btree", table.applicantId.asc().nullsLast().op("int4_ops")),
+	index("idx_enterprise_applications_enterprise_id").using("btree", table.enterpriseId.asc().nullsLast().op("int4_ops")),
+]);

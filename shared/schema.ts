@@ -821,24 +821,13 @@ export const platformSettings = pgTable("platform_settings", {
 export const userPrivacySettings = pgTable("user_privacy_settings", {
   id: serial("id").primaryKey(),
   userId: integer("user_id").references(() => users.id).notNull().unique(),
-  showLocationToAll: boolean("show_location_to_all").notNull().default(false),
-  showLocationToJobPosters: boolean("show_location_to_job_posters").notNull().default(true),
-  showLocationRadius: integer("show_location_radius").notNull().default(1000), // in meters
-  showPhoneToAll: boolean("show_phone_to_all").notNull().default(false),
-  showPhoneToJobPosters: boolean("show_phone_to_job_posters").notNull().default(true),
-  showEmailToAll: boolean("show_email_to_all").notNull().default(false),
-  showEmailToJobPosters: boolean("show_email_to_job_posters").notNull().default(false),
-  showFullNameToAll: boolean("show_full_name_to_all").notNull().default(false),
-  showFullNameToJobPosters: boolean("show_full_name_to_job_posters").notNull().default(true),
-  showProfilePictureToAll: boolean("show_profile_picture_to_all").notNull().default(true),
-  showRatingsToAll: boolean("show_ratings_to_all").notNull().default(true),
-  showJobHistoryToAll: boolean("show_job_history_to_all").notNull().default(false),
-  allowMessagesFromAll: boolean("allow_messages_from_all").notNull().default(false),
-  allowMessagesFromJobPostersOnly: boolean("allow_messages_from_job_posters_only").notNull().default(true),
-  allowJobRecommendations: boolean("allow_job_recommendations").notNull().default(true),
-  allowMarketingEmails: boolean("allow_marketing_emails").notNull().default(false),
-  allowPushNotifications: boolean("allow_push_notifications").notNull().default(true),
-  dataRetentionPeriod: integer("data_retention_period").notNull().default(0), // in days, 0 = indefinite
+  profileVisibility: text("profile_visibility").notNull().default("public"), // "public", "verified", "private"
+  showEmail: boolean("show_email").notNull().default(false),
+  showPhone: boolean("show_phone").notNull().default(false),
+  showLocation: boolean("show_location").notNull().default(true),
+  showRating: boolean("show_rating").notNull().default(true),
+  showJobHistory: boolean("show_job_history").notNull().default(true),
+  allowDirectContact: boolean("allow_direct_contact").notNull().default(true),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });
@@ -923,24 +912,13 @@ export const insertPlatformSettingsSchema = createInsertSchema(platformSettings)
 
 export const insertUserPrivacySettingsSchema = createInsertSchema(userPrivacySettings).pick({
   userId: true,
-  showLocationToAll: true,
-  showLocationToJobPosters: true,
-  showLocationRadius: true,
-  showPhoneToAll: true,
-  showPhoneToJobPosters: true,
-  showEmailToAll: true,
-  showEmailToJobPosters: true,
-  showFullNameToAll: true,
-  showFullNameToJobPosters: true,
-  showProfilePictureToAll: true,
-  showRatingsToAll: true,
-  showJobHistoryToAll: true,
-  allowMessagesFromAll: true,
-  allowMessagesFromJobPostersOnly: true,
-  allowJobRecommendations: true,
-  allowMarketingEmails: true,
-  allowPushNotifications: true,
-  dataRetentionPeriod: true,
+  profileVisibility: true,
+  showEmail: true,
+  showPhone: true,
+  showLocation: true,
+  showRating: true,
+  showJobHistory: true,
+  allowDirectContact: true,
 });
 
 // Admin types
@@ -1025,5 +1003,146 @@ export const sessions = pgTable("sessions", {
   sess: json("sess").notNull(),
   expire: timestamp("expire", { precision: 6, withTimezone: true }).notNull(),
 });
+
+// Enterprise Tables
+export const enterpriseBusinesses = pgTable("enterprise_businesses", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id").notNull(),
+  businessName: text("business_name").notNull(),
+  businessDescription: text("business_description"),
+  businessLogo: text("business_logo"),
+  businessType: text("business_type").notNull().default("company"),
+  businessWebsite: text("business_website"),
+  businessPhone: text("business_phone"),
+  businessEmail: text("business_email"),
+  verificationStatus: text("verification_status").notNull().default("pending"),
+  stripeSubscriptionId: text("stripe_subscription_id"),
+  isActive: boolean("is_active").notNull().default(true),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+export const hubPins = pgTable("hub_pins", {
+  id: serial("id").primaryKey(),
+  enterpriseId: integer("enterprise_id").notNull(),
+  title: text("title").notNull(),
+  description: text("description"),
+  location: text("location").notNull(),
+  latitude: doublePrecision("latitude").notNull(),
+  longitude: doublePrecision("longitude").notNull(),
+  pinSize: text("pin_size").notNull().default("large"),
+  pinColor: text("pin_color").notNull().default("#FF6B6B"),
+  iconUrl: text("icon_url"),
+  isActive: boolean("is_active").notNull().default(true),
+  priority: integer("priority").notNull().default(1),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+export const enterprisePositions = pgTable("enterprise_positions", {
+  id: serial("id").primaryKey(),
+  enterpriseId: integer("enterprise_id").notNull(),
+  hubPinId: integer("hub_pin_id"),
+  title: text("title").notNull(),
+  description: text("description").notNull(),
+  positionType: text("position_type").notNull(),
+  paymentType: text("payment_type").notNull(),
+  paymentAmount: doublePrecision("payment_amount").notNull(),
+  paymentFrequency: text("payment_frequency"),
+  requiredSkills: text("required_skills").array().notNull().default(sql`'{}'::text[]`),
+  benefits: text("benefits"),
+  schedule: text("schedule"),
+  isActive: boolean("is_active").notNull().default(true),
+  positionsAvailable: integer("positions_available").notNull().default(1),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+export const enterpriseApplications = pgTable("enterprise_applications", {
+  id: serial("id").primaryKey(),
+  positionId: integer("position_id").notNull(),
+  applicantId: integer("applicant_id").notNull(),
+  enterpriseId: integer("enterprise_id").notNull(),
+  status: text("status").notNull().default("pending"),
+  coverLetter: text("cover_letter"),
+  expectedSalary: doublePrecision("expected_salary"),
+  availableStartDate: date("available_start_date"),
+  notes: text("notes"),
+  reviewedBy: integer("reviewed_by"),
+  reviewedAt: timestamp("reviewed_at"),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+// Enterprise insert schemas
+export const insertEnterpriseBusinessSchema = createInsertSchema(enterpriseBusinesses).pick({
+  userId: true,
+  businessName: true,
+  businessDescription: true,
+  businessLogo: true,
+  businessType: true,
+  businessWebsite: true,
+  businessPhone: true,
+  businessEmail: true,
+  verificationStatus: true,
+  stripeSubscriptionId: true,
+  isActive: true,
+});
+
+export const insertHubPinSchema = createInsertSchema(hubPins).pick({
+  enterpriseId: true,
+  title: true,
+  description: true,
+  location: true,
+  latitude: true,
+  longitude: true,
+  pinSize: true,
+  pinColor: true,
+  iconUrl: true,
+  isActive: true,
+  priority: true,
+});
+
+export const insertEnterprisePositionSchema = createInsertSchema(enterprisePositions).pick({
+  enterpriseId: true,
+  hubPinId: true,
+  title: true,
+  description: true,
+  positionType: true,
+  paymentType: true,
+  paymentAmount: true,
+  paymentFrequency: true,
+  requiredSkills: true,
+  benefits: true,
+  schedule: true,
+  isActive: true,
+  positionsAvailable: true,
+});
+
+export const insertEnterpriseApplicationSchema = createInsertSchema(enterpriseApplications).pick({
+  positionId: true,
+  applicantId: true,
+  enterpriseId: true,
+  status: true,
+  coverLetter: true,
+  expectedSalary: true,
+  availableStartDate: true,
+  notes: true,
+  reviewedBy: true,
+  reviewedAt: true,
+});
+
+// Enterprise types
+export type EnterpriseBusiness = typeof enterpriseBusinesses.$inferSelect;
+export type InsertEnterpriseBusiness = z.infer<typeof insertEnterpriseBusinessSchema>;
+
+export type HubPin = typeof hubPins.$inferSelect;
+export type InsertHubPin = z.infer<typeof insertHubPinSchema>;
+
+export type EnterprisePosition = typeof enterprisePositions.$inferSelect;
+export type InsertEnterprisePosition = z.infer<typeof insertEnterprisePositionSchema>;
+
+export type EnterpriseApplication = typeof enterpriseApplications.$inferSelect;
+export type InsertEnterpriseApplication = z.infer<typeof insertEnterpriseApplicationSchema>;
 
 

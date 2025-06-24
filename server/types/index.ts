@@ -138,4 +138,80 @@ export interface StripeAccount {
   metadata: {
     userId: string;
   };
-} 
+}
+
+// Enterprise Business Types
+export interface EnterpriseBusiness {
+  id: number;
+  userId: number;
+  businessName: string;
+  businessDescription?: string;
+  businessLogo?: string;
+  businessType: string;
+  businessWebsite?: string;
+  businessPhone?: string;
+  businessEmail?: string;
+  verificationStatus: 'pending' | 'verified' | 'rejected';
+  stripeSubscriptionId?: string;
+  isActive: boolean;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+export interface HubPin {
+  id: number;
+  enterpriseId: number;
+  title: string;
+  description?: string;
+  location: string;
+  latitude: number;
+  longitude: number;
+  pinSize: 'large' | 'xlarge';
+  pinColor: string;
+  iconUrl?: string;
+  isActive: boolean;
+  priority: number;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+export interface EnterprisePosition {
+  id: number;
+  enterpriseId: number;
+  hubPinId?: number;
+  title: string;
+  description: string;
+  positionType: 'full-time' | 'part-time' | 'contract' | 'temporary';
+  paymentType: 'hourly' | 'salary' | 'project';
+  paymentAmount: number;
+  paymentFrequency?: 'weekly' | 'bi-weekly' | 'monthly';
+  requiredSkills: string[];
+  benefits?: string;
+  schedule?: string;
+  isActive: boolean;
+  positionsAvailable: number;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+export interface EnterpriseApplication {
+  id: number;
+  positionId: number;
+  applicantId: number;
+  enterpriseId: number;
+  status: 'pending' | 'reviewing' | 'accepted' | 'rejected' | 'withdrawn';
+  coverLetter?: string;
+  expectedSalary?: number;
+  availableStartDate?: Date;
+  notes?: string;
+  reviewedBy?: number;
+  reviewedAt?: Date;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+// Insert types for creating new records
+export type InsertEnterpriseBusiness = Omit<EnterpriseBusiness, 'id' | 'createdAt' | 'updatedAt'>;
+export type InsertHubPin = Omit<HubPin, 'id' | 'createdAt' | 'updatedAt'>;
+export type InsertEnterprisePosition = Omit<EnterprisePosition, 'id' | 'createdAt' | 'updatedAt'>;
+export type InsertEnterpriseApplication = Omit<EnterpriseApplication, 'id' | 'createdAt' | 'updatedAt'>; 

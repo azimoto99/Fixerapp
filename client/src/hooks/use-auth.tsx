@@ -31,7 +31,7 @@ type LoginData = Pick<InsertUser, "username" | "password">;
 
 type SetAccountTypeData = {
   userId: number;
-  accountType: 'worker' | 'poster';
+  accountType: 'worker' | 'poster' | 'enterprise';
   provider: string;
 };
 

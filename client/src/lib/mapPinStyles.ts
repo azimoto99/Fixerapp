@@ -12,6 +12,8 @@ export interface PinStyle {
   shadowColor: string;
   borderWidth: number;
   borderStyle?: string;
+  isEnterprise?: boolean;
+  pulse?: boolean;
 }
 
 export interface PinConfig {
@@ -20,6 +22,10 @@ export interface PinConfig {
   requiredSkills: string[];
   status: string;
   isHighlighted?: boolean;
+  isEnterprise?: boolean;
+  enterpriseColor?: string;
+  enterpriseIcon?: string;
+  priority?: number;
 }
 
 // Category-based styling
@@ -189,10 +195,33 @@ const adjustColorBrightness = (hex: string, percent: number): string => {
     (B < 255 ? B < 1 ? 0 : B : 255)).toString(16).slice(1);
 };
 
+// Enterprise hub pin specific styling
+const getEnterprisePinStyle = (config: PinConfig, isDark: boolean = false): PinStyle => {
+  const baseSize = 80; // Much larger than regular pins
+  
+  return {
+    backgroundColor: config.enterpriseColor || '#FF6B6B',
+    borderColor: isDark ? '#ffffff' : '#000000',
+    borderWidth: 3,
+    borderStyle: 'solid',
+    icon: config.enterpriseIcon || '🏢',
+    size: baseSize + (config.priority || 0) * 10, // Larger for higher priority
+    textColor: '#ffffff',
+    shadowColor: 'rgba(255, 107, 107, 0.4)',
+    isEnterprise: true,
+    pulse: true // Add pulsing animation for enterprise pins
+  };
+};
+
 /**
  * Generate complete pin style based on job configuration
  */
 export const generatePinStyle = (config: PinConfig, isDark: boolean = false, zoomLevel?: number): PinStyle => {
+  // Handle enterprise pins differently
+  if (config.isEnterprise) {
+    return getEnterprisePinStyle(config, isDark);
+  }
+  
   const categoryStyle = CATEGORY_STYLES[config.category] || CATEGORY_STYLES["Other"];
   const skillBorder = getSkillBorderStyle(config.requiredSkills);
   const statusMods = getStatusModifications(config.status);
@@ -227,7 +256,7 @@ export const generatePinStyle = (config: PinConfig, isDark: boolean = false, zoo
  * Generate CSS styles for a pin element
  */
 export const generatePinCSS = (style: PinStyle): Record<string, string> => {
-  return {
+  const baseStyles = {
     width: `${style.size}px`,
     height: `${style.size}px`,
     backgroundColor: style.backgroundColor,
@@ -245,8 +274,33 @@ export const generatePinCSS = (style: PinStyle): Record<string, string> => {
     cursor: "pointer",
     transition: "filter 0.2s ease, box-shadow 0.2s ease",
     position: "relative",
-    zIndex: "1",
+    zIndex: style.isEnterprise ? "10" : "1", // Enterprise pins on top
     userSelect: "none",
     pointerEvents: "auto"
   };
+  
+  // Add animation for enterprise pins
+  if (style.pulse) {
+    return {
+      ...baseStyles,
+      animation: "pulse 2s infinite"
+    };
+  }
+  
+  return baseStyles;
 };
+
+// Add CSS animation for pulsing effect (should be added to global styles)
+export const enterprisePinAnimations = `
+  @keyframes pulse {
+    0% {
+      box-shadow: 0 0 0 0 rgba(255, 107, 107, 0.7);
+    }
+    70% {
+      box-shadow: 0 0 0 20px rgba(255, 107, 107, 0);
+    }
+    100% {
+      box-shadow: 0 0 0 0 rgba(255, 107, 107, 0);
+    }
+  }
+`;

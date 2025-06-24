@@ -75,6 +75,9 @@ import { setupStripeTransfersRoutes } from "./api/stripe-transfers";
 import { setupStripePaymentMethodsRoutes } from "./api/stripe-payment-methods";
 import { paymentsRouter } from "./routes/payments";
 
+// Import enterprise API handlers
+import * as enterpriseApi from "./api/enterprise";
+
 import "./api/storage-extensions"; // Import to register extended storage methods
 import "./storage-extensions"; // Import admin and payment extensions
 import * as crypto from 'crypto';
@@ -370,6 +373,28 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // Register the admin API routes
   registerAdminRoutes(app);
+
+  // Register enterprise API routes
+  app.get('/api/enterprise/profile', isAuthenticated, enterpriseApi.getBusinessProfile);
+  app.post('/api/enterprise/profile', isAuthenticated, enterpriseApi.createBusinessProfile);
+  app.get('/api/enterprise/stats', isAuthenticated, enterpriseApi.getBusinessStats);
+  
+  // Hub pins endpoints
+  app.get('/api/enterprise/hub-pins', isAuthenticated, enterpriseApi.getActiveHubPins);
+  app.post('/api/enterprise/hub-pins', isAuthenticated, enterpriseApi.createHubPin);
+  app.get('/api/enterprise/hub-pins/:id', enterpriseApi.getHubPinDetails);
+  
+  // Positions endpoints
+  app.post('/api/enterprise/positions', isAuthenticated, enterpriseApi.createPosition);
+  app.post('/api/enterprise/positions/:id/apply', isAuthenticated, enterpriseApi.applyToPosition);
+  
+  // Applications endpoints
+  app.get('/api/enterprise/applications', isAuthenticated, enterpriseApi.getBusinessApplications);
+  app.put('/api/enterprise/applications/:id', isAuthenticated, enterpriseApi.updateApplicationStatus);
+  
+  // Admin enterprise endpoints
+  app.get('/api/admin/enterprise/businesses', requireAuth, isAdmin, enterpriseApi.getAllBusinesses);
+  app.put('/api/admin/enterprise/businesses/:id/verify', requireAuth, isAdmin, enterpriseApi.verifyBusiness);
 
   // Register messaging API routes
   const { registerMessagingRoutes } = await import('./api/messaging-api');

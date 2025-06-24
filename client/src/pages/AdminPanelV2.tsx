@@ -10,12 +10,15 @@ import { Textarea } from "@/components/ui/textarea";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { RefreshCw, ChevronLeft, ChevronRight, Menu, X, AlertCircle, User, Shield, CheckCircle, Clock, AlertTriangle } from "lucide-react";
+import { RefreshCw, ChevronLeft, ChevronRight, Menu, X, AlertCircle, User, Shield, CheckCircle, Clock, AlertTriangle, MoreHorizontal, Ban, Eye, MapPin, Briefcase, TrendingUp } from "lucide-react";
 import { apiRequest } from "@/lib/queryClient";
 import { useAuth } from "@/hooks/use-auth";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from "@/components/ui/table";
 import { Label } from "@/components/ui/label";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import { format } from "date-fns";
+import { ResponsiveContainer, LineChart, CartesianGrid, XAxis, YAxis, Tooltip, Line, PieChart, Pie, Cell } from "recharts";
 
 interface AdminStats {
   totalUsers: number;
@@ -127,6 +130,8 @@ export default function AdminPanelV2() {
   const [paymentFilterType, setPaymentFilterType] = useState<string>("all");
   
   const [debouncedSearch, setDebouncedSearch] = useState("");
+  
+  const [enterpriseSearch, setEnterpriseSearch] = useState("");
   
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -483,6 +488,10 @@ export default function AdminPanelV2() {
             <TabsTrigger value="jobs" className="w-full justify-start">Jobs</TabsTrigger>
             <TabsTrigger value="support" className="w-full justify-start">Support</TabsTrigger>
             <TabsTrigger value="payments" className="w-full justify-start">Payments</TabsTrigger>
+            <TabsTrigger value="analytics">Analytics</TabsTrigger>
+            <TabsTrigger value="maintenance">Maintenance</TabsTrigger>
+            <TabsTrigger value="settings">Platform Settings</TabsTrigger>
+            <TabsTrigger value="enterprise">Enterprise</TabsTrigger>
           </TabsList>
         </div>
         <TabsContent value="overview" className="mt-0 md:mt-6">
@@ -796,6 +805,354 @@ export default function AdminPanelV2() {
                   <Button variant="outline" size="sm" onClick={() => setCurrentPage(prev => Math.min(prev + 1, Math.ceil(totalTransactions / pageSize)))} disabled={currentPage * pageSize >= totalTransactions}>Next <ChevronRight className="h-4 w-4" /></Button>
                 </div>
               )}
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="analytics">
+          <Card>
+            <CardHeader>
+              <CardTitle>Enterprise Analytics</CardTitle>
+              <CardDescription>
+                Overview of enterprise account performance and metrics
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-6">
+                <div>
+                  <h4 className="text-sm font-medium mb-3">Business Growth</h4>
+                  <ResponsiveContainer width="100%" height={200}>
+                    <LineChart data={enterpriseGrowthData}>
+                      <CartesianGrid strokeDasharray="3 3" />
+                      <XAxis dataKey="month" />
+                      <YAxis />
+                      <Tooltip />
+                      <Line type="monotone" dataKey="businesses" stroke="#8884d8" name="Businesses" />
+                      <Line type="monotone" dataKey="hubPins" stroke="#82ca9d" name="Hub Pins" />
+                      <Line type="monotone" dataKey="positions" stroke="#ffc658" name="Positions" />
+                    </LineChart>
+                  </ResponsiveContainer>
+                </div>
+                
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <h4 className="text-sm font-medium mb-2">Top Businesses by Hires</h4>
+                    <div className="space-y-2">
+                      {topBusinesses?.map((business: any, index: number) => (
+                        <div key={business.id} className="flex items-center justify-between">
+                          <span className="text-sm">{business.businessName}</span>
+                          <Badge variant="secondary">{business.hireCount} hires</Badge>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                  
+                  <div>
+                    <h4 className="text-sm font-medium mb-2">Position Types Distribution</h4>
+                    <ResponsiveContainer width="100%" height={200}>
+                      <PieChart>
+                        <Pie
+                          data={positionTypeData}
+                          dataKey="value"
+                          nameKey="name"
+                          cx="50%"
+                          cy="50%"
+                          outerRadius={80}
+                          fill="#8884d8"
+                        >
+                          {positionTypeData?.map((entry: any, index: number) => (
+                            <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                          ))}
+                        </Pie>
+                        <Tooltip />
+                      </PieChart>
+                    </ResponsiveContainer>
+                  </div>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="maintenance">
+          {/* Maintenance tab content */}
+        </TabsContent>
+
+        <TabsContent value="settings">
+          {/* Platform Settings tab content */}
+        </TabsContent>
+
+        <TabsContent value="enterprise" className="space-y-6">
+          <Card>
+            <CardHeader>
+              <CardTitle>Enterprise Business Management</CardTitle>
+              <CardDescription>
+                Manage enterprise accounts, verify businesses, and monitor hub pins
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <Tabs defaultValue="businesses" className="w-full">
+                <TabsList className="grid w-full grid-cols-4">
+                  <TabsTrigger value="businesses">Businesses</TabsTrigger>
+                  <TabsTrigger value="hub-pins">Hub Pins</TabsTrigger>
+                  <TabsTrigger value="positions">Positions</TabsTrigger>
+                  <TabsTrigger value="analytics">Analytics</TabsTrigger>
+                </TabsList>
+                
+                <TabsContent value="businesses" className="space-y-4">
+                  <div className="flex justify-between items-center mb-4">
+                    <h3 className="text-lg font-semibold">Registered Businesses</h3>
+                    <div className="flex gap-2">
+                      <Input
+                        placeholder="Search businesses..."
+                        className="w-64"
+                        onChange={(e) => setEnterpriseSearch(e.target.value)}
+                      />
+                      <Button variant="outline" size="sm">
+                        <RefreshCw className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  </div>
+                  
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Business Name</TableHead>
+                        <TableHead>Owner</TableHead>
+                        <TableHead>Status</TableHead>
+                        <TableHead>Hub Pins</TableHead>
+                        <TableHead>Active Positions</TableHead>
+                        <TableHead>Created</TableHead>
+                        <TableHead>Actions</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {enterpriseBusinesses?.map((business: any) => (
+                        <TableRow key={business.id}>
+                          <TableCell className="font-medium">
+                            <div>
+                              <p>{business.businessName}</p>
+                              <p className="text-sm text-muted-foreground">{business.businessEmail}</p>
+                            </div>
+                          </TableCell>
+                          <TableCell>{business.user?.fullName || 'N/A'}</TableCell>
+                          <TableCell>
+                            <Badge variant={
+                              business.verificationStatus === 'verified' ? 'default' :
+                              business.verificationStatus === 'rejected' ? 'destructive' :
+                              'secondary'
+                            }>
+                              {business.verificationStatus}
+                            </Badge>
+                          </TableCell>
+                          <TableCell>{business.hubPinCount || 0}</TableCell>
+                          <TableCell>{business.activePositionCount || 0}</TableCell>
+                          <TableCell>{format(new Date(business.createdAt), 'MMM d, yyyy')}</TableCell>
+                          <TableCell>
+                            <DropdownMenu>
+                              <DropdownMenuTrigger asChild>
+                                <Button variant="ghost" size="sm">
+                                  <MoreHorizontal className="h-4 w-4" />
+                                </Button>
+                              </DropdownMenuTrigger>
+                              <DropdownMenuContent align="end">
+                                <DropdownMenuItem onClick={() => handleViewBusinessDetails(business.id)}>
+                                  <Eye className="h-4 w-4 mr-2" />
+                                  View Details
+                                </DropdownMenuItem>
+                                {business.verificationStatus === 'pending' && (
+                                  <>
+                                    <DropdownMenuItem onClick={() => handleVerifyBusiness(business.id, 'verified')}>
+                                      <CheckCircle className="h-4 w-4 mr-2" />
+                                      Verify Business
+                                    </DropdownMenuItem>
+                                    <DropdownMenuItem onClick={() => handleVerifyBusiness(business.id, 'rejected')}>
+                                      <XCircle className="h-4 w-4 mr-2" />
+                                      Reject Verification
+                                    </DropdownMenuItem>
+                                  </>
+                                )}
+                                <DropdownMenuSeparator />
+                                <DropdownMenuItem
+                                  className="text-destructive"
+                                  onClick={() => handleSuspendBusiness(business.id)}
+                                >
+                                  <Ban className="h-4 w-4 mr-2" />
+                                  Suspend Business
+                                </DropdownMenuItem>
+                              </DropdownMenuContent>
+                            </DropdownMenu>
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </TabsContent>
+                
+                <TabsContent value="hub-pins" className="space-y-4">
+                  <div className="flex justify-between items-center mb-4">
+                    <h3 className="text-lg font-semibold">Active Hub Pins</h3>
+                    <Badge variant="secondary">
+                      {hubPinStats?.totalActive || 0} Active Pins
+                    </Badge>
+                  </div>
+                  
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                    {hubPins?.map((pin: any) => (
+                      <Card key={pin.id}>
+                        <CardHeader className="pb-3">
+                          <div className="flex justify-between items-start">
+                            <div>
+                              <CardTitle className="text-base">{pin.title}</CardTitle>
+                              <CardDescription className="text-xs">
+                                {pin.business?.businessName}
+                              </CardDescription>
+                            </div>
+                            <Badge variant={pin.isActive ? 'default' : 'secondary'}>
+                              {pin.isActive ? 'Active' : 'Inactive'}
+                            </Badge>
+                          </div>
+                        </CardHeader>
+                        <CardContent className="pb-3">
+                          <div className="text-sm space-y-1">
+                            <p className="flex items-center gap-1">
+                              <MapPin className="h-3 w-3" />
+                              {pin.location}
+                            </p>
+                            <p className="flex items-center gap-1">
+                              <Briefcase className="h-3 w-3" />
+                              {pin.positionCount || 0} positions
+                            </p>
+                            <p className="flex items-center gap-1">
+                              <TrendingUp className="h-3 w-3" />
+                              Priority: {pin.priority}
+                            </p>
+                          </div>
+                        </CardContent>
+                        <CardFooter className="pt-3 pb-3">
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            className="w-full"
+                            onClick={() => handleEditHubPin(pin.id)}
+                          >
+                            Edit Pin
+                          </Button>
+                        </CardFooter>
+                      </Card>
+                    ))}
+                  </div>
+                </TabsContent>
+                
+                <TabsContent value="positions" className="space-y-4">
+                  <Card>
+                    <CardHeader>
+                      <CardTitle>Enterprise Position Overview</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+                        <Card>
+                          <CardHeader className="pb-2">
+                            <CardTitle className="text-sm">Total Positions</CardTitle>
+                          </CardHeader>
+                          <CardContent>
+                            <p className="text-2xl font-bold">{positionStats?.total || 0}</p>
+                          </CardContent>
+                        </Card>
+                        <Card>
+                          <CardHeader className="pb-2">
+                            <CardTitle className="text-sm">Active Positions</CardTitle>
+                          </CardHeader>
+                          <CardContent>
+                            <p className="text-2xl font-bold text-green-600">{positionStats?.active || 0}</p>
+                          </CardContent>
+                        </Card>
+                        <Card>
+                          <CardHeader className="pb-2">
+                            <CardTitle className="text-sm">Total Applications</CardTitle>
+                          </CardHeader>
+                          <CardContent>
+                            <p className="text-2xl font-bold">{positionStats?.totalApplications || 0}</p>
+                          </CardContent>
+                        </Card>
+                        <Card>
+                          <CardHeader className="pb-2">
+                            <CardTitle className="text-sm">Avg. Applications/Position</CardTitle>
+                          </CardHeader>
+                          <CardContent>
+                            <p className="text-2xl font-bold">{positionStats?.avgApplications || 0}</p>
+                          </CardContent>
+                        </Card>
+                      </div>
+                    </CardContent>
+                  </Card>
+                </TabsContent>
+                
+                <TabsContent value="analytics" className="space-y-4">
+                  <Card>
+                    <CardHeader>
+                      <CardTitle>Enterprise Analytics</CardTitle>
+                      <CardDescription>
+                        Overview of enterprise account performance and metrics
+                      </CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="space-y-6">
+                        <div>
+                          <h4 className="text-sm font-medium mb-3">Business Growth</h4>
+                          <ResponsiveContainer width="100%" height={200}>
+                            <LineChart data={enterpriseGrowthData}>
+                              <CartesianGrid strokeDasharray="3 3" />
+                              <XAxis dataKey="month" />
+                              <YAxis />
+                              <Tooltip />
+                              <Line type="monotone" dataKey="businesses" stroke="#8884d8" name="Businesses" />
+                              <Line type="monotone" dataKey="hubPins" stroke="#82ca9d" name="Hub Pins" />
+                              <Line type="monotone" dataKey="positions" stroke="#ffc658" name="Positions" />
+                            </LineChart>
+                          </ResponsiveContainer>
+                        </div>
+                        
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                          <div>
+                            <h4 className="text-sm font-medium mb-2">Top Businesses by Hires</h4>
+                            <div className="space-y-2">
+                              {topBusinesses?.map((business: any, index: number) => (
+                                <div key={business.id} className="flex items-center justify-between">
+                                  <span className="text-sm">{business.businessName}</span>
+                                  <Badge variant="secondary">{business.hireCount} hires</Badge>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                          
+                          <div>
+                            <h4 className="text-sm font-medium mb-2">Position Types Distribution</h4>
+                            <ResponsiveContainer width="100%" height={200}>
+                              <PieChart>
+                                <Pie
+                                  data={positionTypeData}
+                                  dataKey="value"
+                                  nameKey="name"
+                                  cx="50%"
+                                  cy="50%"
+                                  outerRadius={80}
+                                  fill="#8884d8"
+                                >
+                                  {positionTypeData?.map((entry: any, index: number) => (
+                                    <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                                  ))}
+                                </Pie>
+                                <Tooltip />
+                              </PieChart>
+                            </ResponsiveContainer>
+                          </div>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                </TabsContent>
+              </Tabs>
             </CardContent>
           </Card>
         </TabsContent>

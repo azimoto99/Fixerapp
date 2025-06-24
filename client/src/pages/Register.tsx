@@ -51,9 +51,10 @@ type FormData = z.infer<typeof formSchema>;
 
 interface RegisterProps {
   onModeChange: () => void;
+  accountType?: 'worker' | 'poster' | 'enterprise';
 }
 
-export default function Register({ onModeChange }: RegisterProps) {
+export default function Register({ onModeChange, accountType = 'worker' }: RegisterProps) {
   const [_] = useLocation();
   const { registerMutation } = useAuth();
   const [usernameSuggestions, setUsernameSuggestions] = useState<string[]>([]);
@@ -90,7 +91,7 @@ export default function Register({ onModeChange }: RegisterProps) {
         phone: userData.phone || '', // Ensure phone is never undefined
         bio: userData.bio || '', // Ensure bio is never undefined
         skills: userData.skills || [], // Ensure skills is never undefined
-        accountType: 'worker' as const, // Default all new users to worker
+        accountType: accountType, // Use the passed accountType
       };
       
       registerMutation.mutate(submitData, {
@@ -134,8 +135,12 @@ export default function Register({ onModeChange }: RegisterProps) {
       
       <Card>
         <CardHeader>
-          <CardTitle>Create an Account</CardTitle>
-          <CardDescription>Sign up for Fixer to start finding or posting gigs</CardDescription>
+          <CardTitle>Create {accountType === 'enterprise' ? 'Business' : 'an'} Account</CardTitle>
+          <CardDescription>
+            {accountType === 'enterprise' 
+              ? 'Sign up for Fixer Business to scale your hiring'
+              : 'Sign up for Fixer to start finding or posting gigs'}
+          </CardDescription>
         </CardHeader>
         <CardContent>
           <Form {...form}>
