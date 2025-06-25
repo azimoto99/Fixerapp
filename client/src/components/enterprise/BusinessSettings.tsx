@@ -57,10 +57,21 @@ export default function BusinessSettings({ businessData }: { businessData: Busin
   // Update business profile mutation
   const updateMutation = useMutation({
     mutationFn: async (data: any) => {
-      const res = await apiRequest('PUT', '/api/enterprise/business', data);
-      return res.json();
+      console.log('🏢 Updating business profile with data:', data);
+      
+      try {
+        const res = await apiRequest('PUT', '/api/enterprise/business', data, {
+          timeout: 45000 // 45 second timeout specifically for this request
+        });
+        console.log('🏢 Business profile update response received');
+        return res.json();
+      } catch (error) {
+        console.error('🏢 Business profile update error:', error);
+        throw error;
+      }
     },
-    onSuccess: () => {
+    onSuccess: (data) => {
+      console.log('🏢 Business profile updated successfully:', data);
       queryClient.invalidateQueries({ queryKey: ['/api/enterprise/business'] });
       setIsEditing(false);
       toast({
@@ -69,9 +80,10 @@ export default function BusinessSettings({ businessData }: { businessData: Busin
       });
     },
     onError: (error: any) => {
+      console.error('🏢 Business profile update mutation error:', error);
       toast({
-        title: 'Error',
-        description: error.message || 'Failed to update business profile',
+        title: 'Error Updating Business Profile',
+        description: error.message || 'Failed to update business profile. Please try again.',
         variant: 'destructive'
       });
     }

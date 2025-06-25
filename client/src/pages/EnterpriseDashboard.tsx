@@ -73,14 +73,34 @@ export default function EnterpriseDashboard() {
   // Create business profile if it doesn't exist
   const createBusinessMutation = useMutation({
     mutationFn: async (data: any) => {
-      const res = await apiRequest('POST', '/api/enterprise/business', data);
-      return res.json();
+      console.log('🏢 Creating business profile with data:', data);
+      console.log('🏢 Current user:', user);
+      
+      try {
+        const res = await apiRequest('POST', '/api/enterprise/business', data, {
+          timeout: 45000 // 45 second timeout specifically for this request
+        });
+        console.log('🏢 Business profile creation response received');
+        return res.json();
+      } catch (error) {
+        console.error('🏢 Business profile creation error:', error);
+        throw error;
+      }
     },
-    onSuccess: () => {
+    onSuccess: (data) => {
+      console.log('🏢 Business profile created successfully:', data);
       queryClient.invalidateQueries({ queryKey: ['/api/enterprise/business'] });
       toast({
         title: 'Business Profile Created',
         description: 'Your business profile has been created successfully.',
+      });
+    },
+    onError: (error: any) => {
+      console.error('🏢 Business profile creation mutation error:', error);
+      toast({
+        title: 'Error Creating Business Profile',
+        description: error.message || 'Failed to create business profile. Please try again.',
+        variant: 'destructive'
       });
     }
   });

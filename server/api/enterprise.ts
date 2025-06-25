@@ -10,6 +10,12 @@ import {
 import { eq, and, desc, count, sql, isNull } from 'drizzle-orm';
 import { requireAuth } from '../middleware/auth';
 
+// Add a test endpoint at the top of the file
+export async function testEndpoint(req: Request, res: Response) {
+  console.log('🧪 Test endpoint called');
+  res.json({ message: 'Enterprise API is working', timestamp: Date.now() });
+}
+
 // Get business profile for current user
 export async function getBusinessProfile(req: Request, res: Response) {
   try {
@@ -33,11 +39,23 @@ export async function getBusinessProfile(req: Request, res: Response) {
 // Create business profile
 export async function createBusinessProfile(req: Request, res: Response) {
   console.log('🏢 Starting business profile creation for user:', req.user?.id);
+  console.log('🏢 Request body:', JSON.stringify(req.body, null, 2));
+  console.log('🏢 Request headers:', JSON.stringify(req.headers, null, 2));
   const startTime = Date.now();
+  
+  // Add request timeout handler
+  const timeout = setTimeout(() => {
+    console.error('⚠️ Business profile creation timed out after 20 seconds');
+    if (!res.headersSent) {
+      res.status(408).json({ message: "Business profile creation timed out. Please try again." });
+    }
+  }, 20000);
   
   try {
     const userId = req.user?.id;
     if (!userId) {
+      console.log('⚠️ No user ID found in request');
+      clearTimeout(timeout);
       return res.status(401).json({ message: 'Unauthorized' });
     }
 
@@ -52,6 +70,12 @@ export async function createBusinessProfile(req: Request, res: Response) {
       businessLogo
     } = req.body;
 
+    if (!businessName) {
+      console.log('⚠️ No business name provided');
+      clearTimeout(timeout);
+      return res.status(400).json({ message: 'Business name is required' });
+    }
+
     console.log('⏱️ Checking for existing business after:', Date.now() - startTime, 'ms');
     
     // Check if business already exists
@@ -62,6 +86,7 @@ export async function createBusinessProfile(req: Request, res: Response) {
 
     if (existing.length > 0) {
       console.log('⚠️ Business already exists for user:', userId);
+      clearTimeout(timeout);
       return res.status(400).json({ message: 'Business profile already exists' });
     }
 
@@ -83,10 +108,16 @@ export async function createBusinessProfile(req: Request, res: Response) {
       .returning();
 
     console.log('✅ Business profile created successfully after:', Date.now() - startTime, 'ms');
+    clearTimeout(timeout);
     res.json(business);
   } catch (error) {
     console.error('❌ Error creating business profile after:', Date.now() - startTime, 'ms', error);
-    res.status(500).json({ message: 'Failed to create business profile' });
+    clearTimeout(timeout);
+    if (!res.headersSent) {
+      res.status(500).json({ message: 'Failed to create business profile' });
+    }
+  } finally {
+    clearTimeout(timeout);
   }
 }
 
@@ -564,11 +595,27 @@ export async function verifyBusiness(req: Request, res: Response) {
 
 // Update business profile
 export async function updateBusinessProfile(req: Request, res: Response) {
+  console.log('🏢 Starting business profile UPDATE for user:', req.user?.id);
+  console.log('🏢 UPDATE Request body:', JSON.stringify(req.body, null, 2));
+  const startTime = Date.now();
+  
+  // Add request timeout handler
+  const timeout = setTimeout(() => {
+    console.error('⚠️ Business profile UPDATE timed out after 20 seconds');
+    if (!res.headersSent) {
+      res.status(408).json({ message: "Business profile update timed out. Please try again." });
+    }
+  }, 20000);
+  
   try {
     const userId = req.user?.id;
     if (!userId) {
+      console.log('⚠️ No user ID found in UPDATE request');
+      clearTimeout(timeout);
       return res.status(401).json({ message: 'Unauthorized' });
     }
+
+    console.log('⏱️ UPDATE User validation passed after:', Date.now() - startTime, 'ms');
 
     const {
       businessName,
@@ -579,6 +626,14 @@ export async function updateBusinessProfile(req: Request, res: Response) {
       businessLogo,
       businessType
     } = req.body;
+
+    if (!businessName) {
+      console.log('⚠️ No business name provided in UPDATE');
+      clearTimeout(timeout);
+      return res.status(400).json({ message: 'Business name is required' });
+    }
+
+    console.log('⏱️ Updating business profile in database after:', Date.now() - startTime, 'ms');
 
     const [updated] = await db.update(enterpriseBusinesses)
       .set({
@@ -595,13 +650,22 @@ export async function updateBusinessProfile(req: Request, res: Response) {
       .returning();
 
     if (!updated) {
+      console.log('⚠️ No business found to update for user:', userId);
+      clearTimeout(timeout);
       return res.status(404).json({ message: 'Business not found' });
     }
 
+    console.log('✅ Business profile updated successfully after:', Date.now() - startTime, 'ms');
+    clearTimeout(timeout);
     res.json(updated);
   } catch (error) {
-    console.error('Error updating business profile:', error);
-    res.status(500).json({ message: 'Failed to update business profile' });
+    console.error('❌ Error updating business profile after:', Date.now() - startTime, 'ms', error);
+    clearTimeout(timeout);
+    if (!res.headersSent) {
+      res.status(500).json({ message: 'Failed to update business profile' });
+    }
+  } finally {
+    clearTimeout(timeout);
   }
 }
 
