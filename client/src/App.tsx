@@ -10,6 +10,7 @@ import PostJob from "@/pages/PostJob";
 // JobDetailPage removed - using unified JobDetailsCard via JobCardFix
 
 import AuthPage from "@/pages/auth-page";
+import BusinessRegister from "@/pages/BusinessRegister";
 import NotFound from "@/pages/not-found";
 import TransactionHistory from "@/pages/TransactionHistory";
 import CompleteProfile from "@/pages/CompleteProfile";
@@ -116,6 +117,7 @@ function RouterWithAuth() {
       <AccountTypeRoute path="/enterprise-dashboard" component={EnterpriseDashboard} allowedType="enterprise" />
       {/* Payment dashboard is not accessible as there are no job posters */}
       <Route path="/auth" component={AuthPage} />
+      <Route path="/business-register" component={BusinessRegister} />
       <Route path="/login" component={RedirectToAuth} />
       <Route path="/register" component={RedirectToAuth} />
       <Route path="/auth/callback" component={() => <div>Processing authentication...</div>} />

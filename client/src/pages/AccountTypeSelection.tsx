@@ -39,6 +39,12 @@ export default function AccountTypeSelection() {
   const handleAccountTypeSelection = async (accountType: 'worker' | 'poster' | 'enterprise') => {
     if (!userId || !provider) return;
     
+    // For enterprise accounts, redirect to the business registration page
+    if (accountType === 'enterprise') {
+      setLocation('/business-register');
+      return;
+    }
+    
     setIsPending(true);
     
     try {
