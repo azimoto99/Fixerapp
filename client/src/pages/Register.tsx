@@ -38,9 +38,8 @@ const formSchema = z.object({
     .regex(/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)/, 'Password must contain at least one uppercase letter, one lowercase letter, and one number'),
   confirmPassword: z.string(),
   fullName: z.string()
-    .min(2, 'Full name must be at least 2 characters')
-    .max(100, 'Full name must be less than 100 characters')
-    .regex(/^[a-zA-Z\s'-]+$/, 'Full name can only contain letters, spaces, apostrophes, and hyphens'),
+    .min(2, 'Name must be at least 2 characters')
+    .max(100, 'Name must be less than 100 characters'),
   email: z.string().email('Invalid email address'),
   phone: z.string().optional(),
   bio: z.string().optional(),
@@ -190,9 +189,21 @@ export default function Register({ onModeChange, accountType = 'worker' }: Regis
                   name="fullName"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Full Name</FormLabel>
+                      <FormLabel>
+                        {accountType === 'enterprise' || accountType === 'poster' 
+                          ? 'Business Name' 
+                          : 'Full Name'
+                        }
+                      </FormLabel>
                       <FormControl>
-                        <Input placeholder="John Doe" {...field} />
+                        <Input 
+                          placeholder={
+                            accountType === 'enterprise' || accountType === 'poster'
+                              ? "Acme Corporation"
+                              : "John Doe"
+                          } 
+                          {...field} 
+                        />
                       </FormControl>
                       <FormMessage />
                     </FormItem>

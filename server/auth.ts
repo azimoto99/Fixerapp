@@ -148,7 +148,7 @@ export function setupAuth(app: Express) {
     }
   });
 
-  // Register a new user (always as worker type)
+  // Register a new user
   app.post("/api/register", async (req: Request, res: Response, next: NextFunction) => {
     try {
       const { username, email, password: rawPassword, fullName } = req.body;
@@ -210,7 +210,7 @@ export function setupAuth(app: Express) {
       // Hash the password
       const hashedPassword = await hashPassword(rawPassword);
       
-      // Create a user with worker account type directly
+      // Create a user with the specified account type
       const userData = {
         username,
         email,
@@ -219,7 +219,7 @@ export function setupAuth(app: Express) {
         phone: req.body.phone || null,
         bio: req.body.bio || null,
         avatarUrl: req.body.avatarUrl || null,
-        accountType: "worker", // Always set to worker
+        accountType: req.body.accountType || "worker", // Use the provided account type, default to worker
         skills: req.body.skills || [],
         isActive: true,
         location: req.body.location || null,
@@ -228,6 +228,12 @@ export function setupAuth(app: Express) {
       };
 
       const user = await storage.createUser(userData);
+
+      // Validate that user creation was successful
+      if (!user || !user.id) {
+        console.error('User creation failed - no user or user.id returned');
+        return res.status(500).json({ message: "Failed to create user account" });
+      }
 
       // Generate email verification token (valid 24h)
       const token = (await import('crypto')).randomBytes(32).toString('hex');

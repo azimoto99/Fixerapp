@@ -209,11 +209,12 @@ export function validateFullName(fullName: string): ModerationResult {
     }
   }
   
-  // Check for valid name characters (letters, spaces, apostrophes, hyphens)
-  if (!/^[a-zA-Z\s'-]+$/.test(fullName)) {
+  // Check for valid name characters (letters, spaces, apostrophes, hyphens, and business characters)
+  // Allow additional characters for business names: numbers, periods, commas, parentheses, ampersands
+  if (!/^[a-zA-Z0-9\s'&.,()\-]+$/.test(fullName)) {
     return {
       isValid: false,
-      reason: 'Full name can only contain letters, spaces, apostrophes, and hyphens',
+      reason: 'Name can only contain letters, numbers, spaces, apostrophes, hyphens, periods, commas, parentheses, and ampersands',
       severity: 'low'
     };
   }

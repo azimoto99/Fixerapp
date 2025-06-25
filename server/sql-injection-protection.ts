@@ -146,8 +146,8 @@ export const secureValidationSchemas = {
       .withMessage('Username can only contain letters, numbers, underscores, and hyphens'),
     body('fullName')
       .isLength({ min: 2, max: 100 })
-      .matches(/^[a-zA-Z\s'-]+$/)
-      .withMessage('Full name can only contain letters, spaces, apostrophes, and hyphens'),
+      .matches(/^[a-zA-Z0-9\s'&.,()\-]+$/)
+      .withMessage('Name can only contain letters, numbers, spaces, apostrophes, hyphens, periods, commas, parentheses, and ampersands'),
     body('email')
       .isEmail()
       .normalizeEmail()
@@ -157,8 +157,8 @@ export const secureValidationSchemas = {
       .matches(/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]/)
       .withMessage('Password must contain at least one uppercase letter, one lowercase letter, one number, and one special character'),
     body('accountType')
-      .isIn(['worker', 'poster'])
-      .withMessage('Account type must be either worker or poster')
+      .isIn(['worker', 'poster', 'enterprise'])
+      .withMessage('Account type must be worker, poster, or enterprise')
   ],
 
   // Job posting validation
