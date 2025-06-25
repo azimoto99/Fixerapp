@@ -150,6 +150,17 @@ export function setupAuth(app: Express) {
 
   // Register a new user
   app.post("/api/register", async (req: Request, res: Response, next: NextFunction) => {
+    console.log('🔄 Starting registration process for:', req.body.username);
+    const startTime = Date.now();
+    
+    // Set a request timeout of 25 seconds to prevent hanging
+    const timeout = setTimeout(() => {
+      console.error('⚠️ Registration request timed out after 25 seconds for:', req.body.username);
+      if (!res.headersSent) {
+        res.status(408).json({ message: "Request timed out. Please try again." });
+      }
+    }, 25000);
+    
     try {
       const { username, email, password: rawPassword, fullName } = req.body;
 
@@ -160,8 +171,12 @@ export function setupAuth(app: Express) {
         });
       }
 
+      console.log('⏱️ Basic validation passed after:', Date.now() - startTime, 'ms');
+
       // Import content moderation
       const { validateUsername, validateFullName, logModerationEvent, suggestAlternativeUsernames } = await import('./utils/contentModeration');
+
+      console.log('⏱️ Content moderation imported after:', Date.now() - startTime, 'ms');
 
       // Validate username content
       const usernameValidation = validateUsername(username);
@@ -178,6 +193,8 @@ export function setupAuth(app: Express) {
         });
       }
 
+      console.log('⏱️ Username validation passed after:', Date.now() - startTime, 'ms');
+
       // Validate full name content
       const fullNameValidation = validateFullName(fullName);
       if (!fullNameValidation.isValid) {
@@ -189,6 +206,8 @@ export function setupAuth(app: Express) {
           severity: fullNameValidation.severity
         });
       }
+
+      console.log('⏱️ Full name validation passed after:', Date.now() - startTime, 'ms');
 
       // Validate email format
       const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -202,12 +221,14 @@ export function setupAuth(app: Express) {
       }
 
       // Check if the username is already taken
+      console.log('⏱️ Checking username availability after:', Date.now() - startTime, 'ms');
       const existingUser = await storage.getUserByUsername(username);
       if (existingUser) {
         return res.status(400).json({ message: "Username already exists" });
       }
 
       // Hash the password
+      console.log('⏱️ Hashing password after:', Date.now() - startTime, 'ms');
       const hashedPassword = await hashPassword(rawPassword);
       
       // Create a user with the specified account type
@@ -227,6 +248,7 @@ export function setupAuth(app: Express) {
         facebookId: null
       };
 
+      console.log('⏱️ Creating user in database after:', Date.now() - startTime, 'ms');
       const user = await storage.createUser(userData);
 
       // Validate that user creation was successful
@@ -235,14 +257,19 @@ export function setupAuth(app: Express) {
         return res.status(500).json({ message: "Failed to create user account" });
       }
 
+      console.log('⏱️ User created successfully after:', Date.now() - startTime, 'ms');
+
       // Generate email verification token (valid 24h)
       const token = (await import('crypto')).randomBytes(32).toString('hex');
       const expiry = new Date(Date.now() + 24 * 60 * 60 * 1000);
 
+      console.log('⏱️ Updating user with verification token after:', Date.now() - startTime, 'ms');
       await storage.updateUser(user.id, {
         verificationToken: token,
         verificationTokenExpiry: expiry
       });
+
+      console.log('⏱️ Starting login process after:', Date.now() - startTime, 'ms');
 
       // Build verification URL and e-mail HTML
       const verificationUrl = `${process.env.APP_URL || 'http://localhost:5000'}/api/verify-email?token=${token}`;
@@ -274,8 +301,11 @@ export function setupAuth(app: Express) {
           });
         }
 
+        console.log('⏱️ Login successful, saving session after:', Date.now() - startTime, 'ms');
+
         // Save session then return the user payload (without password)
         req.session.save(() => {
+          console.log('⏱️ Session saved, sending response after:', Date.now() - startTime, 'ms');
           const { password, ...sanitized } = user as any;
           res.status(201).json({
             ...sanitized,
@@ -284,7 +314,10 @@ export function setupAuth(app: Express) {
         });
       });
     } catch (error) {
+      console.error('⚠️ Registration error after:', Date.now() - startTime, 'ms', error);
       res.status(400).json({ message: (error as Error).message });
+    } finally {
+      clearTimeout(timeout);
     }
   });
 

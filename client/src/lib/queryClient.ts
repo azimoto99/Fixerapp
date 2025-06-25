@@ -46,8 +46,8 @@ export async function apiRequest(
   options?: { signal?: AbortSignal, timeout?: number }
 ): Promise<Response> {
   try {
-    // Setup request timeout
-    const timeout = options?.timeout || 15000; // 15 seconds default timeout
+    // Setup request timeout - increased for business registration
+    const timeout = options?.timeout || 30000; // 30 seconds default timeout (increased from 15)
     const controller = new AbortController();
     const signal = options?.signal || controller.signal;
     

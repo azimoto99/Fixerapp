@@ -32,11 +32,16 @@ export async function getBusinessProfile(req: Request, res: Response) {
 
 // Create business profile
 export async function createBusinessProfile(req: Request, res: Response) {
+  console.log('🏢 Starting business profile creation for user:', req.user?.id);
+  const startTime = Date.now();
+  
   try {
     const userId = req.user?.id;
     if (!userId) {
       return res.status(401).json({ message: 'Unauthorized' });
     }
+
+    console.log('⏱️ User validation passed after:', Date.now() - startTime, 'ms');
 
     const {
       businessName,
@@ -47,6 +52,8 @@ export async function createBusinessProfile(req: Request, res: Response) {
       businessLogo
     } = req.body;
 
+    console.log('⏱️ Checking for existing business after:', Date.now() - startTime, 'ms');
+    
     // Check if business already exists
     const existing = await db.select()
       .from(enterpriseBusinesses)
@@ -54,8 +61,11 @@ export async function createBusinessProfile(req: Request, res: Response) {
       .limit(1);
 
     if (existing.length > 0) {
+      console.log('⚠️ Business already exists for user:', userId);
       return res.status(400).json({ message: 'Business profile already exists' });
     }
+
+    console.log('⏱️ Creating business profile in database after:', Date.now() - startTime, 'ms');
 
     const [business] = await db.insert(enterpriseBusinesses)
       .values({
@@ -72,9 +82,10 @@ export async function createBusinessProfile(req: Request, res: Response) {
       })
       .returning();
 
+    console.log('✅ Business profile created successfully after:', Date.now() - startTime, 'ms');
     res.json(business);
   } catch (error) {
-    console.error('Error creating business profile:', error);
+    console.error('❌ Error creating business profile after:', Date.now() - startTime, 'ms', error);
     res.status(500).json({ message: 'Failed to create business profile' });
   }
 }
