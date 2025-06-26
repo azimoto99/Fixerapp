@@ -348,6 +348,25 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Create API router
   const apiRouter = express.Router();
 
+  // Mount authentication routes (register / login / logout / password reset)
+  try {
+    const { default: authRouter } = await import('./api/auth-router');
+    apiRouter.use('/auth', authRouter);
+    console.log('✓ Auth API routes registered successfully');
+  } catch (error) {
+    console.error('❌ Failed to register Auth API routes:', error);
+  }
+
+  // Mount Users routes (/api/users/*)
+  const { default: usersRouter } = await import('./api/users-router');
+  apiRouter.use('/users', usersRouter);
+  console.log('✓ Users API routes registered successfully');
+
+  // Mount Jobs routes (/api/jobs/*)
+  const { default: jobsRouter } = await import('./api/jobs');
+  apiRouter.use('/jobs', jobsRouter);
+  console.log('✓ Jobs API routes registered successfully');
+
   // Mount Stripe Connect routes
   apiRouter.use('/stripe/connect', stripeConnectRouter);
 
@@ -1189,7 +1208,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const emailHtml = `
         <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
           <h2>Verify your email address</h2>
-          <p>Hi ${user.firstName || 'there'},</p>
+          <p>Hi ${user.fullName || 'there'},</p>
           <p>Please click the link below to verify your email address:</p>
           <p><a href="${verificationUrl}" style="background-color: #007bff; color: white; padding: 12px 24px; text-decoration: none; border-radius: 4px;">Verify Email</a></p>
           <p>Or copy and paste this link in your browser:</p>
@@ -2858,14 +2877,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const reviews = await storage.getReviewsForUser(userId);
       if (reviews.length === 0) {
-        await storage.updateUser(userId, { rating: null });
+        await storage.updateUser(userId, { rating: null } as any);
         return;
       }
 
       const totalRating = reviews.reduce((sum, review) => sum + review.rating, 0);
       const averageRating = totalRating / reviews.length;
       
-      await storage.updateUser(userId, { rating: averageRating });
+      await storage.updateUser(userId, { rating: averageRating } as any);
     } catch (error) {
       console.error('Error updating user average rating:', error);
     }

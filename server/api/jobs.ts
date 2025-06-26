@@ -1,6 +1,7 @@
 import { Router, Request, Response } from 'express';
 import { storage } from '../storage';
-import { isAuthenticated } from '../middleware/auth';
+import { isAuthenticated, optionalAuth } from '../middleware/auth';
+import { z } from 'zod';
 
 const jobsRouter = Router();
 
@@ -222,6 +223,107 @@ jobsRouter.patch('/:id/status', isAuthenticated, async (req, res) => {
   }
 });
 
+// --------------------------------------------------------
+// GET /api/jobs – list jobs with filters
+// --------------------------------------------------------
+jobsRouter.get('/', optionalAuth, async (req: Request, res: Response) => {
+  try {
+    const { page = '1', limit = '20', status, category, search } = req.query as Record<string, string>;
+    const pageNum = parseInt(page);
+    const limitNum = parseInt(limit);
 
+    let jobs = await storage.getJobs();
+
+    if (status && status !== 'all') jobs = jobs.filter(j => j.status === status);
+    if (category && category !== 'all') jobs = jobs.filter(j => j.category === category);
+    if (search) {
+      const term = search.toLowerCase();
+      jobs = jobs.filter(j => j.title.toLowerCase().includes(term) || j.description.toLowerCase().includes(term));
+    }
+
+    jobs.sort((a, b) => new Date(b.datePosted).getTime() - new Date(a.datePosted).getTime());
+    const start = (pageNum - 1) * limitNum;
+    const paginated = jobs.slice(start, start + limitNum);
+
+    res.json({ page: pageNum, total: jobs.length, results: paginated });
+  } catch (err) {
+    console.error('Jobs list error:', err);
+    res.status(500).json({ message: 'Failed to fetch jobs' });
+  }
+});
+
+// --------------------------------------------------------
+// GET /api/jobs/:id – details
+// --------------------------------------------------------
+jobsRouter.get('/:id', optionalAuth, async (req: Request, res: Response) => {
+  const jobId = parseInt(req.params.id);
+  if (isNaN(jobId)) return res.status(400).json({ message: 'Invalid job ID' });
+  try {
+    const job = await storage.getJob(jobId);
+    if (!job) return res.status(404).json({ message: 'Job not found' });
+    res.json(job);
+  } catch (err) {
+    console.error('Job detail error:', err);
+    res.status(500).json({ message: 'Failed to fetch job' });
+  }
+});
+
+// --------------------------------------------------------
+// DELETE /api/jobs/:id – soft delete
+// --------------------------------------------------------
+jobsRouter.delete('/:id', isAuthenticated, async (req: Request, res: Response) => {
+  const jobId = parseInt(req.params.id);
+  if (isNaN(jobId)) return res.status(400).json({ message: 'Invalid job ID' });
+  try {
+    const job = await storage.getJob(jobId);
+    if (!job) return res.status(404).json({ message: 'Job not found' });
+    if (!req.user || (req.user.id !== job.posterId && !req.user.isAdmin)) {
+      return res.status(403).json({ message: 'Unauthorized' });
+    }
+    const updated = await storage.updateJob(jobId, { status: 'cancelled' });
+    res.json({ message: 'Job cancelled', job: updated });
+  } catch (err) {
+    console.error('Job delete error:', err);
+    res.status(500).json({ message: 'Failed to cancel job' });
+  }
+});
+
+// --------------------------------------------------------
+// POST /api/jobs/:id/apply – apply to job
+// --------------------------------------------------------
+jobsRouter.post('/:id/apply', isAuthenticated, async (req: Request, res: Response) => {
+  if (!req.user) return res.status(401).json({ message: 'Not authenticated' });
+  const jobId = parseInt(req.params.id);
+  if (isNaN(jobId)) return res.status(400).json({ message: 'Invalid job ID' });
+  try {
+    const existing = (await storage.getApplicationsByJobId(jobId)).find(a => a.workerId === req.user!.id);
+    if (existing) return res.status(400).json({ message: 'You already applied to this job' });
+    const application = await storage.createApplication({ jobId, workerId: req.user.id, status: 'pending', message: req.body.message || null } as any);
+    res.status(201).json({ message: 'Application submitted', application });
+  } catch (err) {
+    console.error('Apply error:', err);
+    res.status(500).json({ message: 'Failed to apply' });
+  }
+});
+
+// --------------------------------------------------------
+// DELETE /api/jobs/:id/apply – withdraw application
+// --------------------------------------------------------
+jobsRouter.delete('/:id/apply', isAuthenticated, async (req: Request, res: Response) => {
+  if (!req.user) return res.status(401).json({ message: 'Not authenticated' });
+  const jobId = parseInt(req.params.id);
+  if (isNaN(jobId)) return res.status(400).json({ message: 'Invalid job ID' });
+  try {
+    const applications = await storage.getApplicationsByJobId(jobId);
+    const appForUser = applications.find(a => a.workerId === req.user!.id);
+    if (!appForUser) return res.status(404).json({ message: 'Application not found' });
+    await storage.updateApplication(appForUser.id, { status: 'withdrawn' });
+    res.json({ message: 'Application withdrawn' });
+  } catch (err) {
+    console.error('Withdraw error:', err);
+    res.status(500).json({ message: 'Failed to withdraw application' });
+  }
+});
 
 export { jobsRouter };
+export default jobsRouter;

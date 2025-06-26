@@ -754,4 +754,53 @@ export function registerMessagingRoutes(app: Express) {
       res.status(500).json({ message: "Failed to leave conversation" });
     }
   });
+
+  /**
+   * Get messages for a specific job (alias for frontend spec)
+   * @route GET /api/messages/job/:jobId
+   */
+  app.get('/api/messages/job/:jobId', async (req: Request, res: Response) => {
+    if (!req.isAuthenticated()) return res.status(401).json({ message: 'Unauthorized' });
+    const jobId = parseInt(req.params.jobId);
+    if (isNaN(jobId)) return res.status(400).json({ message: 'Invalid job ID' });
+    try {
+      const messages = await storage.getMessagesForJob(jobId);
+      res.json(messages);
+    } catch (err) {
+      console.error('Job messages error:', err);
+      res.status(500).json({ message: 'Failed to fetch messages' });
+    }
+  });
+
+  /**
+   * Mark message as read (spec path)
+   * @route PUT /api/messages/:id/read
+   */
+  app.put('/api/messages/:id/read', async (req: Request, res: Response) => {
+    if (!req.isAuthenticated()) return res.status(401).json({ message: 'Unauthorized' });
+    const messageId = parseInt(req.params.id);
+    if (isNaN(messageId)) return res.status(400).json({ message: 'Invalid message ID' });
+    try {
+      await storage.markMessageAsRead(messageId, req.user!.id);
+      res.json({ success: true });
+    } catch (err) {
+      console.error('Mark read error:', err);
+      res.status(500).json({ message: 'Failed to mark message as read' });
+    }
+  });
+
+  /**
+   * Get conversations list
+   * @route GET /api/conversations
+   */
+  app.get('/api/conversations', async (req: Request, res: Response) => {
+    if (!req.isAuthenticated()) return res.status(401).json({ message: 'Unauthorized' });
+    try {
+      const convos = await storage.getUserConversations(req.user!.id);
+      res.json(convos);
+    } catch (err) {
+      console.error('Conversations error:', err);
+      res.status(500).json({ message: 'Failed to fetch conversations' });
+    }
+  });
 }

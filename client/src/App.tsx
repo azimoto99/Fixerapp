@@ -125,6 +125,8 @@ function RouterWithAuth() {
       {/* Account type selection is no longer needed */}
       <Route path="/complete-profile" component={CompleteProfile} />
       <Route path="/email-verified" component={EmailVerified} />
+      <Route path="/forgot-password" component={() => import('@/pages/ForgotPassword').then(m=>m.default)} />
+      <Route path="/reset-password" component={() => import('@/pages/ResetPassword').then(m=>m.default)} />
       <Route component={NotFound} />
     </Switch>
   );

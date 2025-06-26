@@ -262,7 +262,7 @@ export function useJobLifecycle(): JobLifecycleHooks {
   // Process job payment
   const processJobPaymentMutation = useMutation({
     mutationFn: async ({ jobId, paymentMethodId }: { jobId: number; paymentMethodId: string }) => {
-      const response = await apiRequest('POST', '/api/payment/process-payment', {
+      const response = await apiRequest('POST', '/api/payments/process', {
         jobId,
         paymentMethodId,
         amount: 0 // Amount will be determined by the job
@@ -298,7 +298,7 @@ export function useJobLifecycle(): JobLifecycleHooks {
     mutationFn: async (jobId: number) => {
       // This would typically be called automatically when a job is completed
       // But can also be manually triggered by job poster
-      const response = await apiRequest('POST', `/api/jobs/${jobId}/release-payment`);
+      const response = await apiRequest('POST', '/api/payments/release', { paymentId: jobId, amount: 0 });
       
       if (!response.ok) {
         const error = await response.text();

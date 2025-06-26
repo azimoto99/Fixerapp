@@ -1,0 +1,212 @@
+---
+description: 
+globs: 
+alwaysApply: false
+---
+# Fixer App - Cursor Development Rules 🛠️
+
+## Project Overview & Mission
+Fixer is a gig-work platform connecting task posters with skilled fixers. Every feature must be production-ready, secure, and user-friendly before deployment to Render.
+
+## Core Feature Implementation Requirements
+
+### 1. User Profile System - Complete Implementation
+- **Avatar Management**: Full image upload/crop/delete functionality with AWS S3 integration
+- **Skills System**: Add/remove/validate skills with proficiency levels and categories
+- **Review System**: Complete rating/review CRUD with aggregation and display logic
+- **Profile Completeness**: Validation and progress indicators for profile completion
+- **Verification System**: Identity verification flow with document upload and status tracking
+
+### 2. Job Marketplace - Full End-to-End Flow
+- **Job Posting**: Complete form validation, image uploads, location integration, category selection
+- **Job Discovery**: Advanced filtering (location, price, category, skills), pagination, sorting
+- **Application System**: Apply/withdraw applications, status tracking, notification system
+- **Job Management**: Edit/delete/repost functionality with proper state management
+- **Search & Filtering**: Elasticsearch/Algolia integration or robust SQL-based search
+
+### 3. Payment System - Stripe Connect Integration
+- **Stripe Connect Onboarding**: Complete merchant onboarding flow with KYC compliance
+- **Escrow System**: Hold payments until job completion with proper release mechanisms
+- **Payment Processing**: Secure payment capture, processing, and transfer with fees
+- **Payout Management**: Automated and manual payout systems with scheduling
+- **Dispute Handling**: Complete dispute resolution workflow with admin intervention
+- **Invoice Generation**: PDF invoice generation and email delivery
+
+### 4. Real-Time Messaging System
+- **WebSocket Connection**: Robust connection management with reconnection logic
+- **Message Persistence**: Store all messages in PostgreSQL with proper indexing
+- **File Sharing**: Image/document sharing within chats with AWS S3 storage
+- **Message Status**: Read receipts, delivery confirmation, typing indicators
+- **Push Notifications**: Real-time notifications for new messages (web push API)
+- **Message History**: Infinite scroll, search, and message thread management
+
+### 5. Location Services - Mapbox Integration
+- **Geolocation**: Accurate location detection with fallback mechanisms
+- **Map Integration**: Interactive maps for job location selection and display
+- **Distance Calculation**: Accurate distance-based job matching and pricing
+- **Navigation**: Turn-by-turn navigation integration for mobile users
+- **Location Validation**: Address validation and geocoding services
+
+### 6. Admin Dashboard - Complete Management System
+- **User Management**: View, suspend, activate, delete users with audit trails
+- **Job Monitoring**: Monitor all jobs, resolve disputes, manage flagged content
+- **Payment Analytics**: Revenue tracking, payout management, financial reporting
+- **System Analytics**: User engagement, job completion rates, platform health metrics
+- **Content Moderation**: Automated and manual content review with flagging system
+
+## API Route Standards & Security
+
+### 7. Authentication & Authorization
+- **Route Protection**: Every protected route must verify JWT tokens and user permissions
+- **Role-Based Access**: Implement proper RBAC (User, Fixer, Admin) with middleware
+- **Session Management**: Secure session handling with proper expiration and refresh
+- **Password Security**: Bcrypt hashing, password strength validation, reset flows
+- **Rate Limiting**: Implement rate limiting on all API endpoints to prevent abuse
+
+### 8. API Endpoint Implementation
+```
+Authentication Routes:
+POST /api/auth/register - Complete registration with email verification
+POST /api/auth/login - Login with remember me functionality
+POST /api/auth/logout - Secure logout with token invalidation
+POST /api/auth/forgot-password - Password reset email flow
+POST /api/auth/reset-password - Password reset with token validation
+
+User Management Routes:
+GET /api/users/profile - Get current user profile
+PUT /api/users/profile - Update user profile with validation
+POST /api/users/avatar - Upload avatar with image processing
+GET /api/users/:id - Get public user profile
+GET /api/users/:id/reviews - Get user reviews with pagination
+
+Job Management Routes:
+GET /api/jobs - List jobs with filtering and pagination
+POST /api/jobs - Create job with validation and image upload
+GET /api/jobs/:id - Get job details with related data
+PUT /api/jobs/:id - Update job (owner only)
+DELETE /api/jobs/:id - Soft delete job (owner/admin only)
+POST /api/jobs/:id/apply - Apply to job
+DELETE /api/jobs/:id/apply - Withdraw application
+
+Payment Routes:
+POST /api/payments/setup-intent - Create payment setup intent
+POST /api/payments/capture - Capture escrowed payment
+POST /api/payments/release - Release payment to fixer
+POST /api/payments/refund - Process refund with validation
+GET /api/payments/history - Payment history with filtering
+
+Messaging Routes:
+GET /api/messages/:jobId - Get job-related messages
+POST /api/messages - Send message with file upload support
+PUT /api/messages/:id/read - Mark message as read
+GET /api/conversations - Get user conversations list
+
+Admin Routes:
+GET /api/admin/users - User management with search/filter
+PUT /api/admin/users/:id/status - Update user status
+GET /api/admin/jobs - Job management dashboard
+GET /api/admin/analytics - Platform analytics and metrics
+```
+
+### 9. Data Validation & Error Handling
+- **Input Validation**: Use Joi or Zod for comprehensive request validation
+- **Error Responses**: Consistent error response format with proper HTTP status codes
+- **Logging**: Comprehensive logging for all operations (Winston + structured logging)
+- **Monitoring**: Health checks and performance monitoring endpoints
+- **Database Transactions**: Use database transactions for critical operations
+
+## Frontend Implementation Standards
+
+### 10. React/React Native Component Architecture
+- **Component Reusability**: Create shared components for common UI patterns
+- **State Management**: Use Context API or Redux Toolkit for global state
+- **Form Handling**: React Hook Form with proper validation and error handling
+- **Image Handling**: Proper image optimization, lazy loading, and progressive enhancement
+- **Navigation**: React Navigation with proper deep linking and state persistence
+
+### 11. User Experience Requirements
+- **Loading States**: Implement loading spinners/skeletons for all async operations
+- **Error Boundaries**: Proper error boundaries with user-friendly error messages
+- **Offline Support**: Basic offline functionality for viewing cached data
+- **Accessibility**: WCAG 2.1 AA compliance with proper ARIA labels and keyboard navigation
+- **Responsive Design**: Mobile-first responsive design with Tailwind CSS
+
+### 12. Performance Optimization
+- **Code Splitting**: Implement proper code splitting for optimal bundle sizes
+- **Image Optimization**: WebP format with fallbacks, proper sizing, and lazy loading
+- **API Optimization**: Implement proper caching strategies and request deduplication
+- **Bundle Analysis**: Regular bundle size monitoring and optimization
+
+## Security & Compliance
+
+### 13. Data Protection
+- **Data Encryption**: Encrypt sensitive data at rest and in transit
+- **PCI Compliance**: Follow PCI DSS requirements for payment processing
+- **GDPR Compliance**: Implement proper data handling and user consent flows
+- **XSS Protection**: Sanitize all user inputs and implement CSP headers
+- **SQL Injection Prevention**: Use parameterized queries and ORM protection
+
+### 14. File Upload Security
+- **File Validation**: Validate file types, sizes, and scan for malware
+- **Secure Storage**: Store files in AWS S3 with proper bucket policies
+- **Image Processing**: Server-side image processing to prevent malicious uploads
+- **CDN Integration**: Use CloudFront for secure and fast file delivery
+
+## Testing & Quality Assurance
+
+### 15. Testing Requirements
+- **Unit Tests**: 80%+ code coverage for critical business logic
+- **Integration Tests**: Test all API endpoints with real database transactions
+- **E2E Tests**: Critical user journeys must have automated E2E tests
+- **Performance Tests**: Load testing for high-traffic scenarios
+- **Security Tests**: Regular security scanning and penetration testing
+
+### 16. Code Quality Standards
+- **TypeScript**: Strict TypeScript configuration with no implicit any
+- **ESLint/Prettier**: Enforce consistent code formatting and best practices
+- **Code Reviews**: All code must pass automated checks and human review
+- **Documentation**: All public APIs and complex logic must be documented
+
+## Deployment & Production Readiness
+
+### 17. Environment Configuration
+- **Environment Variables**: All secrets must be properly configured in Render
+- **Database Migration**: Automated migration system with rollback capability
+- **Health Checks**: Implement proper health check endpoints for monitoring
+- **Logging**: Structured logging with proper log levels and rotation
+
+### 18. Monitoring & Analytics
+- **Error Tracking**: Sentry or similar for error monitoring and alerting
+- **Performance Monitoring**: APM tools for performance tracking
+- **User Analytics**: Privacy-compliant user behavior tracking
+- **Uptime Monitoring**: External uptime monitoring with alerting
+
+### 19. Launch Readiness Checklist
+- [ ] All core features fully implemented and tested
+- [ ] Security audit completed and vulnerabilities addressed
+- [ ] Performance optimization and load testing completed
+- [ ] Legal pages (Terms, Privacy Policy, GDPR compliance) implemented
+- [ ] Customer support system integrated
+- [ ] Payment processing fully tested with Stripe webhooks
+- [ ] Email delivery system configured and tested
+- [ ] Backup and disaster recovery procedures documented
+- [ ] Monitoring and alerting systems configured
+- [ ] SSL certificates and security headers configured
+
+## Critical Implementation Notes
+
+### 20. Never Compromise On
+- **Security**: Never skip security measures for speed of development
+- **Data Integrity**: All critical operations must maintain data consistency
+- **User Privacy**: Respect user privacy and implement proper consent flows
+- **Payment Security**: Follow PCI compliance and Stripe best practices religiously
+- **Error Handling**: Every operation must have proper error handling and user feedback
+
+### 21. Development Workflow
+- **Feature Flags**: Implement feature flags for gradual rollouts
+- **Database Backups**: Automated daily backups with point-in-time recovery
+- **Staging Environment**: Full staging environment matching production
+- **CI/CD Pipeline**: Automated testing and deployment pipeline
+- **Rollback Strategy**: Quick rollback capability for critical issues
+
+Remember: This is a production platform handling real money and user data. Every feature must be secure, reliable, and thoroughly tested before going live.

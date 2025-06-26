@@ -61,7 +61,7 @@ export function usePaymentFlow() {
   // Create setup intent for adding payment methods
   const createSetupIntentMutation = useMutation({
     mutationFn: async () => {
-      const response = await apiRequest('POST', '/api/stripe/create-setup-intent');
+      const response = await apiRequest('POST', '/api/payments/setup-intent');
       if (!response.ok) {
         throw new Error('Failed to create setup intent');
       }
@@ -82,7 +82,7 @@ export function usePaymentFlow() {
     }) => {
       setFlowState(prev => ({ ...prev, isProcessing: true, currentStep: 'payment' }));
       
-      const response = await apiRequest('POST', '/api/payment/process-payment', {
+      const response = await apiRequest('POST', '/api/payments/process', {
         jobId,
         amount,
         paymentMethodId,

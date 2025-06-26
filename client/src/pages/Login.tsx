@@ -100,7 +100,16 @@ export default function Login({ onModeChange }: LoginProps) {
                   </FormItem>
                 )}
               />
-              
+
+              <div className="text-right -mt-2 mb-2">
+                <span
+                  className="text-xs text-primary hover:underline cursor-pointer"
+                  onClick={() => navigate('/forgot-password')}
+                >
+                  Forgot password?
+                </span>
+              </div>
+
               <Button type="submit" className="w-full" disabled={loginMutation.isPending}>
                 {loginMutation.isPending ? 'Logging in...' : 'Log In'}
               </Button>

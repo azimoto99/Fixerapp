@@ -2,8 +2,15 @@ import express, { Request, Response } from 'express';
 import { storage } from '../storage';
 import { requireAuth } from '../auth-helpers';
 import { z } from 'zod';
+import Stripe from 'stripe';
 
 const router = express.Router();
+
+// Initialize Stripe (shared key check already done elsewhere, but repeat for direct use)
+if (!process.env.STRIPE_SECRET_KEY) {
+  throw new Error('Missing STRIPE_SECRET_KEY');
+}
+const stripe = new Stripe(process.env.STRIPE_SECRET_KEY, { apiVersion: '2023-10-16' as any });
 
 // Authentication middleware - matches the pattern from main routes
 function isAuthenticated(req: Request, res: Response, next: any) {
@@ -256,6 +263,100 @@ router.get('/balance', isAuthenticated, async (req: Request, res: Response) => {
       message: 'Failed to fetch balance',
       error: error instanceof Error ? error.message : 'Unknown error'
     });
+  }
+});
+
+// ------------------------------------------------------
+// POST /api/payments/setup-intent – Save card for future use
+// ------------------------------------------------------
+router.post('/setup-intent', isAuthenticated, async (req: Request, res: Response) => {
+  try {
+    if (!req.user) return res.status(401).json({ message: 'Not authenticated' });
+
+    // Get or create customer
+    let customerId = req.user.stripeCustomerId;
+    if (!customerId) {
+      const customer = await stripe.customers.create({
+        email: req.user.email ?? undefined,
+        name: req.user.fullName ?? req.user.username,
+        metadata: { userId: req.user.id.toString() },
+      });
+      customerId = customer.id;
+      await storage.updateUser(req.user.id, { stripeCustomerId: customerId });
+    }
+
+    const setupIntent = await stripe.setupIntents.create({ customer: customerId, payment_method_types: ['card'], usage: 'off_session' });
+    res.json({ clientSecret: setupIntent.client_secret, setupIntentId: setupIntent.id });
+  } catch (err) {
+    console.error('Setup-intent error:', err);
+    res.status(500).json({ message: 'Failed to create setup intent' });
+  }
+});
+
+// ------------------------------------------------------
+// POST /api/payments/capture – Capture an authorized PaymentIntent
+// ------------------------------------------------------
+router.post('/capture', isAuthenticated, async (req: Request, res: Response) => {
+  const schema = z.object({ paymentIntentId: z.string() });
+  try {
+    const { paymentIntentId } = schema.parse(req.body);
+    const pi = await stripe.paymentIntents.capture(paymentIntentId);
+    await storage.updatePaymentStatus(paymentIntentId as any, 'succeeded');
+    res.json({ status: pi.status });
+  } catch (err) {
+    if (err instanceof z.ZodError) return res.status(400).json({ message: 'Invalid request', errors: err.errors });
+    console.error('Capture error:', err);
+    res.status(500).json({ message: 'Failed to capture payment' });
+  }
+});
+
+// ------------------------------------------------------
+// POST /api/payments/release – Release escrow to worker (transfer)
+// ------------------------------------------------------
+router.post('/release', isAuthenticated, async (req: Request, res: Response) => {
+  const schema = z.object({
+    paymentId: z.number(),
+    amount: z.number().positive(),
+  });
+  try {
+    const { paymentId, amount } = schema.parse(req.body);
+    const payment = await storage.getPayment(paymentId);
+    if (!payment) return res.status(404).json({ message: 'Payment not found' });
+    if (!payment.workerId) return res.status(400).json({ message: 'Payment not associated with worker' });
+
+    // Transfer to worker's Stripe account
+    const worker = await storage.getUser(payment.workerId);
+    if (!worker?.stripeConnectAccountId) return res.status(400).json({ message: 'Worker has no Stripe Connect account' });
+
+    const transfer = await stripe.transfers.create({
+      amount: Math.round(amount * 100),
+      currency: 'usd',
+      destination: worker.stripeConnectAccountId,
+      metadata: { paymentId: paymentId.toString(), jobId: payment.jobId?.toString() ?? '' },
+    });
+
+    await storage.updatePaymentStatus(paymentId, 'completed');
+    res.json({ success: true, transferId: transfer.id });
+  } catch (err) {
+    if (err instanceof z.ZodError) return res.status(400).json({ message: 'Invalid request', errors: err.errors });
+    console.error('Release error:', err);
+    res.status(500).json({ message: 'Failed to release payment' });
+  }
+});
+
+// ------------------------------------------------------
+// POST /api/payments/refund – Refund a completed payment
+// ------------------------------------------------------
+router.post('/refund', isAuthenticated, async (req: Request, res: Response) => {
+  const schema = z.object({ paymentIntentId: z.string(), amount: z.number().positive().optional() });
+  try {
+    const { paymentIntentId, amount } = schema.parse(req.body);
+    const refund = await stripe.refunds.create({ payment_intent: paymentIntentId, amount: amount ? Math.round(amount * 100) : undefined });
+    res.json({ success: true, refundId: refund.id, status: refund.status });
+  } catch (err) {
+    if (err instanceof z.ZodError) return res.status(400).json({ message: 'Invalid request', errors: err.errors });
+    console.error('Refund error:', err);
+    res.status(500).json({ message: 'Failed to refund payment' });
   }
 });
 
