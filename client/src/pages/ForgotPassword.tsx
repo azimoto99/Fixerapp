@@ -2,11 +2,11 @@ import React, { useState } from 'react';
 import { useForgotPassword } from '@/hooks/useForgotPassword';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { useNavigate } from 'wouter/use-location';
+import { useLocation } from 'wouter';
 
 export default function ForgotPassword() {
   const [email, setEmail] = useState('');
-  const navigate = useNavigate();
+  const [, navigate] = useLocation();
   const mutation = useForgotPassword();
 
   const handleSubmit = async (e: React.FormEvent) => {
