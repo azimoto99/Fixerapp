@@ -619,7 +619,7 @@ export async function verifyBusiness(req: Request, res: Response) {
     const [updated] = await db.update(enterpriseBusinesses)
       .set({
         verificationStatus: status,
-        updatedAt: new Date().toISOString()
+        updatedAt: new Date()
       })
       .where(eq(enterpriseBusinesses.id, businessId))
       .returning();
@@ -682,7 +682,7 @@ export async function updateBusinessProfile(req: Request, res: Response) {
         businessEmail,
         businessLogo,
         businessType,
-        updatedAt: new Date().toISOString()
+        updatedAt: new Date()
       })
       .where(eq(enterpriseBusinesses.userId, userId))
       .returning();
@@ -788,7 +788,7 @@ export async function updateHubPin(req: Request, res: Response) {
         iconUrl,
         priority,
         isActive,
-        updatedAt: new Date().toISOString()
+        updatedAt: new Date()
       })
       .where(eq(hubPins.id, hubPinId))
       .returning();
@@ -919,7 +919,7 @@ export async function updatePosition(req: Request, res: Response) {
         schedule,
         positionsAvailable,
         isActive,
-        updatedAt: new Date().toISOString()
+        updatedAt: new Date()
       })
       .where(eq(enterprisePositions.id, positionId))
       .returning();
