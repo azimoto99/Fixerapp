@@ -455,6 +455,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // Add missing API routes that are being called by the frontend
   
+  // Alias admin enterprise routes expected by the frontend
+  apiRouter.get('/admin/enterprise/businesses', requireAuth, isAdmin, enterpriseApi.getAllBusinesses);
+  apiRouter.put('/admin/enterprise/businesses/:id/verify', requireAuth, isAdmin, enterpriseApi.verifyBusiness);
+
   // Update job endpoint
   apiRouter.put("/jobs/:id", isAuthenticated, async (req: Request, res: Response) => {
     try {

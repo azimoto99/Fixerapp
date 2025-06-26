@@ -7,7 +7,7 @@ import {
   enterpriseApplications,
   users 
 } from '@shared/schema';
-import { eq, and, desc, count, sql, isNull } from 'drizzle-orm';
+import { eq, and, desc, count, sql, isNull, ilike } from 'drizzle-orm';
 import { requireAuth } from '../middleware/auth';
 
 // Add a test endpoint at the top of the file
@@ -570,7 +570,10 @@ export async function updateApplicationStatus(req: Request, res: Response) {
 export async function getAllBusinesses(req: Request, res: Response) {
   try {
     // TODO: Add admin check
-    const businesses = await db.select({
+    const { search } = req.query as { search?: string };
+
+    // Base query selecting relevant business information
+    let query = db.select({
       id: enterpriseBusinesses.id,
       businessName: enterpriseBusinesses.businessName,
       businessEmail: enterpriseBusinesses.businessEmail,
@@ -586,8 +589,13 @@ export async function getAllBusinesses(req: Request, res: Response) {
       activePositionCount: sql<number>`(SELECT COUNT(*) FROM ${enterprisePositions} WHERE ${enterprisePositions.enterpriseId} = ${enterpriseBusinesses.id} AND ${enterprisePositions.isActive} = true)`
     })
     .from(enterpriseBusinesses)
-    .innerJoin(users, eq(enterpriseBusinesses.userId, users.id))
-    .orderBy(desc(enterpriseBusinesses.createdAt));
+    .innerJoin(users, eq(enterpriseBusinesses.userId, users.id));
+
+    if (search && search.trim() !== '') {
+      query = query.where(ilike(enterpriseBusinesses.businessName, `%${search}%`));
+    }
+
+    const businesses = await query.orderBy(desc(enterpriseBusinesses.createdAt));
 
     res.json(businesses);
   } catch (error) {
