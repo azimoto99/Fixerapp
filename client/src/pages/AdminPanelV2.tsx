@@ -180,8 +180,9 @@ export default function AdminPanelV2() {
       const response = await apiRequest('GET', '/api/admin/stats');
       return (await response.json()) as AdminStats;
     },
-    refetchInterval: 30000,
-    retry: 2,
+    enabled: isAdmin,
+    refetchInterval: isAdmin ? 30000 : false,
+    retry: isAdmin ? 2 : false,
     retryDelay: 1000,
   });
 
@@ -208,6 +209,7 @@ export default function AdminPanelV2() {
       const response = await apiRequest('GET', `/api/admin/users?${params.toString()}`);
       return (await response.json()) as UsersApiResponse;
     },
+    enabled: isAdmin,
     retry: 2,
     retryDelay: 1000,
   });
@@ -234,6 +236,7 @@ export default function AdminPanelV2() {
       const response = await apiRequest('GET', `/api/admin/jobs?${params.toString()}`);
       return (await response.json()) as JobsApiResponse;
     },
+    enabled: isAdmin,
     retry: 3,
     retryDelay: (attempt) => Math.min(attempt * 1000, 3000),
   });
@@ -261,6 +264,7 @@ export default function AdminPanelV2() {
       const response = await apiRequest('GET', `/api/admin/support-tickets?${params.toString()}`);
       return (await response.json()) as SupportApiResponse;
     },
+    enabled: isAdmin,
     retry: 2,
     retryDelay: 1000,
   });
