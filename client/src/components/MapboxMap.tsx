@@ -286,7 +286,12 @@ export default function MapboxMap({
           paymentAmount: marker.paymentAmount || 0,
           requiredSkills: marker.requiredSkills || [],
           status: marker.status || 'open',
-          isHighlighted: marker.isHighlighted
+          isHighlighted: marker.isHighlighted,
+          // Enterprise-specific styling
+          isEnterprise: (marker as any).isEnterprise,
+          enterpriseColor: (marker as any).enterpriseColor,
+          enterpriseIcon: (marker as any).enterpriseIcon,
+          priority: (marker as any).priority
         };
 
         const pinStyle = generatePinStyle(pinConfig, isDark, currentZoom);

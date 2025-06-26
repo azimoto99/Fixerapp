@@ -24,6 +24,7 @@ import NotificationsPage from "@/pages/notifications-page";
 import UserProfile from "@/pages/UserProfile";
 import AdminPanelV2 from "@/pages/AdminPanelV2";
 import VerifyEmail from "@/pages/VerifyEmail";
+import EmailVerified from "@/pages/EmailVerified";
 import StripeConnectOnboarding from "@/components/StripeConnectOnboarding";
 import WalletPage from "@/pages/wallet-page";
 import EnterpriseDashboard from "@/pages/EnterpriseDashboard";
@@ -123,6 +124,7 @@ function RouterWithAuth() {
       <Route path="/auth/callback" component={() => <div>Processing authentication...</div>} />
       {/* Account type selection is no longer needed */}
       <Route path="/complete-profile" component={CompleteProfile} />
+      <Route path="/email-verified" component={EmailVerified} />
       <Route component={NotFound} />
     </Switch>
   );

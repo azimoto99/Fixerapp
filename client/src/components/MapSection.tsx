@@ -341,9 +341,12 @@ const MapSection: React.FC<MapSectionProps> = ({ jobs, selectedJob, onSelectJob,
     if (hubPins && hubPins.length > 0) {
       hubPins.forEach((hubPin: any) => {
         if (hubPin.isActive && hubPin.latitude && hubPin.longitude) {
+          const lat = typeof hubPin.latitude === 'string' ? parseFloat(hubPin.latitude) : hubPin.latitude;
+          const lng = typeof hubPin.longitude === 'string' ? parseFloat(hubPin.longitude) : hubPin.longitude;
+          if (isNaN(lat) || isNaN(lng)) return; // skip invalid coords
           markers.push({
-            latitude: hubPin.latitude,
-            longitude: hubPin.longitude,
+            latitude: lat,
+            longitude: lng,
             title: hubPin.title,
             description: hubPin.description || hubPin.business?.businessName || '',
             onClick: () => handleHubPinClick(hubPin.id),

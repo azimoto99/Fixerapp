@@ -22,7 +22,8 @@ import {
   Clock,
   DollarSign,
   CheckCircle,
-  Star
+  Star,
+  LogOut
 } from 'lucide-react';
 import { apiRequest } from '@/lib/queryClient';
 import { useToast } from '@/hooks/use-toast';
@@ -45,7 +46,7 @@ interface EnterpriseStats {
 }
 
 export default function EnterpriseDashboard() {
-  const { user } = useAuth();
+  const { user, logoutMutation } = useAuth();
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [activeTab, setActiveTab] = useState('overview');
@@ -198,9 +199,15 @@ export default function EnterpriseDashboard() {
             <Building2 className="h-8 w-8" />
             {businessData?.businessName || 'Business Dashboard'}
           </h1>
-          <Badge variant={businessData?.verificationStatus === 'verified' ? 'default' : 'secondary'}>
-            {businessData?.verificationStatus || 'Pending Verification'}
-          </Badge>
+          <div className="flex items-center gap-4">
+            <Badge variant={businessData?.verificationStatus === 'verified' ? 'default' : 'secondary'}>
+              {businessData?.verificationStatus || 'Pending Verification'}
+            </Badge>
+            <Button variant="outline" size="sm" onClick={() => logoutMutation.mutate()} disabled={logoutMutation.isPending}>
+              <LogOut className="h-4 w-4 mr-1" />
+              {logoutMutation.isPending ? 'Signing Out…' : 'Sign Out'}
+            </Button>
+          </div>
         </div>
         <p className="text-muted-foreground">
           Manage your business presence, positions, and applications
