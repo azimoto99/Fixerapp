@@ -40,16 +40,15 @@ export async function getBusinessProfile(req: Request, res: Response) {
 export async function createBusinessProfile(req: Request, res: Response) {
   console.log('🏢 Starting business profile creation for user:', req.user?.id);
   console.log('🏢 Request body:', JSON.stringify(req.body, null, 2));
-  console.log('🏢 Request headers:', JSON.stringify(req.headers, null, 2));
   const startTime = Date.now();
   
   // Add request timeout handler
   const timeout = setTimeout(() => {
-    console.error('⚠️ Business profile creation timed out after 20 seconds');
+    console.error('⚠️ Business profile creation timed out after 15 seconds');
     if (!res.headersSent) {
       res.status(408).json({ message: "Business profile creation timed out. Please try again." });
     }
-  }, 20000);
+  }, 15000); // Reduced to 15 seconds
   
   try {
     const userId = req.user?.id;
@@ -76,45 +75,71 @@ export async function createBusinessProfile(req: Request, res: Response) {
       return res.status(400).json({ message: 'Business name is required' });
     }
 
-    console.log('⏱️ Checking for existing business after:', Date.now() - startTime, 'ms');
+    console.log('⏱️ About to check for existing business after:', Date.now() - startTime, 'ms');
     
-    // Check if business already exists
-    const existing = await db.select()
+    // Check if business already exists with timeout
+    const existingCheckPromise = db.select()
       .from(enterpriseBusinesses)
       .where(eq(enterpriseBusinesses.userId, userId))
       .limit(1);
 
-    if (existing.length > 0) {
+    const existingCheckTimeout = new Promise((_, reject) => 
+      setTimeout(() => reject(new Error('Database query timeout during existing business check')), 8000)
+    );
+
+    const existing = await Promise.race([existingCheckPromise, existingCheckTimeout]);
+
+    console.log('⏱️ Existing business check completed after:', Date.now() - startTime, 'ms');
+
+    if (Array.isArray(existing) && existing.length > 0) {
       console.log('⚠️ Business already exists for user:', userId);
       clearTimeout(timeout);
       return res.status(400).json({ message: 'Business profile already exists' });
     }
 
-    console.log('⏱️ Creating business profile in database after:', Date.now() - startTime, 'ms');
+    console.log('⏱️ About to insert business profile after:', Date.now() - startTime, 'ms');
+    console.log('🏢 Insert data:', { userId, businessName, businessDescription, businessWebsite, businessPhone, businessEmail, businessLogo });
 
-    const [business] = await db.insert(enterpriseBusinesses)
+    // Create business profile with timeout
+    const insertPromise = db.insert(enterpriseBusinesses)
       .values({
         userId,
         businessName,
-        businessDescription,
-        businessWebsite,
-        businessPhone,
-        businessEmail,
-        businessLogo,
+        businessDescription: businessDescription || null,
+        businessWebsite: businessWebsite || null,
+        businessPhone: businessPhone || null,
+        businessEmail: businessEmail || null,
+        businessLogo: businessLogo || null,
         businessType: 'company',
         verificationStatus: 'pending',
         isActive: true
       })
       .returning();
 
+    const insertTimeout = new Promise((_, reject) => 
+      setTimeout(() => reject(new Error('Database insert timeout during business creation')), 10000)
+    );
+
+    const [business] = await Promise.race([insertPromise, insertTimeout]);
+
     console.log('✅ Business profile created successfully after:', Date.now() - startTime, 'ms');
+    console.log('🏢 Created business:', business);
+    
     clearTimeout(timeout);
     res.json(business);
   } catch (error) {
     console.error('❌ Error creating business profile after:', Date.now() - startTime, 'ms', error);
     clearTimeout(timeout);
     if (!res.headersSent) {
-      res.status(500).json({ message: 'Failed to create business profile' });
+      // Provide more specific error messages
+      const errorMessage = error instanceof Error ? error.message : 'Failed to create business profile';
+      if (errorMessage.includes('timeout')) {
+        res.status(408).json({ message: 'Database operation timed out. Please try again.' });
+      } else if (errorMessage.includes('duplicate') || errorMessage.includes('unique')) {
+        res.status(400).json({ message: 'Business profile already exists for this user.' });
+      } else {
+        res.status(500).json({ message: 'Failed to create business profile. Please try again.' });
+      }
     }
   } finally {
     clearTimeout(timeout);
