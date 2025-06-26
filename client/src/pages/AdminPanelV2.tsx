@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo, useCallback } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation } from "@tanstack/react-query";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -10,8 +10,27 @@ import { Textarea } from "@/components/ui/textarea";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { RefreshCw, ChevronLeft, ChevronRight, Menu, X, AlertCircle, User, Shield, CheckCircle, Clock, AlertTriangle, MoreHorizontal, Ban, Eye, MapPin, Briefcase, TrendingUp } from "lucide-react";
-import { apiRequest } from "@/lib/queryClient";
+import { 
+  RefreshCw, 
+  ChevronLeft, 
+  ChevronRight, 
+  Menu, 
+  X as XIcon, 
+  AlertCircle, 
+  User, 
+  Shield, 
+  CheckCircle, 
+  Clock, 
+  AlertTriangle, 
+  MoreHorizontal, 
+  Ban, 
+  Eye, 
+  MapPin, 
+  Briefcase, 
+  TrendingUp,
+  XCircle
+} from "lucide-react";
+import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useAuth } from "@/hooks/use-auth";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from "@/components/ui/table";
@@ -19,6 +38,7 @@ import { Label } from "@/components/ui/label";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { format } from "date-fns";
 import { ResponsiveContainer, LineChart, CartesianGrid, XAxis, YAxis, Tooltip, Line, PieChart, Pie, Cell } from "recharts";
+import { useToast } from "@/hooks/use-toast";
 
 interface AdminStats {
   totalUsers: number;
@@ -130,6 +150,7 @@ export default function AdminPanelV2() {
   const [paymentFilterType, setPaymentFilterType] = useState<string>("all");
   
   const [debouncedSearch, setDebouncedSearch] = useState("");
+  const [debouncedEnterpriseSearch, setDebouncedEnterpriseSearch] = useState("");
   
   const [enterpriseSearch, setEnterpriseSearch] = useState("");
   
@@ -139,6 +160,13 @@ export default function AdminPanelV2() {
     }, 300);
     return () => clearTimeout(timer);
   }, [searchTerm]);
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedEnterpriseSearch(enterpriseSearch);
+    }, 300);
+    return () => clearTimeout(timer);
+  }, [enterpriseSearch]);
   
   useEffect(() => {
     setCurrentPage(1);
@@ -437,6 +465,48 @@ export default function AdminPanelV2() {
     }
   };
 
+  // Enterprise data queries
+  const { data: enterpriseBusinesses, isLoading: isEnterpriseLoading, refetch: refetchEnterprise } = useQuery({
+    queryKey: ['/api/admin/enterprise/businesses', { search: debouncedEnterpriseSearch }],
+    queryFn: async () => {
+      const params = new URLSearchParams({ search: debouncedEnterpriseSearch });
+      const res = await apiRequest('GET', `/api/admin/enterprise/businesses?${params.toString()}`);
+      return res.json();
+    },
+    enabled: isAdmin && selectedTab === 'enterprise',
+  });
+
+  // Placeholder data for missing enterprise endpoints
+  const hubPins: any[] = [];
+  const hubPinStats = { totalActive: 0 };
+  const enterpriseGrowthData: any[] = [];
+  const topBusinesses: any[] = [];
+  const positionTypeData: any[] = [];
+  const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042'];
+
+  const { toast } = useToast();
+
+  const handleViewBusinessDetails = (id: number) => toast({ title: "Info", description: `Viewing details for business ${id}` });
+  const handleSuspendBusiness = (id: number) => toast({ title: "Info", description: `Suspending business ${id}` });
+  const handleEditHubPin = (id: number) => toast({ title: "Info", description: `Editing hub pin ${id}` });
+
+  const { mutate: verifyBusinessMutation } = useMutation({
+    mutationFn: ({ id, status }: { id: number, status: 'verified' | 'rejected' }) => {
+      return apiRequest('PUT', `/api/admin/enterprise/businesses/${id}/verify`, { status });
+    },
+    onSuccess: () => {
+      toast({ title: "Success", description: "Business status updated." });
+      refetchEnterprise();
+    },
+    onError: (error: Error) => {
+      toast({ title: "Error", description: `Failed to update status: ${error.message}`, variant: 'destructive' });
+    }
+  });
+
+  const handleVerifyBusiness = (id: number, status: 'verified' | 'rejected') => {
+    verifyBusinessMutation({ id, status });
+  };
+
   return (
     <div className="container mx-auto py-6 max-w-7xl">
       <div className="flex justify-between items-center mb-6">
@@ -464,7 +534,7 @@ export default function AdminPanelV2() {
             <RefreshCw className="h-4 w-4" />
           </Button>
           <Button variant="outline" className="md:hidden" size="icon" onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}>
-            {isMobileMenuOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
+            {isMobileMenuOpen ? <XIcon className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
           </Button>
         </div>
       </div>
