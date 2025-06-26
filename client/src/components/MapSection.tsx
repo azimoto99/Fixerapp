@@ -338,7 +338,7 @@ const MapSection: React.FC<MapSectionProps> = ({ jobs, selectedJob, onSelectJob,
     }[] = [];
     
     // Add enterprise hub pins first (they have higher priority)
-    if (hubPins && hubPins.length > 0) {
+    if (Array.isArray(hubPins) && hubPins.length > 0) {
       hubPins.forEach((hubPin: any) => {
         if (hubPin.isActive && hubPin.latitude && hubPin.longitude) {
           const lat = typeof hubPin.latitude === 'string' ? parseFloat(hubPin.latitude) : hubPin.latitude;

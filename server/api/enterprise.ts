@@ -222,6 +222,9 @@ export async function getBusinessStats(req: Request, res: Response) {
 // Get active hub pins for map display
 export async function getActiveHubPins(req: Request, res: Response) {
   try {
+    const { limit } = req.query as { limit?: string };
+    const max = Math.min(parseInt(limit || '500'), 5000); // safeguard max 5000
+
     const pins = await db.select({
       id: hubPins.id,
       title: hubPins.title,
@@ -249,7 +252,8 @@ export async function getActiveHubPins(req: Request, res: Response) {
         eq(enterpriseBusinesses.isActive, true)
       )
     )
-    .orderBy(desc(hubPins.priority));
+    .orderBy(desc(hubPins.priority))
+    .limit(isNaN(max) ? 500 : max);
 
     res.json(pins);
   } catch (error) {
