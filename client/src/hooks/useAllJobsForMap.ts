@@ -17,7 +17,7 @@ export function useAllJobsForMap() {
   });
   
   // Process jobs to ensure coordinates are valid numbers
-  const processedJobs = (jobsResponse || []).map(job => {
+  const processedJobs = (Array.isArray(jobsResponse) ? jobsResponse : []).map(job => {
     // Convert string coordinates to numbers if needed
     const latitude = typeof job.latitude === 'string' ? parseFloat(job.latitude) : job.latitude;
     const longitude = typeof job.longitude === 'string' ? parseFloat(job.longitude) : job.longitude;
