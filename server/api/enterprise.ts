@@ -43,12 +43,13 @@ export async function createBusinessProfile(req: Request, res: Response) {
   const startTime = Date.now();
   
   // Add request timeout handler
+  const timeoutDuration = 30000; // 30-second overall safeguard
   const timeout = setTimeout(() => {
-    console.error('⚠️ Business profile creation timed out after 15 seconds');
+    console.error(`⚠️ Business profile creation timed out after ${timeoutDuration / 1000} seconds`);
     if (!res.headersSent) {
       res.status(408).json({ message: "Business profile creation timed out. Please try again." });
     }
-  }, 15000); // Reduced to 15 seconds
+  }, timeoutDuration);
   
   try {
     const userId = req.user?.id;
@@ -77,14 +78,14 @@ export async function createBusinessProfile(req: Request, res: Response) {
 
     console.log('⏱️ About to check for existing business after:', Date.now() - startTime, 'ms');
     
-    // Check if business already exists with timeout
+    // Check if business already exists with timeout (12s instead of 8s)
     const existingCheckPromise = db.select()
       .from(enterpriseBusinesses)
       .where(eq(enterpriseBusinesses.userId, userId))
       .limit(1);
 
     const existingCheckTimeout = new Promise((_, reject) => 
-      setTimeout(() => reject(new Error('Database query timeout during existing business check')), 8000)
+      setTimeout(() => reject(new Error('Database query timeout during existing business check')), 12000)
     );
 
     const existing = await Promise.race([existingCheckPromise, existingCheckTimeout]);
@@ -117,7 +118,7 @@ export async function createBusinessProfile(req: Request, res: Response) {
       .returning();
 
     const insertTimeout = new Promise((_, reject) => 
-      setTimeout(() => reject(new Error('Database insert timeout during business creation')), 10000)
+      setTimeout(() => reject(new Error('Database insert timeout during business creation')), 20000)
     );
 
     const [business] = await Promise.race([insertPromise, insertTimeout]);

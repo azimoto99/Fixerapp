@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -78,6 +78,14 @@ export default function BusinessSettings({ businessData }: { businessData: Busin
         title: 'Business Profile Updated',
         description: 'Your business profile has been updated successfully.',
       });
+      setFormData({
+        businessName: data?.businessName || '',
+        businessDescription: data?.businessDescription || '',
+        businessWebsite: data?.businessWebsite || '',
+        businessPhone: data?.businessPhone || '',
+        businessEmail: data?.businessEmail || '',
+        businessType: data?.businessType || 'company'
+      });
     },
     onError: (error: any) => {
       console.error('🏢 Business profile update mutation error:', error);
@@ -88,6 +96,20 @@ export default function BusinessSettings({ businessData }: { businessData: Busin
       });
     }
   });
+
+  // Keep form data in sync when businessData prop changes (e.g., after refetch)
+  useEffect(() => {
+    if (!isEditing && businessData) {
+      setFormData({
+        businessName: businessData.businessName || '',
+        businessDescription: businessData.businessDescription || '',
+        businessWebsite: businessData.businessWebsite || '',
+        businessPhone: businessData.businessPhone || '',
+        businessEmail: businessData.businessEmail || '',
+        businessType: businessData.businessType || 'company'
+      });
+    }
+  }, [businessData, isEditing]);
 
   const handleSave = () => {
     updateMutation.mutate(formData);
