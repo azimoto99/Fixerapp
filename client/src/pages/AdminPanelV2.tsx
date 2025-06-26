@@ -479,6 +479,14 @@ export default function AdminPanelV2() {
   // Placeholder data for missing enterprise endpoints
   const hubPins: any[] = [];
   const hubPinStats = { totalActive: 0 };
+  // Placeholder for enterprise position statistics to prevent runtime errors
+  // TODO: Replace with real data fetched from the API once the endpoint is available
+  const positionStats = {
+    total: 0,
+    active: 0,
+    totalApplications: 0,
+    avgApplications: 0,
+  };
   const enterpriseGrowthData: any[] = [];
   const topBusinesses: any[] = [];
   const positionTypeData: any[] = [];
