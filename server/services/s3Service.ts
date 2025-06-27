@@ -1,4 +1,5 @@
-import { S3Client, PutObjectCommand, PutObjectCommandOutput } from "@aws-sdk/client-s3";
+import { S3Client, PutObjectCommand, PutObjectCommandOutput, GetObjectCommand } from "@aws-sdk/client-s3";
+import { getSignedUrl as awsGetSignedUrl } from "@aws-sdk/s3-request-presigner";
 import { fromEnv } from "@aws-sdk/credential-providers";
 import crypto from 'crypto';
 
@@ -88,16 +89,19 @@ export async function uploadFile(buffer: Buffer, fileName: string, contentType: 
             Key: key,
             Body: buffer,
             ContentType: contentType,
-            ACL: 'public-read' // Make file publicly readable
+            // Removed ACL since bucket doesn't support ACLs
+            // Files will be accessible via CloudFront or bucket policy
         });
 
         await s3Client.send(command);
 
-        const url = `https://${BUCKET_NAME}.s3.amazonaws.com/${key}`;
-        console.log('S3 upload successful:', url);
+        // Return a proxy URL that goes through our server
+        // This allows us to serve images even if the bucket is private
+        const proxyUrl = `${process.env.APP_URL || 'http://localhost:5000'}/api/images/${key}`;
+        console.log('S3 upload successful, proxy URL generated:', proxyUrl);
 
         return {
-            url,
+            url: proxyUrl,
             key,
             size: buffer.length
         };
@@ -116,6 +120,25 @@ export async function uploadFile(buffer: Buffer, fileName: string, contentType: 
         
         throw error;
     }
+}
+
+/**
+ * Generates a signed URL for accessing a private S3 object
+ * @param key The S3 object key
+ * @param expiresIn Expiration time in seconds (default: 1 hour)
+ * @returns A signed URL that provides temporary access to the object
+ */
+export async function generateSignedUrl(key: string, expiresIn: number = 3600): Promise<string> {
+    if (!BUCKET_NAME) {
+        throw new Error('S3 bucket not configured');
+    }
+
+    const command = new GetObjectCommand({
+        Bucket: BUCKET_NAME,
+        Key: key,
+    });
+
+    return await awsGetSignedUrl(s3Client, command, { expiresIn });
 }
 
 /**

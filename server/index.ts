@@ -181,6 +181,10 @@ app.use((req, res, next) => {
 // Register user routes BEFORE main routes to prevent interception
 app.use('/api/user', userRoutes);
 
+// Register images proxy route
+import imagesRoutes from './routes/images';
+app.use('/api/images', imagesRoutes);
+
 (async () => {
   const server = await registerRoutes(app);
 
