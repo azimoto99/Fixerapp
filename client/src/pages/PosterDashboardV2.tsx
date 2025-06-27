@@ -77,7 +77,7 @@ interface Application {
 }
 
 export default function PosterDashboardV2() {
-  const { user } = useAuth();
+  const { user, signOut } = useAuth();
   const queryClient = useQueryClient();
   const [activeTab, setActiveTab] = useState('overview');
   const [showJobWizard, setShowJobWizard] = useState(false);
@@ -281,6 +281,7 @@ export default function PosterDashboardV2() {
                 <PlusCircle className="h-4 w-4 mr-2" />
                 Post New Job
               </Button>
+              <Button variant="outline" onClick={signOut}>Sign Out</Button>
             </div>
           </div>
         </div>

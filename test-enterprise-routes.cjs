@@ -82,7 +82,7 @@ function makeRequest(method, path, expectedStatus = null) {
   });
 }
 
-async function testRoutes() {
+async function runEnterpriseTests() {
   console.log('🚀 Testing Enterprise Routes...\n');
   
   const results = {
@@ -151,7 +151,7 @@ async function testRoutes() {
 
 // Run the test if this script is executed directly
 if (require.main === module) {
-  testRoutes().catch(console.error);
+  runEnterpriseTests().catch(console.error);
 }
 
 module.exports = { testRoutes };

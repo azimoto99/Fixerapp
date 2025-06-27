@@ -111,7 +111,10 @@ export default function PosterDashboard() {
                 Manage your jobs and find the perfect workers
               </p>
             </div>
-            <NewJobButton />
+            <div className="flex items-center gap-4">
+              <NewJobButton />
+              <Button variant="outline" onClick={signOut}>Sign Out</Button>
+            </div>
           </div>
         </div>
       </div>
