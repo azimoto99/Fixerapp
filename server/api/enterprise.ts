@@ -87,6 +87,9 @@ export async function uploadEnterpriseLogo(req: Request, res: Response) {
 
 // Middleware function to handle multer upload
 export const handleLogoUpload = logoUpload.single('logo');
+
+export async function uploadAvatar(req: Request, res: Response) {
+  try {
     if (!req.files?.avatar) {
       return res.status(400).json({ message: 'No avatar file uploaded' });
     }
