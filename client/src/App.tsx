@@ -7,6 +7,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { PaymentDialogProvider } from "@/components/payments/PaymentDialogManager";
 import Home from "@/pages/Home";
 import PostJob from "@/pages/PostJob";
+import Explore from "@/pages/Explore";
 // JobDetailPage removed - using unified JobDetailsCard via JobCardFix
 
 import AuthPage from "@/pages/auth-page";
@@ -94,6 +95,7 @@ function RouterWithAuth() {
   return (
     <Switch>
       <ProtectedRoute path="/" component={Home} />
+      <ProtectedRoute path="/explore" component={Explore} />
       <ProtectedRoute path="/post-job" component={PostJob} />
       <ProtectedRoute path="/jobs/post" component={PostJob} />
       {/* Job detail route removed - using unified JobDetailsCard modal */}

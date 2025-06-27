@@ -315,6 +315,62 @@ jobsRouter.post('/:id/apply', isAuthenticated, async (req: Request, res: Respons
 });
 
 // --------------------------------------------------------
+// GET /api/jobs/nearby – get nearby jobs
+// --------------------------------------------------------
+jobsRouter.get('/nearby', optionalAuth, async (req: Request, res: Response) => {
+  try {
+    const { latitude, longitude, radius = 25 } = req.query;
+    
+    if (!latitude || !longitude) {
+      return res.status(400).json({ message: 'Latitude and longitude are required' });
+    }
+
+    const lat = parseFloat(latitude as string);
+    const lng = parseFloat(longitude as string);
+    const radiusMiles = parseFloat(radius as string);
+
+    if (isNaN(lat) || isNaN(lng) || isNaN(radiusMiles)) {
+      return res.status(400).json({ message: 'Invalid coordinates or radius' });
+    }
+
+    // Get all active jobs
+    const allJobs = await storage.getJobs();
+    
+    // Filter jobs by distance and status
+    const nearbyJobs = allJobs
+      .filter(job => {
+        // Only show open jobs
+        if (job.status !== 'open') return false;
+        
+        // Calculate distance using Haversine formula
+        const R = 3959; // Earth's radius in miles
+        const dLat = (job.latitude - lat) * Math.PI / 180;
+        const dLon = (job.longitude - lng) * Math.PI / 180;
+        const a = 
+          Math.sin(dLat/2) * Math.sin(dLat/2) +
+          Math.cos(lat * Math.PI / 180) * Math.cos(job.latitude * Math.PI / 180) * 
+          Math.sin(dLon/2) * Math.sin(dLon/2);
+        const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+        const distance = R * c;
+        
+        return distance <= radiusMiles;
+      })
+      .sort((a, b) => {
+        // Sort by date posted (newest first)
+        const dateA = new Date(a.datePosted || 0).getTime();
+        const dateB = new Date(b.datePosted || 0).getTime();
+        return dateB - dateA;
+      })
+      .slice(0, 50); // Limit to 50 results
+
+    res.json(nearbyJobs);
+  } catch (err) {
+    console.error('Nearby jobs error:', err);
+    res.status(500).json({ message: 'Failed to fetch nearby jobs' });
+  }
+});
+
+// --------------------------------------------------------
 // DELETE /api/jobs/:id/apply – withdraw application
 // --------------------------------------------------------
 jobsRouter.delete('/:id/apply', isAuthenticated, async (req: Request, res: Response) => {
