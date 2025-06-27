@@ -21,7 +21,7 @@ import { useLocation } from "wouter";
 import { useAuth } from '@/hooks/use-auth';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
-import { apiRequest } from '@/lib/api';
+import { apiRequest } from '@/lib/queryClient';
 import { Button } from '@/components/ui/button';
 import { Separator } from "@/components/ui/separator";
 import { Badge } from "@/components/ui/badge";
