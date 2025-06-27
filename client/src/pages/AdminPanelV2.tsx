@@ -135,6 +135,8 @@ export default function AdminPanelV2() {
   const [actionDetails, setActionDetails] = useState("");
   const [suspensionDuration, setSuspensionDuration] = useState("7"); // days
   const [isStrikesDialogOpen, setIsStrikesDialogOpen] = useState(false);
+  const [isBusinessDetailsDialogOpen, setIsBusinessDetailsDialogOpen] = useState(false);
+  const [selectedBusiness, setSelectedBusiness] = useState<any | null>(null);
   
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
@@ -494,7 +496,10 @@ export default function AdminPanelV2() {
 
   const { toast } = useToast();
 
-  const handleViewBusinessDetails = (id: number) => toast({ title: "Info", description: `Viewing details for business ${id}` });
+  const handleViewBusinessDetails = (business: any) => {
+    setSelectedBusiness(business);
+    setIsBusinessDetailsDialogOpen(true);
+  };
   const handleSuspendBusiness = (id: number) => toast({ title: "Info", description: `Suspending business ${id}` });
   const handleEditHubPin = (id: number) => toast({ title: "Info", description: `Editing hub pin ${id}` });
 
@@ -1044,7 +1049,7 @@ export default function AdminPanelV2() {
                                 </Button>
                               </DropdownMenuTrigger>
                               <DropdownMenuContent align="end">
-                                <DropdownMenuItem onClick={() => handleViewBusinessDetails(business.id)}>
+                                <DropdownMenuItem onClick={() => handleViewBusinessDetails(business)}>
                                   <Eye className="h-4 w-4 mr-2" />
                                   View Details
                                 </DropdownMenuItem>
@@ -1483,6 +1488,216 @@ export default function AdminPanelV2() {
               </div>
             )}
           </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Business Details Dialog */}
+      <Dialog open={isBusinessDetailsDialogOpen} onOpenChange={setIsBusinessDetailsDialogOpen}>
+        <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Business Details</DialogTitle>
+          </DialogHeader>
+          
+          {selectedBusiness && (
+            <div className="space-y-6">
+              {/* Basic Information */}
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-lg">Basic Information</CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <Label className="text-sm font-medium text-muted-foreground">Business Name</Label>
+                      <p className="text-sm font-semibold">{selectedBusiness.businessName}</p>
+                    </div>
+                    <div>
+                      <Label className="text-sm font-medium text-muted-foreground">Business Email</Label>
+                      <p className="text-sm">{selectedBusiness.businessEmail}</p>
+                    </div>
+                    <div>
+                      <Label className="text-sm font-medium text-muted-foreground">Phone</Label>
+                      <p className="text-sm">{selectedBusiness.businessPhone || 'N/A'}</p>
+                    </div>
+                    <div>
+                      <Label className="text-sm font-medium text-muted-foreground">Website</Label>
+                      <p className="text-sm">{selectedBusiness.businessWebsite || 'N/A'}</p>
+                    </div>
+                    <div>
+                      <Label className="text-sm font-medium text-muted-foreground">Industry</Label>
+                      <p className="text-sm">{selectedBusiness.industry || 'N/A'}</p>
+                    </div>
+                    <div>
+                      <Label className="text-sm font-medium text-muted-foreground">Company Size</Label>
+                      <p className="text-sm">{selectedBusiness.companySize || 'N/A'}</p>
+                    </div>
+                  </div>
+                  
+                  {selectedBusiness.businessDescription && (
+                    <div>
+                      <Label className="text-sm font-medium text-muted-foreground">Description</Label>
+                      <p className="text-sm mt-1">{selectedBusiness.businessDescription}</p>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+
+              {/* Address Information */}
+              {(selectedBusiness.businessAddress || selectedBusiness.businessCity || selectedBusiness.businessState) && (
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="text-lg">Address Information</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div>
+                        <Label className="text-sm font-medium text-muted-foreground">Address</Label>
+                        <p className="text-sm">{selectedBusiness.businessAddress || 'N/A'}</p>
+                      </div>
+                      <div>
+                        <Label className="text-sm font-medium text-muted-foreground">City</Label>
+                        <p className="text-sm">{selectedBusiness.businessCity || 'N/A'}</p>
+                      </div>
+                      <div>
+                        <Label className="text-sm font-medium text-muted-foreground">State</Label>
+                        <p className="text-sm">{selectedBusiness.businessState || 'N/A'}</p>
+                      </div>
+                      <div>
+                        <Label className="text-sm font-medium text-muted-foreground">ZIP Code</Label>
+                        <p className="text-sm">{selectedBusiness.businessZip || 'N/A'}</p>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
+
+              {/* Account Status */}
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-lg">Account Status</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div>
+                      <Label className="text-sm font-medium text-muted-foreground">Verification Status</Label>
+                      <div className="mt-1">
+                        <Badge variant={
+                          selectedBusiness.verificationStatus === 'verified' ? 'default' :
+                          selectedBusiness.verificationStatus === 'rejected' ? 'destructive' :
+                          'secondary'
+                        }>
+                          {selectedBusiness.verificationStatus}
+                        </Badge>
+                      </div>
+                    </div>
+                    <div>
+                      <Label className="text-sm font-medium text-muted-foreground">Account Created</Label>
+                      <p className="text-sm">{format(new Date(selectedBusiness.createdAt), 'MMM d, yyyy')}</p>
+                    </div>
+                    <div>
+                      <Label className="text-sm font-medium text-muted-foreground">Last Updated</Label>
+                      <p className="text-sm">{format(new Date(selectedBusiness.updatedAt), 'MMM d, yyyy')}</p>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Owner Information */}
+              {selectedBusiness.user && (
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="text-lg">Owner Information</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div>
+                        <Label className="text-sm font-medium text-muted-foreground">Full Name</Label>
+                        <p className="text-sm">{selectedBusiness.user.fullName || 'N/A'}</p>
+                      </div>
+                      <div>
+                        <Label className="text-sm font-medium text-muted-foreground">Email</Label>
+                        <p className="text-sm">{selectedBusiness.user.email || 'N/A'}</p>
+                      </div>
+                      <div>
+                        <Label className="text-sm font-medium text-muted-foreground">Username</Label>
+                        <p className="text-sm">{selectedBusiness.user.username || 'N/A'}</p>
+                      </div>
+                      <div>
+                        <Label className="text-sm font-medium text-muted-foreground">Account Type</Label>
+                        <p className="text-sm">{selectedBusiness.user.accountType || 'N/A'}</p>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
+
+              {/* Activity Statistics */}
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-lg">Activity Statistics</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                    <div className="text-center">
+                      <p className="text-2xl font-bold text-blue-600">{selectedBusiness.hubPinCount || 0}</p>
+                      <p className="text-sm text-muted-foreground">Hub Pins</p>
+                    </div>
+                    <div className="text-center">
+                      <p className="text-2xl font-bold text-green-600">{selectedBusiness.activePositionCount || 0}</p>
+                      <p className="text-sm text-muted-foreground">Active Positions</p>
+                    </div>
+                    <div className="text-center">
+                      <p className="text-2xl font-bold text-orange-600">{selectedBusiness.totalApplications || 0}</p>
+                      <p className="text-sm text-muted-foreground">Total Applications</p>
+                    </div>
+                    <div className="text-center">
+                      <p className="text-2xl font-bold text-purple-600">{selectedBusiness.totalHires || 0}</p>
+                      <p className="text-sm text-muted-foreground">Total Hires</p>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Action Buttons */}
+              <div className="flex justify-end space-x-2 pt-4 border-t">
+                {selectedBusiness.verificationStatus === 'pending' && (
+                  <>
+                    <Button 
+                      onClick={() => {
+                        handleVerifyBusiness(selectedBusiness.id, 'verified');
+                        setIsBusinessDetailsDialogOpen(false);
+                      }}
+                      className="bg-green-600 hover:bg-green-700"
+                    >
+                      <CheckCircle className="h-4 w-4 mr-2" />
+                      Verify Business
+                    </Button>
+                    <Button 
+                      onClick={() => {
+                        handleVerifyBusiness(selectedBusiness.id, 'rejected');
+                        setIsBusinessDetailsDialogOpen(false);
+                      }}
+                      variant="destructive"
+                    >
+                      <XCircle className="h-4 w-4 mr-2" />
+                      Reject Verification
+                    </Button>
+                  </>
+                )}
+                <Button 
+                  onClick={() => {
+                    handleSuspendBusiness(selectedBusiness.id);
+                    setIsBusinessDetailsDialogOpen(false);
+                  }}
+                  variant="outline"
+                  className="text-destructive border-destructive hover:bg-destructive hover:text-destructive-foreground"
+                >
+                  <Ban className="h-4 w-4 mr-2" />
+                  Suspend Business
+                </Button>
+              </div>
+            </div>
+          )}
         </DialogContent>
       </Dialog>
 
