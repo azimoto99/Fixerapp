@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -6,6 +6,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
+import { LoadScript } from '@/components/LoadScript';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Plus, Edit, Trash2, MapPin, Eye, EyeOff } from 'lucide-react';
@@ -154,19 +155,25 @@ export default function HubPinManager({ businessId }: { businessId: number }) {
 
         <div>
           <Label htmlFor="location">Location *</Label>
-          <AddressAutocompleteInput
-            onLocationSelect={(address, coords) => {
-              setFormData({
-                ...formData,
-                location: address,
-                latitude: coords.lat,
-                longitude: coords.lng
-              });
-            }}
-            defaultValue={formData.location}
-            placeholder="Search for an address..."
-            required
-          />
+          <LoadScript 
+            src={`https://maps.googleapis.com/maps/api/js?key=${process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY}&libraries=places`}
+            strategy="idle"
+          >
+            <AddressAutocompleteInput
+              onLocationSelect={(address, coords) => {
+                setFormData({
+                  ...formData,
+                  location: address,
+                  latitude: coords.lat,
+                  longitude: coords.lng
+                });
+              }}
+              defaultValue={formData.location}
+              placeholder="Search for an address..."
+              required
+              ref={inputRef}
+            />
+          </LoadScript>
           <input type="hidden" name="latitude" value={formData.latitude} />
           <input type="hidden" name="longitude" value={formData.longitude} />
         </div>
