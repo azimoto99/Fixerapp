@@ -53,161 +53,158 @@ export default function SettingsContentV2({ user }: SettingsContentProps) {
     <div className="h-full flex flex-col">
       <Tabs defaultValue="profile" className="flex-1 flex flex-col">
         <div className="sticky top-0 bg-background z-10 border-b">
-          <TabsList className="grid w-full grid-cols-3 rounded-none bg-transparent p-0 h-14">
-            <TabsTrigger value="profile" className="py-4 rounded-none border-b-2 data-[state=active]:border-primary data-[state=active]:bg-transparent">
-              <UserIcon className="w-4 h-4 mr-2" />
+          <TabsList className="grid w-full grid-cols-3 rounded-none bg-transparent p-0 h-12">
+            <TabsTrigger value="profile" className="py-3 px-2 rounded-none border-b-2 data-[state=active]:border-primary data-[state=active]:bg-transparent text-xs">
+              <UserIcon className="w-3 h-3 mr-1" />
               Profile
             </TabsTrigger>
-            <TabsTrigger value="preferences" className="py-4 rounded-none border-b-2 data-[state=active]:border-primary data-[state=active]:bg-transparent">
-              <Palette className="w-4 h-4 mr-2" />
-              Preferences
+            <TabsTrigger value="preferences" className="py-3 px-2 rounded-none border-b-2 data-[state=active]:border-primary data-[state=active]:bg-transparent text-xs">
+              <Palette className="w-3 h-3 mr-1" />
+              Prefs
             </TabsTrigger>
-            <TabsTrigger value="account" className="py-4 rounded-none border-b-2 data-[state=active]:border-primary data-[state=active]:bg-transparent">
-              <Shield className="w-4 h-4 mr-2" />
+            <TabsTrigger value="account" className="py-3 px-2 rounded-none border-b-2 data-[state=active]:border-primary data-[state=active]:bg-transparent text-xs">
+              <Shield className="w-3 h-3 mr-1" />
               Account
             </TabsTrigger>
           </TabsList>
         </div>
 
         {/* Profile Tab */}
-        <TabsContent value="profile" className="flex-1 p-6">
-          <div className="max-w-2xl mx-auto space-y-8">
-            <div className="text-center space-y-4">
-              <ProfileImageUploader user={user} className="mx-auto w-32 h-32" />
-              <div>
-                <h2 className="text-2xl font-bold">{user.fullName || user.username}</h2>
-                <p className="text-muted-foreground">{user.email}</p>
+        <TabsContent value="profile" className="flex-1 p-4 space-y-4">
+          <div className="text-center space-y-3">
+            <ProfileImageUploader user={user} className="mx-auto w-20 h-20" />
+            <div>
+              <h2 className="text-lg font-bold truncate">{user.fullName || user.username}</h2>
+              <p className="text-sm text-muted-foreground truncate">{user.email}</p>
+            </div>
+          </div>
+
+          <Card className="p-4">
+            <div className="space-y-4">
+              <div className="space-y-3">
+                <div className="space-y-2">
+                  <Label className="flex items-center gap-2 text-sm">
+                    <UserIcon className="w-3 h-3" />
+                    Username
+                  </Label>
+                  <Input value={user.username} readOnly className="bg-muted/50 text-sm h-9" />
+                </div>
+                <div className="space-y-2">
+                  <Label className="flex items-center gap-2 text-sm">
+                    <Mail className="w-3 h-3" />
+                    Email
+                  </Label>
+                  <Input value={user.email} readOnly className="bg-muted/50 text-sm h-9" />
+                </div>
+              </div>
+              
+              <div className="space-y-2">
+                <Label className="flex items-center gap-2 text-sm">
+                  <Lock className="w-3 h-3" />
+                  Password
+                </Label>
+                <Button variant="outline" size="sm" className="w-full h-9" disabled>
+                  Change Password
+                </Button>
               </div>
             </div>
-
-            <Card className="p-6">
-              <div className="space-y-6">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label className="flex items-center gap-2">
-                      <UserIcon className="w-4 h-4" />
-                      Username
-                    </Label>
-                    <Input value={user.username} readOnly className="bg-muted/50" />
-                  </div>
-                  <div className="space-y-2">
-                    <Label className="flex items-center gap-2">
-                      <Mail className="w-4 h-4" />
-                      Email
-                    </Label>
-                    <Input value={user.email} readOnly className="bg-muted/50" />
-                  </div>
-                </div>
-                
-                <div className="space-y-2">
-                  <Label className="flex items-center gap-2">
-                    <Lock className="w-4 h-4" />
-                    Password
-                  </Label>
-                  <Button variant="outline" className="w-full" disabled>
-                    Change Password
-                  </Button>
-                </div>
-              </div>
-            </Card>
-          </div>
+          </Card>
         </TabsContent>
 
         {/* Preferences Tab */}
-        <TabsContent value="preferences" className="flex-1 p-6">
-          <div className="max-w-2xl mx-auto space-y-8">
-            <Card className="p-6">
-              <div className="space-y-6">
-                <div className="space-y-2">
-                  <h3 className="flex items-center gap-2 font-semibold text-lg">
-                    <Bell className="w-5 h-5" />
-                    Notifications
-                  </h3>
-                  {Object.entries(notificationSettings).map(([key, value]) => (
-                    <div key={key} className="flex items-center justify-between p-3 rounded-lg hover:bg-muted/50">
-                      <Label className="capitalize font-normal">
-                        {key.replace(/([A-Z])/g, ' $1').toLowerCase()}
-                      </Label>
-                      <Switch 
-                        checked={value} 
-                        onCheckedChange={() => toggleSetting('notification', key)}
-                      />
-                    </div>
-                  ))}
-                </div>
-
-                <div className="space-y-2">
-                  <h3 className="flex items-center gap-2 font-semibold text-lg">
-                    <Shield className="w-5 h-5" />
-                    Privacy
-                  </h3>
-                  {Object.entries(privacySettings).map(([key, value]) => (
-                    <div key={key} className="flex items-center justify-between p-3 rounded-lg hover:bg-muted/50">
-                      <Label className="capitalize font-normal">
-                        {key.replace(/([A-Z])/g, ' $1').toLowerCase()}
-                      </Label>
-                      <Switch 
-                        checked={value} 
-                        onCheckedChange={() => toggleSetting('privacy', key)}
-                      />
-                    </div>
-                  ))}
-                </div>
-
-                <div className="space-y-2">
-                  <h3 className="flex items-center gap-2 font-semibold text-lg">
-                    <Moon className="w-5 h-5" />
-                    Appearance
-                  </h3>
-                  <div className="p-3 rounded-lg hover:bg-muted/50">
-                    <ThemeToggle />
+        <TabsContent value="preferences" className="flex-1 p-4 space-y-4">
+          <Card className="p-4">
+            <div className="space-y-4">
+              <div className="space-y-3">
+                <h3 className="flex items-center gap-2 font-semibold text-sm">
+                  <Bell className="w-4 h-4" />
+                  Notifications
+                </h3>
+                {Object.entries(notificationSettings).map(([key, value]) => (
+                  <div key={key} className="flex items-center justify-between py-2 px-2 rounded-lg hover:bg-muted/50">
+                    <Label className="capitalize font-normal text-sm">
+                      {key.replace(/([A-Z])/g, ' $1').toLowerCase()}
+                    </Label>
+                    <Switch 
+                      checked={value} 
+                      onCheckedChange={() => toggleSetting('notification', key)}
+                      className="scale-75"
+                    />
                   </div>
+                ))}
+              </div>
+
+              <div className="space-y-3">
+                <h3 className="flex items-center gap-2 font-semibold text-sm">
+                  <Shield className="w-4 h-4" />
+                  Privacy
+                </h3>
+                {Object.entries(privacySettings).map(([key, value]) => (
+                  <div key={key} className="flex items-center justify-between py-2 px-2 rounded-lg hover:bg-muted/50">
+                    <Label className="capitalize font-normal text-sm">
+                      {key.replace(/([A-Z])/g, ' $1').toLowerCase()}
+                    </Label>
+                    <Switch 
+                      checked={value} 
+                      onCheckedChange={() => toggleSetting('privacy', key)}
+                      className="scale-75"
+                    />
+                  </div>
+                ))}
+              </div>
+
+              <div className="space-y-3">
+                <h3 className="flex items-center gap-2 font-semibold text-sm">
+                  <Moon className="w-4 h-4" />
+                  Appearance
+                </h3>
+                <div className="py-2 px-2 rounded-lg hover:bg-muted/50">
+                  <ThemeToggle />
                 </div>
               </div>
-            </Card>
-          </div>
+            </div>
+          </Card>
         </TabsContent>
 
         {/* Account Tab */}
-        <TabsContent value="account" className="flex-1 p-6">
-          <div className="max-w-2xl mx-auto space-y-8">
-            <Card className="p-6 border-destructive/50">
-              <div className="space-y-4">
-                <h3 className="text-lg font-semibold text-destructive">Danger Zone</h3>
-                <div className="space-y-2">
-                  <Label className="text-destructive">Delete Account</Label>
-                  <p className="text-sm text-muted-foreground">
-                    Permanently remove your account and all associated data
-                  </p>
-                  <Button 
-                    variant="destructive" 
-                    className="w-full mt-2"
-                    onClick={() => toast({ 
-                      title: 'Account deletion requested',
-                      description: 'Please contact support to complete account deletion',
-                      variant: 'destructive'
-                    })}
-                  >
-                    <Trash2 className="w-4 h-4 mr-2" />
-                    Delete Account
-                  </Button>
-                </div>
+        <TabsContent value="account" className="flex-1 p-4">
+          <Card className="p-4 border-destructive/50">
+            <div className="space-y-3">
+              <h3 className="text-sm font-semibold text-destructive">Danger Zone</h3>
+              <div className="space-y-2">
+                <Label className="text-destructive text-sm">Delete Account</Label>
+                <p className="text-xs text-muted-foreground">
+                  Permanently remove your account and all associated data
+                </p>
+                <Button 
+                  variant="destructive" 
+                  size="sm"
+                  className="w-full h-9"
+                  onClick={() => toast({ 
+                    title: 'Account deletion requested',
+                    description: 'Please contact support to complete account deletion',
+                    variant: 'destructive'
+                  })}
+                >
+                  <Trash2 className="w-3 h-3 mr-2" />
+                  Delete Account
+                </Button>
               </div>
-            </Card>
-          </div>
+            </div>
+          </Card>
         </TabsContent>
       </Tabs>
 
       {/* Save Bar */}
       {dirty && (
-        <div className="sticky bottom-0 bg-background/90 backdrop-blur-md border-t py-4">
-          <div className="max-w-2xl mx-auto flex justify-end gap-3 px-6">
-            <Button variant="ghost" onClick={() => setDirty(false)}>
-              Discard Changes
+        <div className="sticky bottom-0 bg-background/90 backdrop-blur-md border-t py-3">
+          <div className="flex justify-end gap-2 px-4">
+            <Button variant="ghost" size="sm" onClick={() => setDirty(false)}>
+              Discard
             </Button>
-            <Button onClick={handleSave} disabled={isSaving}>
-              {isSaving && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
-              Save Changes
+            <Button size="sm" onClick={handleSave} disabled={isSaving}>
+              {isSaving && <Loader2 className="h-3 w-3 mr-2 animate-spin" />}
+              Save
             </Button>
           </div>
         </div>
