@@ -197,21 +197,21 @@ const adjustColorBrightness = (hex: string, percent: number): string => {
 
 // Enterprise hub pin specific styling
 const getEnterprisePinStyle = (config: PinConfig, isDark: boolean = false): PinStyle => {
-  // Make enterprise pins larger but not overwhelming
-  let baseSize = 60; // Reduced from 100 to 60
+  // Make enterprise pins reasonably sized
+  let baseSize = 40; // Reduced from 60 to 40
   
   // Adjust size based on pin size setting
-  if (config.category === 'small') baseSize = 45;
-  else if (config.category === 'medium') baseSize = 60;
-  else if (config.category === 'large') baseSize = 75;
+  if (config.category === 'small') baseSize = 32;
+  else if (config.category === 'medium') baseSize = 40;
+  else if (config.category === 'large') baseSize = 48;
   
   return {
     backgroundColor: config.enterpriseColor || '#FF6B6B',
     borderColor: isDark ? '#ffffff' : '#000000',
-    borderWidth: 3, // Reduced from 5 to 3
+    borderWidth: 2, // Reduced from 3 to 2
     borderStyle: 'solid',
     icon: config.enterpriseIcon || '🏢',
-    size: baseSize + (config.priority || 0) * 8, // Reduced multiplier from 15 to 8
+    size: baseSize + (config.priority || 0) * 4, // Reduced multiplier from 8 to 4
     textColor: '#ffffff',
     shadowColor: 'rgba(255, 107, 107, 0.6)',
     isEnterprise: true,
