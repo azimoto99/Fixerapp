@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import React, { useState, useEffect } from 'react';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
@@ -17,8 +17,8 @@ import {
   CheckCircle, 
   ArrowRight, 
   ArrowLeft,
-  AlertTriangle,
-  Loader2
+  Loader2,
+  Edit
 } from 'lucide-react';
 import { useForm } from 'react-hook-form';
 import { apiRequest } from '@/lib/queryClient';
@@ -30,6 +30,7 @@ interface JobPostingWizardProps {
   isOpen: boolean;
   onClose: () => void;
   onJobCreated: (job: Job) => void;
+  jobToEdit?: Job | null;
 }
 
 interface JobFormData {
@@ -77,19 +78,29 @@ const COMMON_SKILLS = [
   'Communication'
 ];
 
-export default function JobPostingWizard({ isOpen, onClose, onJobCreated }: JobPostingWizardProps) {
+export default function JobPostingWizard({ isOpen, onClose, onJobCreated, jobToEdit }: JobPostingWizardProps) {
   const [currentStep, setCurrentStep] = useState(1);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const { toast } = useToast();
+  const isEditMode = !!jobToEdit;
   
-  const { register, handleSubmit, watch, setValue, formState: { errors } } = useForm<JobFormData>({
-    defaultValues: {
-      paymentType: 'fixed',
-      equipmentProvided: false,
-      urgency: 'medium',
-      skills: []
+  const { register, handleSubmit, watch, setValue, reset, formState: { errors } } = useForm<JobFormData>();
+
+  useEffect(() => {
+    if (jobToEdit) {
+      reset({
+        ...jobToEdit,
+        dateNeeded: jobToEdit.dateNeeded ? new Date(jobToEdit.dateNeeded).toISOString().split('T')[0] : '',
+      });
+    } else {
+      reset({
+        paymentType: 'fixed',
+        equipmentProvided: false,
+        urgency: 'medium',
+        skills: []
+      });
     }
-  });
+  }, [jobToEdit, reset]);
 
   const watchedValues = watch();
   const totalSteps = 4;
@@ -125,7 +136,10 @@ export default function JobPostingWizard({ isOpen, onClose, onJobCreated }: JobP
     setIsSubmitting(true);
     
     try {
-      const response = await apiRequest('POST', '/api/jobs', {
+      const url = isEditMode ? `/api/jobs/${jobToEdit.id}` : '/api/jobs';
+      const method = isEditMode ? 'PUT' : 'POST';
+      
+      const response = await apiRequest(method, url, {
         ...data,
         dateNeeded: new Date(data.dateNeeded).toISOString(),
         status: 'open'
@@ -133,17 +147,17 @@ export default function JobPostingWizard({ isOpen, onClose, onJobCreated }: JobP
 
       if (response.success) {
         toast({
-          title: 'Job posted successfully!',
-          description: 'Your job is now live and workers can apply.',
+          title: isEditMode ? 'Job updated successfully!' : 'Job posted successfully!',
+          description: isEditMode ? 'Your job has been updated.' : 'Your job is now live and workers can apply.',
         });
         onJobCreated(response.job);
       } else {
-        throw new Error(response.message || 'Failed to post job');
+        throw new Error(response.message || `Failed to ${isEditMode ? 'update' : 'post'} job`);
       }
     } catch (error) {
-      console.error('Job posting error:', error);
+      console.error(`Job ${isEditMode ? 'updating' : 'posting'} error:`, error);
       toast({
-        title: 'Failed to post job',
+        title: `Failed to ${isEditMode ? 'update' : 'post'} job`,
         description: error instanceof Error ? error.message : 'Please try again',
         variant: 'destructive',
       });
@@ -184,7 +198,7 @@ export default function JobPostingWizard({ isOpen, onClose, onJobCreated }: JobP
 
             <div>
               <Label htmlFor="category">Category *</Label>
-              <Select onValueChange={(value) => setValue('category', value)}>
+              <Select onValueChange={(value) => setValue('category', value)} value={watchedValues.category}>
                 <SelectTrigger>
                   <SelectValue placeholder="Select a category" />
                 </SelectTrigger>
@@ -205,9 +219,9 @@ export default function JobPostingWizard({ isOpen, onClose, onJobCreated }: JobP
               <Label>Urgency Level</Label>
               <div className="flex gap-2 mt-2">
                 {[
-                  { value: 'low', label: 'Low', color: 'bg-green-100 text-green-800' },
-                  { value: 'medium', label: 'Medium', color: 'bg-yellow-100 text-yellow-800' },
-                  { value: 'high', label: 'High', color: 'bg-red-100 text-red-800' }
+                  { value: 'low', label: 'Low' },
+                  { value: 'medium', label: 'Medium' },
+                  { value: 'high', label: 'High' }
                 ].map((urgency) => (
                   <Button
                     key={urgency.value}
@@ -232,6 +246,7 @@ export default function JobPostingWizard({ isOpen, onClose, onJobCreated }: JobP
               <LocationInput
                 placeholder="Enter the job address"
                 onLocationSelect={handleLocationSelect}
+                initialValue={watchedValues.location}
               />
               {errors.location && (
                 <p className="text-sm text-red-600 mt-1">{errors.location.message}</p>
@@ -396,7 +411,6 @@ export default function JobPostingWizard({ isOpen, onClose, onJobCreated }: JobP
               )}
             </div>
 
-            {/* Job Summary */}
             <Card>
               <CardHeader>
                 <CardTitle className="text-lg">Job Summary</CardTitle>
@@ -436,13 +450,15 @@ export default function JobPostingWizard({ isOpen, onClose, onJobCreated }: JobP
       <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
-            <CheckCircle className="h-5 w-5" />
-            Post a New Job
+            {isEditMode ? <Edit className="h-5 w-5" /> : <CheckCircle className="h-5 w-5" />}
+            {isEditMode ? 'Edit Job' : 'Post a New Job'}
           </DialogTitle>
+          <DialogDescription>
+            {isEditMode ? 'Update the details of your existing job.' : 'Complete the steps below to find the perfect worker.'}
+          </DialogDescription>
         </DialogHeader>
 
         <div className="space-y-6">
-          {/* Progress Bar */}
           <div className="space-y-2">
             <div className="flex justify-between text-sm">
               <span>Step {currentStep} of {totalSteps}</span>
@@ -451,12 +467,10 @@ export default function JobPostingWizard({ isOpen, onClose, onJobCreated }: JobP
             <Progress value={progress} className="h-2" />
           </div>
 
-          {/* Step Content */}
           <form onSubmit={handleSubmit(onSubmit)}>
             {renderStep()}
 
-            {/* Navigation Buttons */}
-            <div className="flex justify-between pt-6 border-t">
+            <div className="flex justify-between pt-6 border-t mt-6">
               <Button
                 type="button"
                 variant="outline"
@@ -488,12 +502,12 @@ export default function JobPostingWizard({ isOpen, onClose, onJobCreated }: JobP
                   {isSubmitting ? (
                     <>
                       <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                      Posting Job...
+                      {isEditMode ? 'Updating Job...' : 'Posting Job...'}
                     </>
                   ) : (
                     <>
-                      <CheckCircle className="h-4 w-4 mr-2" />
-                      Post Job
+                      {isEditMode ? <Edit className="h-4 w-4 mr-2" /> : <CheckCircle className="h-4 w-4 mr-2" />}
+                      {isEditMode ? 'Update Job' : 'Post Job'}
                     </>
                   )}
                 </Button>

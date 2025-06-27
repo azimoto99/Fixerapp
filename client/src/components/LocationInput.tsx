@@ -1,154 +1,88 @@
-import React, { useState, useEffect } from 'react';
-import { geocodeAddress, detectCoordinates } from '@/lib/geocoding';
+import React, { useState, useEffect, useRef } from 'react';
 import { Input } from '@/components/ui/input';
-import { Button } from '@/components/ui/button';
-import { CircleX, MapPin, Loader2 } from 'lucide-react';
+import { MapPin } from 'lucide-react';
+import { apiRequest } from '@/lib/queryClient';
 
 interface LocationInputProps {
-  value: string;
-  onChange: (value: string) => void;
-  onCoordinatesChange?: (latitude: number, longitude: number, formattedAddress: string) => void;
-  className?: string;
+  onLocationSelect: (location: any) => void;
   placeholder?: string;
+  initialValue?: string;
 }
 
-export default function LocationInput({
-  value,
-  onChange,
-  onCoordinatesChange,
-  className = '',
-  placeholder = 'Enter address or coordinates'
+export default function LocationInput({ 
+  onLocationSelect, 
+  placeholder = "Enter location",
+  initialValue = ''
 }: LocationInputProps) {
-  const [isGeocoding, setIsGeocoding] = useState(false);
-  const [geocodingError, setGeocodingError] = useState<string | null>(null);
-  const [geocodingSuccess, setGeocodingSuccess] = useState(false);
+  const [query, setQuery] = useState(initialValue);
+  const [suggestions, setSuggestions] = useState<any[]>([]);
+  const [isLoading, setIsLoading] = useState(false);
+  const inputRef = useRef<HTMLInputElement>(null);
 
-  // Process address whenever the value changes (after a short delay)
   useEffect(() => {
-    if (!value) {
-      setGeocodingError(null);
-      setGeocodingSuccess(false);
-      return;
-    }
+    setQuery(initialValue);
+  }, [initialValue]);
 
-    // Try to detect if the input already contains coordinates
-    const detectedCoords = detectCoordinates(value);
-    if (detectedCoords) {
-      // User entered coordinates directly
-      if (onCoordinatesChange) {
-        onCoordinatesChange(
-          detectedCoords.latitude,
-          detectedCoords.longitude,
-          value
-        );
-        setGeocodingSuccess(true);
-        setGeocodingError(null);
+  useEffect(() => {
+    const handler = setTimeout(() => {
+      if (query.length > 2) {
+        fetchSuggestions();
       }
-      return;
-    }
+    }, 500); // Debounce time
 
-    // Set a debounce timer to avoid too many API calls
-    const timer = setTimeout(() => {
-      handleGeocodeAddress();
-    }, 1000); // Wait 1 second after user stops typing
+    return () => {
+      clearTimeout(handler);
+    };
+  }, [query]);
 
-    return () => clearTimeout(timer);
-  }, [value]);
-
-  // Function to geocode the address
-  const handleGeocodeAddress = async () => {
-    if (!value || isGeocoding) return;
-
-    setIsGeocoding(true);
-    setGeocodingError(null);
-    setGeocodingSuccess(false);
-
+  const fetchSuggestions = async () => {
+    setIsLoading(true);
     try {
-      const result = await geocodeAddress(value);
-      
-      if (result) {
-        // Successfully geocoded
-        if (onCoordinatesChange) {
-          onCoordinatesChange(
-            result.latitude,
-            result.longitude,
-            result.formattedAddress
-          );
-        }
-        setGeocodingSuccess(true);
-      } else {
-        setGeocodingError('Could not find coordinates for this address');
+      const response = await apiRequest('GET', `/api/geocode/autocomplete?q=${query}`);
+      if (response.features) {
+        setSuggestions(response.features);
       }
     } catch (error) {
-      console.error('Error geocoding address:', error);
-      setGeocodingError('Error finding location. Please try a different address.');
+      console.error('Error fetching location suggestions:', error);
     } finally {
-      setIsGeocoding(false);
+      setIsLoading(false);
     }
   };
 
-  // Clear the input
-  const handleClear = () => {
-    onChange('');
-    setGeocodingError(null);
-    setGeocodingSuccess(false);
+  const handleSelect = (suggestion: any) => {
+    const locationData = {
+      displayName: suggestion.place_name,
+      latitude: suggestion.center[1],
+      longitude: suggestion.center[0],
+    };
+    setQuery(locationData.displayName);
+    onLocationSelect(locationData);
+    setSuggestions([]);
   };
 
   return (
     <div className="relative">
-      <div className="flex gap-2">
-        <div className="relative flex-1">
-          <Input
-            value={value}
-            onChange={(e) => onChange(e.target.value)}
-            placeholder={placeholder}
-            className={`pl-9 ${className} ${
-              geocodingError ? 'border-destructive' : ''
-            } ${geocodingSuccess ? 'border-green-500' : ''}`}
-            disabled={isGeocoding}
-          />
-          <div className="absolute inset-y-0 left-3 flex items-center pointer-events-none">
-            <MapPin
-              className={`h-4 w-4 ${
-                geocodingError
-                  ? 'text-destructive'
-                  : geocodingSuccess
-                  ? 'text-green-500'
-                  : 'text-muted-foreground'
-              }`}
-            />
-          </div>
-          {value && (
-            <button
-              type="button"
-              onClick={handleClear}
-              className="absolute inset-y-0 right-3 flex items-center"
+      <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+      <Input
+        ref={inputRef}
+        type="text"
+        placeholder={placeholder}
+        value={query}
+        onChange={(e) => setQuery(e.target.value)}
+        className="pl-10"
+      />
+      {suggestions.length > 0 && (
+        <ul className="absolute z-10 w-full bg-card border mt-1 rounded-md shadow-lg">
+          {suggestions.map((suggestion) => (
+            <li
+              key={suggestion.id}
+              onClick={() => handleSelect(suggestion)}
+              className="p-2 hover:bg-accent cursor-pointer"
             >
-              <CircleX className="h-4 w-4 text-muted-foreground hover:text-foreground" />
-            </button>
-          )}
-        </div>
-        <Button
-          type="button"
-          variant="outline"
-          size="icon"
-          onClick={handleGeocodeAddress}
-          disabled={!value || isGeocoding}
-        >
-          {isGeocoding ? (
-            <Loader2 className="h-4 w-4 animate-spin" />
-          ) : (
-            <MapPin className="h-4 w-4" />
-          )}
-        </Button>
-      </div>
-      {geocodingError && (
-        <p className="text-destructive text-xs mt-1">{geocodingError}</p>
-      )}
-      {geocodingSuccess && (
-        <p className="text-green-500 text-xs mt-1">
-          Location found successfully
-        </p>
+              {suggestion.place_name}
+            </li>
+          ))}
+        </ul>
       )}
     </div>
   );
