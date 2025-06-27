@@ -411,14 +411,45 @@ export async function createHubPin(req: Request, res: Response) {
       priority
     } = req.body;
 
+    console.log('Creating hub pin with data:', {
+      title,
+      location,
+      latitude,
+      longitude,
+      latType: typeof latitude,
+      lngType: typeof longitude,
+      businessId: business.id
+    });
+
+    // Validate required fields
+    if (!title || !location) {
+      return res.status(400).json({ message: 'Title and location are required' });
+    }
+
+    // Validate coordinates
+    if (!latitude || !longitude || typeof latitude !== 'number' || typeof longitude !== 'number') {
+      console.error('Invalid coordinates received:', { latitude, longitude });
+      return res.status(400).json({ 
+        message: 'Valid coordinates are required. Please select an address from the suggestions.' 
+      });
+    }
+
+    // Check coordinate ranges
+    if (Math.abs(latitude) > 90 || Math.abs(longitude) > 180) {
+      console.error('Coordinates out of range:', { latitude, longitude });
+      return res.status(400).json({ 
+        message: 'Coordinates are out of valid range.' 
+      });
+    }
+
     const [hubPin] = await db.insert(hubPins)
       .values({
         enterpriseId: business.id,
         title,
         description,
         location,
-        latitude,
-        longitude,
+        latitude: parseFloat(latitude.toString()),
+        longitude: parseFloat(longitude.toString()),
         pinSize: pinSize || 'large',
         pinColor: pinColor || '#FF6B6B',
         iconUrl,
@@ -426,6 +457,13 @@ export async function createHubPin(req: Request, res: Response) {
         isActive: true
       })
       .returning();
+
+    console.log('Hub pin created successfully:', {
+      id: hubPin.id,
+      title: hubPin.title,
+      latitude: hubPin.latitude,
+      longitude: hubPin.longitude
+    });
 
     res.json(hubPin);
   } catch (error) {

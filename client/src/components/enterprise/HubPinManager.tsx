@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -6,7 +6,6 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
-import { LoadScript } from '@/components/LoadScript';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Plus, Edit, Trash2, MapPin, Eye, EyeOff } from 'lucide-react';
@@ -34,6 +33,7 @@ export default function HubPinManager({ businessId }: { businessId: number }) {
   const queryClient = useQueryClient();
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
   const [editingPin, setEditingPin] = useState<HubPin | null>(null);
+  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
 
   // Fetch hub pins
   const { data: hubPins, isLoading } = useQuery({
@@ -77,9 +77,17 @@ export default function HubPinManager({ businessId }: { businessId: number }) {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/enterprise/hub-pins'] });
       setEditingPin(null);
+      setIsEditDialogOpen(false);
       toast({
         title: 'Hub Pin Updated',
         description: 'Your hub pin has been updated successfully.',
+      });
+    },
+    onError: (error: any) => {
+      toast({
+        title: 'Error',
+        description: error.message || 'Failed to update hub pin',
+        variant: 'destructive'
       });
     }
   });
@@ -96,20 +104,21 @@ export default function HubPinManager({ businessId }: { businessId: number }) {
         title: 'Hub Pin Deleted',
         description: 'Your hub pin has been deleted successfully.',
       });
+    },
+    onError: (error: any) => {
+      toast({
+        title: 'Error',
+        description: error.message || 'Failed to delete hub pin',
+        variant: 'destructive'
+      });
     }
   });
 
-  const handleLocationSelect = (address: string, coordinates: { lat: number; lng: number }) => {
-    // Update form with selected location
-    const form = document.getElementById('hub-pin-form') as HTMLFormElement;
-    if (form) {
-      (form.elements.namedItem('location') as HTMLInputElement).value = address;
-      (form.elements.namedItem('latitude') as HTMLInputElement).value = coordinates.lat.toString();
-      (form.elements.namedItem('longitude') as HTMLInputElement).value = coordinates.lng.toString();
-    }
-  };
-
-  const HubPinForm = ({ pin, onSubmit }: { pin?: HubPin | null; onSubmit: (data: any) => void }) => {
+  const HubPinForm = ({ pin, onSubmit, formId = 'hub-pin-form' }: { 
+    pin?: HubPin | null; 
+    onSubmit: (data: any) => void;
+    formId?: string;
+  }) => {
     const [formData, setFormData] = useState({
       title: pin?.title || '',
       description: pin?.description || '',
@@ -125,11 +134,90 @@ export default function HubPinManager({ businessId }: { businessId: number }) {
 
     const handleSubmit = (e: React.FormEvent) => {
       e.preventDefault();
-      onSubmit(formData);
+      
+      console.log('Hub Pin Form Data:', formData);
+      
+      // Validate that we have coordinates
+      if (!formData.latitude || !formData.longitude || formData.latitude === 0 || formData.longitude === 0) {
+        console.error('Invalid coordinates:', { lat: formData.latitude, lng: formData.longitude });
+        toast({
+          title: 'Location Required',
+          description: 'Please select a valid address from the suggestions to get coordinates.',
+          variant: 'destructive'
+        });
+        return;
+      }
+
+      // Validate coordinate ranges (basic sanity check)
+      if (Math.abs(formData.latitude) > 90 || Math.abs(formData.longitude) > 180) {
+        console.error('Coordinates out of range:', { lat: formData.latitude, lng: formData.longitude });
+        toast({
+          title: 'Invalid Coordinates',
+          description: 'The selected location has invalid coordinates. Please try a different address.',
+          variant: 'destructive'
+        });
+        return;
+      }
+      
+      console.log('Submitting hub pin with valid coordinates:', {
+        location: formData.location,
+        latitude: formData.latitude,
+        longitude: formData.longitude
+      });
+      
+      try {
+        onSubmit(formData);
+      } catch (error) {
+        console.error('Error submitting hub pin form:', error);
+        toast({
+          title: 'Submission Error',
+          description: 'An error occurred while submitting the form. Please try again.',
+          variant: 'destructive'
+        });
+      }
+    };
+
+    const handleLocationSelect = (address: string, coordinates: { lat: number; lng: number }) => {
+      console.log('Location selected:', { address, coordinates });
+      
+      // Validate coordinates
+      if (!coordinates || typeof coordinates.lat !== 'number' || typeof coordinates.lng !== 'number') {
+        console.error('Invalid coordinates received:', coordinates);
+        toast({
+          title: 'Invalid Location',
+          description: 'The selected location has invalid coordinates. Please try another address.',
+          variant: 'destructive'
+        });
+        return;
+      }
+
+      // Check for reasonable coordinate ranges
+      if (Math.abs(coordinates.lat) > 90 || Math.abs(coordinates.lng) > 180) {
+        console.error('Coordinates out of range:', coordinates);
+        toast({
+          title: 'Invalid Location',
+          description: 'The selected location is outside valid coordinate ranges.',
+          variant: 'destructive'
+        });
+        return;
+      }
+
+      setFormData({
+        ...formData,
+        location: address,
+        latitude: coordinates.lat,
+        longitude: coordinates.lng
+      });
+
+      console.log('Form data updated with coordinates:', {
+        location: address,
+        latitude: coordinates.lat,
+        longitude: coordinates.lng
+      });
     };
 
     return (
-      <form id="hub-pin-form" onSubmit={handleSubmit} className="space-y-4">
+      <form id={formId} onSubmit={handleSubmit} className="space-y-4">
         <div>
           <Label htmlFor="title">Pin Title *</Label>
           <Input
@@ -155,27 +243,19 @@ export default function HubPinManager({ businessId }: { businessId: number }) {
 
         <div>
           <Label htmlFor="location">Location *</Label>
-          <LoadScript 
-            src={`https://maps.googleapis.com/maps/api/js?key=${process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY}&libraries=places`}
-            strategy="idle"
-          >
-            <AddressAutocompleteInput
-              onLocationSelect={(address, coords) => {
-                setFormData({
-                  ...formData,
-                  location: address,
-                  latitude: coords.lat,
-                  longitude: coords.lng
-                });
-              }}
-              defaultValue={formData.location}
-              placeholder="Search for an address..."
-              required
-              ref={inputRef}
-            />
-          </LoadScript>
-          <input type="hidden" name="latitude" value={formData.latitude} />
-          <input type="hidden" name="longitude" value={formData.longitude} />
+          <AddressAutocompleteInput
+            value={formData.location}
+            onLocationSelect={handleLocationSelect}
+            placeholder="Search for an address..."
+            required
+            className="w-full"
+          />
+          <p className="text-xs text-muted-foreground mt-1">
+            {formData.latitude && formData.longitude ? 
+              `Coordinates: ${formData.latitude.toFixed(6)}, ${formData.longitude.toFixed(6)}` : 
+              'Please select an address from the suggestions to get coordinates'
+            }
+          </p>
         </div>
 
         <div className="grid grid-cols-2 gap-4">
@@ -281,6 +361,7 @@ export default function HubPinManager({ businessId }: { businessId: number }) {
             </DialogHeader>
             <HubPinForm
               onSubmit={(data) => createMutation.mutate(data)}
+              formId="create-hub-pin-form"
             />
             <DialogFooter>
               <Button variant="outline" onClick={() => setIsCreateDialogOpen(false)}>
@@ -288,7 +369,7 @@ export default function HubPinManager({ businessId }: { businessId: number }) {
               </Button>
               <Button
                 type="submit"
-                form="hub-pin-form"
+                form="create-hub-pin-form"
                 disabled={createMutation.isPending}
               >
                 {createMutation.isPending ? 'Creating...' : 'Create Hub Pin'}
@@ -345,12 +426,15 @@ export default function HubPinManager({ businessId }: { businessId: number }) {
                     >
                       {pin.isActive ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                     </Button>
-                    <Dialog>
+                    <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
                       <DialogTrigger asChild>
                         <Button
                           variant="ghost"
                           size="sm"
-                          onClick={() => setEditingPin(pin)}
+                          onClick={() => {
+                            setEditingPin(pin);
+                            setIsEditDialogOpen(true);
+                          }}
                         >
                           <Edit className="h-4 w-4" />
                         </Button>
@@ -362,14 +446,21 @@ export default function HubPinManager({ businessId }: { businessId: number }) {
                         <HubPinForm
                           pin={editingPin}
                           onSubmit={(data) => updateMutation.mutate({ id: pin.id, ...data })}
+                          formId="edit-hub-pin-form"
                         />
                         <DialogFooter>
-                          <Button variant="outline" onClick={() => setEditingPin(null)}>
+                          <Button 
+                            variant="outline" 
+                            onClick={() => {
+                              setEditingPin(null);
+                              setIsEditDialogOpen(false);
+                            }}
+                          >
                             Cancel
                           </Button>
                           <Button
                             type="submit"
-                            form="hub-pin-form"
+                            form="edit-hub-pin-form"
                             disabled={updateMutation.isPending}
                           >
                             {updateMutation.isPending ? 'Updating...' : 'Update Hub Pin'}

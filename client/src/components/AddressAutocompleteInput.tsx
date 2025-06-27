@@ -1,16 +1,19 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, forwardRef } from 'react';
 import { Input } from "@/components/ui/input";
-import { MapPin } from "lucide-react";
-import { Spinner } from "@/components/ui/spinner";
+import { MapPin, Loader2 } from "lucide-react";
 
 // Set the access token from environment variable
 const MAPBOX_ACCESS_TOKEN = import.meta.env.VITE_MAPBOX_ACCESS_TOKEN;
 
 interface AddressAutocompleteInputProps {
-  value: string;
-  onChange: (value: string, lat?: number, lng?: number) => void;
+  value?: string;
+  defaultValue?: string;
+  onChange?: (value: string, lat?: number, lng?: number) => void;
+  onLocationSelect?: (address: string, coordinates: { lat: number; lng: number }) => void;
   placeholder?: string;
   className?: string;
+  required?: boolean;
+  name?: string;
 }
 
 interface GeocodingResult {
@@ -18,73 +21,122 @@ interface GeocodingResult {
   center: [number, number]; // [longitude, latitude]
 }
 
-export function AddressAutocompleteInput({
+export const AddressAutocompleteInput = forwardRef<HTMLInputElement, AddressAutocompleteInputProps>(({
   value,
+  defaultValue,
   onChange,
+  onLocationSelect,
   placeholder = "Enter an address",
-  className = ""
-}: AddressAutocompleteInputProps) {
-  const [inputValue, setInputValue] = useState(value);
+  className = "",
+  required = false,
+  name
+}, ref) => {
+  const [inputValue, setInputValue] = useState(value || defaultValue || '');
   const [suggestions, setSuggestions] = useState<GeocodingResult[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [showSuggestions, setShowSuggestions] = useState(false);
   const debounceTimerRef = useRef<NodeJS.Timeout | null>(null);
-  const inputRef = useRef<HTMLInputElement>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
 
-  // Fetch address suggestions from Mapbox Geocoding API
+  // Fetch address suggestions from Mapbox Geocoding API with Nominatim fallback
   const fetchSuggestions = async (query: string) => {
-    if (!query || query.length < 3 || !MAPBOX_ACCESS_TOKEN) return;
+    if (!query || query.length < 3) {
+      setSuggestions([]);
+      setShowSuggestions(false);
+      return;
+    }
     
     setIsLoading(true);
     try {
-      const endpoint = `https://api.mapbox.com/geocoding/v5/mapbox.places/${encodeURIComponent(query)}.json`;
-      const params = new URLSearchParams({
-        access_token: MAPBOX_ACCESS_TOKEN,
-        country: 'us',
-        types: 'address,place,neighborhood,locality',
-        limit: '5',
-      });
-      
-      const response = await fetch(`${endpoint}?${params.toString()}`);
-      const data = await response.json();
-      
-      if (data.features && Array.isArray(data.features)) {
-        setSuggestions(data.features.map((feature: any) => ({
-          place_name: feature.place_name,
-          center: feature.center,
-        })));
-        setShowSuggestions(true);
-      }
-    } catch (error) {
-      // Try using Nominatim as fallback (OpenStreetMap)
-      try {
-        const endpoint = `https://nominatim.openstreetmap.org/search`;
-        const params = new URLSearchParams({
-          q: query,
-          format: 'json',
-          limit: '5',
-          addressdetails: '1',
-          countrycodes: 'us',
-        });
-        
-        const response = await fetch(`${endpoint}?${params.toString()}`, {
-          headers: {
-            'Accept-Language': 'en-US,en',
-            'User-Agent': 'Fixer App'
+      let results: GeocodingResult[] = [];
+
+      // Try Mapbox first if we have an access token
+      if (MAPBOX_ACCESS_TOKEN) {
+        try {
+          const endpoint = `https://api.mapbox.com/geocoding/v5/mapbox.places/${encodeURIComponent(query)}.json`;
+          const params = new URLSearchParams({
+            access_token: MAPBOX_ACCESS_TOKEN,
+            country: 'us',
+            types: 'address,place,neighborhood,locality',
+            limit: '5',
+          });
+          
+          const response = await fetch(`${endpoint}?${params.toString()}`);
+          if (response.ok) {
+            const data = await response.json();
+            if (data.features && Array.isArray(data.features)) {
+              results = data.features
+                .filter((feature: any) => {
+                  // Validate that the feature has valid coordinates
+                  return feature.center && 
+                         Array.isArray(feature.center) && 
+                         feature.center.length === 2 &&
+                         typeof feature.center[0] === 'number' &&
+                         typeof feature.center[1] === 'number' &&
+                         Math.abs(feature.center[1]) <= 90 &&
+                         Math.abs(feature.center[0]) <= 180;
+                })
+                .map((feature: any) => ({
+                  place_name: feature.place_name,
+                  center: feature.center,
+                }));
+              console.log('Mapbox results:', results.length, 'valid addresses found');
+            }
           }
-        });
-        const data = await response.json();
-        
-        if (Array.isArray(data) && data.length > 0) {
-          setSuggestions(data.map((item: any) => ({
-            place_name: item.display_name,
-            center: [parseFloat(item.lon), parseFloat(item.lat)]
-          })));
-          setShowSuggestions(true);
+        } catch (mapboxError) {
+          console.warn('Mapbox geocoding failed, trying fallback:', mapboxError);
         }
-      } catch (fallbackError) {
-        // Silent fail for fallback
       }
+
+      // If Mapbox failed or no results, try Nominatim as fallback
+      if (results.length === 0) {
+        try {
+          const endpoint = `https://nominatim.openstreetmap.org/search`;
+          const params = new URLSearchParams({
+            q: query,
+            format: 'json',
+            limit: '5',
+            addressdetails: '1',
+            countrycodes: 'us',
+          });
+          
+          const response = await fetch(`${endpoint}?${params.toString()}`, {
+            headers: {
+              'Accept-Language': 'en-US,en',
+              'User-Agent': 'Fixer App Address Autocomplete'
+            }
+          });
+          
+          if (response.ok) {
+            const data = await response.json();
+            if (Array.isArray(data) && data.length > 0) {
+              results = data
+                .filter((item: any) => {
+                  // Validate coordinates
+                  const lat = parseFloat(item.lat);
+                  const lon = parseFloat(item.lon);
+                  return !isNaN(lat) && !isNaN(lon) && 
+                         Math.abs(lat) <= 90 && 
+                         Math.abs(lon) <= 180;
+                })
+                .map((item: any) => ({
+                  place_name: item.display_name,
+                  center: [parseFloat(item.lon), parseFloat(item.lat)]
+                }));
+              console.log('Nominatim results:', results.length, 'valid addresses found');
+            }
+          }
+        } catch (nominatimError) {
+          console.warn('Nominatim geocoding failed:', nominatimError);
+        }
+      }
+
+      setSuggestions(results);
+      setShowSuggestions(results.length > 0);
+    } catch (error) {
+      console.error('Geocoding error:', error);
+      setSuggestions([]);
+      setShowSuggestions(false);
     } finally {
       setIsLoading(false);
     }
@@ -94,14 +146,18 @@ export function AddressAutocompleteInput({
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const newValue = e.target.value;
     setInputValue(newValue);
-    onChange(newValue); // Update the form value immediately
+    
+    // Call onChange immediately for form handling
+    if (onChange) {
+      onChange(newValue);
+    }
     
     // Clear any existing timer
     if (debounceTimerRef.current) {
       clearTimeout(debounceTimerRef.current);
     }
     
-    // Set a new timer for debounce
+    // Set a new timer for debounced geocoding
     debounceTimerRef.current = setTimeout(() => {
       fetchSuggestions(newValue);
     }, 500); // 500ms debounce
@@ -112,16 +168,43 @@ export function AddressAutocompleteInput({
     const address = suggestion.place_name;
     const [lng, lat] = suggestion.center;
     
+    console.log('Address suggestion selected:', {
+      address,
+      coordinates: { lat, lng },
+      originalCenter: suggestion.center
+    });
+
+    // Validate coordinates
+    if (!lat || !lng || typeof lat !== 'number' || typeof lng !== 'number') {
+      console.error('Invalid coordinates from suggestion:', { lat, lng });
+      return;
+    }
+
+    // Check for reasonable coordinate ranges
+    if (Math.abs(lat) > 90 || Math.abs(lng) > 180) {
+      console.error('Coordinates out of range:', { lat, lng });
+      return;
+    }
+    
     setInputValue(address);
-    onChange(address, lat, lng);
     setSuggestions([]);
     setShowSuggestions(false);
+    
+    // Call both callbacks
+    if (onChange) {
+      onChange(address, lat, lng);
+    }
+    if (onLocationSelect) {
+      onLocationSelect(address, { lat, lng });
+    }
+
+    console.log('Address selection completed:', { address, lat, lng });
   };
 
   // Close suggestions when clicking outside
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
-      if (inputRef.current && !inputRef.current.contains(e.target as Node)) {
+      if (containerRef.current && !containerRef.current.contains(e.target as Node)) {
         setShowSuggestions(false);
       }
     };
@@ -134,7 +217,7 @@ export function AddressAutocompleteInput({
 
   // Update input value when prop changes
   useEffect(() => {
-    if (value !== inputValue) {
+    if (value !== undefined && value !== inputValue) {
       setInputValue(value);
     }
   }, [value]);
@@ -149,20 +232,26 @@ export function AddressAutocompleteInput({
   }, []);
 
   return (
-    <div className="w-full relative">
+    <div ref={containerRef} className="w-full relative">
       <div className="flex items-center w-full relative">
         <MapPin className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground z-10" />
         <Input
-          ref={inputRef}
+          ref={ref}
+          name={name}
           value={inputValue}
           onChange={handleInputChange}
           placeholder={placeholder}
           className={`pl-10 pr-10 ${className}`}
-          onFocus={() => inputValue.length >= 3 && setSuggestions.length > 0 && setShowSuggestions(true)}
+          required={required}
+          onFocus={() => {
+            if (inputValue.length >= 3 && suggestions.length > 0) {
+              setShowSuggestions(true);
+            }
+          }}
         />
         {isLoading && (
           <div className="absolute right-3 top-1/2 transform -translate-y-1/2">
-            <Spinner size="sm" />
+            <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
           </div>
         )}
       </div>
@@ -173,15 +262,26 @@ export function AddressAutocompleteInput({
           {suggestions.map((suggestion, index) => (
             <div
               key={index}
-              className="px-4 py-2 hover:bg-muted cursor-pointer text-sm flex items-start"
+              className="px-4 py-2 hover:bg-muted cursor-pointer text-sm flex items-start transition-colors"
               onClick={() => handleSuggestionSelect(suggestion)}
             >
               <MapPin className="h-4 w-4 mr-2 mt-0.5 flex-shrink-0 text-muted-foreground" />
-              <span>{suggestion.place_name}</span>
+              <span className="break-words">{suggestion.place_name}</span>
             </div>
           ))}
         </div>
       )}
+      
+      {/* No results message */}
+      {showSuggestions && suggestions.length === 0 && !isLoading && inputValue.length >= 3 && (
+        <div className="absolute z-50 w-full mt-1 bg-background border border-input rounded-md shadow-lg">
+          <div className="px-4 py-2 text-sm text-muted-foreground">
+            No addresses found. Try a different search term.
+          </div>
+        </div>
+      )}
     </div>
   );
-}
+});
+
+AddressAutocompleteInput.displayName = 'AddressAutocompleteInput';
