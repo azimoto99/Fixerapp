@@ -359,7 +359,7 @@ const MapSection: React.FC<MapSectionProps> = ({ jobs, selectedJob, onSelectJob,
             onClick: () => handleHubPinClick(hubPin.id),
             isEnterprise: true,
             enterpriseColor: hubPin.pinColor,
-            enterpriseIcon: hubPin.iconUrl || '🏢',
+            enterpriseIcon: hubPin.iconUrl || hubPin.business?.businessLogo || '🏢',
             priority: hubPin.priority,
             category: hubPin.pinSize || 'medium' // Pass pin size as category for styling
           });
