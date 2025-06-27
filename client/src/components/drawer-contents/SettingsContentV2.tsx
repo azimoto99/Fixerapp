@@ -72,7 +72,7 @@ export default function SettingsContentV2({ user }: SettingsContentProps) {
         {/* Profile Tab */}
         <TabsContent value="profile" className="flex-1 p-4 space-y-4">
           <div className="text-center space-y-3">
-            <ProfileImageUploader user={user} className="mx-auto w-20 h-20" />
+            <ProfileImageUploader user={user} compact={true} className="mx-auto" />
             <div>
               <h2 className="text-lg font-bold truncate">{user.fullName || user.username}</h2>
               <p className="text-sm text-muted-foreground truncate">{user.email}</p>

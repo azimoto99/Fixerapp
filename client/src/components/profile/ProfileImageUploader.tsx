@@ -10,9 +10,10 @@ import { Upload, X, Camera } from 'lucide-react';
 interface ProfileImageUploaderProps {
   user: User;
   className?: string;
+  compact?: boolean; // New prop for compact mode
 }
 
-export function ProfileImageUploader({ user, className = "" }: ProfileImageUploaderProps) {
+export function ProfileImageUploader({ user, className = "", compact = false }: ProfileImageUploaderProps) {
   const { toast } = useToast();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [previewImage, setPreviewImage] = useState<string | null>(user.avatarUrl);
@@ -36,7 +37,7 @@ export function ProfileImageUploader({ user, className = "" }: ProfileImageUploa
       const formData = new FormData();
       formData.append('avatar', file);
 
-      // Upload the file
+      // Upload the file - don't set Content-Type header, let browser set it for FormData
       const response = await apiRequest('POST', '/api/user/avatar/upload', formData);
       if (!response.ok) {
         const error = await response.json();
@@ -143,11 +144,11 @@ export function ProfileImageUploader({ user, className = "" }: ProfileImageUploa
   };
 
   return (
-    <div className={`flex flex-col items-center space-y-4 ${className}`}>
+    <div className={`flex flex-col items-center ${compact ? 'space-y-2' : 'space-y-4'} ${className}`}>
       <div className="relative group">
-        <Avatar className="h-24 w-24 cursor-pointer border-2 border-border">
+        <Avatar className={`${compact ? 'h-16 w-16' : 'h-24 w-24'} cursor-pointer border-2 border-border`}>
           <AvatarImage src={previewImage || undefined} alt={user.fullName || user.username} />
-          <AvatarFallback className="text-2xl bg-primary/10 text-primary">
+          <AvatarFallback className={`${compact ? 'text-lg' : 'text-2xl'} bg-primary/10 text-primary`}>
             {(user.fullName || user.username || 'U').charAt(0).toUpperCase()}
           </AvatarFallback>
         </Avatar>
@@ -156,7 +157,7 @@ export function ProfileImageUploader({ user, className = "" }: ProfileImageUploa
           className="absolute inset-0 bg-black bg-opacity-40 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer"
           onClick={triggerFileInput}
         >
-          <Camera className="text-white h-6 w-6" />
+          <Camera className={`text-white ${compact ? 'h-4 w-4' : 'h-6 w-6'}`} />
         </div>
         
         {previewImage && (
@@ -166,7 +167,7 @@ export function ProfileImageUploader({ user, className = "" }: ProfileImageUploa
             className="absolute -top-1 -right-1 bg-red-500 hover:bg-red-600 text-white rounded-full p-1 shadow-lg transition-colors disabled:opacity-50"
             aria-label="Remove image"
           >
-            <X className="h-4 w-4" />
+            <X className={`${compact ? 'h-3 w-3' : 'h-4 w-4'}`} />
           </button>
         )}
       </div>
@@ -179,27 +180,37 @@ export function ProfileImageUploader({ user, className = "" }: ProfileImageUploa
         className="hidden"
       />
       
-      <div className="text-center space-y-2">
-        <Button 
-          variant="outline" 
-          size="sm" 
-          onClick={triggerFileInput}
-          disabled={isUploading}
-          className="flex items-center gap-2"
-        >
-          <Upload className="h-4 w-4" />
-          {isUploading ? 'Uploading...' : 'Upload Image'}
-        </Button>
-        
-        <div className="text-center space-y-1">
-          <p className="text-sm text-muted-foreground">
-            Upload a profile picture to help others recognize you
-          </p>
+      {!compact && (
+        <div className="text-center space-y-2">
+          <Button 
+            variant="outline" 
+            size="sm" 
+            onClick={triggerFileInput}
+            disabled={isUploading}
+            className="flex items-center gap-2"
+          >
+            <Upload className="h-4 w-4" />
+            {isUploading ? 'Uploading...' : 'Upload Image'}
+          </Button>
+          
+          <div className="text-center space-y-1">
+            <p className="text-sm text-muted-foreground">
+              Upload a profile picture to help others recognize you
+            </p>
+            <p className="text-xs text-muted-foreground">
+              Recommended: Square image, at least 200x200 pixels, max 5MB
+            </p>
+          </div>
+        </div>
+      )}
+      
+      {compact && (
+        <div className="text-center">
           <p className="text-xs text-muted-foreground">
-            Recommended: Square image, at least 200x200 pixels, max 5MB
+            Click image to change
           </p>
         </div>
-      </div>
+      )}
     </div>
   );
 }

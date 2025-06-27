@@ -54,10 +54,25 @@ export async function apiRequest(
     // Create timeout that aborts the request
     const timeoutId = setTimeout(() => controller.abort(), timeout);
     
+    // Determine headers and body based on data type
+    let headers: Record<string, string> = {};
+    let body: string | FormData | undefined;
+    
+    if (data) {
+      if (data instanceof FormData) {
+        // For FormData, don't set Content-Type - let browser set it with boundary
+        body = data;
+      } else {
+        // For JSON data, set Content-Type and stringify
+        headers["Content-Type"] = "application/json";
+        body = JSON.stringify(data);
+      }
+    }
+    
     const res = await fetch(url, {
       method,
-      headers: data ? { "Content-Type": "application/json" } : {},
-      body: data ? JSON.stringify(data) : undefined,
+      headers,
+      body,
       credentials: "include",
       signal,
     });
