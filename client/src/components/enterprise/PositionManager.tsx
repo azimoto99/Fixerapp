@@ -85,24 +85,49 @@ export default function PositionManager({ businessId }: { businessId: number }) 
   // Create position mutation
   const createMutation = useMutation({
     mutationFn: async (data: any) => {
-      console.log('Creating position with data:', data);
+      console.log('🎯 Starting position creation...');
+      console.log('🎯 Form data received:', JSON.stringify(data, null, 2));
+      console.log('🎯 Business ID:', businessId);
       
       // Validate required fields
       if (!data.title || !data.description || !data.paymentAmount) {
+        console.error('❌ Validation failed - missing required fields:', {
+          title: !!data.title,
+          description: !!data.description,
+          paymentAmount: !!data.paymentAmount
+        });
         throw new Error('Please fill in all required fields');
       }
       
-      const res = await apiRequest('POST', '/api/enterprise/positions', data);
+      console.log('✅ Validation passed, making API request...');
       
-      if (!res.ok) {
-        const errorData = await res.json().catch(() => ({ message: 'Unknown error' }));
-        throw new Error(errorData.message || `HTTP ${res.status}: ${res.statusText}`);
+      try {
+        const res = await apiRequest('POST', '/api/enterprise/positions', data);
+        console.log('🎯 API response status:', res.status, res.statusText);
+        
+        if (!res.ok) {
+          console.error('❌ API request failed with status:', res.status);
+          let errorData;
+          try {
+            errorData = await res.json();
+            console.error('❌ Error response data:', errorData);
+          } catch (parseError) {
+            console.error('❌ Failed to parse error response:', parseError);
+            errorData = { message: `HTTP ${res.status}: ${res.statusText}` };
+          }
+          throw new Error(errorData.message || `HTTP ${res.status}: ${res.statusText}`);
+        }
+        
+        const result = await res.json();
+        console.log('✅ Position creation successful:', result);
+        return result;
+      } catch (networkError) {
+        console.error('❌ Network or parsing error:', networkError);
+        throw networkError;
       }
-      
-      return res.json();
     },
     onSuccess: (data) => {
-      console.log('Position created successfully:', data);
+      console.log('🎉 Position created successfully:', data);
       queryClient.invalidateQueries({ queryKey: ['/api/enterprise/positions'] });
       queryClient.invalidateQueries({ queryKey: ['/api/enterprise/stats'] });
       setIsCreateDialogOpen(false);
@@ -112,7 +137,12 @@ export default function PositionManager({ businessId }: { businessId: number }) 
       });
     },
     onError: (error: any) => {
-      console.error('Position creation error:', error);
+      console.error('💥 Position creation error:', error);
+      console.error('💥 Error details:', {
+        message: error.message,
+        stack: error.stack,
+        name: error.name
+      });
       toast({
         title: 'Error Creating Position',
         description: error.message || 'Failed to create position. Please try again.',
@@ -171,10 +201,12 @@ export default function PositionManager({ businessId }: { businessId: number }) 
     const handleSubmit = (e: React.FormEvent) => {
       e.preventDefault();
       
-      console.log('Submitting position form with data:', formData);
+      console.log('📝 Form submission started');
+      console.log('📝 Current form data:', JSON.stringify(formData, null, 2));
       
       // Validate required fields
       if (!formData.title.trim()) {
+        console.error('❌ Title validation failed');
         toast({
           title: 'Validation Error',
           description: 'Position title is required.',
@@ -184,6 +216,7 @@ export default function PositionManager({ businessId }: { businessId: number }) 
       }
       
       if (!formData.description.trim()) {
+        console.error('❌ Description validation failed');
         toast({
           title: 'Validation Error',
           description: 'Job description is required.',
@@ -193,6 +226,7 @@ export default function PositionManager({ businessId }: { businessId: number }) 
       }
       
       if (!formData.paymentAmount || formData.paymentAmount <= 0) {
+        console.error('❌ Payment amount validation failed:', formData.paymentAmount);
         toast({
           title: 'Validation Error',
           description: 'Payment amount must be greater than 0.',
@@ -200,6 +234,8 @@ export default function PositionManager({ businessId }: { businessId: number }) 
         });
         return;
       }
+      
+      console.log('✅ Form validation passed, submitting...');
       
       // Submit the form
       onSubmit(formData);

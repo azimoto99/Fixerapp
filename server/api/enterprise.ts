@@ -757,8 +757,14 @@ export async function createPosition(req: Request, res: Response) {
 // Apply to position
 export async function applyToPosition(req: Request, res: Response) {
   try {
+    console.log('🎯 Position application started');
+    console.log('🎯 User ID:', req.user?.id);
+    console.log('🎯 Request params:', req.params);
+    console.log('🎯 Request body:', JSON.stringify(req.body, null, 2));
+    
     const userId = req.user?.id;
     if (!userId) {
+      console.log('❌ No user ID found');
       return res.status(401).json({ message: 'Unauthorized' });
     }
 
@@ -771,6 +777,9 @@ export async function applyToPosition(req: Request, res: Response) {
       quickApply
     } = req.body;
 
+    console.log('🎯 Position ID:', positionId);
+    console.log('🎯 Quick Apply:', quickApply);
+
     // Get position details
     const [position] = await db.select()
       .from(enterprisePositions)
@@ -778,8 +787,11 @@ export async function applyToPosition(req: Request, res: Response) {
       .limit(1);
 
     if (!position) {
+      console.log('❌ Position not found:', positionId);
       return res.status(404).json({ message: 'Position not found' });
     }
+
+    console.log('✅ Position found:', position.title);
 
     // Check if already applied
     const existing = await db.select()
@@ -793,8 +805,11 @@ export async function applyToPosition(req: Request, res: Response) {
       .limit(1);
 
     if (existing.length > 0) {
+      console.log('❌ User already applied to this position');
       return res.status(400).json({ message: 'Already applied to this position' });
     }
+
+    console.log('✅ Creating new application...');
 
     const [application] = await db.insert(enterpriseApplications)
       .values({
@@ -809,9 +824,10 @@ export async function applyToPosition(req: Request, res: Response) {
       })
       .returning();
 
+    console.log('✅ Application created successfully:', application.id);
     res.json(application);
   } catch (error) {
-    console.error('Error applying to position:', error);
+    console.error('❌ Error applying to position:', error);
     res.status(500).json({ message: 'Failed to apply to position' });
   }
 }

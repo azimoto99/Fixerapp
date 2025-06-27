@@ -50,22 +50,38 @@ export default function EnterpriseJobCard({ hubPinId, onClose, onApply }: Enterp
   // Quick apply mutation
   const applyMutation = useMutation({
     mutationFn: async (positionId: number) => {
+      console.log('🎯 Applying to position:', positionId);
       const res = await apiRequest('POST', `/api/enterprise/positions/${positionId}/apply`, {
         quickApply: true
       });
+      
+      if (!res.ok) {
+        const errorData = await res.json().catch(() => ({ message: 'Unknown error' }));
+        throw new Error(errorData.message || `HTTP ${res.status}: ${res.statusText}`);
+      }
+      
       return res.json();
     },
-    onSuccess: () => {
+    onSuccess: (data) => {
+      console.log('✅ Application submitted successfully:', data);
       toast({
         title: 'Application Submitted',
         description: 'Your application has been submitted successfully!',
       });
       queryClient.invalidateQueries({ queryKey: ['/api/enterprise/hub-pins', hubPinId] });
+      
+      // Close the modal after successful application
+      if (onClose) {
+        setTimeout(() => {
+          onClose();
+        }, 1500); // Give user time to see the success message
+      }
     },
     onError: (error: any) => {
+      console.error('❌ Application failed:', error);
       toast({
         title: 'Application Failed',
-        description: error.message || 'Failed to submit application',
+        description: error.message || 'Failed to submit application. Please try again.',
         variant: 'destructive'
       });
     }
@@ -252,13 +268,11 @@ export default function EnterpriseJobCard({ hubPinId, onClose, onApply }: Enterp
                           </div>
                           <Button
                             onClick={() => {
-                              if (onApply) {
-                                onApply(position.id);
-                              } else {
-                                applyMutation.mutate(position.id);
-                              }
+                              console.log('🎯 Quick Apply clicked for position:', position.id);
+                              applyMutation.mutate(position.id);
                             }}
                             disabled={applyMutation.isPending}
+                            className="min-w-[120px]"
                           >
                             {applyMutation.isPending ? 'Applying...' : 'Quick Apply'}
                             <ChevronRight className="h-4 w-4 ml-2" />

@@ -461,13 +461,6 @@ const MapSection: React.FC<MapSectionProps> = ({ jobs, selectedJob, onSelectJob,
               setShowEnterpriseCard(false);
               setSelectedHubPinId(null);
             }}
-            onApply={(positionId) => {
-              // Handle application to enterprise position
-              window.dispatchEvent(new CustomEvent('enterprise-apply', { 
-                detail: { positionId }
-              }));
-              setShowEnterpriseCard(false);
-            }}
           />
         </div>
       )}
