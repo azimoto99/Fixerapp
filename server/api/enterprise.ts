@@ -90,7 +90,7 @@ export const handleLogoUpload = logoUpload.single('logo');
 
 export async function uploadAvatar(req: Request, res: Response) {
   try {
-    if (!req.files?.avatar) {
+    if (!req.file) {
       return res.status(400).json({ message: 'No avatar file uploaded' });
     }
 
@@ -99,63 +99,83 @@ export async function uploadAvatar(req: Request, res: Response) {
       return res.status(401).json({ message: 'Unauthorized' });
     }
 
-    const avatarFile = Array.isArray(req.files.avatar) ? req.files.avatar[0] : req.files.avatar;
-    const s3 = new AWS.S3({
-      region: process.env.AWS_REGION,
-      accessKeyId: process.env.AWS_ACCESS_KEY_ID,
-      secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY
+    console.log('Avatar upload attempt:', {
+      userId: user.id,
+      fileName: req.file.originalname,
+      fileSize: req.file.size,
+      mimeType: req.file.mimetype
     });
 
-    const filename = `user-avatars/${user.id}-${Date.now()}-${avatarFile.name.replace(/\s+/g, '-')}`;
-    const uploadParams = {
-      Bucket: process.env.S3_BUCKET_NAME!,
-      Key: filename,
-      Body: avatarFile.data,
-      ContentType: avatarFile.mimetype,
-      ACL: 'public-read'
-    };
+    // Upload to S3 using the existing service
+    const { url: avatarUrl } = await uploadFile(
+      req.file.buffer, 
+      `user-avatar-${user.id}-${Date.now()}.${req.file.originalname.split('.').pop()}`,
+      req.file.mimetype,
+      'user-avatars'
+    );
 
-    const result = await s3.upload(uploadParams).promise();
-    
     // Update user in database
     await db.update(users)
-      .set({ avatar: result.Location })
+      .set({ avatarUrl: avatarUrl })
       .where(eq(users.id, user.id));
 
-    res.json({ url: result.Location });
+    console.log('Avatar uploaded successfully:', avatarUrl);
+    res.json({ url: avatarUrl });
   } catch (error) {
     console.error('Error uploading avatar:', error);
-    res.status(500).json({ message: 'Failed to upload avatar' });
+    
+    let errorMessage = 'Failed to upload avatar';
+    if (error instanceof Error) {
+      if (error.message.includes('credentials')) {
+        errorMessage = 'AWS credentials not configured properly';
+      } else if (error.message.includes('bucket')) {
+        errorMessage = 'S3 bucket configuration error';
+      } else {
+        errorMessage = error.message;
+      }
+    }
+    
+    res.status(500).json({ message: errorMessage });
   }
 }
 
 export async function uploadLogo(req: Request, res: Response) {
   try {
-    if (!req.files?.logo) {
+    if (!req.file) {
       return res.status(400).json({ message: 'No logo file uploaded' });
     }
 
-    const logoFile = Array.isArray(req.files.logo) ? req.files.logo[0] : req.files.logo;
-    const s3 = new AWS.S3({
-      region: process.env.AWS_REGION,
-      accessKeyId: process.env.AWS_ACCESS_KEY_ID,
-      secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY
+    console.log('Logo upload attempt:', {
+      fileName: req.file.originalname,
+      fileSize: req.file.size,
+      mimeType: req.file.mimetype
     });
 
-    const filename = `business-logos/${Date.now()}-${logoFile.name.replace(/\s+/g, '-')}`;
-    const uploadParams = {
-      Bucket: process.env.S3_BUCKET_NAME!,
-      Key: filename,
-      Body: logoFile.data,
-      ContentType: logoFile.mimetype,
-      ACL: 'public-read'
-    };
+    // Upload to S3 using the existing service
+    const { url: logoUrl } = await uploadFile(
+      req.file.buffer, 
+      `business-logo-${Date.now()}.${req.file.originalname.split('.').pop()}`,
+      req.file.mimetype,
+      'business-logos'
+    );
 
-    const result = await s3.upload(uploadParams).promise();
-    res.json({ url: result.Location });
+    console.log('Logo uploaded successfully:', logoUrl);
+    res.json({ url: logoUrl });
   } catch (error) {
     console.error('Error uploading logo:', error);
-    res.status(500).json({ message: 'Failed to upload logo' });
+    
+    let errorMessage = 'Failed to upload logo';
+    if (error instanceof Error) {
+      if (error.message.includes('credentials')) {
+        errorMessage = 'AWS credentials not configured properly';
+      } else if (error.message.includes('bucket')) {
+        errorMessage = 'S3 bucket configuration error';
+      } else {
+        errorMessage = error.message;
+      }
+    }
+    
+    res.status(500).json({ message: errorMessage });
   }
 }
 

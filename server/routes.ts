@@ -415,6 +415,24 @@ export async function registerRoutes(app: Express): Promise<Server> {
     app.post('/api/enterprise/business', isAuthenticated, enterpriseApi.createBusinessProfile);
     app.put('/api/enterprise/business', isAuthenticated, enterpriseApi.updateBusinessProfile);
     app.get('/api/enterprise/stats', isAuthenticated, enterpriseApi.getBusinessStats);
+    
+    // File upload routes with multer middleware
+    const multer = require('multer');
+    const upload = multer({
+      storage: multer.memoryStorage(),
+      limits: { fileSize: 5 * 1024 * 1024 },
+      fileFilter: (req: any, file: any, cb: any) => {
+        const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp'];
+        if (allowedTypes.includes(file.mimetype)) {
+          cb(null, true);
+        } else {
+          cb(new Error('Invalid file type. Only JPEG, PNG, GIF, and WebP are allowed.'));
+        }
+      }
+    });
+    app.post('/api/enterprise/upload-logo', isAuthenticated, enterpriseApi.handleLogoUpload, enterpriseApi.uploadEnterpriseLogo);
+    app.post('/api/enterprise/upload-avatar', isAuthenticated, upload.single('avatar'), enterpriseApi.uploadAvatar);
+    
     app.get('/api/enterprise/hub-pins', isAuthenticated, enterpriseApi.getHubPins);
     app.get('/api/enterprise/hub-pins/active', enterpriseApi.getActiveHubPins);
     app.get('/api/enterprise/hub-pins/debug', enterpriseApi.debugHubPins);

@@ -270,7 +270,7 @@ const UserDrawerV2: React.FC<UserDrawerProps> = ({
                         });
                         const data = await res.json();
                         // Update user context/local storage with new avatar URL
-                        user.avatar = data.url;
+                        user.avatarUrl = data.url;
                         localStorage.setItem('user', JSON.stringify(user));
                         // Invalidate user query to refresh avatar everywhere
                         queryClient.invalidateQueries(['user']);
@@ -290,12 +290,12 @@ const UserDrawerV2: React.FC<UserDrawerProps> = ({
                 />
                 <label htmlFor="avatarUpload" className="cursor-pointer">
                   <Avatar className="h-8 w-8">
-                    <AvatarImage src={user.avatar || undefined} />
-                    <AvatarFallback className="text-xs">{user.firstName?.charAt(0) || user.username?.charAt(0) || 'U'}</AvatarFallback>
+                    <AvatarImage src={user.avatarUrl || undefined} />
+                    <AvatarFallback className="text-xs">{user.fullName?.charAt(0) || user.username?.charAt(0) || 'U'}</AvatarFallback>
                   </Avatar>
                 </label>
                 <div className="flex-1 overflow-hidden">
-                  <p className="font-medium truncate text-sm">{user.firstName || user.username || 'User'}</p>
+                  <p className="font-medium truncate text-sm">{user.fullName || user.username || 'User'}</p>
                   <div className="flex items-center gap-1 text-xs text-muted-foreground">
                     <span>{user.accountType || 'User'}</span>
                     {user.emailVerified ? (

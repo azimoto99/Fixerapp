@@ -1,10 +1,9 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { useGeolocation } from '@/hooks/use-react-geolocated';
-import JobDetail from './JobDetail';
-import JobDetailCard from './JobDetailCard';
+import JobDetailsCard from './jobs/JobDetailsCard';
 import UserDrawerV2 from './UserDrawerV2';
 import MapViewToggle from './MapViewToggle';
-import { Job } from '@shared/schema';
+import { Job } from '@/types';
 import MapboxMap from './MapboxMap';
 import JobLocationMap from './JobLocationMap';
 import { Loader2, Plus } from 'lucide-react';

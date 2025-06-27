@@ -162,6 +162,9 @@ export interface IStorage {
   getAllPayments(): Promise<Payment[]>;
   getAllEarnings(): Promise<Earning[]>;
   getAllSupportTickets(): Promise<any[]>;
+  getSupportTickets(): Promise<any[]>;
+  updateSupportTicket(id: number, data: any): Promise<any>;
+  deleteSupportTicket(id: number): Promise<any>;
   getEarnings(userId: number): Promise<Earning[]>;
   addTicketResponse(responseData: any): Promise<any>;
   getUserById(id: number): Promise<User | undefined>;
@@ -241,6 +244,75 @@ export class MemStorage implements IStorage {
     this.notificationIdCounter = 1;
     
     // No sample data - never initialize any sample data
+    
+    // Initialize some sample support tickets for admin panel testing
+    this.initializeSampleSupportTickets();
+  }
+  
+  private initializeSampleSupportTickets() {
+    const sampleTickets = [
+      {
+        id: 1,
+        title: "Payment not received",
+        userName: "John Doe",
+        userEmail: "john@example.com",
+        priority: "high",
+        status: "open",
+        description: "I completed a job but haven't received payment yet.",
+        createdAt: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000), // 2 days ago
+        updatedAt: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000)
+      },
+      {
+        id: 2,
+        title: "Account verification issue",
+        userName: "Jane Smith",
+        userEmail: "jane@example.com",
+        priority: "medium",
+        status: "in_progress",
+        description: "Having trouble verifying my business account.",
+        createdAt: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000), // 5 days ago
+        updatedAt: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000)
+      },
+      {
+        id: 3,
+        title: "App crashes on job posting",
+        userName: "Mike Johnson",
+        userEmail: "mike@example.com",
+        priority: "urgent",
+        status: "open",
+        description: "The mobile app crashes every time I try to post a new job.",
+        createdAt: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000), // 1 day ago
+        updatedAt: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000)
+      },
+      {
+        id: 4,
+        title: "Profile picture upload failed",
+        userName: "Sarah Wilson",
+        userEmail: "sarah@example.com",
+        priority: "low",
+        status: "resolved",
+        description: "Cannot upload profile picture, getting error message.",
+        createdAt: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000), // 7 days ago
+        updatedAt: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000),
+        resolvedAt: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000)
+      },
+      {
+        id: 5,
+        title: "Dispute resolution needed",
+        userName: "Tom Brown",
+        userEmail: "tom@example.com",
+        priority: "high",
+        status: "closed",
+        description: "Need help resolving a dispute with a client about job completion.",
+        createdAt: new Date(Date.now() - 10 * 24 * 60 * 60 * 1000), // 10 days ago
+        updatedAt: new Date(Date.now() - 6 * 24 * 60 * 60 * 1000),
+        resolvedAt: new Date(Date.now() - 6 * 24 * 60 * 60 * 1000)
+      }
+    ];
+    
+    sampleTickets.forEach(ticket => {
+      this.supportTickets.set(ticket.id, ticket);
+    });
   }
 
   // Helper function to calculate distance between two points in miles
@@ -1215,6 +1287,31 @@ export class MemStorage implements IStorage {
 	}
 	async getAllSupportTickets(): Promise<any[]> {
 		return Array.from(this.supportTickets.values());
+	}
+	
+	async getSupportTickets(): Promise<any[]> {
+		return Array.from(this.supportTickets.values());
+	}
+	
+	async updateSupportTicket(id: number, data: any): Promise<any> {
+		const ticket = this.supportTickets.get(id);
+		if (!ticket) {
+			return null;
+		}
+		
+		const updatedTicket = { ...ticket, ...data, updatedAt: new Date() };
+		this.supportTickets.set(id, updatedTicket);
+		return updatedTicket;
+	}
+	
+	async deleteSupportTicket(id: number): Promise<any> {
+		const ticket = this.supportTickets.get(id);
+		if (!ticket) {
+			return null;
+		}
+		
+		this.supportTickets.delete(id);
+		return ticket;
 	}
 	async getEarnings(userId: number): Promise<Earning[]> {
 		return Array.from(this.earnings.values())

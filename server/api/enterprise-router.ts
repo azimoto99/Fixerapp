@@ -2,6 +2,23 @@ import { Router } from 'express';
 import * as enterpriseApi from './enterprise';
 import { isAuthenticated as ensureAuthenticated } from '../middleware/auth';
 import { requireAuth, isAdmin } from '../auth-helpers';
+import multer from 'multer';
+
+// Configure multer for file uploads
+const upload = multer({
+  storage: multer.memoryStorage(),
+  limits: {
+    fileSize: 5 * 1024 * 1024, // 5MB limit
+  },
+  fileFilter: (req, file, cb) => {
+    const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp'];
+    if (allowedTypes.includes(file.mimetype)) {
+      cb(null, true);
+    } else {
+      cb(new Error('Invalid file type. Only JPEG, PNG, GIF, and WebP are allowed.'));
+    }
+  }
+});
 
 const router = Router();
 
@@ -12,8 +29,9 @@ router.put('/business', ensureAuthenticated, enterpriseApi.updateBusinessProfile
 router.get('/stats', ensureAuthenticated, enterpriseApi.getBusinessStats);
 router.get('/analytics', ensureAuthenticated, enterpriseApi.getBusinessAnalytics);
 
-// Logo upload endpoint
+// File upload endpoints
 router.post('/upload-logo', ensureAuthenticated, enterpriseApi.handleLogoUpload, enterpriseApi.uploadEnterpriseLogo);
+router.post('/upload-avatar', ensureAuthenticated, upload.single('avatar'), enterpriseApi.uploadAvatar);
 
 // Hub pins endpoints
 router.get('/hub-pins', ensureAuthenticated, enterpriseApi.getHubPins);

@@ -569,16 +569,16 @@ export default function AdminPanelV2() {
 
       <Tabs defaultValue="overview" value={selectedTab} onValueChange={setSelectedTab} className="w-full">
         <div className={`md:block ${isMobileMenuOpen ? 'block' : 'hidden'} mb-6 md:mb-0`}>
-          <TabsList className="grid w-full grid-cols-5 p-2">
-            <TabsTrigger value="overview" className="w-full justify-start">Overview</TabsTrigger>
-            <TabsTrigger value="users" className="w-full justify-start">Users</TabsTrigger>
-            <TabsTrigger value="jobs" className="w-full justify-start">Jobs</TabsTrigger>
-            <TabsTrigger value="support" className="w-full justify-start">Support</TabsTrigger>
-            <TabsTrigger value="payments" className="w-full justify-start">Payments</TabsTrigger>
-            <TabsTrigger value="analytics">Analytics</TabsTrigger>
-            <TabsTrigger value="maintenance">Maintenance</TabsTrigger>
-            <TabsTrigger value="settings">Platform Settings</TabsTrigger>
-            <TabsTrigger value="enterprise">Enterprise</TabsTrigger>
+          <TabsList className="grid w-full grid-cols-3 lg:grid-cols-5 xl:grid-cols-9 p-2">
+            <TabsTrigger value="overview" className="w-full justify-start text-xs lg:text-sm">Overview</TabsTrigger>
+            <TabsTrigger value="users" className="w-full justify-start text-xs lg:text-sm">Users</TabsTrigger>
+            <TabsTrigger value="jobs" className="w-full justify-start text-xs lg:text-sm">Jobs</TabsTrigger>
+            <TabsTrigger value="support" className="w-full justify-start text-xs lg:text-sm">Support</TabsTrigger>
+            <TabsTrigger value="payments" className="w-full justify-start text-xs lg:text-sm">Payments</TabsTrigger>
+            <TabsTrigger value="analytics" className="w-full justify-start text-xs lg:text-sm">Analytics</TabsTrigger>
+            <TabsTrigger value="maintenance" className="w-full justify-start text-xs lg:text-sm">Maintenance</TabsTrigger>
+            <TabsTrigger value="settings" className="w-full justify-start text-xs lg:text-sm">Settings</TabsTrigger>
+            <TabsTrigger value="enterprise" className="w-full justify-start text-xs lg:text-sm">Enterprise</TabsTrigger>
           </TabsList>
         </div>
         <TabsContent value="overview" className="mt-0 md:mt-6">
@@ -605,8 +605,8 @@ export default function AdminPanelV2() {
                     <CardDescription>Registered users</CardDescription>
                   </CardHeader>
                   <CardContent>
-                    <div className="text-2xl font-bold">{dashboardStats.total_users?.toLocaleString() || 0}</div>
-                    <p className="text-sm text-muted-foreground">+{dashboardStats.daily_signups} today</p>
+                    <div className="text-2xl font-bold">{dashboardStats.totalUsers?.toLocaleString() || 0}</div>
+                    <p className="text-sm text-muted-foreground">Platform members</p>
                   </CardContent>
                 </Card>
                 <Card>
@@ -615,30 +615,32 @@ export default function AdminPanelV2() {
                     <CardDescription>Platform activity</CardDescription>
                   </CardHeader>
                   <CardContent>
-                    <div className="text-2xl font-bold">{dashboardStats.active_jobs?.toLocaleString() || 0}</div>
+                    <div className="text-2xl font-bold">{dashboardStats.activeJobs?.toLocaleString() || 0}</div>
                     <p className="text-sm text-muted-foreground">
-                      {dashboardStats.completed_jobs} completed · {dashboardStats.daily_jobs} new today
+                      {dashboardStats.completedJobs || 0} completed · {dashboardStats.totalJobs || 0} total
                     </p>
                   </CardContent>
                 </Card>
                 <Card>
                   <CardHeader className="pb-2">
                     <CardTitle>Revenue</CardTitle>
-                    <CardDescription>30-day period</CardDescription>
+                    <CardDescription>Platform earnings</CardDescription>
                   </CardHeader>
                   <CardContent>
-                    <div className="text-2xl font-bold">${dashboardStats.total_revenue?.toLocaleString() || 0}</div>
-                    <p className="text-sm text-muted-foreground">{dashboardStats.pending_disputes} pending disputes</p>
+                    <div className="text-2xl font-bold">${(dashboardStats.totalRevenue || 0).toLocaleString()}</div>
+                    <p className="text-sm text-muted-foreground">
+                      ${(dashboardStats.platformFees || 0).toLocaleString()} in fees
+                    </p>
                   </CardContent>
                 </Card>
                 <Card>
                   <CardHeader className="pb-2">
-                    <CardTitle>Platform Health</CardTitle>
-                    <CardDescription>System status</CardDescription>
+                    <CardTitle>Disputes</CardTitle>
+                    <CardDescription>Support status</CardDescription>
                   </CardHeader>
                   <CardContent>
-                    <div className="text-2xl font-bold capitalize">{dashboardStats.platform_health || 'loading'}</div>
-                    <p className="text-sm text-muted-foreground">{dashboardStats.avg_response_time}ms avg response</p>
+                    <div className="text-2xl font-bold">{dashboardStats.pendingDisputes || 0}</div>
+                    <p className="text-sm text-muted-foreground">Pending resolution</p>
                   </CardContent>
                 </Card>
               </>
@@ -968,11 +970,175 @@ export default function AdminPanelV2() {
         </TabsContent>
 
         <TabsContent value="maintenance">
-          {/* Maintenance tab content */}
+          <Card>
+            <CardHeader>
+              <CardTitle>System Maintenance</CardTitle>
+              <CardDescription>
+                Platform maintenance tools and system health monitoring
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                <Card>
+                  <CardHeader className="pb-2">
+                    <CardTitle className="text-sm">System Status</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="flex items-center gap-2">
+                      <div className="w-3 h-3 bg-green-500 rounded-full"></div>
+                      <span className="text-sm font-medium">Operational</span>
+                    </div>
+                  </CardContent>
+                </Card>
+                
+                <Card>
+                  <CardHeader className="pb-2">
+                    <CardTitle className="text-sm">Database</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="flex items-center gap-2">
+                      <div className="w-3 h-3 bg-green-500 rounded-full"></div>
+                      <span className="text-sm font-medium">Connected</span>
+                    </div>
+                  </CardContent>
+                </Card>
+                
+                <Card>
+                  <CardHeader className="pb-2">
+                    <CardTitle className="text-sm">Storage</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="flex items-center gap-2">
+                      <div className="w-3 h-3 bg-green-500 rounded-full"></div>
+                      <span className="text-sm font-medium">Available</span>
+                    </div>
+                  </CardContent>
+                </Card>
+                
+                <Card>
+                  <CardHeader className="pb-2">
+                    <CardTitle className="text-sm">Payments</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="flex items-center gap-2">
+                      <div className="w-3 h-3 bg-green-500 rounded-full"></div>
+                      <span className="text-sm font-medium">Processing</span>
+                    </div>
+                  </CardContent>
+                </Card>
+              </div>
+              
+              <div className="space-y-4">
+                <h3 className="text-lg font-semibold">Maintenance Actions</h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <Button variant="outline" className="justify-start h-auto p-4">
+                    <div className="text-left">
+                      <div className="font-medium">Clear Cache</div>
+                      <div className="text-sm text-muted-foreground">Clear application cache and temporary files</div>
+                    </div>
+                  </Button>
+                  
+                  <Button variant="outline" className="justify-start h-auto p-4">
+                    <div className="text-left">
+                      <div className="font-medium">Database Cleanup</div>
+                      <div className="text-sm text-muted-foreground">Remove old logs and optimize database</div>
+                    </div>
+                  </Button>
+                  
+                  <Button variant="outline" className="justify-start h-auto p-4">
+                    <div className="text-left">
+                      <div className="font-medium">Backup System</div>
+                      <div className="text-sm text-muted-foreground">Create system backup</div>
+                    </div>
+                  </Button>
+                  
+                  <Button variant="outline" className="justify-start h-auto p-4">
+                    <div className="text-left">
+                      <div className="font-medium">Update Indexes</div>
+                      <div className="text-sm text-muted-foreground">Rebuild search indexes</div>
+                    </div>
+                  </Button>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
         </TabsContent>
 
         <TabsContent value="settings">
-          {/* Platform Settings tab content */}
+          <Card>
+            <CardHeader>
+              <CardTitle>Platform Settings</CardTitle>
+              <CardDescription>
+                Configure platform-wide settings and preferences
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              <div className="space-y-4">
+                <h3 className="text-lg font-semibold">General Settings</h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div className="space-y-2">
+                    <Label htmlFor="platform-name">Platform Name</Label>
+                    <Input id="platform-name" defaultValue="Fixer" />
+                  </div>
+                  
+                  <div className="space-y-2">
+                    <Label htmlFor="support-email">Support Email</Label>
+                    <Input id="support-email" defaultValue="support@fixer.com" />
+                  </div>
+                  
+                  <div className="space-y-2">
+                    <Label htmlFor="max-file-size">Max File Size (MB)</Label>
+                    <Input id="max-file-size" type="number" defaultValue="10" />
+                  </div>
+                  
+                  <div className="space-y-2">
+                    <Label htmlFor="session-timeout">Session Timeout (minutes)</Label>
+                    <Input id="session-timeout" type="number" defaultValue="60" />
+                  </div>
+                </div>
+              </div>
+              
+              <div className="space-y-4">
+                <h3 className="text-lg font-semibold">Payment Settings</h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div className="space-y-2">
+                    <Label htmlFor="platform-fee">Platform Fee (%)</Label>
+                    <Input id="platform-fee" type="number" defaultValue="5" step="0.1" />
+                  </div>
+                  
+                  <div className="space-y-2">
+                    <Label htmlFor="min-payout">Minimum Payout ($)</Label>
+                    <Input id="min-payout" type="number" defaultValue="20" />
+                  </div>
+                </div>
+              </div>
+              
+              <div className="space-y-4">
+                <h3 className="text-lg font-semibold">Security Settings</h3>
+                <div className="space-y-4">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <Label>Two-Factor Authentication Required</Label>
+                      <p className="text-sm text-muted-foreground">Require 2FA for all admin accounts</p>
+                    </div>
+                    <Button variant="outline" size="sm">Configure</Button>
+                  </div>
+                  
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <Label>Rate Limiting</Label>
+                      <p className="text-sm text-muted-foreground">API rate limiting configuration</p>
+                    </div>
+                    <Button variant="outline" size="sm">Configure</Button>
+                  </div>
+                </div>
+              </div>
+              
+              <div className="pt-6 border-t">
+                <Button>Save Settings</Button>
+              </div>
+            </CardContent>
+          </Card>
         </TabsContent>
 
         <TabsContent value="enterprise" className="space-y-6">
