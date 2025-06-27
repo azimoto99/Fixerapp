@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
 import { 
   User, 
   Settings, 
@@ -50,6 +51,7 @@ const UserDrawerV2: React.FC<UserDrawerProps> = ({
   isOpen: externalIsOpen 
 }) => {
   const { user, logoutMutation } = useAuth();
+  const queryClient = useQueryClient();
   const [activeTab, setActiveTab] = useState<string>("profile");
   const [activeSection, setActiveSection] = useState<string>("earnings");
   const [isOpen, setIsOpen] = useState(externalIsOpen || false);
@@ -258,7 +260,7 @@ const UserDrawerV2: React.FC<UserDrawerProps> = ({
                       formData.append('avatar', file);
                       
                       try {
-                        const res = await apiRequest('POST', '/api/user/upload-avatar', formData, {
+                        const res = await apiRequest('POST', '/api/enterprise/upload-avatar', formData, {
                           headers: {
                             'Content-Type': 'multipart/form-data'
                           }
@@ -267,6 +269,8 @@ const UserDrawerV2: React.FC<UserDrawerProps> = ({
                         // Update user context/local storage with new avatar URL
                         user.avatar = data.url;
                         localStorage.setItem('user', JSON.stringify(user));
+                        // Invalidate user query to refresh avatar everywhere
+                        queryClient.invalidateQueries(['user']);
                         toast({
                           title: 'Avatar Updated',
                           description: 'Your profile picture has been updated successfully.',
