@@ -168,8 +168,11 @@ export async function testEndpoint(req: Request, res: Response) {
 // Get business profile for current user
 export async function getBusinessProfile(req: Request, res: Response) {
   try {
+    console.log('🏢 Getting business profile for user:', req.user?.id);
+    
     const userId = req.user?.id;
     if (!userId) {
+      console.log('❌ No user ID found in business profile request');
       return res.status(401).json({ message: 'Unauthorized' });
     }
 
@@ -178,9 +181,11 @@ export async function getBusinessProfile(req: Request, res: Response) {
       .where(eq(enterpriseBusinesses.userId, userId))
       .limit(1);
 
+    console.log('🏢 Business profile result:', business ? `Found: ${business.businessName} (ID: ${business.id})` : 'Not found');
+    
     res.json(business || null);
   } catch (error) {
-    console.error('Error fetching business profile:', error);
+    console.error('❌ Error fetching business profile:', error);
     res.status(500).json({ message: 'Failed to fetch business profile' });
   }
 }
@@ -668,8 +673,12 @@ export async function createHubPin(req: Request, res: Response) {
 // Create position
 export async function createPosition(req: Request, res: Response) {
   try {
+    console.log('🎯 Creating position - User ID:', req.user?.id);
+    console.log('🎯 Request body:', JSON.stringify(req.body, null, 2));
+    
     const userId = req.user?.id;
     if (!userId) {
+      console.log('❌ No user ID found');
       return res.status(401).json({ message: 'Unauthorized' });
     }
 
@@ -679,8 +688,11 @@ export async function createPosition(req: Request, res: Response) {
       .limit(1);
 
     if (!business) {
-      return res.status(404).json({ message: 'Business not found' });
+      console.log('❌ No business found for user:', userId);
+      return res.status(404).json({ message: 'Business profile not found. Please create your business profile first.' });
     }
+
+    console.log('✅ Business found:', business.id, business.businessName);
 
     const {
       hubPinId,
@@ -695,6 +707,27 @@ export async function createPosition(req: Request, res: Response) {
       schedule,
       positionsAvailable
     } = req.body;
+
+    // Validate required fields
+    if (!title || !description || !paymentAmount) {
+      console.log('❌ Missing required fields:', { title: !!title, description: !!description, paymentAmount: !!paymentAmount });
+      return res.status(400).json({ message: 'Title, description, and payment amount are required' });
+    }
+
+    if (paymentAmount <= 0) {
+      console.log('❌ Invalid payment amount:', paymentAmount);
+      return res.status(400).json({ message: 'Payment amount must be greater than 0' });
+    }
+
+    console.log('🎯 Creating position with data:', {
+      enterpriseId: business.id,
+      hubPinId,
+      title,
+      positionType,
+      paymentType,
+      paymentAmount,
+      positionsAvailable: positionsAvailable || 1
+    });
 
     const [position] = await db.insert(enterprisePositions)
       .values({
@@ -714,9 +747,10 @@ export async function createPosition(req: Request, res: Response) {
       })
       .returning();
 
+    console.log('✅ Position created successfully:', position.id, position.title);
     res.json(position);
   } catch (error) {
-    console.error('Error creating position:', error);
+    console.error('❌ Error creating position:', error);
     res.status(500).json({ message: 'Failed to create position' });
   }
 }

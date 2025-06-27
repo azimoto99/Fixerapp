@@ -38,14 +38,38 @@ export default function PositionManager({ businessId }: { businessId: number }) 
   const [editingPosition, setEditingPosition] = useState<Position | null>(null);
   const [activeTab, setActiveTab] = useState('active');
 
+  // Check if businessId is valid
+  if (!businessId) {
+    return (
+      <div className="text-center py-8">
+        <p className="text-muted-foreground">
+          Business profile is required to manage positions. Please complete your business setup first.
+        </p>
+      </div>
+    );
+  }
+
   // Fetch positions
-  const { data: positions, isLoading } = useQuery({
+  const { data: positions, isLoading, error: positionsError } = useQuery({
     queryKey: ['/api/enterprise/positions', businessId],
     queryFn: async () => {
+      console.log('Fetching positions for business:', businessId);
       const res = await apiRequest('GET', '/api/enterprise/positions');
-      return res.json();
+      
+      if (!res.ok) {
+        const errorData = await res.json().catch(() => ({ message: 'Unknown error' }));
+        throw new Error(errorData.message || `HTTP ${res.status}: ${res.statusText}`);
+      }
+      
+      const data = await res.json();
+      console.log('Positions fetched:', data);
+      return data;
     },
-    enabled: !!businessId
+    enabled: !!businessId,
+    retry: (failureCount, error) => {
+      console.error('Positions query error:', error);
+      return failureCount < 2; // Retry up to 2 times
+    }
   });
 
   // Fetch hub pins for position assignment
@@ -61,11 +85,26 @@ export default function PositionManager({ businessId }: { businessId: number }) 
   // Create position mutation
   const createMutation = useMutation({
     mutationFn: async (data: any) => {
+      console.log('Creating position with data:', data);
+      
+      // Validate required fields
+      if (!data.title || !data.description || !data.paymentAmount) {
+        throw new Error('Please fill in all required fields');
+      }
+      
       const res = await apiRequest('POST', '/api/enterprise/positions', data);
+      
+      if (!res.ok) {
+        const errorData = await res.json().catch(() => ({ message: 'Unknown error' }));
+        throw new Error(errorData.message || `HTTP ${res.status}: ${res.statusText}`);
+      }
+      
       return res.json();
     },
-    onSuccess: () => {
+    onSuccess: (data) => {
+      console.log('Position created successfully:', data);
       queryClient.invalidateQueries({ queryKey: ['/api/enterprise/positions'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/enterprise/stats'] });
       setIsCreateDialogOpen(false);
       toast({
         title: 'Position Created',
@@ -73,9 +112,10 @@ export default function PositionManager({ businessId }: { businessId: number }) 
       });
     },
     onError: (error: any) => {
+      console.error('Position creation error:', error);
       toast({
-        title: 'Error',
-        description: error.message || 'Failed to create position',
+        title: 'Error Creating Position',
+        description: error.message || 'Failed to create position. Please try again.',
         variant: 'destructive'
       });
     }
@@ -130,6 +170,38 @@ export default function PositionManager({ businessId }: { businessId: number }) 
 
     const handleSubmit = (e: React.FormEvent) => {
       e.preventDefault();
+      
+      console.log('Submitting position form with data:', formData);
+      
+      // Validate required fields
+      if (!formData.title.trim()) {
+        toast({
+          title: 'Validation Error',
+          description: 'Position title is required.',
+          variant: 'destructive'
+        });
+        return;
+      }
+      
+      if (!formData.description.trim()) {
+        toast({
+          title: 'Validation Error',
+          description: 'Job description is required.',
+          variant: 'destructive'
+        });
+        return;
+      }
+      
+      if (!formData.paymentAmount || formData.paymentAmount <= 0) {
+        toast({
+          title: 'Validation Error',
+          description: 'Payment amount must be greater than 0.',
+          variant: 'destructive'
+        });
+        return;
+      }
+      
+      // Submit the form
       onSubmit(formData);
     };
 
@@ -311,7 +383,30 @@ export default function PositionManager({ businessId }: { businessId: number }) 
   };
 
   if (isLoading) {
-    return <div>Loading positions...</div>;
+    return (
+      <div className="flex items-center justify-center py-8">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4"></div>
+          <p className="text-muted-foreground">Loading positions...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (positionsError) {
+    return (
+      <div className="text-center py-8">
+        <p className="text-destructive mb-4">
+          Error loading positions: {positionsError.message}
+        </p>
+        <Button 
+          onClick={() => queryClient.invalidateQueries({ queryKey: ['/api/enterprise/positions'] })}
+          variant="outline"
+        >
+          Try Again
+        </Button>
+      </div>
+    );
   }
 
   const activePositions = positions?.filter((p: Position) => p.isActive) || [];
