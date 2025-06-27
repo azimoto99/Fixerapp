@@ -350,6 +350,15 @@ const MapSection: React.FC<MapSectionProps> = ({ jobs, selectedJob, onSelectJob,
             console.warn(`Invalid coordinates for hub pin ${hubPin.id}: lat=${hubPin.latitude}, lng=${hubPin.longitude}`);
             return; // skip invalid coords
           }
+          
+          console.log(`Processing hub pin for map:`, {
+            id: hubPin.id,
+            title: hubPin.title,
+            iconUrl: hubPin.iconUrl,
+            businessLogo: hubPin.business?.businessLogo,
+            finalIcon: hubPin.iconUrl || hubPin.business?.businessLogo || '🏢'
+          });
+          
           console.log(`Adding hub pin marker: ${hubPin.title} at ${lat},${lng}`);
           markers.push({
             latitude: lat,
