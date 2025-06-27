@@ -246,10 +246,47 @@ const UserDrawerV2: React.FC<UserDrawerProps> = ({
           <div className="flex-1 overflow-y-auto p-4 space-y-6">
             <div className="space-y-4">
               <div className="flex items-center gap-3 p-2 rounded-lg bg-muted/50">
-                <Avatar className="h-10 w-10">
-                  <AvatarImage src={user.avatar || undefined} />
-                  <AvatarFallback>{user.firstName?.charAt(0) || user.username?.charAt(0) || 'U'}</AvatarFallback>
-                </Avatar>
+                <input
+                  type="file"
+                  id="avatarUpload"
+                  accept="image/png, image/jpeg"
+                  className="hidden"
+                  onChange={async (e) => {
+                    if (e.target.files?.[0]) {
+                      const file = e.target.files[0];
+                      const formData = new FormData();
+                      formData.append('avatar', file);
+                      
+                      try {
+                        const res = await apiRequest('POST', '/api/user/upload-avatar', formData, {
+                          headers: {
+                            'Content-Type': 'multipart/form-data'
+                          }
+                        });
+                        const data = await res.json();
+                        // Update user context/local storage with new avatar URL
+                        user.avatar = data.url;
+                        localStorage.setItem('user', JSON.stringify(user));
+                        toast({
+                          title: 'Avatar Updated',
+                          description: 'Your profile picture has been updated successfully.',
+                        });
+                      } catch (error) {
+                        toast({
+                          title: 'Upload Failed',
+                          description: 'Could not upload avatar. Please try again.',
+                          variant: 'destructive'
+                        });
+                      }
+                    }
+                  }}
+                />
+                <label htmlFor="avatarUpload" className="cursor-pointer">
+                  <Avatar className="h-10 w-10">
+                    <AvatarImage src={user.avatar || undefined} />
+                    <AvatarFallback>{user.firstName?.charAt(0) || user.username?.charAt(0) || 'U'}</AvatarFallback>
+                  </Avatar>
+                </label>
                 <div className="flex-1 overflow-hidden">
                   <p className="font-medium truncate">{user.firstName || user.username || 'User'}</p>
                   <div className="flex items-center gap-1 text-xs text-muted-foreground">

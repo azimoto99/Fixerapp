@@ -11,6 +11,47 @@ import { eq, and, desc, count, sql, isNull, ilike } from 'drizzle-orm';
 import { requireAuth } from '../middleware/auth';
 
 // Add a test endpoint at the top of the file
+export async function uploadUserAvatar(req: Request, res: Response) {
+  try {
+    if (!req.files?.avatar) {
+      return res.status(400).json({ message: 'No avatar file uploaded' });
+    }
+
+    const user = req.user;
+    if (!user) {
+      return res.status(401).json({ message: 'Unauthorized' });
+    }
+
+    const avatarFile = Array.isArray(req.files.avatar) ? req.files.avatar[0] : req.files.avatar;
+    const s3 = new AWS.S3({
+      region: process.env.AWS_REGION,
+      accessKeyId: process.env.AWS_ACCESS_KEY_ID,
+      secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY
+    });
+
+    const filename = `user-avatars/${user.id}-${Date.now()}-${avatarFile.name.replace(/\s+/g, '-')}`;
+    const uploadParams = {
+      Bucket: process.env.S3_BUCKET_NAME!,
+      Key: filename,
+      Body: avatarFile.data,
+      ContentType: avatarFile.mimetype,
+      ACL: 'public-read'
+    };
+
+    const result = await s3.upload(uploadParams).promise();
+    
+    // Update user in database
+    await db.update(users)
+      .set({ avatar: result.Location })
+      .where(eq(users.id, user.id));
+
+    res.json({ url: result.Location });
+  } catch (error) {
+    console.error('Error uploading avatar:', error);
+    res.status(500).json({ message: 'Failed to upload avatar' });
+  }
+}
+
 export async function uploadLogo(req: Request, res: Response) {
   try {
     if (!req.files?.logo) {
@@ -18,12 +59,23 @@ export async function uploadLogo(req: Request, res: Response) {
     }
 
     const logoFile = Array.isArray(req.files.logo) ? req.files.logo[0] : req.files.logo;
-    
-    // In production, you'd upload to cloud storage (S3, GCS, etc.)
-    // For demo purposes, we'll just return a mock URL
-    const mockUrl = `https://ui-avatars.com/api/?name=${encodeURIComponent(logoFile.name)}&background=random`;
-    
-    res.json({ url: mockUrl });
+    const s3 = new AWS.S3({
+      region: process.env.AWS_REGION,
+      accessKeyId: process.env.AWS_ACCESS_KEY_ID,
+      secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY
+    });
+
+    const filename = `business-logos/${Date.now()}-${logoFile.name.replace(/\s+/g, '-')}`;
+    const uploadParams = {
+      Bucket: process.env.S3_BUCKET_NAME!,
+      Key: filename,
+      Body: logoFile.data,
+      ContentType: logoFile.mimetype,
+      ACL: 'public-read'
+    };
+
+    const result = await s3.upload(uploadParams).promise();
+    res.json({ url: result.Location });
   } catch (error) {
     console.error('Error uploading logo:', error);
     res.status(500).json({ message: 'Failed to upload logo' });
