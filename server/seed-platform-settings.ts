@@ -1,10 +1,5 @@
 import { db } from './db';
 import { platformSettings } from '../shared/schema';
-import { fileURLToPath } from 'url';
-import { dirname } from 'path';
-
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = dirname(__filename);
 
 const defaultPlatformSettings = [
   // General Settings
@@ -54,9 +49,10 @@ export async function seedPlatformSettings() {
     for (const setting of defaultPlatformSettings) {
       await db.insert(platformSettings).values({
         key: setting.key,
-        value: setting.value,
+        value: setting.value, // Drizzle will handle JSON serialization for jsonb fields
         description: setting.description,
-        category: setting.category
+        category: setting.category,
+        updatedAt: new Date()
       }).onConflictDoNothing();
     }
     
@@ -68,8 +64,7 @@ export async function seedPlatformSettings() {
 }
 
 // Run if called directly
-const isMainModule = process.argv[1] === __filename;
-if (isMainModule) {
+if (import.meta.url === `file://${process.argv[1]}`) {
   seedPlatformSettings()
     .then(() => process.exit(0))
     .catch((error) => {

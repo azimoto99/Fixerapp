@@ -184,6 +184,14 @@ export interface IStorage {
   getAllGlobalNotifications(): Promise<{ id: number; title: string; body: string; isActive: boolean; createdAt: string }[]>;
   createGlobalNotification(data: { title: string; body: string; createdBy?: number }): Promise<any>;
   deleteGlobalNotification(id: number): Promise<boolean>;
+
+  // Platform settings operations
+  getPlatformSettings(): Promise<Record<string, any> | undefined>;
+  updatePlatformSettings(settings: Record<string, any>): Promise<Record<string, any>>;
+  getSettingsHistory(limit: number, offset: number): Promise<any[]>;
+  createSettingsBackup(backup: any): Promise<number>;
+  getSettingsBackup(backupId: number): Promise<any>;
+  getSettingsBackups(): Promise<any[]>;
 }
 
 export class MemStorage implements IStorage {
@@ -1465,6 +1473,54 @@ export class MemStorage implements IStorage {
   async deleteGlobalNotification(id: number): Promise<boolean> {
     // Implementation needed
     throw new Error("Method not implemented");
+  }
+
+  // Platform settings operations
+  private platformSettings: Map<string, any> = new Map();
+  private settingsBackups: Map<number, any> = new Map();
+  private settingsBackupIdCounter: number = 1;
+
+  async getPlatformSettings(): Promise<Record<string, any> | undefined> {
+    const settings: Record<string, any> = {};
+    for (const [key, value] of this.platformSettings.entries()) {
+      settings[key] = value;
+    }
+    return Object.keys(settings).length > 0 ? settings : undefined;
+  }
+
+  async updatePlatformSettings(settings: Record<string, any>): Promise<Record<string, any>> {
+    // Clear existing settings
+    this.platformSettings.clear();
+    
+    // Set new settings
+    for (const [key, value] of Object.entries(settings)) {
+      this.platformSettings.set(key, value);
+    }
+    
+    return settings;
+  }
+
+  async getSettingsHistory(limit: number, offset: number): Promise<any[]> {
+    // In a real implementation, this would fetch from an audit log table
+    // For now, return empty array
+    return [];
+  }
+
+  async createSettingsBackup(backup: any): Promise<number> {
+    const backupId = this.settingsBackupIdCounter++;
+    this.settingsBackups.set(backupId, {
+      id: backupId,
+      ...backup
+    });
+    return backupId;
+  }
+
+  async getSettingsBackup(backupId: number): Promise<any> {
+    return this.settingsBackups.get(backupId);
+  }
+
+  async getSettingsBackups(): Promise<any[]> {
+    return Array.from(this.settingsBackups.values());
   }
 }
 

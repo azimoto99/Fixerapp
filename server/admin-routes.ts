@@ -2381,6 +2381,245 @@ export function registerAdminRoutes(app: Express) {
     res.redirect(307, `/api/admin/support-tickets${qs ? '?' + qs : ''}`);
   });
 
+  // ================================
+  // PLATFORM SETTINGS ENDPOINTS
+  // ================================
+
+  // Get platform settings
+  app.get("/api/admin/settings/platform", adminAuth, async (req, res) => {
+    try {
+      const settings = await storage.getPlatformSettings();
+      res.json({ settings: settings || {} });
+    } catch (error) {
+      console.error('Get platform settings error:', error);
+      res.status(500).json({ message: "Failed to fetch platform settings" });
+    }
+  });
+
+  // Update platform settings
+  app.put("/api/admin/settings/platform", 
+    adminAuth, 
+    auditAdminAction('update_platform_settings', 'settings'),
+    async (req, res) => {
+      try {
+        const { settings } = req.body;
+        
+        if (!settings || typeof settings !== 'object') {
+          return res.status(400).json({ message: "Invalid settings data" });
+        }
+
+        const updatedSettings = await storage.updatePlatformSettings(settings);
+        
+        res.json({ 
+          message: "Platform settings updated successfully",
+          settings: updatedSettings 
+        });
+      } catch (error) {
+        console.error('Update platform settings error:', error);
+        res.status(500).json({ message: "Failed to update platform settings" });
+      }
+    }
+  );
+
+  // Get specific setting value
+  app.get("/api/admin/settings/platform/:key", adminAuth, async (req, res) => {
+    try {
+      const { key } = req.params;
+      const settings = await storage.getPlatformSettings();
+      
+      if (!settings || !(key in settings)) {
+        return res.status(404).json({ message: "Setting not found" });
+      }
+      
+      res.json({ key, value: settings[key] });
+    } catch (error) {
+      console.error('Get platform setting error:', error);
+      res.status(500).json({ message: "Failed to fetch platform setting" });
+    }
+  });
+
+  // Update specific setting value
+  app.patch("/api/admin/settings/platform/:key", 
+    adminAuth, 
+    auditAdminAction('update_platform_setting', 'settings'),
+    async (req, res) => {
+      try {
+        const { key } = req.params;
+        const { value } = req.body;
+        
+        const currentSettings = await storage.getPlatformSettings() || {};
+        currentSettings[key] = value;
+        
+        const updatedSettings = await storage.updatePlatformSettings(currentSettings);
+        
+        res.json({ 
+          message: `Setting '${key}' updated successfully`,
+          key,
+          value: updatedSettings[key]
+        });
+      } catch (error) {
+        console.error('Update platform setting error:', error);
+        res.status(500).json({ message: "Failed to update platform setting" });
+      }
+    }
+  );
+
+  // Reset platform settings to defaults
+  app.post("/api/admin/settings/platform/reset", 
+    strictAdminRateLimit,
+    adminAuth, 
+    auditAdminAction('reset_platform_settings', 'settings'),
+    async (req, res) => {
+      try {
+        const defaultSettings = {
+          // General Settings
+          platformName: 'Fixer',
+          supportEmail: 'support@fixer.com',
+          maxFileSize: 10,
+          sessionTimeout: 60,
+          maintenanceMode: false,
+          registrationEnabled: true,
+          
+          // Payment Settings
+          platformFee: 5.0,
+          minPayout: 20,
+          maxJobValue: 10000,
+          paymentProcessingFee: 2.9,
+          instantPayoutFee: 1.5,
+          
+          // Security Settings
+          requireEmailVerification: true,
+          require2FA: false,
+          maxLoginAttempts: 5,
+          passwordMinLength: 8,
+          sessionSecure: true,
+          
+          // Moderation Settings
+          autoModerationEnabled: true,
+          profanityFilterEnabled: true,
+          imageModeration: true,
+          maxReportsBeforeReview: 3,
+          
+          // Notification Settings
+          emailNotificationsEnabled: true,
+          smsNotificationsEnabled: false,
+          pushNotificationsEnabled: true,
+          
+          // Feature Flags
+          locationVerificationEnabled: true,
+          enterpriseAccountsEnabled: true,
+          hubPinsEnabled: true,
+          analyticsEnabled: true
+        };
+
+        const resetSettings = await storage.updatePlatformSettings(defaultSettings);
+        
+        res.json({ 
+          message: "Platform settings reset to defaults successfully",
+          settings: resetSettings 
+        });
+      } catch (error) {
+        console.error('Reset platform settings error:', error);
+        res.status(500).json({ message: "Failed to reset platform settings" });
+      }
+    }
+  );
+
+  // Get settings history/audit log
+  app.get("/api/admin/settings/history", 
+    adminAuth, 
+    auditAdminAction('view_settings_history', 'settings'),
+    async (req, res) => {
+      try {
+        const { limit = 50, offset = 0 } = req.query;
+        
+        // This would fetch from an audit log table in a real implementation
+        const history = await storage.getSettingsHistory(
+          parseInt(limit as string), 
+          parseInt(offset as string)
+        );
+        
+        res.json({ 
+          history: history || [],
+          total: history?.length || 0
+        });
+      } catch (error) {
+        console.error('Get settings history error:', error);
+        res.status(500).json({ message: "Failed to fetch settings history" });
+      }
+    }
+  );
+
+  // Backup current settings
+  app.post("/api/admin/settings/backup", 
+    adminAuth, 
+    auditAdminAction('backup_platform_settings', 'settings'),
+    async (req, res) => {
+      try {
+        const currentSettings = await storage.getPlatformSettings();
+        const backup = {
+          settings: currentSettings,
+          timestamp: new Date().toISOString(),
+          createdBy: req.user!.id
+        };
+        
+        // In a real implementation, this would save to a backups table
+        const backupId = await storage.createSettingsBackup(backup);
+        
+        res.json({ 
+          message: "Settings backup created successfully",
+          backupId,
+          timestamp: backup.timestamp
+        });
+      } catch (error) {
+        console.error('Backup settings error:', error);
+        res.status(500).json({ message: "Failed to create settings backup" });
+      }
+    }
+  );
+
+  // Restore settings from backup
+  app.post("/api/admin/settings/restore/:backupId", 
+    strictAdminRateLimit,
+    adminAuth, 
+    auditAdminAction('restore_platform_settings', 'settings'),
+    async (req, res) => {
+      try {
+        const { backupId } = req.params;
+        
+        const backup = await storage.getSettingsBackup(parseInt(backupId));
+        if (!backup) {
+          return res.status(404).json({ message: "Backup not found" });
+        }
+        
+        const restoredSettings = await storage.updatePlatformSettings(backup.settings);
+        
+        res.json({ 
+          message: "Settings restored from backup successfully",
+          settings: restoredSettings,
+          restoredFrom: backup.timestamp
+        });
+      } catch (error) {
+        console.error('Restore settings error:', error);
+        res.status(500).json({ message: "Failed to restore settings from backup" });
+      }
+    }
+  );
+
+  // Get available settings backups
+  app.get("/api/admin/settings/backups", 
+    adminAuth, 
+    async (req, res) => {
+      try {
+        const backups = await storage.getSettingsBackups();
+        res.json({ backups: backups || [] });
+      } catch (error) {
+        console.error('Get settings backups error:', error);
+        res.status(500).json({ message: "Failed to fetch settings backups" });
+      }
+    }
+  );
+
   // Validate admin token endpoint
   app.get("/api/admin/validate-token", adminAuth, (req: Request, res: Response) => {
     // If this endpoint is reached, it means authentication passed

@@ -1,8 +1,8 @@
-# The Job - API Documentation
+# Fixer - API Documentation
 
 ## API Overview
 
-The Job platform provides a comprehensive REST API for interacting with jobs, users, applications, payments, and more. This documentation outlines the available endpoints, request/response formats, and authentication requirements.
+The Fixer platform provides a comprehensive REST API for interacting with jobs, users, applications, payments, location verification, and enterprise features. This documentation outlines the available endpoints, request/response formats, and authentication requirements.
 
 ## Authentication
 
@@ -82,50 +82,31 @@ All responses are returned in JSON format with the following structure:
   ```
 - **Response**: Updated user object
 
-### Set Account Type
-- **URL**: `/api/set-account-type`
+## Account Type Management
+
+### Switch Account Type
+- **URL**: `/api/account-type/switch`
 - **Method**: `POST`
-- **Description**: Sets or changes the user's account type
+- **Description**: Switches between account types (worker, poster, enterprise)
 - **Request Body Example**:
   ```json
   {
-    "accountType": "worker"  // or "poster"
+    "accountType": "poster"
   }
   ```
-- **Response**: Updated user object
+- **Response**: Updated user session with new account type
 
-## Privacy Endpoints
-
-### Get Privacy Settings
-- **URL**: `/api/privacy`
+### Get Available Account Types
+- **URL**: `/api/account-type/available`
 - **Method**: `GET`
-- **Description**: Returns the currently authenticated user's privacy settings.
-- **Authentication**: Required
+- **Description**: Returns available account types for the current user
 - **Response Example**:
   ```json
   {
-    "id": 1,
-    "userId": 123,
-    "show_location": true,
-    "show_profile": true,
-    "createdAt": "2023-10-27T10:00:00.000Z",
-    "updatedAt": "2023-10-27T10:00:00.000Z"
+    "availableTypes": ["worker", "poster", "enterprise"],
+    "currentType": "worker"
   }
   ```
-
-### Update Privacy Settings
-- **URL**: `/api/privacy`
-- **Method**: `POST`
-- **Description**: Updates the user's privacy settings.
-- **Authentication**: Required
-- **Request Body Example**:
-  ```json
-  {
-    "showLocation": false,
-    "showProfile": true
-  }
-  ```
-- **Response**: Updated privacy settings object.
 
 ## Job Endpoints
 
@@ -137,6 +118,9 @@ All responses are returned in JSON format with the following structure:
   - `posterId` (optional): Filter by job poster ID
   - `status` (optional): Filter by job status ("open", "assigned", "completed")
   - `category` (optional): Filter by job category
+  - `latitude` (optional): Latitude for location-based search
+  - `longitude` (optional): Longitude for location-based search
+  - `radius` (optional): Search radius in miles
 - **Response**: Array of job objects
 
 ### Get Job by ID
@@ -151,7 +135,7 @@ All responses are returned in JSON format with the following structure:
 - **URL**: `/api/jobs`
 - **Method**: `POST`
 - **Description**: Creates a new job
-- **Authentication**: Required, user must have "poster" account type
+- **Authentication**: Required, user must have "poster" or "enterprise" account type
 - **Request Body Example**:
   ```json
   {
@@ -162,10 +146,11 @@ All responses are returned in JSON format with the following structure:
     "location": "123 Main St, City, State",
     "latitude": 37.7749,
     "longitude": -122.4194,
-    "requiredSkills": ["plumbing"]
+    "requiredSkills": ["plumbing"],
+    "urgency": "normal"
   }
   ```
-- **Response**: Created job object. The `latitude` and `longitude` values are encrypted at rest and will not be returned in this response.
+- **Response**: Created job object
 
 ### Update Job
 - **URL**: `/api/jobs/:id`
@@ -192,15 +177,42 @@ All responses are returned in JSON format with the following structure:
   - `id` (path): Job ID
 - **Response**: Success message
 
-### Get Nearby Jobs
-- **URL**: `/api/jobs/nearby/location`
+## Location Verification Endpoints
+
+### Start Job with Location Verification
+- **URL**: `/api/jobs/:jobId/start-with-location`
+- **Method**: `POST`
+- **Description**: Starts a job with location verification to prevent fraud
+- **Authentication**: Required, user must be assigned worker
+- **Request Body Example**:
+  ```json
+  {
+    "latitude": 37.7749,
+    "longitude": -122.4194,
+    "accuracy": 5.0,
+    "timestamp": "2024-01-15T10:30:00Z",
+    "deviceInfo": {
+      "userAgent": "Mozilla/5.0...",
+      "platform": "web"
+    }
+  }
+  ```
+- **Response**: Verification result with confidence level
+
+### Verify Location During Job
+- **URL**: `/api/jobs/:jobId/verify-location`
+- **Method**: `POST`
+- **Description**: Ongoing location verification during job execution
+- **Authentication**: Required, user must be assigned worker
+- **Request Body**: Same as start verification
+- **Response**: Verification status and any warnings
+
+### Get Location History
+- **URL**: `/api/jobs/:jobId/location-history`
 - **Method**: `GET`
-- **Description**: Returns jobs near a specific location within a given radius
-- **Query Parameters**:
-  - `latitude`: Latitude coordinate
-  - `longitude`: Longitude coordinate
-  - `radius` (optional): Search radius in miles, defaults to 2
-- **Response**: Array of job objects with distance information
+- **Description**: Returns location verification history for a job
+- **Authentication**: Required, user must be job poster or assigned worker
+- **Response**: Array of location verification records
 
 ## Application Endpoints
 
@@ -213,7 +225,6 @@ All responses are returned in JSON format with the following structure:
   ```json
   {
     "jobId": 789,
-    "workerId": 456,
     "message": "I am experienced in plumbing and available to start immediately."
   }
   ```
@@ -237,7 +248,7 @@ All responses are returned in JSON format with the following structure:
   - `workerId` (path): Worker ID
 - **Response**: Array of application objects
 
-### Update Application
+### Update Application Status
 - **URL**: `/api/applications/:id`
 - **Method**: `PATCH`
 - **Description**: Updates an application's status
@@ -298,21 +309,118 @@ All responses are returned in JSON format with the following structure:
   - `userId` (path): User ID
 - **Response**: Array of payment objects
 
-### Update Payment Status
-- **URL**: `/api/payments/:id/status`
+## Poster Dashboard Endpoints
+
+### Get Dashboard Overview
+- **URL**: `/api/poster/dashboard/overview`
+- **Method**: `GET`
+- **Description**: Returns overview statistics for poster dashboard
+- **Authentication**: Required, user must have "poster" or "enterprise" account type
+- **Response Example**:
+  ```json
+  {
+    "totalJobs": 25,
+    "activeJobs": 8,
+    "completedJobs": 17,
+    "totalApplications": 156,
+    "pendingApplications": 12,
+    "totalSpent": 2450.00
+  }
+  ```
+
+### Get Job Analytics
+- **URL**: `/api/poster/jobs/:jobId/analytics`
+- **Method**: `GET`
+- **Description**: Returns detailed analytics for a specific job
+- **Authentication**: Required, user must be job poster
+- **Response**: Job performance metrics and application data
+
+## Enterprise Endpoints
+
+### Get Team Members
+- **URL**: `/api/enterprise/team`
+- **Method**: `GET`
+- **Description**: Returns team members for enterprise account
+- **Authentication**: Required, user must have "enterprise" account type
+- **Response**: Array of team member objects
+
+### Bulk Job Creation
+- **URL**: `/api/enterprise/jobs/bulk`
+- **Method**: `POST`
+- **Description**: Creates multiple jobs at once
+- **Authentication**: Required, user must have "enterprise" account type
+- **Request Body**: Array of job objects
+- **Response**: Array of created job objects
+
+### Enterprise Analytics
+- **URL**: `/api/enterprise/analytics`
+- **Method**: `GET`
+- **Description**: Returns comprehensive analytics for enterprise account
+- **Authentication**: Required, user must have "enterprise" account type
+- **Response**: Detailed analytics and reporting data
+
+## Admin Endpoints
+
+### Get All Users
+- **URL**: `/api/admin/users`
+- **Method**: `GET`
+- **Description**: Returns all users with pagination
+- **Authentication**: Required, admin role
+- **Query Parameters**:
+  - `page` (optional): Page number
+  - `limit` (optional): Items per page
+- **Response**: Paginated user list
+
+### Moderate Content
+- **URL**: `/api/admin/moderate/:contentType/:id`
 - **Method**: `PATCH`
-- **Description**: Updates a payment's status
-- **Authentication**: Required, must be admin or involved in the payment
+- **Description**: Moderate user-generated content
+- **Authentication**: Required, admin role
 - **Parameters**:
-  - `id` (path): Payment ID
+  - `contentType` (path): Type of content (job, user, review)
+  - `id` (path): Content ID
 - **Request Body Example**:
   ```json
   {
-    "status": "completed",
-    "transactionId": "txn_789xyz"
+    "action": "approve",  // or "reject", "flag"
+    "reason": "Content violates community guidelines"
   }
   ```
-- **Response**: Updated payment object
+
+## Privacy Endpoints
+
+### Get Privacy Settings
+- **URL**: `/api/privacy`
+- **Method**: `GET`
+- **Description**: Returns the currently authenticated user's privacy settings
+- **Authentication**: Required
+- **Response Example**:
+  ```json
+  {
+    "id": 1,
+    "userId": 123,
+    "showLocation": true,
+    "showProfile": true,
+    "allowLocationTracking": true,
+    "createdAt": "2023-10-27T10:00:00.000Z",
+    "updatedAt": "2023-10-27T10:00:00.000Z"
+  }
+  ```
+
+### Update Privacy Settings
+- **URL**: `/api/privacy`
+- **Method**: `POST`
+- **Description**: Updates the user's privacy settings
+- **Authentication**: Required
+- **Request Body Example**:
+  ```json
+  {
+    "showLocation": false,
+    "showProfile": true,
+    "allowLocationTracking": true
+  }
+  ```
+- **Response**: Updated privacy settings object
 
 ## Review Endpoints
 
@@ -341,14 +449,6 @@ All responses are returned in JSON format with the following structure:
   - `userId` (path): User ID
 - **Response**: Array of review objects
 
-### Get Reviews for Job
-- **URL**: `/api/reviews/job/:jobId`
-- **Method**: `GET`
-- **Description**: Returns all reviews for a specific job
-- **Parameters**:
-  - `jobId` (path): Job ID
-- **Response**: Array of review objects
-
 ## Error Codes
 
 The API uses standard HTTP status codes:
@@ -359,8 +459,29 @@ The API uses standard HTTP status codes:
 - **401 Unauthorized**: Authentication is required or failed
 - **403 Forbidden**: The user lacks sufficient permissions
 - **404 Not Found**: The requested resource was not found
+- **422 Unprocessable Entity**: Location verification failed or other validation error
 - **500 Internal Server Error**: An unexpected server error occurred
 
 ## Rate Limiting
 
 API requests are limited to 100 requests per minute per IP address or authenticated user. Exceeding this limit will result in a 429 Too Many Requests response.
+
+## Security Features
+
+### Location Verification
+- GPS accuracy validation (requires <100m accuracy)
+- Distance verification (500m for job start, 1000m during work)
+- Anti-spoofing measures including speed analysis and device fingerprinting
+- Continuous monitoring during job execution
+
+### Content Security
+- Automated content filtering for inappropriate material
+- SQL injection prevention with parameterized queries
+- XSS protection with input sanitization
+- CSRF protection for state-changing operations
+
+### Payment Security
+- Stripe Connect integration with secure payment processing
+- Payment intent validation and confirmation
+- Webhook signature verification
+- Transaction audit logging

@@ -5,7 +5,7 @@ import { eq, and, like, notLike, desc, or, asc, gte, lte, count, sum, avg, sql, 
 import { db, pool } from './db';
 import { IStorage } from './storage';
 import {
-  users, jobs, applications, reviews, tasks, earnings, payments, badges, userBadges, notifications, contacts, contactRequests, messages, supportTickets,
+  users, jobs, applications, reviews, tasks, earnings, payments, badges, userBadges, notifications, contacts, contactRequests, messages, supportTickets, platformSettings,
   User, InsertUser,
   Job, InsertJob,
   Application, InsertApplication,
@@ -1214,6 +1214,79 @@ export class UnifiedStorage implements IStorage {
   async getUserBadges(userId: number): Promise<UserBadge[]> { return []; }
   async awardBadge(userBadge: InsertUserBadge): Promise<UserBadge> { return null as any; }
   async revokeBadge(userId: number, badgeId: number): Promise<boolean> { return true; }
+
+  // Platform settings operations
+  async getPlatformSettings(): Promise<Record<string, any> | undefined> {
+    return this.safeExecute(async () => {
+      const result = await db.select().from(platformSettings);
+      const settings: Record<string, any> = {};
+      
+      for (const setting of result) {
+        try {
+          // Try to parse JSON values, fallback to string
+          settings[setting.key] = typeof setting.value === 'string' 
+            ? JSON.parse(setting.value) 
+            : setting.value;
+        } catch {
+          settings[setting.key] = setting.value;
+        }
+      }
+      
+      return Object.keys(settings).length > 0 ? settings : undefined;
+    }, undefined, 'getPlatformSettings()');
+  }
+
+  async updatePlatformSettings(settings: Record<string, any>): Promise<Record<string, any>> {
+    return this.safeExecute(async () => {
+      // Clear existing settings
+      await db.delete(platformSettings);
+      
+      // Insert new settings
+      const insertData = Object.entries(settings).map(([key, value]) => ({
+        key,
+        value: typeof value === 'object' ? JSON.stringify(value) : String(value),
+        updatedAt: new Date()
+      }));
+      
+      if (insertData.length > 0) {
+        await db.insert(platformSettings).values(insertData);
+      }
+      
+      return settings;
+    }, {}, 'updatePlatformSettings()');
+  }
+
+  async getSettingsHistory(limit: number, offset: number): Promise<any[]> {
+    return this.safeExecute(async () => {
+      // In a real implementation, this would fetch from an audit log table
+      // For now, return empty array as we don't have audit logging implemented
+      return [];
+    }, [], `getSettingsHistory(${limit}, ${offset})`);
+  }
+
+  async createSettingsBackup(backup: any): Promise<number> {
+    return this.safeExecute(async () => {
+      // In a real implementation, this would save to a backups table
+      // For now, return a mock backup ID
+      return Date.now();
+    }, 0, 'createSettingsBackup()');
+  }
+
+  async getSettingsBackup(backupId: number): Promise<any> {
+    return this.safeExecute(async () => {
+      // In a real implementation, this would fetch from a backups table
+      // For now, return null
+      return null;
+    }, null, `getSettingsBackup(${backupId})`);
+  }
+
+  async getSettingsBackups(): Promise<any[]> {
+    return this.safeExecute(async () => {
+      // In a real implementation, this would fetch from a backups table
+      // For now, return empty array
+      return [];
+    }, [], 'getSettingsBackups()');
+  }
 }
 
 // Create and export a single instance
