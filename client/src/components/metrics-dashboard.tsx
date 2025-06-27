@@ -13,28 +13,45 @@ import { apiRequest } from '@/lib/queryClient';
 interface MetricsData {
   cpu: {
     usage: number;
+    cores: number;
+    load: number[];
   };
   memory: {
     used: number;
     total: number;
-    percentage: number;
+    cache: number;
+    swap: number;
   };
-  activeConnections: number;
-  errorRate: number;
+  network: {
+    activeConnections: number;
+    inbound: number;
+    outbound: number;
+  };
+  storage: {
+    used: number;
+    total: number;
+    iops: number;
+  };
   services: {
     database: {
       status: 'healthy' | 'warning' | 'critical';
-      responseTime?: number;
-    };
-    stripe: {
-      status: 'healthy' | 'warning' | 'critical';
-      responseTime?: number;
+      responseTime: number;
+      connections: number;
     };
     api: {
       status: 'healthy' | 'warning' | 'critical';
       uptime: number;
+      requests: number;
+      avgResponse: number;
+    };
+    cache: {
+      status: 'healthy' | 'warning' | 'critical';
+      hitRate: number;
+      size: number;
     };
   };
+  errorRate: number;
+  timestamp: string;
 }
 
 export function MetricsDashboard() {

@@ -747,19 +747,22 @@ export const auditLogs = pgTable("audit_logs", {
 // Platform analytics data for dashboard
 export const platformAnalytics = pgTable("platform_analytics", {
   id: serial("id").primaryKey(),
-  date: date("date").notNull(), // Date for daily analytics
-  totalUsers: integer("total_users").default(0),
-  newUsers: integer("new_users").default(0),
-  activeUsers: integer("active_users").default(0),
-  totalJobs: integer("total_jobs").default(0),
-  jobsPosted: integer("jobs_posted").default(0),
-  jobsCompleted: integer("jobs_completed").default(0),
-  totalRevenue: doublePrecision("total_revenue").default(0),
-  platformFees: doublePrecision("platform_fees").default(0),
+  date: date("date").notNull().unique(),
+  total_users: integer("total_users").default(0),
+  new_users: integer("new_users").default(0),
+  active_users: integer("active_users").default(0),
+  total_jobs: integer("total_jobs").default(0),
+  jobs_posted: integer("jobs_posted").default(0),
+  jobs_completed: integer("jobs_completed").default(0),
+  total_revenue: doublePrecision("total_revenue").default(0),
+  platform_fees: doublePrecision("platform_fees").default(0),
   payouts: doublePrecision("payouts").default(0),
-  completionRate: doublePrecision("completion_rate").default(0),
-  averageJobValue: doublePrecision("average_job_value").default(0),
-  createdAt: timestamp("created_at").defaultNow(),
+  completion_rate: doublePrecision("completion_rate").default(0),
+  average_job_value: doublePrecision("average_job_value").default(0),
+  active_sessions: integer("active_sessions").default(0),
+  avg_response_time: doublePrecision("avg_response_time").default(0),
+  error_rate: doublePrecision("error_rate").default(0),
+  created_at: timestamp("created_at").defaultNow(),
 });
 
 // User strikes and moderation actions

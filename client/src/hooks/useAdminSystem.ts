@@ -4,14 +4,16 @@ import { useToast } from './use-toast';
 import { apiRequest } from '@/lib/queryClient';
 
 interface AdminStats {
-  totalUsers: number;
-  activeJobs: number;
-  totalRevenue: number;
-  pendingReports: number;
-  todaySignups: number;
-  todayJobs: number;
-  completedJobs: number;
-  platformHealth: string;
+  total_users: number;
+  active_jobs: number;
+  total_revenue: number;
+  pending_disputes: number;
+  daily_signups: number;
+  daily_jobs: number;
+  completed_jobs: number;
+  platform_health: string;
+  avg_response_time: number;
+  active_sessions: number;
 }
 
 interface AdminUser {

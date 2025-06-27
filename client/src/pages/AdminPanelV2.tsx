@@ -600,34 +600,40 @@ export default function AdminPanelV2() {
                     <CardDescription>Registered users</CardDescription>
                   </CardHeader>
                   <CardContent>
-                    <div className="text-2xl font-bold">{dashboardStats.totalUsers?.toLocaleString() || 0}</div>
+                    <div className="text-2xl font-bold">{dashboardStats.total_users?.toLocaleString() || 0}</div>
+                    <p className="text-sm text-muted-foreground">+{dashboardStats.daily_signups} today</p>
                   </CardContent>
                 </Card>
                 <Card>
                   <CardHeader className="pb-2">
-                    <CardTitle>Total Jobs</CardTitle>
-                    <CardDescription>Posted jobs</CardDescription>
+                    <CardTitle>Jobs</CardTitle>
+                    <CardDescription>Platform activity</CardDescription>
                   </CardHeader>
                   <CardContent>
-                    <div className="text-2xl font-bold">{dashboardStats.totalJobs?.toLocaleString() || 0}</div>
+                    <div className="text-2xl font-bold">{dashboardStats.active_jobs?.toLocaleString() || 0}</div>
+                    <p className="text-sm text-muted-foreground">
+                      {dashboardStats.completed_jobs} completed · {dashboardStats.daily_jobs} new today
+                    </p>
                   </CardContent>
                 </Card>
                 <Card>
                   <CardHeader className="pb-2">
-                    <CardTitle>Total Revenue</CardTitle>
-                    <CardDescription>Platform revenue</CardDescription>
+                    <CardTitle>Revenue</CardTitle>
+                    <CardDescription>30-day period</CardDescription>
                   </CardHeader>
                   <CardContent>
-                    <div className="text-2xl font-bold">${dashboardStats.totalRevenue?.toLocaleString() || 0}</div>
+                    <div className="text-2xl font-bold">${dashboardStats.total_revenue?.toLocaleString() || 0}</div>
+                    <p className="text-sm text-muted-foreground">{dashboardStats.pending_disputes} pending disputes</p>
                   </CardContent>
                 </Card>
                 <Card>
                   <CardHeader className="pb-2">
-                    <CardTitle>Pending Disputes</CardTitle>
-                    <CardDescription>Open issues</CardDescription>
+                    <CardTitle>Platform Health</CardTitle>
+                    <CardDescription>System status</CardDescription>
                   </CardHeader>
                   <CardContent>
-                    <div className="text-2xl font-bold">{dashboardStats.pendingDisputes || 0}</div>
+                    <div className="text-2xl font-bold capitalize">{dashboardStats.platform_health || 'loading'}</div>
+                    <p className="text-sm text-muted-foreground">{dashboardStats.avg_response_time}ms avg response</p>
                   </CardContent>
                 </Card>
               </>

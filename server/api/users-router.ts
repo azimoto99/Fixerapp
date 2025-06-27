@@ -74,8 +74,31 @@ router.get('/:id', optionalAuth, async (req: Request, res: Response) => {
 });
 
 // --------------------------------------------------------
-// GET /api/users/:id/reviews  (public)
+// GET /api/admin/stats  (admin only)
 // --------------------------------------------------------
+router.get('/admin/stats', requireAdmin, async (req: Request, res: Response) => {
+  try {
+    const stats = await storage.getAdminStats();
+    res.json({
+      total_users: stats.totalUsers,
+      active_jobs: stats.activeJobs,
+      total_revenue: stats.totalRevenue,
+      pending_disputes: stats.pendingDisputes,
+      daily_signups: stats.todaySignups,
+      daily_jobs: stats.todayJobs,
+      completed_jobs: stats.completedJobs,
+      platform_health: stats.platformHealth,
+      avg_response_time: stats.avgResponseTime,
+      active_sessions: stats.activeSessions
+    });
+  } catch (err) {
+    console.error('Admin stats error:', err);
+    res.status(500).json({ message: 'Failed to fetch admin stats' });
+  }
+});
+
+// --------------------------------------------------------
+// GET /api/users/:id/reviews  (public)
 router.get('/:id/reviews', optionalAuth, async (req: Request, res: Response) => {
   const userId = parseInt(req.params.id);
   if (isNaN(userId)) return res.status(400).json({ message: 'Invalid user ID' });
