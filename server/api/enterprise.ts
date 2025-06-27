@@ -487,6 +487,10 @@ export async function getBusinessApplications(req: Request, res: Response) {
       .limit(1);
 
     if (!business) {
+      return res.status(404).json({ message: 'Business profile not found' });
+    }
+
+    if (!business) {
       return res.status(404).json({ message: 'Business not found' });
     }
 
@@ -673,19 +677,40 @@ export async function updateBusinessProfile(req: Request, res: Response) {
 
     console.log('⏱️ Updating business profile in database after:', Date.now() - startTime, 'ms');
 
+    const [existing] = await db.select()
+      .from(enterpriseBusinesses)
+      .where(eq(enterpriseBusinesses.userId, userId))
+      .limit(1);
+
+    if (!existing) {
+      return res.status(404).json({ message: 'Business profile not found' });
+    }
+
     const [updated] = await db.update(enterpriseBusinesses)
       .set({
         businessName,
-        businessDescription,
-        businessWebsite,
-        businessPhone,
-        businessEmail,
-        businessLogo,
+        businessDescription: businessDescription || null,
+        businessWebsite: businessWebsite || null,
+        businessPhone: businessPhone || null,
+        businessEmail: businessEmail || null,
+        businessLogo: businessLogo || null,
         businessType,
         updatedAt: new Date()
       })
       .where(eq(enterpriseBusinesses.userId, userId))
-      .returning();
+      .returning({ 
+        id: enterpriseBusinesses.id,
+        businessName: enterpriseBusinesses.businessName,
+        businessDescription: enterpriseBusinesses.businessDescription,
+        businessWebsite: enterpriseBusinesses.businessWebsite,
+        businessPhone: enterpriseBusinesses.businessPhone,
+        businessEmail: enterpriseBusinesses.businessEmail,
+        businessType: enterpriseBusinesses.businessType,
+        verificationStatus: enterpriseBusinesses.verificationStatus,
+        isActive: enterpriseBusinesses.isActive,
+        createdAt: enterpriseBusinesses.createdAt,
+        updatedAt: enterpriseBusinesses.updatedAt
+      });
 
     if (!updated) {
       console.log('⚠️ No business found to update for user:', userId);

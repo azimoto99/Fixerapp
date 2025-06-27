@@ -58,8 +58,10 @@ export default function ApplicationsManager({ businessId }: { businessId: number
   const { data: applications, isLoading } = useQuery({
     queryKey: ['/api/enterprise/applications', businessId],
     queryFn: async () => {
-      const res = await apiRequest('GET', '/api/enterprise/applications');
-      return res.json();
+      const res = await apiRequest('GET', `/api/enterprise/applications?businessId=${businessId}`);
+      if (!res.ok) throw new Error('Failed to fetch applications');
+      const data = await res.json();
+      return Array.isArray(data) ? data : [];
     },
     enabled: !!businessId
   });
@@ -67,7 +69,7 @@ export default function ApplicationsManager({ businessId }: { businessId: number
   // Update application status mutation
   const updateStatusMutation = useMutation({
     mutationFn: async ({ id, status, notes }: { id: number; status: string; notes?: string }) => {
-      const res = await apiRequest('PUT', `/api/enterprise/applications/${id}`, { status, notes });
+      const res = await apiRequest('PUT', `/api/enterprise/applications/${id}/status`, { status, notes });
       return res.json();
     },
     onSuccess: () => {

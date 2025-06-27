@@ -60,7 +60,7 @@ export default function BusinessSettings({ businessData }: { businessData: Busin
       console.log('🏢 Updating business profile with data:', data);
       
       try {
-        const res = await apiRequest('PUT', '/api/enterprise/business', data, {
+        const res = await apiRequest('PUT', '/api/enterprise/business/profile', data, {
           timeout: 45000 // 45 second timeout specifically for this request
         });
         console.log('🏢 Business profile update response received');
