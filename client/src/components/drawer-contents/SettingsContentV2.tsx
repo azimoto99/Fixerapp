@@ -1,15 +1,15 @@
 import React, { useState } from 'react';
 import { User } from '@shared/schema';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
-import { Accordion, AccordionItem, AccordionTrigger, AccordionContent } from '@/components/ui/accordion';
 import { useToast } from '@/hooks/use-toast';
 import { ProfileImageUploader } from '@/components/profile/ProfileImageUploader';
 import { ThemeToggle } from '@/components/theme/ThemeToggle';
-import { Save, Bell, Shield, Palette, Trash2, Loader2, User as UserIcon } from 'lucide-react';
+import { Save, Bell, Shield, Palette, Trash2, Loader2, User as UserIcon, Mail, Lock, Moon } from 'lucide-react';
+import { Card } from '@/components/ui/card';
 
 interface SettingsContentProps {
   user: User;
@@ -32,7 +32,6 @@ export default function SettingsContentV2({ user }: SettingsContentProps) {
     allowMessages: true,
   });
 
-  /* ------------- helpers ------------- */
   const toggleSetting = (group: 'notification' | 'privacy', key: string) => {
     setDirty(true);
     if (group === 'notification') {
@@ -44,103 +43,173 @@ export default function SettingsContentV2({ user }: SettingsContentProps) {
 
   const handleSave = async () => {
     setIsSaving(true);
-    await new Promise(r => setTimeout(r, 800)); // simulate request
+    await new Promise(r => setTimeout(r, 800));
     setDirty(false);
     setIsSaving(false);
-    toast({ title: 'Settings saved' });
+    toast({ title: 'Settings saved', description: 'Your preferences have been successfully updated' });
   };
 
-  /* ------------- UI ------------- */
-  const SectionHeader = ({ icon: Icon, title }: { icon: any; title: string }) => (
-    <CardHeader className="flex items-center gap-3 bg-gradient-to-r from-primary/5 to-primary/10 rounded-t-md">
-      <div className="h-8 w-8 flex items-center justify-center rounded-full bg-primary/10">
-        <Icon className="h-4 w-4 text-primary" />
-      </div>
-      <CardTitle className="text-base font-medium tracking-tight">{title}</CardTitle>
-    </CardHeader>
-  );
-
   return (
-    <div className="user-settings-scroll space-y-6 overflow-y-auto h-full pr-2 pb-24">
-      {/* Profile */}
-      <Card>
-        <SectionHeader icon={UserIcon} title="Profile" />
-        <CardContent className="space-y-6 pt-6">
-          <ProfileImageUploader user={user} className="mx-auto" />
+    <div className="h-full flex flex-col">
+      <Tabs defaultValue="profile" className="flex-1 flex flex-col">
+        <div className="sticky top-0 bg-background z-10 border-b">
+          <TabsList className="grid w-full grid-cols-3 rounded-none bg-transparent p-0 h-14">
+            <TabsTrigger value="profile" className="py-4 rounded-none border-b-2 data-[state=active]:border-primary data-[state=active]:bg-transparent">
+              <UserIcon className="w-4 h-4 mr-2" />
+              Profile
+            </TabsTrigger>
+            <TabsTrigger value="preferences" className="py-4 rounded-none border-b-2 data-[state=active]:border-primary data-[state=active]:bg-transparent">
+              <Palette className="w-4 h-4 mr-2" />
+              Preferences
+            </TabsTrigger>
+            <TabsTrigger value="account" className="py-4 rounded-none border-b-2 data-[state=active]:border-primary data-[state=active]:bg-transparent">
+              <Shield className="w-4 h-4 mr-2" />
+              Account
+            </TabsTrigger>
+          </TabsList>
+        </div>
 
-          <div className="grid gap-4 sm:grid-cols-2">
-            <div className="space-y-2">
-              <Label>Username</Label>
-              <Input value={user.username} disabled className="bg-muted" />
+        {/* Profile Tab */}
+        <TabsContent value="profile" className="flex-1 p-6">
+          <div className="max-w-2xl mx-auto space-y-8">
+            <div className="text-center space-y-4">
+              <ProfileImageUploader user={user} className="mx-auto w-32 h-32" />
+              <div>
+                <h2 className="text-2xl font-bold">{user.fullName || user.username}</h2>
+                <p className="text-muted-foreground">{user.email}</p>
+              </div>
             </div>
-            <div className="space-y-2">
-              <Label>Full name</Label>
-              <Input value={user.fullName || ''} disabled className="bg-muted" />
-            </div>
-          </div>
-        </CardContent>
-      </Card>
 
-      {/* Notifications */}
-      <Card>
-        <SectionHeader icon={Bell} title="Notifications" />
-        <CardContent className="space-y-4 pt-6">
-          {Object.entries(notificationSettings).map(([k, v]) => (
-            <div key={k} className="flex items-center justify-between">
-              <Label className="capitalize">{k.replace(/([A-Z])/g, ' $1')}</Label>
-              <Switch checked={v} onCheckedChange={() => toggleSetting('notification', k)} />
-            </div>
-          ))}
-        </CardContent>
-      </Card>
-
-      {/* Privacy (accordion) */}
-      <Card>
-        <SectionHeader icon={Shield} title="Privacy" />
-        <CardContent className="pt-2">
-          <Accordion type="single" collapsible>
-            <AccordionItem value="basic">
-              <AccordionTrigger className="px-4 py-3">Visibility</AccordionTrigger>
-              <AccordionContent className="space-y-4 px-2 pb-4">
-                {Object.entries(privacySettings).map(([k, v]) => (
-                  <div key={k} className="flex items-center justify-between">
-                    <Label className="capitalize">{k.replace(/([A-Z])/g, ' $1')}</Label>
-                    <Switch checked={v} onCheckedChange={() => toggleSetting('privacy', k)} />
+            <Card className="p-6">
+              <div className="space-y-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label className="flex items-center gap-2">
+                      <UserIcon className="w-4 h-4" />
+                      Username
+                    </Label>
+                    <Input value={user.username} readOnly className="bg-muted/50" />
                   </div>
-                ))}
-              </AccordionContent>
-            </AccordionItem>
-          </Accordion>
-        </CardContent>
-      </Card>
+                  <div className="space-y-2">
+                    <Label className="flex items-center gap-2">
+                      <Mail className="w-4 h-4" />
+                      Email
+                    </Label>
+                    <Input value={user.email} readOnly className="bg-muted/50" />
+                  </div>
+                </div>
+                
+                <div className="space-y-2">
+                  <Label className="flex items-center gap-2">
+                    <Lock className="w-4 h-4" />
+                    Password
+                  </Label>
+                  <Button variant="outline" className="w-full" disabled>
+                    Change Password
+                  </Button>
+                </div>
+              </div>
+            </Card>
+          </div>
+        </TabsContent>
 
-      {/* Appearance */}
-      <Card>
-        <SectionHeader icon={Palette} title="Appearance" />
-        <CardContent className="space-y-4 pt-6">
-          <ThemeToggle />
-        </CardContent>
-      </Card>
+        {/* Preferences Tab */}
+        <TabsContent value="preferences" className="flex-1 p-6">
+          <div className="max-w-2xl mx-auto space-y-8">
+            <Card className="p-6">
+              <div className="space-y-6">
+                <div className="space-y-2">
+                  <h3 className="flex items-center gap-2 font-semibold text-lg">
+                    <Bell className="w-5 h-5" />
+                    Notifications
+                  </h3>
+                  {Object.entries(notificationSettings).map(([key, value]) => (
+                    <div key={key} className="flex items-center justify-between p-3 rounded-lg hover:bg-muted/50">
+                      <Label className="capitalize font-normal">
+                        {key.replace(/([A-Z])/g, ' $1').toLowerCase()}
+                      </Label>
+                      <Switch 
+                        checked={value} 
+                        onCheckedChange={() => toggleSetting('notification', key)}
+                      />
+                    </div>
+                  ))}
+                </div>
 
-      {/* Danger zone */}
-      <Card>
-        <SectionHeader icon={Trash2} title="Account" />
-        <CardContent className="space-y-4 pt-6">
-          <Button variant="destructive" className="w-full" onClick={() => toast({ title: 'Contact support to delete account' })}>
-            Delete account
-          </Button>
-        </CardContent>
-      </Card>
+                <div className="space-y-2">
+                  <h3 className="flex items-center gap-2 font-semibold text-lg">
+                    <Shield className="w-5 h-5" />
+                    Privacy
+                  </h3>
+                  {Object.entries(privacySettings).map(([key, value]) => (
+                    <div key={key} className="flex items-center justify-between p-3 rounded-lg hover:bg-muted/50">
+                      <Label className="capitalize font-normal">
+                        {key.replace(/([A-Z])/g, ' $1').toLowerCase()}
+                      </Label>
+                      <Switch 
+                        checked={value} 
+                        onCheckedChange={() => toggleSetting('privacy', key)}
+                      />
+                    </div>
+                  ))}
+                </div>
 
-      {/* save bar */}
+                <div className="space-y-2">
+                  <h3 className="flex items-center gap-2 font-semibold text-lg">
+                    <Moon className="w-5 h-5" />
+                    Appearance
+                  </h3>
+                  <div className="p-3 rounded-lg hover:bg-muted/50">
+                    <ThemeToggle />
+                  </div>
+                </div>
+              </div>
+            </Card>
+          </div>
+        </TabsContent>
+
+        {/* Account Tab */}
+        <TabsContent value="account" className="flex-1 p-6">
+          <div className="max-w-2xl mx-auto space-y-8">
+            <Card className="p-6 border-destructive/50">
+              <div className="space-y-4">
+                <h3 className="text-lg font-semibold text-destructive">Danger Zone</h3>
+                <div className="space-y-2">
+                  <Label className="text-destructive">Delete Account</Label>
+                  <p className="text-sm text-muted-foreground">
+                    Permanently remove your account and all associated data
+                  </p>
+                  <Button 
+                    variant="destructive" 
+                    className="w-full mt-2"
+                    onClick={() => toast({ 
+                      title: 'Account deletion requested',
+                      description: 'Please contact support to complete account deletion',
+                      variant: 'destructive'
+                    })}
+                  >
+                    <Trash2 className="w-4 h-4 mr-2" />
+                    Delete Account
+                  </Button>
+                </div>
+              </div>
+            </Card>
+          </div>
+        </TabsContent>
+      </Tabs>
+
+      {/* Save Bar */}
       {dirty && (
-        <div className="fixed bottom-4 right-6 bg-background/90 backdrop-blur-md shadow-lg rounded-lg px-4 py-3 flex gap-3 z-[var(--z-index-emergency)]">
-          <Button size="sm" variant="ghost" onClick={() => setDirty(false)}>
-            Cancel
-          </Button>
-          <Button size="sm" onClick={handleSave} disabled={isSaving}>
-            {isSaving && <Loader2 className="h-4 w-4 mr-1 animate-spin" />} Save changes
-          </Button>
+        <div className="sticky bottom-0 bg-background/90 backdrop-blur-md border-t py-4">
+          <div className="max-w-2xl mx-auto flex justify-end gap-3 px-6">
+            <Button variant="ghost" onClick={() => setDirty(false)}>
+              Discard Changes
+            </Button>
+            <Button onClick={handleSave} disabled={isSaving}>
+              {isSaving && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+              Save Changes
+            </Button>
+          </div>
         </div>
       )}
     </div>
