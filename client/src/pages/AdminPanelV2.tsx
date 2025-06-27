@@ -28,7 +28,9 @@ import {
   MapPin, 
   Briefcase, 
   TrendingUp,
-  XCircle
+  XCircle,
+  Settings,
+  Save
 } from "lucide-react";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useAuth } from "@/hooks/use-auth";
@@ -110,6 +112,429 @@ interface SupportApiResponse {
 interface PaymentsApiResponse {
   payments: Payment[];
   total: number;
+}
+
+// Platform Settings Manager Component
+function PlatformSettingsManager() {
+  const { toast } = useToast();
+  const [settings, setSettings] = useState<Record<string, any>>({});
+  const [isLoading, setIsLoading] = useState(true);
+  const [isSaving, setIsSaving] = useState(false);
+
+  // Default settings structure
+  const defaultSettings = {
+    // General Settings
+    platformName: 'Fixer',
+    supportEmail: 'support@fixer.com',
+    maxFileSize: 10,
+    sessionTimeout: 60,
+    maintenanceMode: false,
+    registrationEnabled: true,
+    
+    // Payment Settings
+    platformFee: 5.0,
+    minPayout: 20,
+    maxJobValue: 10000,
+    paymentProcessingFee: 2.9,
+    instantPayoutFee: 1.5,
+    
+    // Security Settings
+    requireEmailVerification: true,
+    require2FA: false,
+    maxLoginAttempts: 5,
+    passwordMinLength: 8,
+    sessionSecure: true,
+    
+    // Moderation Settings
+    autoModerationEnabled: true,
+    profanityFilterEnabled: true,
+    imageModeration: true,
+    maxReportsBeforeReview: 3,
+    
+    // Notification Settings
+    emailNotificationsEnabled: true,
+    smsNotificationsEnabled: false,
+    pushNotificationsEnabled: true,
+    
+    // Feature Flags
+    locationVerificationEnabled: true,
+    enterpriseAccountsEnabled: true,
+    hubPinsEnabled: true,
+    analyticsEnabled: true
+  };
+
+  // Fetch current settings
+  const fetchSettings = useCallback(async () => {
+    try {
+      setIsLoading(true);
+      const response = await apiRequest('/admin/settings/platform');
+      const fetchedSettings = response.settings || {};
+      
+      // Merge with defaults to ensure all settings exist
+      setSettings({ ...defaultSettings, ...fetchedSettings });
+    } catch (error) {
+      console.error('Failed to fetch settings:', error);
+      toast({
+        title: "Error",
+        description: "Failed to load platform settings",
+        variant: "destructive"
+      });
+      setSettings(defaultSettings);
+    } finally {
+      setIsLoading(false);
+    }
+  }, [toast]);
+
+  // Save settings
+  const saveSettings = useCallback(async () => {
+    try {
+      setIsSaving(true);
+      await apiRequest('/admin/settings/platform', {
+        method: 'PUT',
+        body: JSON.stringify({ settings })
+      });
+      
+      toast({
+        title: "Success",
+        description: "Platform settings updated successfully"
+      });
+    } catch (error) {
+      console.error('Failed to save settings:', error);
+      toast({
+        title: "Error",
+        description: "Failed to save platform settings",
+        variant: "destructive"
+      });
+    } finally {
+      setIsSaving(false);
+    }
+  }, [settings, toast]);
+
+  // Update individual setting
+  const updateSetting = useCallback((key: string, value: any) => {
+    setSettings(prev => ({ ...prev, [key]: value }));
+  }, []);
+
+  useEffect(() => {
+    fetchSettings();
+  }, [fetchSettings]);
+
+  if (isLoading) {
+    return (
+      <div className="space-y-6">
+        <Skeleton className="h-8 w-48" />
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          {Array.from({ length: 6 }).map((_, i) => (
+            <Skeleton key={i} className="h-20" />
+          ))}
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-8">
+      {/* General Settings */}
+      <div className="space-y-4">
+        <h3 className="text-lg font-semibold">General Settings</h3>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div className="space-y-2">
+            <Label htmlFor="platform-name">Platform Name</Label>
+            <Input 
+              id="platform-name" 
+              value={settings.platformName || ''} 
+              onChange={(e) => updateSetting('platformName', e.target.value)}
+            />
+          </div>
+          
+          <div className="space-y-2">
+            <Label htmlFor="support-email">Support Email</Label>
+            <Input 
+              id="support-email" 
+              type="email"
+              value={settings.supportEmail || ''} 
+              onChange={(e) => updateSetting('supportEmail', e.target.value)}
+            />
+          </div>
+          
+          <div className="space-y-2">
+            <Label htmlFor="max-file-size">Max File Size (MB)</Label>
+            <Input 
+              id="max-file-size" 
+              type="number" 
+              value={settings.maxFileSize || 10} 
+              onChange={(e) => updateSetting('maxFileSize', parseInt(e.target.value))}
+            />
+          </div>
+          
+          <div className="space-y-2">
+            <Label htmlFor="session-timeout">Session Timeout (minutes)</Label>
+            <Input 
+              id="session-timeout" 
+              type="number" 
+              value={settings.sessionTimeout || 60} 
+              onChange={(e) => updateSetting('sessionTimeout', parseInt(e.target.value))}
+            />
+          </div>
+
+          <div className="flex items-center justify-between">
+            <div>
+              <Label>Maintenance Mode</Label>
+              <p className="text-sm text-muted-foreground">Temporarily disable platform access</p>
+            </div>
+            <Button 
+              variant={settings.maintenanceMode ? "destructive" : "outline"} 
+              size="sm"
+              onClick={() => updateSetting('maintenanceMode', !settings.maintenanceMode)}
+            >
+              {settings.maintenanceMode ? 'Enabled' : 'Disabled'}
+            </Button>
+          </div>
+
+          <div className="flex items-center justify-between">
+            <div>
+              <Label>User Registration</Label>
+              <p className="text-sm text-muted-foreground">Allow new user registrations</p>
+            </div>
+            <Button 
+              variant={settings.registrationEnabled ? "default" : "outline"} 
+              size="sm"
+              onClick={() => updateSetting('registrationEnabled', !settings.registrationEnabled)}
+            >
+              {settings.registrationEnabled ? 'Enabled' : 'Disabled'}
+            </Button>
+          </div>
+        </div>
+      </div>
+      
+      {/* Payment Settings */}
+      <div className="space-y-4">
+        <h3 className="text-lg font-semibold">Payment Settings</h3>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div className="space-y-2">
+            <Label htmlFor="platform-fee">Platform Fee (%)</Label>
+            <Input 
+              id="platform-fee" 
+              type="number" 
+              step="0.1"
+              value={settings.platformFee || 5} 
+              onChange={(e) => updateSetting('platformFee', parseFloat(e.target.value))}
+            />
+          </div>
+          
+          <div className="space-y-2">
+            <Label htmlFor="min-payout">Minimum Payout ($)</Label>
+            <Input 
+              id="min-payout" 
+              type="number" 
+              value={settings.minPayout || 20} 
+              onChange={(e) => updateSetting('minPayout', parseInt(e.target.value))}
+            />
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="max-job-value">Maximum Job Value ($)</Label>
+            <Input 
+              id="max-job-value" 
+              type="number" 
+              value={settings.maxJobValue || 10000} 
+              onChange={(e) => updateSetting('maxJobValue', parseInt(e.target.value))}
+            />
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="payment-processing-fee">Payment Processing Fee (%)</Label>
+            <Input 
+              id="payment-processing-fee" 
+              type="number" 
+              step="0.1"
+              value={settings.paymentProcessingFee || 2.9} 
+              onChange={(e) => updateSetting('paymentProcessingFee', parseFloat(e.target.value))}
+            />
+          </div>
+        </div>
+      </div>
+      
+      {/* Security Settings */}
+      <div className="space-y-4">
+        <h3 className="text-lg font-semibold">Security Settings</h3>
+        <div className="space-y-4">
+          <div className="flex items-center justify-between">
+            <div>
+              <Label>Email Verification Required</Label>
+              <p className="text-sm text-muted-foreground">Require email verification for new accounts</p>
+            </div>
+            <Button 
+              variant={settings.requireEmailVerification ? "default" : "outline"} 
+              size="sm"
+              onClick={() => updateSetting('requireEmailVerification', !settings.requireEmailVerification)}
+            >
+              {settings.requireEmailVerification ? 'Required' : 'Optional'}
+            </Button>
+          </div>
+          
+          <div className="flex items-center justify-between">
+            <div>
+              <Label>Two-Factor Authentication</Label>
+              <p className="text-sm text-muted-foreground">Require 2FA for admin accounts</p>
+            </div>
+            <Button 
+              variant={settings.require2FA ? "default" : "outline"} 
+              size="sm"
+              onClick={() => updateSetting('require2FA', !settings.require2FA)}
+            >
+              {settings.require2FA ? 'Required' : 'Optional'}
+            </Button>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className="space-y-2">
+              <Label htmlFor="max-login-attempts">Max Login Attempts</Label>
+              <Input 
+                id="max-login-attempts" 
+                type="number" 
+                value={settings.maxLoginAttempts || 5} 
+                onChange={(e) => updateSetting('maxLoginAttempts', parseInt(e.target.value))}
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="password-min-length">Minimum Password Length</Label>
+              <Input 
+                id="password-min-length" 
+                type="number" 
+                value={settings.passwordMinLength || 8} 
+                onChange={(e) => updateSetting('passwordMinLength', parseInt(e.target.value))}
+              />
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Feature Flags */}
+      <div className="space-y-4">
+        <h3 className="text-lg font-semibold">Feature Settings</h3>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div className="flex items-center justify-between">
+            <div>
+              <Label>Location Verification</Label>
+              <p className="text-sm text-muted-foreground">Enable GPS-based location verification</p>
+            </div>
+            <Button 
+              variant={settings.locationVerificationEnabled ? "default" : "outline"} 
+              size="sm"
+              onClick={() => updateSetting('locationVerificationEnabled', !settings.locationVerificationEnabled)}
+            >
+              {settings.locationVerificationEnabled ? 'Enabled' : 'Disabled'}
+            </Button>
+          </div>
+
+          <div className="flex items-center justify-between">
+            <div>
+              <Label>Enterprise Accounts</Label>
+              <p className="text-sm text-muted-foreground">Allow enterprise business accounts</p>
+            </div>
+            <Button 
+              variant={settings.enterpriseAccountsEnabled ? "default" : "outline"} 
+              size="sm"
+              onClick={() => updateSetting('enterpriseAccountsEnabled', !settings.enterpriseAccountsEnabled)}
+            >
+              {settings.enterpriseAccountsEnabled ? 'Enabled' : 'Disabled'}
+            </Button>
+          </div>
+
+          <div className="flex items-center justify-between">
+            <div>
+              <Label>Hub Pins</Label>
+              <p className="text-sm text-muted-foreground">Enable business hub pin locations</p>
+            </div>
+            <Button 
+              variant={settings.hubPinsEnabled ? "default" : "outline"} 
+              size="sm"
+              onClick={() => updateSetting('hubPinsEnabled', !settings.hubPinsEnabled)}
+            >
+              {settings.hubPinsEnabled ? 'Enabled' : 'Disabled'}
+            </Button>
+          </div>
+
+          <div className="flex items-center justify-between">
+            <div>
+              <Label>Analytics Tracking</Label>
+              <p className="text-sm text-muted-foreground">Enable platform analytics and tracking</p>
+            </div>
+            <Button 
+              variant={settings.analyticsEnabled ? "default" : "outline"} 
+              size="sm"
+              onClick={() => updateSetting('analyticsEnabled', !settings.analyticsEnabled)}
+            >
+              {settings.analyticsEnabled ? 'Enabled' : 'Disabled'}
+            </Button>
+          </div>
+        </div>
+      </div>
+
+      {/* Moderation Settings */}
+      <div className="space-y-4">
+        <h3 className="text-lg font-semibold">Content Moderation</h3>
+        <div className="space-y-4">
+          <div className="flex items-center justify-between">
+            <div>
+              <Label>Auto Moderation</Label>
+              <p className="text-sm text-muted-foreground">Automatically moderate content using AI</p>
+            </div>
+            <Button 
+              variant={settings.autoModerationEnabled ? "default" : "outline"} 
+              size="sm"
+              onClick={() => updateSetting('autoModerationEnabled', !settings.autoModerationEnabled)}
+            >
+              {settings.autoModerationEnabled ? 'Enabled' : 'Disabled'}
+            </Button>
+          </div>
+
+          <div className="flex items-center justify-between">
+            <div>
+              <Label>Profanity Filter</Label>
+              <p className="text-sm text-muted-foreground">Filter inappropriate language</p>
+            </div>
+            <Button 
+              variant={settings.profanityFilterEnabled ? "default" : "outline"} 
+              size="sm"
+              onClick={() => updateSetting('profanityFilterEnabled', !settings.profanityFilterEnabled)}
+            >
+              {settings.profanityFilterEnabled ? 'Enabled' : 'Disabled'}
+            </Button>
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="max-reports">Max Reports Before Review</Label>
+            <Input 
+              id="max-reports" 
+              type="number" 
+              value={settings.maxReportsBeforeReview || 3} 
+              onChange={(e) => updateSetting('maxReportsBeforeReview', parseInt(e.target.value))}
+            />
+          </div>
+        </div>
+      </div>
+      
+      {/* Save Button */}
+      <div className="pt-6 border-t flex gap-4">
+        <Button onClick={saveSettings} disabled={isSaving}>
+          {isSaving ? (
+            <>
+              <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
+              Saving...
+            </>
+          ) : (
+            'Save Settings'
+          )}
+        </Button>
+        <Button variant="outline" onClick={fetchSettings} disabled={isLoading}>
+          Reset to Saved
+        </Button>
+      </div>
+    </div>
+  );
 }
 
 export default function AdminPanelV2() {
@@ -1073,70 +1498,7 @@ export default function AdminPanelV2() {
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-6">
-              <div className="space-y-4">
-                <h3 className="text-lg font-semibold">General Settings</h3>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <div className="space-y-2">
-                    <Label htmlFor="platform-name">Platform Name</Label>
-                    <Input id="platform-name" defaultValue="Fixer" />
-                  </div>
-                  
-                  <div className="space-y-2">
-                    <Label htmlFor="support-email">Support Email</Label>
-                    <Input id="support-email" defaultValue="support@fixer.com" />
-                  </div>
-                  
-                  <div className="space-y-2">
-                    <Label htmlFor="max-file-size">Max File Size (MB)</Label>
-                    <Input id="max-file-size" type="number" defaultValue="10" />
-                  </div>
-                  
-                  <div className="space-y-2">
-                    <Label htmlFor="session-timeout">Session Timeout (minutes)</Label>
-                    <Input id="session-timeout" type="number" defaultValue="60" />
-                  </div>
-                </div>
-              </div>
-              
-              <div className="space-y-4">
-                <h3 className="text-lg font-semibold">Payment Settings</h3>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <div className="space-y-2">
-                    <Label htmlFor="platform-fee">Platform Fee (%)</Label>
-                    <Input id="platform-fee" type="number" defaultValue="5" step="0.1" />
-                  </div>
-                  
-                  <div className="space-y-2">
-                    <Label htmlFor="min-payout">Minimum Payout ($)</Label>
-                    <Input id="min-payout" type="number" defaultValue="20" />
-                  </div>
-                </div>
-              </div>
-              
-              <div className="space-y-4">
-                <h3 className="text-lg font-semibold">Security Settings</h3>
-                <div className="space-y-4">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <Label>Two-Factor Authentication Required</Label>
-                      <p className="text-sm text-muted-foreground">Require 2FA for all admin accounts</p>
-                    </div>
-                    <Button variant="outline" size="sm">Configure</Button>
-                  </div>
-                  
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <Label>Rate Limiting</Label>
-                      <p className="text-sm text-muted-foreground">API rate limiting configuration</p>
-                    </div>
-                    <Button variant="outline" size="sm">Configure</Button>
-                  </div>
-                </div>
-              </div>
-              
-              <div className="pt-6 border-t">
-                <Button>Save Settings</Button>
-              </div>
+              <PlatformSettingsManager />
             </CardContent>
           </Card>
         </TabsContent>

@@ -2484,25 +2484,56 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // System Configuration - Update platform settings
+  // Get platform settings
+  apiRouter.get("/admin/settings/platform", isAuthenticated, isAdmin, async (req: Request, res: Response) => {
+    try {
+      const settings = await db.select().from(platformSettings);
+      
+      // Convert to key-value object for easier frontend consumption
+      const settingsObject = settings.reduce((acc, setting) => {
+        acc[setting.key] = setting.value;
+        return acc;
+      }, {} as Record<string, any>);
+      
+      res.json({ settings: settingsObject });
+    } catch (error) {
+      console.error('Settings fetch error:', error);
+      res.status(500).json({ message: 'Failed to fetch settings' });
+    }
+  });
+
+  // Update platform settings (bulk update)
   apiRouter.put("/admin/settings/platform", isAuthenticated, isAdmin, async (req: Request, res: Response) => {
     try {
-      const { settingKey, settingValue } = req.body;
+      const { settings } = req.body;
       
-      // Update or insert platform setting
-      await db.insert(platformSettings).values({
-        settingKey,
-        settingValue: JSON.stringify(settingValue),
-        updatedBy: req.user!.id,
-        updatedAt: new Date()
-      });
+      if (!settings || typeof settings !== 'object') {
+        return res.status(400).json({ message: 'Invalid settings format' });
+      }
 
-      // Log admin action
+      // Process each setting
+      for (const [key, value] of Object.entries(settings)) {
+        await db.insert(platformSettings).values({
+          key,
+          value: value as any,
+          updatedBy: req.user!.id,
+          updatedAt: new Date()
+        }).onConflictDoUpdate({
+          target: platformSettings.key,
+          set: { 
+            value: value as any, 
+            updatedBy: req.user!.id, 
+            updatedAt: new Date() 
+          }
+        });
+      }
+
+      // Log the settings update
       await db.insert(adminAuditLog).values({
         adminId: req.user!.id,
         action: 'update_settings',
         targetType: 'platform',
-        details: { settingKey, settingValue },
+        details: { settingsUpdated: Object.keys(settings) },
         timestamp: new Date()
       });
       
@@ -2510,6 +2541,45 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error('Settings update error:', error);
       res.status(500).json({ message: 'Failed to update settings' });
+    }
+  });
+
+  // Update individual platform setting
+  apiRouter.put("/admin/settings/platform/:key", isAuthenticated, isAdmin, async (req: Request, res: Response) => {
+    try {
+      const { key } = req.params;
+      const { value, description, category } = req.body;
+      
+      await db.insert(platformSettings).values({
+        key,
+        value,
+        description,
+        category: category || 'general',
+        updatedBy: req.user!.id,
+        updatedAt: new Date()
+      }).onConflictDoUpdate({
+        target: platformSettings.key,
+        set: { 
+          value, 
+          description,
+          category: category || 'general',
+          updatedBy: req.user!.id, 
+          updatedAt: new Date() 
+        }
+      });
+
+      await db.insert(adminAuditLog).values({
+        adminId: req.user!.id,
+        action: 'update_setting',
+        targetType: 'platform',
+        details: { key, value },
+        timestamp: new Date()
+      });
+      
+      res.json({ message: 'Setting updated successfully' });
+    } catch (error) {
+      console.error('Setting update error:', error);
+      res.status(500).json({ message: 'Failed to update setting' });
     }
   });
 
