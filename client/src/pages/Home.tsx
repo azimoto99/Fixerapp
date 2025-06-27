@@ -271,10 +271,19 @@ export default function Home() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
-  // Redirect enterprise users to their dashboard
+  // Redirect users to their appropriate dashboards
   useEffect(() => {
+    console.log('Home useEffect - User:', user);
+    console.log('Home useEffect - Account Type:', user?.accountType);
+    
     if (user?.accountType === 'enterprise') {
+      console.log('Redirecting to enterprise dashboard');
       window.location.href = '/enterprise-dashboard';
+    } else if (user?.accountType === 'poster') {
+      console.log('Redirecting to poster dashboard');
+      window.location.href = '/poster-dashboard';
+    } else {
+      console.log('No redirection needed, account type:', user?.accountType);
     }
   }, [user?.accountType]);
   

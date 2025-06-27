@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useAuth } from '@/hooks/useAuth';
+import { useAuth } from '@/hooks/use-auth';
 import { useQuery } from '@tanstack/react-query';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -79,8 +79,13 @@ export default function PosterDashboardV2() {
   } = useQuery({
     queryKey: ['/api/jobs', { posterId: user?.id }],
     queryFn: async () => {
+      console.log('Fetching jobs for poster:', user?.id);
       const response = await apiRequest('GET', `/api/jobs?posterId=${user?.id}`);
-      return response || [];
+      console.log('Jobs API response:', response);
+      console.log('Jobs response type:', typeof response);
+      console.log('Jobs is array:', Array.isArray(response));
+      // Ensure we always return an array
+      return Array.isArray(response) ? response : [];
     },
     enabled: !!user && user.accountType === 'poster',
     refetchInterval: 30000, // Refresh every 30 seconds
@@ -94,8 +99,13 @@ export default function PosterDashboardV2() {
   } = useQuery({
     queryKey: ['/api/applications/poster', user?.id],
     queryFn: async () => {
+      console.log('Fetching applications for poster:', user?.id);
       const response = await apiRequest('GET', `/api/applications/poster`);
-      return response || [];
+      console.log('Applications API response:', response);
+      console.log('Applications response type:', typeof response);
+      console.log('Applications is array:', Array.isArray(response));
+      // Ensure we always return an array
+      return Array.isArray(response) ? response : [];
     },
     enabled: !!user && user.accountType === 'poster',
     refetchInterval: 15000, // Refresh every 15 seconds for applications
@@ -103,13 +113,17 @@ export default function PosterDashboardV2() {
 
   // Calculate dashboard stats
   const stats: PosterStats = React.useMemo(() => {
-    const totalJobs = jobs.length;
-    const activeJobs = jobs.filter((job: Job) => job.status === 'open').length;
-    const completedJobs = jobs.filter((job: Job) => job.status === 'completed').length;
-    const totalSpent = jobs.reduce((sum: number, job: Job) => sum + job.paymentAmount, 0);
-    const pendingApplications = applications.filter((app: Application) => app.status === 'pending').length;
-    const totalApplications = applications.length;
-    const hiredWorkers = applications.filter((app: Application) => app.status === 'accepted').length;
+    // Ensure jobs and applications are arrays before using array methods
+    const jobsArray = Array.isArray(jobs) ? jobs : [];
+    const applicationsArray = Array.isArray(applications) ? applications : [];
+    
+    const totalJobs = jobsArray.length;
+    const activeJobs = jobsArray.filter((job: Job) => job.status === 'open').length;
+    const completedJobs = jobsArray.filter((job: Job) => job.status === 'completed').length;
+    const totalSpent = jobsArray.reduce((sum: number, job: Job) => sum + (job.paymentAmount || 0), 0);
+    const pendingApplications = applicationsArray.filter((app: Application) => app.status === 'pending').length;
+    const totalApplications = applicationsArray.length;
+    const hiredWorkers = applicationsArray.filter((app: Application) => app.status === 'accepted').length;
     
     // Calculate average rating from completed jobs (placeholder)
     const averageRating = 4.2; // This would come from actual reviews
@@ -128,7 +142,9 @@ export default function PosterDashboardV2() {
 
   // Filter jobs based on current filter and search
   const filteredJobs = React.useMemo(() => {
-    let filtered = jobs;
+    // Ensure jobs is an array before filtering
+    const jobsArray = Array.isArray(jobs) ? jobs : [];
+    let filtered = jobsArray;
     
     if (jobFilter !== 'all') {
       filtered = filtered.filter((job: Job) => job.status === jobFilter);
@@ -137,9 +153,9 @@ export default function PosterDashboardV2() {
     if (searchQuery) {
       const query = searchQuery.toLowerCase();
       filtered = filtered.filter((job: Job) => 
-        job.title.toLowerCase().includes(query) ||
-        job.description.toLowerCase().includes(query) ||
-        job.location.toLowerCase().includes(query)
+        (job.title || '').toLowerCase().includes(query) ||
+        (job.description || '').toLowerCase().includes(query) ||
+        (job.location || '').toLowerCase().includes(query)
       );
     }
     
@@ -340,7 +356,7 @@ export default function PosterDashboardV2() {
                         <div key={i} className="h-16 bg-muted animate-pulse rounded" />
                       ))}
                     </div>
-                  ) : jobs.length === 0 ? (
+                  ) : (Array.isArray(jobs) ? jobs : []).length === 0 ? (
                     <div className="text-center py-8">
                       <PlusCircle className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
                       <p className="text-muted-foreground mb-4">No jobs posted yet</p>
@@ -350,7 +366,7 @@ export default function PosterDashboardV2() {
                     </div>
                   ) : (
                     <div className="space-y-3">
-                      {jobs.slice(0, 3).map((job: Job) => (
+                      {(Array.isArray(jobs) ? jobs : []).slice(0, 3).map((job: Job) => (
                         <div key={job.id} className="flex items-center justify-between p-3 border rounded-lg">
                           <div className="flex-1">
                             <div className="flex items-center gap-2 mb-1">
@@ -370,13 +386,13 @@ export default function PosterDashboardV2() {
                           </Button>
                         </div>
                       ))}
-                      {jobs.length > 3 && (
+                      {(Array.isArray(jobs) ? jobs : []).length > 3 && (
                         <Button 
                           variant="outline" 
                           className="w-full" 
                           onClick={() => setActiveTab('jobs')}
                         >
-                          View All Jobs ({jobs.length})
+                          View All Jobs ({(Array.isArray(jobs) ? jobs : []).length})
                         </Button>
                       )}
                     </div>
@@ -400,14 +416,14 @@ export default function PosterDashboardV2() {
                         <div key={i} className="h-16 bg-muted animate-pulse rounded" />
                       ))}
                     </div>
-                  ) : applications.filter((app: Application) => app.status === 'pending').length === 0 ? (
+                  ) : (Array.isArray(applications) ? applications : []).filter((app: Application) => app.status === 'pending').length === 0 ? (
                     <div className="text-center py-8">
                       <Users className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
                       <p className="text-muted-foreground">No pending applications</p>
                     </div>
                   ) : (
                     <div className="space-y-3">
-                      {applications
+                      {(Array.isArray(applications) ? applications : [])
                         .filter((app: Application) => app.status === 'pending')
                         .slice(0, 3)
                         .map((application: Application) => (
@@ -429,7 +445,7 @@ export default function PosterDashboardV2() {
                             </Button>
                           </div>
                         ))}
-                      {applications.filter((app: Application) => app.status === 'pending').length > 3 && (
+                      {(Array.isArray(applications) ? applications : []).filter((app: Application) => app.status === 'pending').length > 3 && (
                         <Button 
                           variant="outline" 
                           className="w-full" 
@@ -467,7 +483,7 @@ export default function PosterDashboardV2() {
           {/* Applications Tab */}
           <TabsContent value="applications" className="space-y-6">
             <ApplicationsManager 
-              applications={applications}
+              applications={Array.isArray(applications) ? applications : []}
               isLoading={applicationsLoading}
               onApplicationUpdate={handleApplicationUpdate}
             />
@@ -476,8 +492,8 @@ export default function PosterDashboardV2() {
           {/* Analytics Tab */}
           <TabsContent value="analytics" className="space-y-6">
             <PosterAnalytics 
-              jobs={jobs}
-              applications={applications}
+              jobs={Array.isArray(jobs) ? jobs : []}
+              applications={Array.isArray(applications) ? applications : []}
               stats={stats}
             />
           </TabsContent>
