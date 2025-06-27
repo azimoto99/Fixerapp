@@ -11,6 +11,7 @@ import { eq, and, desc, count, sql, isNull, ilike, or, asc, not, like, isNotNull
 import { requireAuth } from '../middleware/auth';
 import multer from 'multer';
 import { uploadFile } from '../services/s3Service';
+import * as AWS from 'aws-sdk';
 
 // Configure multer for logo uploads
 const logoUpload = multer({
@@ -364,6 +365,121 @@ export async function getBusinessStats(req: Request, res: Response) {
   } catch (error) {
     console.error('Error fetching business stats:', error);
     res.status(500).json({ message: 'Failed to fetch business stats' });
+  }
+}
+
+export async function getBusinessAnalytics(req: Request, res: Response) {
+  try {
+    const userId = req.user?.id;
+    if (!userId) {
+      return res.status(401).json({ message: 'Unauthorized' });
+    }
+
+    const [business] = await db.select()
+      .from(enterpriseBusinesses)
+      .where(eq(enterpriseBusinesses.userId, userId))
+      .limit(1);
+
+    if (!business) {
+      return res.status(404).json({ message: 'Business not found' });
+    }
+
+    // Get application trends for the last 6 months
+    const sixMonthsAgo = new Date();
+    sixMonthsAgo.setMonth(sixMonthsAgo.getMonth() - 6);
+
+    const applicationTrends = await db.select({
+      month: sql<string>`TO_CHAR(${enterpriseApplications.createdAt}, 'Mon')`,
+      applications: count(),
+      hires: count(sql`CASE WHEN ${enterpriseApplications.status} = 'accepted' THEN 1 END`)
+    })
+    .from(enterpriseApplications)
+    .where(
+      and(
+        eq(enterpriseApplications.enterpriseId, business.id),
+        sql`${enterpriseApplications.createdAt} >= ${sixMonthsAgo.toISOString()}`
+      )
+    )
+    .groupBy(sql`TO_CHAR(${enterpriseApplications.createdAt}, 'Mon'), EXTRACT(MONTH FROM ${enterpriseApplications.createdAt})`)
+    .orderBy(sql`EXTRACT(MONTH FROM ${enterpriseApplications.createdAt})`);
+
+    // Get position performance
+    const positionPerformance = await db.select({
+      position: enterprisePositions.title,
+      applications: count(enterpriseApplications.id),
+      avgTimeToHire: sql<number>`COALESCE(AVG(EXTRACT(DAY FROM (${enterpriseApplications.updatedAt} - ${enterpriseApplications.createdAt}))), 0)`
+    })
+    .from(enterprisePositions)
+    .leftJoin(enterpriseApplications, eq(enterprisePositions.id, enterpriseApplications.positionId))
+    .where(eq(enterprisePositions.enterpriseId, business.id))
+    .groupBy(enterprisePositions.id, enterprisePositions.title)
+    .having(sql`COUNT(${enterpriseApplications.id}) > 0`);
+
+    // Get application status breakdown
+    const applicationStatus = await db.select({
+      status: enterpriseApplications.status,
+      count: count()
+    })
+    .from(enterpriseApplications)
+    .where(eq(enterpriseApplications.enterpriseId, business.id))
+    .groupBy(enterpriseApplications.status);
+
+    // Transform status data for frontend
+    const statusColors = {
+      pending: '#FFBB28',
+      'under_review': '#0088FE',
+      accepted: '#00C49F',
+      rejected: '#FF8042'
+    };
+
+    const formattedStatus = applicationStatus.map(item => ({
+      name: item.status.charAt(0).toUpperCase() + item.status.slice(1).replace('_', ' '),
+      value: item.count,
+      color: statusColors[item.status as keyof typeof statusColors] || '#8884D8'
+    }));
+
+    // Calculate top metrics
+    const [totalStats] = await db.select({
+      totalApplications: count(enterpriseApplications.id),
+      acceptedApplications: count(sql`CASE WHEN ${enterpriseApplications.status} = 'accepted' THEN 1 END`),
+      avgTimeToHire: sql<number>`COALESCE(AVG(EXTRACT(DAY FROM (${enterpriseApplications.updatedAt} - ${enterpriseApplications.createdAt}))), 0)`
+    })
+    .from(enterpriseApplications)
+    .where(eq(enterpriseApplications.enterpriseId, business.id));
+
+    const [activePositions] = await db.select({
+      count: count()
+    })
+    .from(enterprisePositions)
+    .where(
+      and(
+        eq(enterprisePositions.enterpriseId, business.id),
+        eq(enterprisePositions.isActive, true)
+      )
+    );
+
+    const acceptanceRate = totalStats.totalApplications > 0 
+      ? Math.round((totalStats.acceptedApplications / totalStats.totalApplications) * 100)
+      : 0;
+
+    res.json({
+      applicationTrends: applicationTrends.length > 0 ? applicationTrends : [],
+      positionPerformance: positionPerformance.map(p => ({
+        position: p.position,
+        applications: p.applications,
+        avgTimeToHire: Math.round(Number(p.avgTimeToHire))
+      })),
+      applicationStatus: formattedStatus,
+      topMetrics: {
+        totalApplications: totalStats.totalApplications,
+        acceptanceRate,
+        avgTimeToHire: Math.round(Number(totalStats.avgTimeToHire)),
+        activePositions: activePositions.count
+      }
+    });
+  } catch (error) {
+    console.error('Error fetching business analytics:', error);
+    res.status(500).json({ message: 'Failed to fetch business analytics' });
   }
 }
 

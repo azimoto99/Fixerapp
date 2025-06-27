@@ -10,6 +10,7 @@ router.get('/business', ensureAuthenticated, enterpriseApi.getBusinessProfile);
 router.post('/business', ensureAuthenticated, enterpriseApi.createBusinessProfile);
 router.put('/business', ensureAuthenticated, enterpriseApi.updateBusinessProfile);
 router.get('/stats', ensureAuthenticated, enterpriseApi.getBusinessStats);
+router.get('/analytics', ensureAuthenticated, enterpriseApi.getBusinessAnalytics);
 
 // Logo upload endpoint
 router.post('/upload-logo', ensureAuthenticated, enterpriseApi.handleLogoUpload, enterpriseApi.uploadEnterpriseLogo);
