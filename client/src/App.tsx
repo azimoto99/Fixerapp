@@ -29,6 +29,7 @@ import EmailVerified from "@/pages/EmailVerified";
 import StripeConnectOnboarding from "@/components/StripeConnectOnboarding";
 import WalletPage from "@/pages/wallet-page";
 import EnterpriseDashboard from "@/pages/EnterpriseDashboard";
+import PosterDashboardV2 from "@/pages/PosterDashboardV2";
 import { AuthProvider } from "@/hooks/use-auth";
 import { NotificationProvider } from "@/hooks/use-notifications";
 import { ProtectedRoute } from "@/lib/protected-route";
@@ -118,7 +119,8 @@ function RouterWithAuth() {
       <ProtectedRoute path="/stripe-connect/onboarding" component={StripeConnectOnboarding} />
       {/* Enterprise Dashboard - Only accessible to business accounts */}
       <AccountTypeRoute path="/enterprise-dashboard" component={EnterpriseDashboard} allowedType="enterprise" />
-      {/* Payment dashboard is not accessible as there are no job posters */}
+      {/* Poster Dashboard - Only accessible to poster accounts */}
+      <AccountTypeRoute path="/poster-dashboard" component={PosterDashboardV2} allowedType="poster" />
       <Route path="/auth" component={AuthPage} />
       <Route path="/business-register" component={BusinessRegister} />
       <Route path="/login" component={RedirectToAuth} />

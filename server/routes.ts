@@ -377,6 +377,25 @@ export async function registerRoutes(app: Express): Promise<Server> {
   apiRouter.use('/jobs', jobsRouter);
   console.log('✓ Jobs API routes registered successfully');
 
+  // Mount Job Location Verification routes (/api/jobs/*)
+  const { default: jobLocationRouter } = await import('./api/jobLocationVerification');
+  apiRouter.use('/jobs', jobLocationRouter);
+  console.log('✓ Job Location Verification routes registered successfully');
+
+  // Mount Account Type Management routes (/api/auth/*)
+  const { default: accountTypeRouter } = await import('./api/accountTypeManagement');
+  apiRouter.use('/auth', accountTypeRouter);
+  console.log('✓ Account Type Management routes registered successfully');
+
+  // Mount Analytics routes (/api/analytics/*)
+  try {
+    const analyticsRouter = await import('./routes/analytics');
+    apiRouter.use('/analytics', analyticsRouter.default);
+    console.log('✓ Analytics routes registered successfully');
+  } catch (error) {
+    console.error('❌ Failed to register Analytics routes:', error);
+  }
+
   // Mount Stripe Connect routes
   apiRouter.use('/stripe/connect', stripeConnectRouter);
 

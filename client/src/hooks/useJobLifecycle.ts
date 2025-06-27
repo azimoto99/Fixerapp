@@ -14,7 +14,7 @@ interface JobLifecycleHooks {
   rejectApplication: (applicationId: number) => Promise<Application>;
   
   // Job execution flow
-  startJob: (jobId: number, location?: { latitude: number; longitude: number }) => Promise<Job>;
+  startJob: (jobId: number, location?: { latitude: number; longitude: number; accuracy?: number }) => Promise<Job>;
   completeJob: (jobId: number) => Promise<Job>;
   cancelJob: (jobId: number, reason?: string) => Promise<void>;
   
@@ -164,25 +164,50 @@ export function useJobLifecycle(): JobLifecycleHooks {
     }
   });
 
-  // Start job
+  // Start job with location verification
   const startJobMutation = useMutation({
-    mutationFn: async ({ jobId, location }: { jobId: number; location?: { latitude: number; longitude: number } }) => {
-      const response = await apiRequest('PUT', `/api/jobs/${jobId}/status`, {
-        status: 'in_progress',
-        workerLocation: location
-      });
-      
-      if (!response.ok) {
-        const error = await response.text();
-        throw new Error(error || 'Failed to start job');
+    mutationFn: async ({ jobId, location }: { jobId: number; location?: { latitude: number; longitude: number; accuracy?: number } }) => {
+      if (location) {
+        // Use the new location verification endpoint
+        const deviceInfo = {
+          userAgent: navigator.userAgent,
+          platform: navigator.platform,
+          language: navigator.language,
+          timezone: Intl.DateTimeFormat().resolvedOptions().timeZone
+        };
+
+        const response = await apiRequest('POST', `/api/jobs/${jobId}/start-with-location`, {
+          latitude: location.latitude,
+          longitude: location.longitude,
+          accuracy: location.accuracy,
+          timestamp: new Date().toISOString(),
+          source: 'gps',
+          deviceInfo
+        });
+        
+        if (!response.success) {
+          throw new Error(response.message || 'Location verification failed');
+        }
+        
+        return response.job;
+      } else {
+        // Fallback to old endpoint without location verification
+        const response = await apiRequest('PUT', `/api/jobs/${jobId}/status`, {
+          status: 'in_progress'
+        });
+        
+        if (!response.ok) {
+          const error = await response.text();
+          throw new Error(error || 'Failed to start job');
+        }
+        
+        return await response.json();
       }
-      
-      return await response.json();
     },
-    onSuccess: () => {
+    onSuccess: (job) => {
       toast({
         title: "Job started!",
-        description: "You can now begin working on this job.",
+        description: "You can now begin working on this job. Your location will be monitored for security.",
       });
       
       queryClient.invalidateQueries({ queryKey: ['/api/jobs'] });
@@ -372,7 +397,7 @@ export function useJobLifecycle(): JobLifecycleHooks {
     rejectApplication: (applicationId: number) => 
       rejectApplicationMutation.mutateAsync(applicationId),
     
-    startJob: (jobId: number, location?: { latitude: number; longitude: number }) => 
+    startJob: (jobId: number, location?: { latitude: number; longitude: number; accuracy?: number }) => 
       startJobMutation.mutateAsync({ jobId, location }),
     
     completeJob: (jobId: number) => 
