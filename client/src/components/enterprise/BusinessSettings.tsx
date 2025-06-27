@@ -291,10 +291,55 @@ export default function BusinessSettings({ businessData }: { businessData: Busin
               <div>
                 <Label>Business Logo</Label>
                 <div className="mt-2">
-                  <Button variant="outline" disabled={!isEditing}>
+                  <input
+                    type="file"
+                    id="logoUpload"
+                    accept="image/png, image/jpeg"
+                    className="hidden"
+                    onChange={async (e) => {
+                      if (e.target.files?.[0]) {
+                        const file = e.target.files[0];
+                        const formData = new FormData();
+                        formData.append('logo', file);
+                        
+                        try {
+                          const res = await apiRequest('POST', '/api/enterprise/upload-logo', formData, {
+                            headers: {
+                              'Content-Type': 'multipart/form-data'
+                            }
+                          });
+                          const data = await res.json();
+                          setFormData(prev => ({...prev, businessLogo: data.url}));
+                          if (businessData) {
+                            businessData.businessLogo = data.url;
+                          }
+                        } catch (error) {
+                          toast({
+                            title: 'Upload Failed',
+                            description: 'Could not upload logo. Please try again.',
+                            variant: 'destructive'
+                          });
+                        }
+                      }
+                    }}
+                    disabled={!isEditing}
+                  />
+                  <label
+                    htmlFor="logoUpload"
+                    className="cursor-pointer inline-flex items-center px-4 py-2 border border-input bg-background hover:bg-accent hover:text-accent-foreground rounded-md text-sm font-medium transition-colors"
+                  >
                     <Upload className="h-4 w-4 mr-2" />
-                    Upload Logo
-                  </Button>
+                    {formData.businessLogo ? 'Change Logo' : 'Upload Logo'}
+                  </label>
+                  {formData.businessLogo && (
+                    <div className="mt-2">
+                      <img 
+                        src={formData.businessLogo} 
+                        alt="Business Logo" 
+                        className="h-20 w-20 rounded-md object-cover"
+                      />
+                    </div>
+                  )}
                   <p className="text-xs text-muted-foreground mt-1">
                     Recommended: 200x200px, JPG or PNG
                   </p>

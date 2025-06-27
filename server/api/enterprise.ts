@@ -11,6 +11,25 @@ import { eq, and, desc, count, sql, isNull, ilike } from 'drizzle-orm';
 import { requireAuth } from '../middleware/auth';
 
 // Add a test endpoint at the top of the file
+export async function uploadLogo(req: Request, res: Response) {
+  try {
+    if (!req.files?.logo) {
+      return res.status(400).json({ message: 'No logo file uploaded' });
+    }
+
+    const logoFile = Array.isArray(req.files.logo) ? req.files.logo[0] : req.files.logo;
+    
+    // In production, you'd upload to cloud storage (S3, GCS, etc.)
+    // For demo purposes, we'll just return a mock URL
+    const mockUrl = `https://ui-avatars.com/api/?name=${encodeURIComponent(logoFile.name)}&background=random`;
+    
+    res.json({ url: mockUrl });
+  } catch (error) {
+    console.error('Error uploading logo:', error);
+    res.status(500).json({ message: 'Failed to upload logo' });
+  }
+}
+
 export async function testEndpoint(req: Request, res: Response) {
   console.log('🧪 Test endpoint called');
   res.json({ message: 'Enterprise API is working', timestamp: Date.now() });
