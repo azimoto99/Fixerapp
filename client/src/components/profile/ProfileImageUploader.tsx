@@ -71,9 +71,29 @@ export function ProfileImageUploader({ user, className = "", compact = false }: 
       setIsUploading(false);
     },
     onError: (error: Error) => {
+      console.error('Avatar upload error:', error);
+      
+      let title = 'Upload failed';
+      let description = error.message;
+      
+      // Provide more user-friendly error messages
+      if (error.message.includes('credentials')) {
+        title = 'Configuration Error';
+        description = 'Server configuration issue. Please contact support.';
+      } else if (error.message.includes('bucket')) {
+        title = 'Storage Error';
+        description = 'Storage service unavailable. Please try again later.';
+      } else if (error.message.includes('Network')) {
+        title = 'Connection Error';
+        description = 'Please check your internet connection and try again.';
+      } else if (error.message.includes('timeout')) {
+        title = 'Upload Timeout';
+        description = 'Upload took too long. Please try with a smaller image.';
+      }
+      
       toast({
-        title: 'Upload failed',
-        description: error.message,
+        title,
+        description,
         variant: 'destructive',
       });
       

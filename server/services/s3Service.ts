@@ -8,10 +8,21 @@ const s3Client = new S3Client({
     credentials: fromEnv(),
 });
 
-const BUCKET_NAME = process.env.S3_BUCKET_NAME!;
+const BUCKET_NAME = process.env.S3_BUCKET_NAME;
 
 if (!BUCKET_NAME) {
-    console.warn('S3_BUCKET_NAME environment variable is not set. File uploads will fail.');
+    console.warn('S3_BUCKET_NAME environment variable is not set. File uploads will use fallback.');
+}
+
+// Check if AWS credentials are available
+const hasAWSCredentials = () => {
+    return !!(process.env.AWS_ACCESS_KEY_ID && process.env.AWS_SECRET_ACCESS_KEY) || 
+           !!(process.env.AWS_PROFILE) ||
+           !!(process.env.AWS_ROLE_ARN);
+};
+
+if (!hasAWSCredentials()) {
+    console.warn('AWS credentials not found. File uploads will use fallback.');
 }
 
 /**
@@ -58,24 +69,53 @@ export function base64ToBuffer(base64Data: string): Buffer {
  * @returns The URL of the uploaded file, the S3 key, and the file size.
  */
 export async function uploadFile(buffer: Buffer, fileName: string, contentType: string, folder: string = 'uploads') {
-    const randomBytes = crypto.randomBytes(16).toString('hex');
-    const key = `${folder}/${Date.now()}-${randomBytes}-${fileName}`;
+    if (!BUCKET_NAME) {
+        throw new Error('S3 bucket not configured. Please set S3_BUCKET_NAME environment variable.');
+    }
 
-    const command = new PutObjectCommand({
-        Bucket: BUCKET_NAME,
-        Key: key,
-        Body: buffer,
-        ContentType: contentType,
-        ACL: 'public-read' // Make file publicly readable
-    });
+    if (!hasAWSCredentials()) {
+        throw new Error('AWS credentials not configured. Please set AWS_ACCESS_KEY_ID and AWS_SECRET_ACCESS_KEY.');
+    }
 
-    await s3Client.send(command);
+    try {
+        const randomBytes = crypto.randomBytes(16).toString('hex');
+        const key = `${folder}/${Date.now()}-${randomBytes}-${fileName}`;
 
-    return {
-        url: `https://${BUCKET_NAME}.s3.amazonaws.com/${key}`,
-        key,
-        size: buffer.length
-    };
+        console.log('Uploading to S3:', { bucket: BUCKET_NAME, key, contentType, size: buffer.length });
+
+        const command = new PutObjectCommand({
+            Bucket: BUCKET_NAME,
+            Key: key,
+            Body: buffer,
+            ContentType: contentType,
+            ACL: 'public-read' // Make file publicly readable
+        });
+
+        await s3Client.send(command);
+
+        const url = `https://${BUCKET_NAME}.s3.amazonaws.com/${key}`;
+        console.log('S3 upload successful:', url);
+
+        return {
+            url,
+            key,
+            size: buffer.length
+        };
+    } catch (error) {
+        console.error('S3 upload failed:', error);
+        
+        if (error instanceof Error) {
+            if (error.message.includes('credentials')) {
+                throw new Error('AWS credentials are invalid or expired');
+            } else if (error.message.includes('NoSuchBucket')) {
+                throw new Error(`S3 bucket '${BUCKET_NAME}' does not exist`);
+            } else if (error.message.includes('AccessDenied')) {
+                throw new Error('Access denied to S3 bucket. Check your AWS permissions.');
+            }
+        }
+        
+        throw error;
+    }
 }
 
 /**

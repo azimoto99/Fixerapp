@@ -36,8 +36,44 @@ router.post('/avatar/upload', requireAuth, upload.single('avatar'), async (req, 
       return res.status(400).json({ message: 'No file uploaded' });
     }
 
+    console.log('Avatar upload attempt:', {
+      userId: req.user.id,
+      fileName: req.file.originalname,
+      fileSize: req.file.size,
+      mimeType: req.file.mimetype
+    });
+
+    // Check if S3 is configured
+    if (!process.env.S3_BUCKET_NAME) {
+      console.warn('S3 not configured, using placeholder avatar URL');
+      
+      // For development/testing when S3 is not configured
+      const placeholderUrl = `https://ui-avatars.com/api/?name=${encodeURIComponent(req.user.fullName || req.user.username)}&size=200&background=random`;
+      
+      const updatedUser = await storage.updateUser(req.user.id, {
+        avatarUrl: placeholderUrl
+      });
+      
+      if (!updatedUser) {
+        return res.status(500).json({ message: 'Failed to update user avatar' });
+      }
+      
+      return res.json({
+        message: 'Avatar uploaded successfully (using placeholder)',
+        avatarUrl: placeholderUrl,
+        user: {
+          id: updatedUser.id,
+          username: updatedUser.username,
+          fullName: updatedUser.fullName,
+          avatarUrl: updatedUser.avatarUrl
+        }
+      });
+    }
+
     // Upload to S3
+    console.log('Uploading to S3...');
     const { url: avatarUrl } = await uploadProfileImage(req.user.id, req.file.buffer, req.file.originalname);
+    console.log('S3 upload successful:', avatarUrl);
     
     // Update user profile with new avatar URL
     const updatedUser = await storage.updateUser(req.user.id, {
@@ -61,10 +97,47 @@ router.post('/avatar/upload', requireAuth, upload.single('avatar'), async (req, 
   } catch (error) {
     console.error('Avatar upload error:', error);
     
+    // Provide more specific error messages
+    let errorMessage = 'Failed to upload avatar';
+    if (error instanceof Error) {
+      if (error.message.includes('credentials')) {
+        errorMessage = 'AWS credentials not configured properly';
+      } else if (error.message.includes('bucket')) {
+        errorMessage = 'S3 bucket configuration error';
+      } else if (error.message.includes('Image must be smaller')) {
+        errorMessage = error.message;
+      } else if (error.message.includes('Invalid file type')) {
+        errorMessage = error.message;
+      } else {
+        errorMessage = error.message;
+      }
+    }
+    
     res.status(500).json({
-      message: error instanceof Error ? error.message : 'Failed to upload avatar'
+      message: errorMessage
     });
   }
+});
+
+/**
+ * Check avatar upload configuration
+ * GET /api/user/avatar/config
+ */
+router.get('/avatar/config', requireAuth, async (req, res) => {
+  if (!req.user) {
+    return res.status(401).json({ message: 'Unauthorized' });
+  }
+
+  const config = {
+    s3Configured: !!process.env.S3_BUCKET_NAME,
+    awsCredentials: !!(process.env.AWS_ACCESS_KEY_ID && process.env.AWS_SECRET_ACCESS_KEY) || 
+                   !!process.env.AWS_PROFILE ||
+                   !!process.env.AWS_ROLE_ARN,
+    bucketName: process.env.S3_BUCKET_NAME ? 'configured' : 'not configured',
+    region: process.env.AWS_REGION || 'us-east-1'
+  };
+
+  res.json(config);
 });
 
 /**
