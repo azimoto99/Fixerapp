@@ -199,6 +199,45 @@ export class DatabaseStorage implements IStorage {
     }
   }
   
+  async getUserByUsernameInsensitive(username: string): Promise<User | undefined> {
+    try {
+      // Use LOWER function for case-insensitive comparison
+      const [user] = await db.select().from(users).where(sql`LOWER(${users.username}) = LOWER(${username})`);
+      return this.addVirtualFields(user);
+    } catch (error) {
+      // If there's an error about missing columns, try a more selective query
+      if (error.message && error.message.includes("column") && error.message.includes("does not exist")) {
+        console.warn("Missing columns in users table, using fallback query:", error.message);
+        
+        // Use a specific select without the new columns and case-insensitive comparison
+        const query = `
+          SELECT 
+            id, username, password, full_name as "fullName", email, phone, bio, 
+            avatar_url as "avatarUrl", account_type as "accountType", skills, 
+            rating, is_active as "isActive", last_active as "lastActive",
+            google_id as "googleId", facebook_id as "facebookId",
+            stripe_customer_id as "stripeCustomerId", 
+            stripe_connect_account_id as "stripeConnectAccountId", 
+            stripe_connect_account_status as "stripeConnectAccountStatus",
+            stripe_terms_accepted as "stripeTermsAccepted", 
+            stripe_terms_accepted_at as "stripeTermsAcceptedAt",
+            stripe_representative_name as "stripeRepresentativeName", 
+            stripe_representative_title as "stripeRepresentativeTitle",
+            stripe_representative_requirements_complete as "stripeRepresentativeRequirementsComplete", 
+            stripe_banking_details_complete as "stripeBankingDetailsComplete"
+          FROM users WHERE LOWER(username) = LOWER($1)
+        `;
+        
+        const result = await db.execute(query, [username]);
+        if (result.length === 0) return undefined;
+        
+        return this.addVirtualFields(result[0]);
+      }
+      // For other errors, rethrow
+      throw error;
+    }
+  }
+  
   async getUserByUsernameAndType(username: string, accountType: string): Promise<User | undefined> {
     try {
       // First try to get the user with all fields

@@ -63,7 +63,20 @@ export function setupAuth(app: Express) {
   
   // Configure session
   const sessionSettings: session.SessionOptions = {
-    secret: process.env.SESSION_SECRET || "fixer-secret-key",
+    secret: process.env.SESSION_SECRET || (() => {
+      // Generate a random session secret if not provided
+      const randomSecret = randomBytes(32).toString('hex');
+      console.warn('⚠️ No SESSION_SECRET environment variable set! Using generated random secret.');
+      console.warn('⚠️ This is insecure for production. Set SESSION_SECRET in your environment.');
+      
+      // Exit with error in production mode if SESSION_SECRET is not set
+      if (process.env.NODE_ENV === 'production') {
+        console.error('❌ SESSION_SECRET must be set in production mode!');
+        process.exit(1);
+      }
+      
+      return randomSecret;
+    })(),
     resave: false,
     saveUninitialized: false,
     store: sessionStore,
@@ -109,9 +122,8 @@ export function setupAuth(app: Express) {
           // Make login case-insensitive by converting username to lowercase
           const lowerUsername = username.toLowerCase();
           
-          // Get all users and find one with matching lowercase username
-          const allUsers = await storage.getAllUsers();
-          user = allUsers.find(u => u.username.toLowerCase() === lowerUsername);
+          // Use database query for case-insensitive search instead of fetching all users
+          user = await storage.getUserByUsernameInsensitive(lowerUsername);
         }
         
         if (!user) {

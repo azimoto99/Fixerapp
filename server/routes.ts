@@ -348,6 +348,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Create API router
   const apiRouter = express.Router();
 
+  // Health check endpoint - first route to avoid conflicts
+  apiRouter.get('/health', (req: Request, res: Response) => {
+    res.status(200).json({ 
+      status: 'healthy',
+      timestamp: new Date().toISOString(),
+      version: process.env.npm_package_version || '1.0.0',
+      environment: process.env.NODE_ENV || 'development'
+    });
+  });
+
   // Mount authentication routes (register / login / logout / password reset)
   try {
     const { default: authRouter } = await import('./api/auth-router');
@@ -407,6 +417,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     app.get('/api/enterprise/stats', isAuthenticated, enterpriseApi.getBusinessStats);
     app.get('/api/enterprise/hub-pins', isAuthenticated, enterpriseApi.getHubPins);
     app.get('/api/enterprise/hub-pins/active', enterpriseApi.getActiveHubPins);
+    app.get('/api/enterprise/hub-pins/debug', enterpriseApi.debugHubPins);
     app.post('/api/enterprise/hub-pins', isAuthenticated, enterpriseApi.createHubPin);
     app.put('/api/enterprise/hub-pins/:id', isAuthenticated, enterpriseApi.updateHubPin);
     app.delete('/api/enterprise/hub-pins/:id', isAuthenticated, enterpriseApi.deleteHubPin);
@@ -2945,11 +2956,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // Mount the API router to handle all /api routes
   app.use('/api', apiRouter);
-
-  // Health check endpoint
-  app.get('/api/health', (req: Request, res: Response) => {
-    res.status(200).json({ status: 'ok' });
-  });
 
   return httpServer;
 }

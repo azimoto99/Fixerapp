@@ -68,79 +68,93 @@ export function WebSocketProvider({
   const handleMessage = useCallback((message: any) => {
     console.log('WebSocket Context - Message received:', message);
     
-    switch (message.type) {
-      case 'job_update':
-        // Invalidate job-related queries
-        queryClient.invalidateQueries({ queryKey: ['/api/jobs'] });
-        queryClient.invalidateQueries({ queryKey: ['/api/applications'] });
-        break;
-      case 'payment_update':
-        // Invalidate payment-related queries
-        queryClient.invalidateQueries({ queryKey: ['/api/payments'] });
-        queryClient.invalidateQueries({ queryKey: ['/api/earnings'] });
-        break;
-      case 'new_message':
-        // Invalidate message queries
-        queryClient.invalidateQueries({ queryKey: ['/api/messages'] });
-        break;
-      case 'notification':
-        // Only show notification if it's for this user
-        if (message.data.userId === user?.id) {
-          toast({
-            title: message.data.title,
-            description: message.data.message,
-          });
-        }
-        // Invalidate notification queries
-        queryClient.invalidateQueries({ queryKey: ['/api/notifications'] });
-        break;
-
-      case 'instant_application':
-        // Only show to job poster
-        if (message.posterId === user?.id) {
-          toast({
-            title: "⚡ New Application!",
-            description: `${message.workerName} just applied for your job!`,
-            duration: 6000,
-          });
-
-          // Refresh applications
-          queryClient.invalidateQueries({ queryKey: [`/api/applications/job/${message.jobId}`] });
-        }
-        break;
-
-      case 'application_accepted':
-        // Only show to the worker whose application was accepted
-        if (message.workerId === user?.id) {
-          toast({
-            title: "🎉 Application Accepted!",
-            description: "Your application has been accepted!",
-            duration: 5000,
-          });
-
-          // Refresh applications and jobs
-          queryClient.invalidateQueries({ queryKey: ['/api/applications'] });
-          queryClient.invalidateQueries({ queryKey: ['/api/jobs'] });
-        }
-        break;
-      case 'job_pin_update':
-        console.log('📍 Job pin update:', message.data);
-
-        // Invalidate jobs query to update the map pins
-        queryClient.invalidateQueries({ queryKey: ['/api/jobs'] });
-
-        // Emit custom event for map components to listen to
-        window.dispatchEvent(new CustomEvent('jobPinUpdate', {
-          detail: {
-            action: message.data.action,
-            job: message.data.job
+    try {
+      switch (message.type) {
+        case 'job_update':
+          // Invalidate job-related queries
+          queryClient.invalidateQueries({ queryKey: ['/api/jobs'] })
+            .catch(err => console.error('Error invalidating job queries:', err));
+          queryClient.invalidateQueries({ queryKey: ['/api/applications'] })
+            .catch(err => console.error('Error invalidating application queries:', err));
+          break;
+        case 'payment_update':
+          // Invalidate payment-related queries
+          queryClient.invalidateQueries({ queryKey: ['/api/payments'] })
+            .catch(err => console.error('Error invalidating payment queries:', err));
+          queryClient.invalidateQueries({ queryKey: ['/api/earnings'] })
+            .catch(err => console.error('Error invalidating earnings queries:', err));
+          break;
+        case 'new_message':
+          // Invalidate message queries
+          queryClient.invalidateQueries({ queryKey: ['/api/messages'] })
+            .catch(err => console.error('Error invalidating message queries:', err));
+          break;
+        case 'notification':
+          // Only show notification if it's for this user
+          if (message.data.userId === user?.id) {
+            toast({
+              title: message.data.title,
+              description: message.data.message,
+            });
           }
-        }));
-        break;
+          // Invalidate notification queries
+          queryClient.invalidateQueries({ queryKey: ['/api/notifications'] })
+            .catch(err => console.error('Error invalidating notification queries:', err));
+          break;
+
+        case 'instant_application':
+          // Only show to job poster
+          if (message.posterId === user?.id) {
+            toast({
+              title: "⚡ New Application!",
+              description: `${message.workerName} just applied for your job!`,
+              duration: 6000,
+            });
+
+            // Refresh applications
+            queryClient.invalidateQueries({ queryKey: [`/api/applications/job/${message.jobId}`] })
+              .catch(err => console.error('Error invalidating job applications queries:', err));
+          }
+          break;
+
+        case 'application_accepted':
+          // Only show to the worker whose application was accepted
+          if (message.workerId === user?.id) {
+            toast({
+              title: "🎉 Application Accepted!",
+              description: "Your application has been accepted!",
+              duration: 5000,
+            });
+
+            // Refresh applications and jobs
+            queryClient.invalidateQueries({ queryKey: ['/api/applications'] })
+              .catch(err => console.error('Error invalidating applications queries:', err));
+            queryClient.invalidateQueries({ queryKey: ['/api/jobs'] })
+              .catch(err => console.error('Error invalidating jobs queries:', err));
+          }
+          break;
+        case 'job_pin_update':
+          console.log('📍 Job pin update:', message.data);
+
+          // Invalidate jobs query to update the map pins
+          queryClient.invalidateQueries({ queryKey: ['/api/jobs'] })
+            .catch(err => console.error('Error invalidating jobs queries:', err));
+
+          // Emit custom event for map components to listen to
+          window.dispatchEvent(new CustomEvent('jobPinUpdate', {
+            detail: {
+              action: message.data.action,
+              job: message.data.job
+            }
+          }));
+          break;
+      }
+      
+      // Call custom handler if provided
+      onMessage?.(message);
+    } catch (error) {
+      console.error('Error handling WebSocket message:', error);
     }
-    
-    // Call custom handler if provided
-    onMessage?.(message);
   }, [queryClient, onMessage, user, toast]);
 
   const handleConnect = useCallback(() => {

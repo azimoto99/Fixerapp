@@ -50,9 +50,8 @@ if (process.env.SUPABASE_DATABASE_URL) {
     allowExitOnIdle: false,
     keepAlive: true,
     keepAliveInitialDelayMillis: 5000,
-    // Add statement timeout to prevent long-running queries
+    // Use consistent timeout settings
     statement_timeout: 30000, // 30 seconds max for any statement
-    query_timeout: 25000, // 25 seconds max for queries
   });
 
   // Add error handling for the pool
@@ -89,11 +88,10 @@ if (process.env.SUPABASE_DATABASE_URL) {
     max: 8, // Reduced max connections
     idle_timeout: 20, // Shorter idle timeout
     connect_timeout: 10, // Shorter connect timeout
-    statement_timeout: 25000, // 25 seconds statement timeout
-    query_timeout: 20000, // 20 seconds query timeout
+    statement_timeout: 30000, // 30 seconds statement timeout - consistent with pool
     connection: {
       application_name: 'fixer-app',
-      statement_timeout: '25s', // PostgreSQL setting
+      statement_timeout: '30s', // PostgreSQL setting - consistent with above
     },
     onnotice: () => {}, // Suppress notices
     transform: {

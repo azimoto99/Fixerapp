@@ -74,7 +74,7 @@ export function sanitizeSqlInput(input: any): string {
   
   let sanitized = String(input);
   
-  // Remove/escape only truly dangerous characters (preserve quotes for normal text)
+  // Enhanced protection against SQL injection including Unicode characters
   sanitized = sanitized
     .replace(/;/g, '')    // Remove semicolons
     .replace(/--/g, '')   // Remove SQL comments
@@ -82,10 +82,12 @@ export function sanitizeSqlInput(input: any): string {
     .replace(/\*\//g, '') // Remove block comment end
     .replace(/\\/g, '\\\\') // Escape backslashes
     .replace(/`/g, '')    // Remove backticks
-    .replace(/0x/gi, '')  // Remove hex prefixes
-    .replace(/%2D%2D/gi, '') // Remove URL encoded comments
-    .replace(/%2F%2A/gi, '') // Remove URL encoded block comments
-    .replace(/%2A%2F/gi, ''); // Remove URL encoded block comments
+    .replace(/0x[0-9a-fA-F]+/gi, '') // Remove hex prefixes
+    .replace(/%[0-9a-fA-F]{2}/gi, '') // Remove URL encoded characters
+    // Handle Unicode SQL injection attempts
+    .replace(/\u0022|\u0027|\u0060|\u2019|\u2018|\u201C|\u201D/g, '') // Remove various quote characters
+    .replace(/\u002F\u002A|\u002A\u002F/g, '') // Remove Unicode /**/
+    .replace(/\s+(?:OR|AND|UNION|SELECT|INSERT|UPDATE|DELETE|DROP|CREATE|ALTER)\s+/gi, ' '); // Neutralize SQL keywords
   
   // Apply XSS protection as well
   sanitized = xss(sanitized, {

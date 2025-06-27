@@ -197,17 +197,18 @@ const adjustColorBrightness = (hex: string, percent: number): string => {
 
 // Enterprise hub pin specific styling
 const getEnterprisePinStyle = (config: PinConfig, isDark: boolean = false): PinStyle => {
-  const baseSize = 80; // Much larger than regular pins
+  // Make enterprise pins much larger and more prominent
+  const baseSize = 100; // Significantly larger than regular pins
   
   return {
     backgroundColor: config.enterpriseColor || '#FF6B6B',
     borderColor: isDark ? '#ffffff' : '#000000',
-    borderWidth: 3,
+    borderWidth: 5,
     borderStyle: 'solid',
     icon: config.enterpriseIcon || '🏢',
-    size: baseSize + (config.priority || 0) * 10, // Larger for higher priority
+    size: baseSize + (config.priority || 0) * 15, // Even larger for higher priority
     textColor: '#ffffff',
-    shadowColor: 'rgba(255, 107, 107, 0.4)',
+    shadowColor: 'rgba(255, 107, 107, 0.6)',
     isEnterprise: true,
     pulse: true // Add pulsing animation for enterprise pins
   };

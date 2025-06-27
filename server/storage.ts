@@ -46,6 +46,7 @@ export interface IStorage {
   getAllUsers(): Promise<User[]>;
   getUser(id: number): Promise<User | undefined>;
   getUserByUsername(username: string): Promise<User | undefined>;
+  getUserByUsernameInsensitive(username: string): Promise<User | undefined>;
   getUserByUsernameAndType(username: string, accountType: string): Promise<User | undefined>;
   getUserByEmail(email: string): Promise<User | undefined>;
   createUser(user: InsertUser): Promise<User>;
@@ -269,6 +270,13 @@ export class MemStorage implements IStorage {
   async getUserByUsername(username: string): Promise<User | undefined> {
     return Array.from(this.users.values()).find(
       (user) => user.username === username
+    );
+  }
+  
+  async getUserByUsernameInsensitive(username: string): Promise<User | undefined> {
+    const lowerUsername = username.toLowerCase();
+    return Array.from(this.users.values()).find(
+      (user) => user.username.toLowerCase() === lowerUsername
     );
   }
   

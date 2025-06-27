@@ -31,7 +31,7 @@ applicationsRouter.post('/', isAuthenticated, async (req: Request, res: Response
     }
 
     // Check if job is open for applications
-    if (job.status !== 'open') {
+    if (job.status !== 'open' && job.status !== 'pending') {
       return res.status(400).json({ message: 'This job is not accepting applications' });
     }
 

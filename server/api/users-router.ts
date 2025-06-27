@@ -1,7 +1,7 @@
 import express, { Request, Response } from 'express';
 import { z } from 'zod';
 import { storage } from '../storage';
-import { requireAuth, optionalAuth } from '../middleware/auth';
+import { requireAuth, optionalAuth, requireAdmin } from '../middleware/auth';
 
 const router = express.Router();
 

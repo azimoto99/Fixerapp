@@ -857,17 +857,17 @@ export const insertAdminAuditLogSchema = createInsertSchema(adminAuditLog).pick(
 
 export const insertPlatformAnalyticsSchema = createInsertSchema(platformAnalytics).pick({
   date: true,
-  totalUsers: true,
-  newUsers: true,
-  activeUsers: true,
-  totalJobs: true,
-  jobsPosted: true,
-  jobsCompleted: true,
-  totalRevenue: true,
-  platformFees: true,
+  total_users: true,
+  new_users: true,
+  active_users: true,
+  total_jobs: true,
+  jobs_posted: true,
+  jobs_completed: true,
+  total_revenue: true,
+  platform_fees: true,
   payouts: true,
-  completionRate: true,
-  averageJobValue: true,
+  completion_rate: true,
+  average_job_value: true,
 });
 
 export const insertUserStrikeSchema = createInsertSchema(userStrikes).pick({

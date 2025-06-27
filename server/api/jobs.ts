@@ -48,6 +48,10 @@ jobsRouter.post('/', isAuthenticated, async (req: JobRequest, res: Response) => 
       return res.status(400).json({ message: 'Payment amount is required for fixed-price jobs' });
     }
 
+    // Calculate service fee and total amount
+    const serviceFee = 2.5; // Fixed service fee of $2.50
+    const totalAmount = paymentAmount + serviceFee;
+
     // Create the job
     const job = await storage.createJob({
       title,
@@ -56,6 +60,8 @@ jobsRouter.post('/', isAuthenticated, async (req: JobRequest, res: Response) => 
       location,
       paymentAmount: paymentType === 'hourly' ? hourlyRate : paymentAmount,
       paymentType,
+      serviceFee,
+      totalAmount,
       latitude,
       longitude,
       posterId: req.user.id,
@@ -67,18 +73,20 @@ jobsRouter.post('/', isAuthenticated, async (req: JobRequest, res: Response) => 
     });
 
     // Create notification for job poster
-    await storage.createNotification({
-      userId: req.user.id,
-      title: 'Job Created',
-      message: `Your job "${title}" has been created successfully. Please complete the payment to make it visible to workers.`,
-      type: 'job_created',
-      sourceId: job.id,
-      sourceType: 'job',
-      metadata: {
-        jobId: job.id,
-        status: 'pending'
-      }
-    });
+    if (job && job.id) {
+      await storage.createNotification({
+        userId: req.user.id,
+        title: 'Job Created',
+        message: `Your job "${title}" has been created successfully. Please complete the payment to make it visible to workers.`,
+        type: 'job_created',
+        sourceId: job.id,
+        sourceType: 'job',
+        metadata: {
+          jobId: job.id,
+          status: 'pending'
+        }
+      });
+    }
 
     return res.status(201).json({
       message: 'Job created successfully',

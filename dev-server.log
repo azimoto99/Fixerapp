@@ -1,0 +1,100 @@
+
+> rest-express@1.0.0 dev
+> cross-env NODE_ENV=development tsx server/index.ts
+
+Environment check:
+NODE_ENV: development
+SUPABASE_URL: Set
+SUPABASE_ANON_KEY: Set
+SUPABASE_DATABASE_URL: Set
+VITE_STRIPE_PUBLIC_KEY: Set
+VITE_MAPBOX_ACCESS_TOKEN: Set
+Unified PostgreSQL storage and session store initialized with enhanced resilience
+[STRIPE URL MIDDLEWARE] Initializing with APP_URL: https://fixer.gg
+Adding storage extension methods for payments
+Adding storage extension methods for payments and admin functionality
+Seeding database...
+Environment check:
+NODE_ENV: development
+SUPABASE_URL: Set
+SUPABASE_ANON_KEY: Set
+SUPABASE_DATABASE_URL: Set
+VITE_STRIPE_PUBLIC_KEY: Set
+VITE_MAPBOX_ACCESS_TOKEN: Set
+Setting up authentication with session store
+Database URL available: false
+Using database session store
+🚀 Initializing Unified WebSocket Service...
+✅ Unified WebSocket Service initialized successfully
+✓ Security middleware applied successfully
+Setting up authentication with session store
+Database URL available: false
+Using database session store
+✓ Auth API routes registered successfully
+✓ Users API routes registered successfully
+✓ Jobs API routes registered successfully
+✓ Enterprise API routes registered successfully via enterprise router
+✓ Messaging API routes registered successfully
+✓ Applications API routes registered successfully
+Re-optimizing dependencies because lockfile has changed
+serving on 127.0.0.1:5000
+Database already has data, skipping seed
+✅ Database client connected (1)
+GET /api/jobs 200 in 3440ms :: {"page":1,"total":1,"results":[{"id":12,"title":…
+Missing API endpoint: GET /api/admin/dashboard
+GET /api/admin/dashboard 404 in 202ms :: {"error":"Endpoint not found","path":"…
+📊 WebSocket Stats: 0 users, 0 rooms
+[AUDIT] {
+  "adminId": 10,
+  "action": "admin_endpoint_access",
+  "resourceType": "admin_endpoint",
+  "resourceId": "/api/admin/users",
+  "details": {
+    "method": "GET"
+  },
+  "success": true,
+  "timestamp": "2025-06-27T06:20:14.408Z",
+  "id": 1751005214408.734
+}
+[AUDIT] Successfully logged to database
+GET /api/admin/users 200 in 3069ms :: {"users":[{"id":31,"username":"johnsmith"…
+[AUDIT] {
+  "adminId": 10,
+  "action": "admin_endpoint_access",
+  "resourceType": "admin_endpoint",
+  "resourceId": "/api/admin/jobs",
+  "details": {
+    "method": "GET"
+  },
+  "success": true,
+  "timestamp": "2025-06-27T06:20:29.534Z",
+  "id": 1751005229534.678
+}
+[AUDIT] Successfully logged to database
+GET /api/admin/jobs 200 in 437ms :: {"jobs":[{"id":12,"title":"Test Job Posting…
+📊 WebSocket Stats: 0 users, 0 rooms
+Stripe route: User authenticated via Passport: 10
+POST /api/stripe/create-payment-intent 403 in 614ms :: {"message":"Only the job…
+Email not verified – bypassing because NODE_ENV is not production
+Stripe route: User authenticated via Passport: 31
+POST /api/stripe/create-payment-intent 200 in 1947ms :: {"clientSecret":"pi_3Re…
+📊 WebSocket Stats: 0 users, 0 rooms
+✅ Database client connected (2)
+POST /api/applications 400 in 117ms :: {"message":"Missing required fields"}
+📊 WebSocket Stats: 0 users, 0 rooms
+📊 WebSocket Stats: 0 users, 0 rooms
+📊 WebSocket Stats: 0 users, 0 rooms
+✅ Database client connected (3)
+POST /api/applications 400 in 434ms :: {"message":"Missing required fields"}
+📊 WebSocket Stats: 0 users, 0 rooms
+📊 WebSocket Stats: 0 users, 0 rooms
+POST /api/applications 400 in 290ms :: {"message":"This job is not accepting ap…
+📊 WebSocket Stats: 0 users, 0 rooms
+GET /api/jobs/12 200 in 4214ms :: {"id":12,"title":"Test Job Posting","descript…
+POST /api/jobs 201 in 894ms :: {"message":"Job created successfully","job":{"id…
+📊 WebSocket Stats: 0 users, 0 rooms
+📊 WebSocket Stats: 0 users, 0 rooms
+📊 WebSocket Stats: 0 users, 0 rooms
+📊 WebSocket Stats: 0 users, 0 rooms
+📊 WebSocket Stats: 0 users, 0 rooms
+📊 WebSocket Stats: 0 users, 0 rooms

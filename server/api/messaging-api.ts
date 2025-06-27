@@ -9,13 +9,21 @@ import { S3Client, PutObjectCommand } from "@aws-sdk/client-s3";
 import twilio from 'twilio';
 
 // Configure S3 client
-const s3Client = new S3Client({
-  region: process.env.AWS_REGION || 'us-east-1',
-  credentials: {
-    accessKeyId: process.env.AWS_ACCESS_KEY_ID || '',
-    secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY || ''
+const s3Client = (() => {
+  // Validate AWS credentials
+  if (!process.env.AWS_REGION || !process.env.AWS_ACCESS_KEY_ID || !process.env.AWS_SECRET_ACCESS_KEY) {
+    console.warn('⚠️ AWS credentials not properly configured. S3 file uploads will not work.');
+    return null;
   }
-});
+  
+  return new S3Client({
+    region: process.env.AWS_REGION,
+    credentials: {
+      accessKeyId: process.env.AWS_ACCESS_KEY_ID,
+      secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY
+    }
+  });
+})();
 
 // Twilio configuration
 const twilioClient = twilio(process.env.TWILIO_ACCOUNT_SID, process.env.TWILIO_AUTH_TOKEN);

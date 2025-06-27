@@ -301,7 +301,9 @@ const MapSection: React.FC<MapSectionProps> = ({ jobs, selectedJob, onSelectJob,
     queryKey: ['/api/enterprise/hub-pins/active'],
     queryFn: async () => {
       const res = await apiRequest('GET', '/api/enterprise/hub-pins/active');
-      return res.json();
+      const data = await res.json();
+      console.log('Fetched hub pins:', data);
+      return data;
     }
   });
   
@@ -339,11 +341,16 @@ const MapSection: React.FC<MapSectionProps> = ({ jobs, selectedJob, onSelectJob,
     
     // Add enterprise hub pins first (they have higher priority)
     if (Array.isArray(hubPins) && hubPins.length > 0) {
+      console.log(`Processing ${hubPins.length} hub pins for map display`);
       hubPins.forEach((hubPin: any) => {
         if (hubPin.isActive && hubPin.latitude && hubPin.longitude) {
           const lat = typeof hubPin.latitude === 'string' ? parseFloat(hubPin.latitude) : hubPin.latitude;
           const lng = typeof hubPin.longitude === 'string' ? parseFloat(hubPin.longitude) : hubPin.longitude;
-          if (isNaN(lat) || isNaN(lng)) return; // skip invalid coords
+          if (isNaN(lat) || isNaN(lng)) {
+            console.warn(`Invalid coordinates for hub pin ${hubPin.id}: lat=${hubPin.latitude}, lng=${hubPin.longitude}`);
+            return; // skip invalid coords
+          }
+          console.log(`Adding hub pin marker: ${hubPin.title} at ${lat},${lng}`);
           markers.push({
             latitude: lat,
             longitude: lng,
@@ -355,8 +362,12 @@ const MapSection: React.FC<MapSectionProps> = ({ jobs, selectedJob, onSelectJob,
             enterpriseIcon: hubPin.iconUrl || '🏢',
             priority: hubPin.priority
           });
+        } else {
+          console.warn(`Skipping hub pin ${hubPin.id} due to missing coordinates or inactive status`);
         }
       });
+    } else {
+      console.log('No hub pins available for display');
     }
 
     if (sourceJobs && sourceJobs.length > 0) {

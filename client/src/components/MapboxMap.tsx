@@ -68,6 +68,26 @@ export default function MapboxMap({
       interactive: interactive,
     });
     
+    // Add custom CSS for enterprise popups
+    const style = document.createElement('style');
+    style.textContent = `
+      .enterprise-popup .mapboxgl-popup-content {
+        border: 2px solid #FF6B6B;
+        border-radius: 8px;
+        box-shadow: 0 8px 16px rgba(0,0,0,0.2);
+      }
+      .enterprise-popup .mapboxgl-popup-tip {
+        border-top-color: #FF6B6B;
+      }
+      .dark-popup.enterprise-popup .mapboxgl-popup-content {
+        background-color: #2a2a2a;
+      }
+      .light-popup.enterprise-popup .mapboxgl-popup-content {
+        background-color: #ffffff;
+      }
+    `;
+    document.head.appendChild(style);
+    
     // Add event handler for map load
     map.current.on('load', () => {
       setMapLoaded(true);
@@ -279,6 +299,77 @@ export default function MapboxMap({
           // persists across re-renders and isn't removed during the standard cleanup cycle.
           return; // continue to next marker
         }
+      } else if ((marker as any).isEnterprise) {
+        // Special handling for enterprise pins to make them more prominent
+        const pinConfig: PinConfig = {
+          category: 'Enterprise',
+          paymentAmount: 0,
+          requiredSkills: [],
+          status: 'open',
+          isHighlighted: true,
+          isEnterprise: true,
+          enterpriseColor: (marker as any).enterpriseColor || '#FF6B6B',
+          enterpriseIcon: (marker as any).enterpriseIcon || '🏢',
+          priority: (marker as any).priority || 1
+        };
+
+        const pinStyle = generatePinStyle(pinConfig, isDark, currentZoom);
+        
+        // Create a large, pulsing enterprise pin
+        el.innerHTML = `
+          <div style="
+            position: relative;
+            width: ${pinStyle.size}px;
+            height: ${pinStyle.size}px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+          ">
+            <!-- Pulsing outer ring -->
+            <div style="
+              position: absolute;
+              width: 100%;
+              height: 100%;
+              background-color: ${pinStyle.backgroundColor};
+              border-radius: 50%;
+              opacity: 0.3;
+              animation: enterprise-pulse 3s infinite;
+            "></div>
+            <!-- Main pin -->
+            <div style="
+              position: relative;
+              width: 85%;
+              height: 85%;
+              background-color: ${pinStyle.backgroundColor};
+              border: ${pinStyle.borderWidth}px solid ${pinStyle.borderColor};
+              border-radius: 50%;
+              display: flex;
+              align-items: center;
+              justify-content: center;
+              font-size: ${Math.max(pinStyle.size * 0.4, 24)}px;
+              box-shadow: 0 8px 24px rgba(0,0,0,0.4);
+              z-index: 2;
+            ">
+              ${pinStyle.icon}
+            </div>
+          </div>
+        `;
+        
+        // Add enterprise pulse animation
+        const style = document.createElement('style');
+        style.textContent = `
+          @keyframes enterprise-pulse {
+            0% { transform: scale(1); opacity: 0.3; }
+            50% { transform: scale(1.3); opacity: 0.1; }
+            100% { transform: scale(1); opacity: 0.3; }
+          }
+        `;
+        document.head.appendChild(style);
+        
+        el.style.width = `${pinStyle.size}px`;
+        el.style.height = `${pinStyle.size}px`;
+        el.style.cursor = 'pointer';
+        el.style.zIndex = '20'; // Enterprise pins should be on top
       } else {
         // Use new contextual styling system for job markers
         const pinConfig: PinConfig = {
@@ -337,17 +428,48 @@ export default function MapboxMap({
       
       // Create popup if there's a title or description
       let popup: mapboxgl.Popup | undefined;
-      if (marker.title || marker.description) {        const isDark = document.documentElement.classList.contains('dark');
-        popup = new mapboxgl.Popup({ 
-          offset: 25,
-          closeButton: false,
-          className: isDark ? 'dark-popup' : 'light-popup'
-        }).setHTML(`
-          <div style="padding: 8px; cursor: pointer;">
-            <h3 style="margin: 0 0 5px; font-size: 15px; font-weight: 600; color: ${isDark ? '#fff' : '#111'};">${marker.title || ''}</h3>
-            <p style="margin: 0; font-size: 13px; color: #10b981; font-weight: 500;">${marker.description || ''}</p>
-          </div>
-        `);
+      if (marker.title || marker.description) {
+        const isDark = document.documentElement.classList.contains('dark');
+        
+        // Special styling for enterprise popups
+        if ((marker as any).isEnterprise) {
+          popup = new mapboxgl.Popup({ 
+            offset: 25,
+            closeButton: true,
+            className: isDark ? 'dark-popup enterprise-popup' : 'light-popup enterprise-popup'
+          }).setHTML(`
+            <div style="padding: 12px; cursor: pointer; min-width: 200px;">
+              <h3 style="margin: 0 0 8px; font-size: 18px; font-weight: 600; color: ${isDark ? '#fff' : '#111'};">
+                ${marker.title || 'Enterprise Hub'}
+              </h3>
+              <p style="margin: 0 0 8px; font-size: 14px; color: #FF6B6B; font-weight: 500;">
+                ${marker.description || 'Click for details'}
+              </p>
+              <div style="display: flex; align-items: center; justify-content: center; margin-top: 8px;">
+                <button style="
+                  background-color: #FF6B6B; 
+                  color: white; 
+                  border: none; 
+                  padding: 6px 12px; 
+                  border-radius: 4px; 
+                  font-weight: 500;
+                  cursor: pointer;
+                ">View Opportunities</button>
+              </div>
+            </div>
+          `);
+        } else {
+          popup = new mapboxgl.Popup({ 
+            offset: 25,
+            closeButton: false,
+            className: isDark ? 'dark-popup' : 'light-popup'
+          }).setHTML(`
+            <div style="padding: 8px; cursor: pointer;">
+              <h3 style="margin: 0 0 5px; font-size: 15px; font-weight: 600; color: ${isDark ? '#fff' : '#111'};">${marker.title || ''}</h3>
+              <p style="margin: 0; font-size: 13px; color: #10b981; font-weight: 500;">${marker.description || ''}</p>
+            </div>
+          `);
+        }
       }
       
       // Create the Mapbox marker
