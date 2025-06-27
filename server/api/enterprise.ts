@@ -9,10 +9,84 @@ import {
 } from '@shared/schema';
 import { eq, and, desc, count, sql, isNull, ilike, or, asc, not, like, isNotNull, sum, avg, max, min } from 'drizzle-orm';
 import { requireAuth } from '../middleware/auth';
+import multer from 'multer';
+import { uploadFile } from '../services/s3Service';
 
-// Add a test endpoint at the top of the file
-export async function uploadUserAvatar(req: Request, res: Response) {
+// Configure multer for logo uploads
+const logoUpload = multer({
+  storage: multer.memoryStorage(),
+  limits: {
+    fileSize: 5 * 1024 * 1024, // 5MB limit
+  },
+  fileFilter: (req, file, cb) => {
+    const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp'];
+    if (allowedTypes.includes(file.mimetype)) {
+      cb(null, true);
+    } else {
+      cb(new Error('Invalid file type. Only JPEG, PNG, GIF, and WebP are allowed.'));
+    }
+  }
+});
+
+// Upload enterprise logo
+export async function uploadEnterpriseLogo(req: Request, res: Response) {
   try {
+    const userId = req.user?.id;
+    if (!userId) {
+      return res.status(401).json({ message: 'Unauthorized' });
+    }
+
+    if (!req.file) {
+      return res.status(400).json({ message: 'No file uploaded' });
+    }
+
+    console.log('Logo upload attempt:', {
+      userId,
+      fileName: req.file.originalname,
+      fileSize: req.file.size,
+      mimeType: req.file.mimetype
+    });
+
+    // Upload to S3
+    const { url: logoUrl } = await uploadFile(
+      req.file.buffer, 
+      `enterprise-logo-${userId}-${Date.now()}.${req.file.originalname.split('.').pop()}`,
+      req.file.mimetype,
+      'enterprise-logos'
+    );
+
+    console.log('Enterprise logo uploaded successfully:', logoUrl);
+
+    res.json({
+      message: 'Logo uploaded successfully',
+      logoUrl
+    });
+  } catch (error) {
+    console.error('Enterprise logo upload error:', error);
+    
+    let errorMessage = 'Failed to upload logo';
+    if (error instanceof Error) {
+      if (error.message.includes('credentials')) {
+        errorMessage = 'AWS credentials not configured properly';
+      } else if (error.message.includes('bucket')) {
+        errorMessage = 'S3 bucket configuration error';
+      } else if (error.message.includes('Image must be smaller')) {
+        errorMessage = error.message;
+      } else if (error.message.includes('Invalid file type')) {
+        errorMessage = error.message;
+      } else {
+        errorMessage = error.message;
+      }
+    }
+    
+    res.status(500).json({
+      message: errorMessage
+    });
+  }
+}
+
+// Middleware function to handle multer upload
+export const handleLogoUpload = logoUpload.single('logo');
     if (!req.files?.avatar) {
       return res.status(400).json({ message: 'No avatar file uploaded' });
     }

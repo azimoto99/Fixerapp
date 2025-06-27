@@ -360,7 +360,8 @@ const MapSection: React.FC<MapSectionProps> = ({ jobs, selectedJob, onSelectJob,
             isEnterprise: true,
             enterpriseColor: hubPin.pinColor,
             enterpriseIcon: hubPin.iconUrl || '🏢',
-            priority: hubPin.priority
+            priority: hubPin.priority,
+            category: hubPin.pinSize || 'medium' // Pass pin size as category for styling
           });
         } else {
           console.warn(`Skipping hub pin ${hubPin.id} due to missing coordinates or inactive status`);

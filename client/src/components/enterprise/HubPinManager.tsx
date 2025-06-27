@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -8,7 +8,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Plus, Edit, Trash2, MapPin, Eye, EyeOff } from 'lucide-react';
+import { Plus, Edit, Trash2, MapPin, Eye, EyeOff, Upload, X } from 'lucide-react';
 import { apiRequest } from '@/lib/queryClient';
 import { useToast } from '@/hooks/use-toast';
 import { AddressAutocompleteInput } from '@/components/AddressAutocompleteInput';
@@ -125,14 +125,95 @@ export default function HubPinManager({ businessId }: { businessId: number }) {
       location: pin?.location || '',
       latitude: pin?.latitude || 0,
       longitude: pin?.longitude || 0,
-      pinSize: pin?.pinSize || 'large',
+      pinSize: pin?.pinSize || 'medium',
       pinColor: pin?.pinColor || '#FF6B6B',
       iconUrl: pin?.iconUrl || '',
       priority: pin?.priority || 1,
       isActive: pin?.isActive ?? true
     });
 
-    const handleSubmit = (e: React.FormEvent) => {
+    const [logoFile, setLogoFile] = useState<File | null>(null);
+    const [logoPreview, setLogoPreview] = useState<string>(pin?.iconUrl || '');
+    const [isUploadingLogo, setIsUploadingLogo] = useState(false);
+    const fileInputRef = useRef<HTMLInputElement>(null);
+
+    // Handle logo file selection
+    const handleLogoSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+      const file = e.target.files?.[0];
+      if (!file) return;
+
+      // Validate file type
+      const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp'];
+      if (!allowedTypes.includes(file.type)) {
+        toast({
+          title: 'Invalid File Type',
+          description: 'Please select a valid image file (JPEG, PNG, GIF, or WebP).',
+          variant: 'destructive'
+        });
+        return;
+      }
+
+      // Validate file size (5MB limit)
+      if (file.size > 5 * 1024 * 1024) {
+        toast({
+          title: 'File Too Large',
+          description: 'Please select an image smaller than 5MB.',
+          variant: 'destructive'
+        });
+        return;
+      }
+
+      setLogoFile(file);
+      
+      // Create preview
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        const imageData = e.target?.result as string;
+        setLogoPreview(imageData);
+      };
+      reader.readAsDataURL(file);
+    };
+
+    // Upload logo to server
+    const uploadLogo = async (): Promise<string | null> => {
+      if (!logoFile) return logoPreview || null;
+
+      setIsUploadingLogo(true);
+      try {
+        const formData = new FormData();
+        formData.append('logo', logoFile);
+
+        const response = await apiRequest('POST', '/api/enterprise/upload-logo', formData);
+        if (!response.ok) {
+          throw new Error('Failed to upload logo');
+        }
+
+        const result = await response.json();
+        return result.logoUrl;
+      } catch (error) {
+        console.error('Logo upload error:', error);
+        toast({
+          title: 'Upload Failed',
+          description: 'Failed to upload logo. Please try again.',
+          variant: 'destructive'
+        });
+        return null;
+      } finally {
+        setIsUploadingLogo(false);
+      }
+    };
+
+    // Remove logo
+    const removeLogo = () => {
+      setLogoFile(null);
+      setLogoPreview('');
+      setFormData({ ...formData, iconUrl: '' });
+      if (fileInputRef.current) {
+        fileInputRef.current.value = '';
+      }
+    };
+
+    const handleSubmit = async (e: React.FormEvent) => {
       e.preventDefault();
       
       console.log('Hub Pin Form Data:', formData);
@@ -166,7 +247,22 @@ export default function HubPinManager({ businessId }: { businessId: number }) {
       });
       
       try {
-        onSubmit(formData);
+        // Upload logo if there's a new file
+        let logoUrl = formData.iconUrl;
+        if (logoFile) {
+          const uploadedUrl = await uploadLogo();
+          if (uploadedUrl) {
+            logoUrl = uploadedUrl;
+          }
+        }
+
+        // Submit form with logo URL
+        const submitData = {
+          ...formData,
+          iconUrl: logoUrl
+        };
+
+        onSubmit(submitData);
       } catch (error) {
         console.error('Error submitting hub pin form:', error);
         toast({
@@ -269,8 +365,9 @@ export default function HubPinManager({ businessId }: { businessId: number }) {
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
+                <SelectItem value="small">Small</SelectItem>
+                <SelectItem value="medium">Medium</SelectItem>
                 <SelectItem value="large">Large</SelectItem>
-                <SelectItem value="xlarge">Extra Large</SelectItem>
               </SelectContent>
             </Select>
           </div>
@@ -295,7 +392,74 @@ export default function HubPinManager({ businessId }: { businessId: number }) {
           </div>
         </div>
 
-        <div className="grid grid-cols-2 gap-4">
+        {/* Logo Upload Section */}
+        <div>
+          <Label>Hub Pin Logo</Label>
+          <div className="mt-2 space-y-4">
+            {/* Logo Preview */}
+            {logoPreview && (
+              <div className="flex items-center gap-4 p-4 border rounded-lg bg-gray-50">
+                <div className="relative">
+                  <img 
+                    src={logoPreview} 
+                    alt="Logo preview" 
+                    className="w-16 h-16 object-cover rounded-lg border"
+                  />
+                  <button
+                    type="button"
+                    onClick={removeLogo}
+                    className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-1 hover:bg-red-600 transition-colors"
+                  >
+                    <X className="h-3 w-3" />
+                  </button>
+                </div>
+                <div>
+                  <p className="text-sm font-medium">Logo Preview</p>
+                  <p className="text-xs text-gray-500">This will appear on your hub pin</p>
+                </div>
+              </div>
+            )}
+
+            {/* Upload Button */}
+            <div className="flex gap-2">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => fileInputRef.current?.click()}
+                disabled={isUploadingLogo}
+                className="flex items-center gap-2"
+              >
+                <Upload className="h-4 w-4" />
+                {logoPreview ? 'Change Logo' : 'Upload Logo'}
+              </Button>
+              
+              {logoPreview && (
+                <Button
+                  type="button"
+                  variant="ghost"
+                  onClick={removeLogo}
+                  className="text-red-600 hover:text-red-700"
+                >
+                  Remove
+                </Button>
+              )}
+            </div>
+
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="image/*"
+              onChange={handleLogoSelect}
+              className="hidden"
+            />
+
+            <p className="text-xs text-gray-500">
+              Upload a logo to customize your hub pin appearance. Recommended: Square image, max 5MB.
+            </p>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-1 gap-4">
           <div>
             <Label htmlFor="priority">Priority (1-10)</Label>
             <Input
@@ -306,16 +470,9 @@ export default function HubPinManager({ businessId }: { businessId: number }) {
               value={formData.priority}
               onChange={(e) => setFormData({ ...formData, priority: parseInt(e.target.value) || 1 })}
             />
-          </div>
-
-          <div>
-            <Label htmlFor="iconUrl">Custom Icon URL (Optional)</Label>
-            <Input
-              id="iconUrl"
-              value={formData.iconUrl}
-              onChange={(e) => setFormData({ ...formData, iconUrl: e.target.value })}
-              placeholder="https://example.com/icon.png"
-            />
+            <p className="text-xs text-gray-500 mt-1">
+              Higher priority pins appear more prominently on the map
+            </p>
           </div>
         </div>
 

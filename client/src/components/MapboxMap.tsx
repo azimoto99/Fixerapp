@@ -314,6 +314,9 @@ export default function MapboxMap({
         };
 
         const pinStyle = generatePinStyle(pinConfig, isDark, currentZoom);
+        const logoUrl = (marker as any).enterpriseIcon && (marker as any).enterpriseIcon.startsWith('http') 
+          ? (marker as any).enterpriseIcon 
+          : null;
         
         // Create a large, pulsing enterprise pin
         el.innerHTML = `
@@ -341,6 +344,7 @@ export default function MapboxMap({
               width: 85%;
               height: 85%;
               background-color: ${pinStyle.backgroundColor};
+              ${logoUrl ? `background-image: url(${logoUrl}); background-size: 70%; background-position: center; background-repeat: no-repeat;` : ''}
               border: ${pinStyle.borderWidth}px solid ${pinStyle.borderColor};
               border-radius: 50%;
               display: flex;
@@ -349,8 +353,9 @@ export default function MapboxMap({
               font-size: ${Math.max(pinStyle.size * 0.4, 24)}px;
               box-shadow: 0 8px 24px rgba(0,0,0,0.4);
               z-index: 2;
+              overflow: hidden;
             ">
-              ${pinStyle.icon}
+              ${logoUrl ? '' : pinStyle.icon}
             </div>
           </div>
         `;

@@ -197,20 +197,25 @@ const adjustColorBrightness = (hex: string, percent: number): string => {
 
 // Enterprise hub pin specific styling
 const getEnterprisePinStyle = (config: PinConfig, isDark: boolean = false): PinStyle => {
-  // Make enterprise pins much larger and more prominent
-  const baseSize = 100; // Significantly larger than regular pins
+  // Make enterprise pins larger but not overwhelming
+  let baseSize = 60; // Reduced from 100 to 60
+  
+  // Adjust size based on pin size setting
+  if (config.category === 'small') baseSize = 45;
+  else if (config.category === 'medium') baseSize = 60;
+  else if (config.category === 'large') baseSize = 75;
   
   return {
     backgroundColor: config.enterpriseColor || '#FF6B6B',
     borderColor: isDark ? '#ffffff' : '#000000',
-    borderWidth: 5,
+    borderWidth: 3, // Reduced from 5 to 3
     borderStyle: 'solid',
     icon: config.enterpriseIcon || '🏢',
-    size: baseSize + (config.priority || 0) * 15, // Even larger for higher priority
+    size: baseSize + (config.priority || 0) * 8, // Reduced multiplier from 15 to 8
     textColor: '#ffffff',
     shadowColor: 'rgba(255, 107, 107, 0.6)',
     isEnterprise: true,
-    pulse: true // Add pulsing animation for enterprise pins
+    pulse: false // Disabled pulsing to reduce visual noise
   };
 };
 
@@ -256,7 +261,7 @@ export const generatePinStyle = (config: PinConfig, isDark: boolean = false, zoo
 /**
  * Generate CSS styles for a pin element
  */
-export const generatePinCSS = (style: PinStyle): Record<string, string> => {
+export const generatePinCSS = (style: PinStyle, logoUrl?: string): Record<string, string> => {
   const baseStyles = {
     width: `${style.size}px`,
     height: `${style.size}px`,
@@ -270,17 +275,31 @@ export const generatePinCSS = (style: PinStyle): Record<string, string> => {
     display: "flex",
     alignItems: "center",
     justifyContent: "center",
-    fontSize: `${Math.max(20, style.size * 0.45)}px`, // Increased for better visibility
+    fontSize: `${Math.max(16, style.size * 0.35)}px`, // Reduced font size for better logo display
     fontWeight: "bold",
     cursor: "pointer",
     transition: "filter 0.2s ease, box-shadow 0.2s ease",
     position: "relative",
     zIndex: style.isEnterprise ? "10" : "1", // Enterprise pins on top
     userSelect: "none",
-    pointerEvents: "auto"
+    pointerEvents: "auto",
+    overflow: "hidden" // Ensure logos don't overflow
   };
+
+  // If there's a logo URL, use it as background image
+  if (logoUrl && style.isEnterprise) {
+    return {
+      ...baseStyles,
+      backgroundImage: `url(${logoUrl})`,
+      backgroundSize: "70%", // Logo takes up 70% of the pin
+      backgroundPosition: "center",
+      backgroundRepeat: "no-repeat",
+      // Keep the background color as fallback
+      backgroundColor: style.backgroundColor,
+    };
+  }
   
-  // Add animation for enterprise pins
+  // Add animation for enterprise pins if enabled
   if (style.pulse) {
     return {
       ...baseStyles,

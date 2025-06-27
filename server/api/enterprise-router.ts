@@ -11,6 +11,9 @@ router.post('/business', ensureAuthenticated, enterpriseApi.createBusinessProfil
 router.put('/business', ensureAuthenticated, enterpriseApi.updateBusinessProfile);
 router.get('/stats', ensureAuthenticated, enterpriseApi.getBusinessStats);
 
+// Logo upload endpoint
+router.post('/upload-logo', ensureAuthenticated, enterpriseApi.handleLogoUpload, enterpriseApi.uploadEnterpriseLogo);
+
 // Hub pins endpoints
 router.get('/hub-pins', ensureAuthenticated, enterpriseApi.getHubPins);
 router.get('/hub-pins/active', enterpriseApi.getActiveHubPins);
