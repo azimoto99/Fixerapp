@@ -348,14 +348,14 @@ export default function PositionManager({ businessId }: { businessId: number }) 
           <div>
             <Label htmlFor="hubPinId">Assign to Hub Pin (Optional)</Label>
             <Select
-              value={formData.hubPinId?.toString()}
-              onValueChange={(value) => setFormData({ ...formData, hubPinId: value ? parseInt(value) : undefined })}
+              value={formData.hubPinId?.toString() || "none"}
+              onValueChange={(value) => setFormData({ ...formData, hubPinId: value === "none" ? undefined : parseInt(value) })}
             >
               <SelectTrigger>
                 <SelectValue placeholder="Select a hub pin..." />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">No specific location</SelectItem>
+                <SelectItem value="none">No specific location</SelectItem>
                 {hubPins.map((pin: any) => (
                   <SelectItem key={pin.id} value={pin.id.toString()}>
                     {pin.title} - {pin.location}

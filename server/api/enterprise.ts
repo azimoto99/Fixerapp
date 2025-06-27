@@ -11,7 +11,6 @@ import { eq, and, desc, count, sql, isNull, ilike, or, asc, not, like, isNotNull
 import { requireAuth } from '../middleware/auth';
 import multer from 'multer';
 import { uploadFile } from '../services/s3Service';
-import * as AWS from 'aws-sdk';
 
 // Configure multer for logo uploads
 const logoUpload = multer({
