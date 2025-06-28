@@ -36,7 +36,10 @@ import {
   Search,
   RefreshCw,
   Edit,
-  Trash2
+  Trash2,
+  LogOut,
+  Bell,
+  Activity
 } from 'lucide-react';
 import { apiRequest } from '@/lib/queryClient';
 import { Job } from '@/types';
@@ -77,59 +80,176 @@ interface Application {
 }
 
 export default function PosterDashboardV2() {
-  const { user, signOut } = useAuth();
+  const { user, logoutMutation } = useAuth();
   const queryClient = useQueryClient();
   const [activeTab, setActiveTab] = useState('overview');
   const [showJobWizard, setShowJobWizard] = useState(false);
   const [selectedJob, setSelectedJob] = useState<Job | null>(null);
   const [jobFilter, setJobFilter] = useState<'all' | 'open' | 'in_progress' | 'completed' | 'cancelled'>('all');
   const [searchQuery, setSearchQuery] = useState('');
+  const [isRefreshing, setIsRefreshing] = useState(false);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+
+  const handleRefresh = async () => {
+    setIsRefreshing(true);
+    try {
+      await Promise.all([
+        refetchJobs(),
+        refetchApplications()
+      ]);
+      toast({
+        title: 'Data Refreshed',
+        description: 'Your dashboard data has been updated.',
+      });
+    } catch (error) {
+      toast({
+        title: 'Refresh Failed',
+        description: 'Failed to refresh data. Please try again.',
+        variant: 'destructive',
+      });
+    } finally {
+      setIsRefreshing(false);
+    }
+  };
   const [jobToDelete, setJobToDelete] = useState<Job | null>(null);
   const [isViewDialogOpen, setIsViewDialogOpen] = useState(false);
 
-  // Fetch poster's jobs
+  const [lastUpdated, setLastUpdated] = useState<Date>(new Date());
+
+  // Update last updated time when data refreshes
+  useEffect(() => {
+    if (!jobsLoading && !applicationsLoading) {
+      setLastUpdated(new Date());
+    }
+  }, [jobsLoading, applicationsLoading]);
+
+  // Add real-time notifications for new applications
+  const [lastApplicationCount, setLastApplicationCount] = useState(0);
+  const [showNotification, setShowNotification] = useState(false);
+
+  useEffect(() => {
+    if (applications.length > lastApplicationCount && lastApplicationCount > 0) {
+      setShowNotification(true);
+      toast({
+        title: 'New Application Received!',
+        description: `You have ${applications.length - lastApplicationCount} new application(s) to review.`,
+        action: (
+          <Button size="sm" onClick={() => setActiveTab('applications')}>
+            View
+          </Button>
+        ),
+      });
+      setTimeout(() => setShowNotification(false), 5000);
+    }
+    setLastApplicationCount(applications.length);
+  }, [applications.length, lastApplicationCount]);
+
+  // Add keyboard shortcuts
+  useEffect(() => {
+    const handleKeyDown = (event: KeyboardEvent) => {
+      // Ctrl/Cmd + R for refresh
+      if ((event.ctrlKey || event.metaKey) && event.key === 'r') {
+        event.preventDefault();
+        handleRefresh();
+      }
+      // Ctrl/Cmd + N for new job
+      if ((event.ctrlKey || event.metaKey) && event.key === 'n') {
+        event.preventDefault();
+        setShowJobWizard(true);
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, []);
+
+  // Handle sign out with proper navigation
+  const handleSignOut = async () => {
+    try {
+      await logoutMutation.mutateAsync();
+      // Clear any local state
+      queryClient.clear();
+      // Navigate to home page
+      window.location.href = '/';
+    } catch (error) {
+      console.error('Sign out error:', error);
+      // Force navigation even if logout fails
+      window.location.href = '/';
+    }
+  };
+
+  // Fetch poster's jobs with better error handling
   const { 
     data: jobs = [], 
     isLoading: jobsLoading, 
+    error: jobsError,
     refetch: refetchJobs 
   } = useQuery({
     queryKey: ['/api/jobs', { posterId: user?.id }],
     queryFn: async () => {
-      const response = await apiRequest('GET', `/api/jobs?posterId=${user?.id}`);
-      return Array.isArray(response) ? response : [];
+      try {
+        const response = await apiRequest('GET', `/api/jobs?posterId=${user?.id}`);
+        return Array.isArray(response) ? response : [];
+      } catch (error) {
+        console.error('Error fetching jobs:', error);
+        toast({
+          title: 'Error Loading Jobs',
+          description: 'Failed to load your jobs. Please try refreshing.',
+          variant: 'destructive',
+        });
+        return [];
+      }
     },
     enabled: !!user && user.accountType === 'poster',
     refetchInterval: 30000,
+    retry: 3,
+    retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30000),
   });
 
-  // Fetch applications for poster's jobs
+  // Fetch applications for poster's jobs with better error handling
   const { 
     data: applications = [], 
     isLoading: applicationsLoading,
+    error: applicationsError,
     refetch: refetchApplications 
   } = useQuery({
     queryKey: ['/api/applications/poster', user?.id],
     queryFn: async () => {
-      const response = await apiRequest('GET', `/api/applications/poster`);
-      return Array.isArray(response) ? response : [];
+      try {
+        const response = await apiRequest('GET', `/api/applications/poster`);
+        return Array.isArray(response) ? response : [];
+      } catch (error) {
+        console.error('Error fetching applications:', error);
+        toast({
+          title: 'Error Loading Applications',
+          description: 'Failed to load applications. Please try refreshing.',
+          variant: 'destructive',
+        });
+        return [];
+      }
     },
     enabled: !!user && user.accountType === 'poster',
     refetchInterval: 15000,
+    retry: 3,
+    retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30000),
   });
 
   const deleteJobMutation = useMutation({
     mutationFn: (jobId: number) => apiRequest('DELETE', `/api/jobs/${jobId}`),
     onSuccess: () => {
-      toast({ title: 'Job Deleted', description: 'The job has been successfully deleted.' });
+      toast({ 
+        title: 'Job Deleted', 
+        description: 'The job has been successfully deleted and removed from the platform.' 
+      });
       refetchJobs();
       setIsDeleteDialogOpen(false);
       setJobToDelete(null);
     },
     onError: (error: Error) => {
+      console.error('Delete job error:', error);
       toast({
         title: 'Error Deleting Job',
-        description: error.message || 'An unexpected error occurred.',
+        description: error.message || 'Failed to delete the job. Please try again.',
         variant: 'destructive',
       });
     },
@@ -208,6 +328,13 @@ export default function PosterDashboardV2() {
     setSelectedJob(null);
     refetchJobs();
     setActiveTab('jobs');
+    
+    toast({
+      title: selectedJob ? 'Job Updated' : 'Job Posted Successfully',
+      description: selectedJob 
+        ? `"${newOrUpdatedJob.title}" has been updated.`
+        : `"${newOrUpdatedJob.title}" is now live and accepting applications.`,
+    });
   };
 
   const handleApplicationUpdate = () => {
@@ -259,9 +386,15 @@ export default function PosterDashboardV2() {
                   <Briefcase className="h-6 w-6" />
                   Job Poster Dashboard
                 </h1>
-                <p className="text-muted-foreground">
-                  Manage your jobs and find the perfect workers
-                </p>
+                <div className="flex items-center gap-4">
+                  <p className="text-muted-foreground">
+                    Manage your jobs and find the perfect workers
+                  </p>
+                  <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                    <Activity className="h-3 w-3 text-green-500" />
+                    <span>Last updated: {lastUpdated.toLocaleTimeString()}</span>
+                  </div>
+                </div>
               </div>
               <AccountTypeSwitcher />
             </div>
@@ -269,19 +402,59 @@ export default function PosterDashboardV2() {
               <Button
                 variant="outline"
                 size="sm"
-                onClick={() => {
-                  refetchJobs();
-                  refetchApplications();
-                }}
+                onClick={handleRefresh}
+                disabled={isRefreshing}
+                title="Refresh dashboard data (Ctrl+R)"
               >
-                <RefreshCw className="h-4 w-4 mr-2" />
-                Refresh
+                <RefreshCw className={`h-4 w-4 mr-2 ${isRefreshing ? 'animate-spin' : ''}`} />
+                {isRefreshing ? 'Refreshing...' : 'Refresh'}
               </Button>
-              <Button onClick={() => setShowJobWizard(true)}>
+              
+              {/* Notification Bell */}
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setActiveTab('applications')}
+                className="relative"
+                title={`${stats.pendingApplications} pending applications`}
+              >
+                <Bell className="h-4 w-4" />
+                {stats.pendingApplications > 0 && (
+                  <Badge 
+                    variant="destructive" 
+                    className="absolute -top-2 -right-2 h-5 w-5 rounded-full p-0 flex items-center justify-center text-xs"
+                  >
+                    {stats.pendingApplications > 9 ? '9+' : stats.pendingApplications}
+                  </Badge>
+                )}
+              </Button>
+              
+              <Button 
+                onClick={() => setShowJobWizard(true)}
+                title="Create a new job posting (Ctrl+N)"
+              >
                 <PlusCircle className="h-4 w-4 mr-2" />
                 Post New Job
               </Button>
-              <Button variant="outline" onClick={signOut}>Sign Out</Button>
+              <Button 
+                variant="outline" 
+                onClick={handleSignOut}
+                disabled={logoutMutation.isPending}
+                className="flex items-center gap-2"
+                title="Sign out of your account"
+              >
+                {logoutMutation.isPending ? (
+                  <>
+                    <RefreshCw className="h-4 w-4 animate-spin" />
+                    Signing Out...
+                  </>
+                ) : (
+                  <>
+                    <LogOut className="h-4 w-4" />
+                    Sign Out
+                  </>
+                )}
+              </Button>
             </div>
           </div>
         </div>
@@ -312,12 +485,33 @@ export default function PosterDashboardV2() {
           </TabsList>
 
           <TabsContent value="overview" className="space-y-6">
-            <Alert>
-              <CheckCircle className="h-4 w-4" />
-              <AlertDescription>
-                Welcome to your poster dashboard! You have {stats.activeJobs} active jobs and {stats.pendingApplications} pending applications to review.
-              </AlertDescription>
-            </Alert>
+            {(jobsError || applicationsError) && (
+              <Alert variant="destructive">
+                <AlertCircle className="h-4 w-4" />
+                <AlertDescription>
+                  {jobsError && "Failed to load jobs. "}
+                  {applicationsError && "Failed to load applications. "}
+                  Please try refreshing the page.
+                </AlertDescription>
+              </Alert>
+            )}
+
+            {stats.totalJobs === 0 && !jobsLoading ? (
+              <Alert>
+                <Star className="h-4 w-4" />
+                <AlertDescription>
+                  Welcome to Fixer! 🎉 You're all set to start posting jobs and finding skilled workers. 
+                  Click "Post New Job" to get started, or explore the platform to see how it works.
+                </AlertDescription>
+              </Alert>
+            ) : (
+              <Alert>
+                <CheckCircle className="h-4 w-4" />
+                <AlertDescription>
+                  Welcome back! You have {stats.activeJobs} active jobs and {stats.pendingApplications} pending applications to review.
+                </AlertDescription>
+              </Alert>
+            )}
 
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
               <Card>
@@ -326,10 +520,16 @@ export default function PosterDashboardV2() {
                   <PlusCircle className="h-4 w-4 text-muted-foreground" />
                 </CardHeader>
                 <CardContent>
-                  <div className="text-2xl font-bold">{stats.totalJobs}</div>
-                  <p className="text-xs text-muted-foreground">
-                    {stats.activeJobs} currently active
-                  </p>
+                  {jobsLoading ? (
+                    <div className="h-8 w-16 bg-muted animate-pulse rounded" />
+                  ) : (
+                    <>
+                      <div className="text-2xl font-bold">{stats.totalJobs}</div>
+                      <p className="text-xs text-muted-foreground">
+                        {stats.activeJobs} currently active
+                      </p>
+                    </>
+                  )}
                 </CardContent>
               </Card>
 
@@ -339,10 +539,16 @@ export default function PosterDashboardV2() {
                   <Users className="h-4 w-4 text-muted-foreground" />
                 </CardHeader>
                 <CardContent>
-                  <div className="text-2xl font-bold">{stats.totalApplications}</div>
-                  <p className="text-xs text-muted-foreground">
-                    {stats.pendingApplications} pending review
-                  </p>
+                  {applicationsLoading ? (
+                    <div className="h-8 w-16 bg-muted animate-pulse rounded" />
+                  ) : (
+                    <>
+                      <div className="text-2xl font-bold">{stats.totalApplications}</div>
+                      <p className="text-xs text-muted-foreground">
+                        {stats.pendingApplications} pending review
+                      </p>
+                    </>
+                  )}
                 </CardContent>
               </Card>
 
@@ -352,10 +558,16 @@ export default function PosterDashboardV2() {
                   <DollarSign className="h-4 w-4 text-muted-foreground" />
                 </CardHeader>
                 <CardContent>
-                  <div className="text-2xl font-bold">${stats.totalSpent.toLocaleString()}</div>
-                  <p className="text-xs text-muted-foreground">
-                    Across {stats.completedJobs} completed jobs
-                  </p>
+                  {jobsLoading ? (
+                    <div className="h-8 w-20 bg-muted animate-pulse rounded" />
+                  ) : (
+                    <>
+                      <div className="text-2xl font-bold">${stats.totalSpent.toLocaleString()}</div>
+                      <p className="text-xs text-muted-foreground">
+                        Across {stats.completedJobs} completed jobs
+                      </p>
+                    </>
+                  )}
                 </CardContent>
               </Card>
 
@@ -365,13 +577,19 @@ export default function PosterDashboardV2() {
                   <Star className="h-4 w-4 text-muted-foreground" />
                 </CardHeader>
                 <CardContent>
-                  <div className="text-2xl font-bold flex items-center gap-1">
-                    {stats.averageRating}
-                    <Star className="h-4 w-4 fill-yellow-400 text-yellow-400" />
-                  </div>
-                  <p className="text-xs text-muted-foreground">
-                    From {stats.hiredWorkers} hired workers
-                  </p>
+                  {applicationsLoading ? (
+                    <div className="h-8 w-16 bg-muted animate-pulse rounded" />
+                  ) : (
+                    <>
+                      <div className="text-2xl font-bold flex items-center gap-1">
+                        {stats.averageRating}
+                        <Star className="h-4 w-4 fill-yellow-400 text-yellow-400" />
+                      </div>
+                      <p className="text-xs text-muted-foreground">
+                        From {stats.hiredWorkers} hired workers
+                      </p>
+                    </>
+                  )}
                 </CardContent>
               </Card>
             </div>
@@ -403,7 +621,7 @@ export default function PosterDashboardV2() {
                   ) : (
                     <div className="space-y-3">
                       {(Array.isArray(jobs) ? jobs : []).slice(0, 3).map((job: Job) => (
-                        <div key={job.id} className="flex items-center justify-between p-3 border rounded-lg">
+                        <div key={job.id} className="flex items-center justify-between p-3 border rounded-lg hover:bg-muted/50 transition-colors">
                           <div className="flex-1">
                             <div className="flex items-center gap-2 mb-1">
                               <h4 className="font-medium text-sm">{job.title}</h4>
@@ -462,7 +680,7 @@ export default function PosterDashboardV2() {
                         .filter((app: Application) => app.status === 'pending')
                         .slice(0, 3)
                         .map((application: Application) => (
-                          <div key={application.id} className="flex items-center justify-between p-3 border rounded-lg">
+                          <div key={application.id} className="flex items-center justify-between p-3 border rounded-lg hover:bg-muted/50 transition-colors">
                             <div className="flex-1">
                               <div className="flex items-center gap-2 mb-1">
                                 <h4 className="font-medium text-sm">{application.workerName}</h4>
@@ -494,6 +712,45 @@ export default function PosterDashboardV2() {
                 </CardContent>
               </Card>
             </div>
+
+            {/* Quick Actions Section */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Settings className="h-5 w-5" />
+                  Quick Actions
+                </CardTitle>
+                <CardDescription>Common tasks and shortcuts</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <Button 
+                    variant="outline" 
+                    className="h-20 flex flex-col gap-2"
+                    onClick={() => setShowJobWizard(true)}
+                  >
+                    <PlusCircle className="h-6 w-6" />
+                    <span className="text-sm">Post New Job</span>
+                  </Button>
+                  <Button 
+                    variant="outline" 
+                    className="h-20 flex flex-col gap-2"
+                    onClick={() => setActiveTab('applications')}
+                  >
+                    <Users className="h-6 w-6" />
+                    <span className="text-sm">Review Applications</span>
+                  </Button>
+                  <Button 
+                    variant="outline" 
+                    className="h-20 flex flex-col gap-2"
+                    onClick={() => setActiveTab('analytics')}
+                  >
+                    <BarChart3 className="h-6 w-6" />
+                    <span className="text-sm">View Analytics</span>
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
           </TabsContent>
 
           <TabsContent value="jobs" className="space-y-6">
@@ -537,14 +794,22 @@ export default function PosterDashboardV2() {
                 ))}
               </div>
             ) : filteredJobs.length === 0 ? (
-              <div className="text-center py-12 text-muted-foreground">
-                <Briefcase className="h-12 w-12 mx-auto mb-4" />
-                <h3 className="text-lg font-semibold">No jobs found</h3>
-                <p>
+              <div className="text-center py-12">
+                <div className="mx-auto w-24 h-24 bg-muted rounded-full flex items-center justify-center mb-4">
+                  <Briefcase className="h-12 w-12 text-muted-foreground" />
+                </div>
+                <h3 className="text-lg font-semibold mb-2">No jobs found</h3>
+                <p className="text-muted-foreground mb-4">
                   {searchQuery || jobFilter !== 'all'
                     ? 'Try adjusting your search or filters.'
-                    : "You haven't posted any jobs yet."}
+                    : "You haven't posted any jobs yet. Get started by posting your first job!"}
                 </p>
+                {(!searchQuery && jobFilter === 'all') && (
+                  <Button onClick={() => setShowJobWizard(true)}>
+                    <PlusCircle className="h-4 w-4 mr-2" />
+                    Post Your First Job
+                  </Button>
+                )}
               </div>
             ) : (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -570,17 +835,32 @@ export default function PosterDashboardV2() {
           </TabsContent>
 
           <TabsContent value="analytics" className="space-y-6">
-            <PosterAnalytics 
-              jobs={Array.isArray(jobs) ? jobs : []}
-              applications={Array.isArray(applications) ? applications : []}
-              stats={stats}
-            />
+            <PosterAnalytics />
           </TabsContent>
 
           <TabsContent value="settings" className="space-y-6">
             <PosterSettings />
           </TabsContent>
         </Tabs>
+      </div>
+
+      {/* Footer with shortcuts and info */}
+      <div className="border-t bg-muted/30 mt-12">
+        <div className="container mx-auto px-4 py-6">
+          <div className="flex items-center justify-between text-sm text-muted-foreground">
+            <div className="flex items-center gap-6">
+              <span>Keyboard shortcuts:</span>
+              <span><kbd className="px-2 py-1 bg-muted rounded text-xs">Ctrl+N</kbd> New Job</span>
+              <span><kbd className="px-2 py-1 bg-muted rounded text-xs">Ctrl+R</kbd> Refresh</span>
+            </div>
+            <div className="flex items-center gap-4">
+              <span>Need help? Contact support</span>
+              <Button variant="ghost" size="sm">
+                Help
+              </Button>
+            </div>
+          </div>
+        </div>
       </div>
 
       <JobPostingWizard
@@ -596,54 +876,149 @@ export default function PosterDashboardV2() {
       <Dialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Are you sure you want to delete this job?</DialogTitle>
-            <DialogDescription>
-              This action cannot be undone. This will permanently delete the
-              "{jobToDelete?.title}" job and remove it from our servers.
+            <DialogTitle className="flex items-center gap-2">
+              <AlertCircle className="h-5 w-5 text-destructive" />
+              Delete Job Confirmation
+            </DialogTitle>
+            <DialogDescription className="space-y-2">
+              <p>Are you sure you want to delete this job?</p>
+              <div className="p-3 bg-muted rounded-lg">
+                <p className="font-medium">"{jobToDelete?.title}"</p>
+                <p className="text-sm text-muted-foreground">
+                  {jobToDelete?.location} • ${jobToDelete?.paymentAmount}
+                </p>
+              </div>
+              <p className="text-sm text-destructive">
+                This action cannot be undone. The job will be permanently removed from the platform
+                and all associated applications will be cancelled.
+              </p>
             </DialogDescription>
           </DialogHeader>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setIsDeleteDialogOpen(false)}>
+          <DialogFooter className="gap-2">
+            <Button 
+              variant="outline" 
+              onClick={() => setIsDeleteDialogOpen(false)}
+              disabled={deleteJobMutation.isPending}
+            >
               Cancel
             </Button>
-            <Button variant="destructive" onClick={confirmDeleteJob} disabled={deleteJobMutation.isPending}>
-              {deleteJobMutation.isPending ? 'Deleting...' : 'Delete'}
+            <Button 
+              variant="destructive" 
+              onClick={confirmDeleteJob} 
+              disabled={deleteJobMutation.isPending}
+              className="flex items-center gap-2"
+            >
+              {deleteJobMutation.isPending ? (
+                <>
+                  <RefreshCw className="h-4 w-4 animate-spin" />
+                  Deleting...
+                </>
+              ) : (
+                <>
+                  <Trash2 className="h-4 w-4" />
+                  Delete Job
+                </>
+              )}
             </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
 
       <Dialog open={isViewDialogOpen} onOpenChange={setIsViewDialogOpen}>
-        <DialogContent className="max-w-2xl">
+        <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>{selectedJob?.title}</DialogTitle>
-            <DialogDescription>
+            <DialogTitle className="flex items-center justify-between">
+              <span>{selectedJob?.title}</span>
               <Badge variant={getStatusColor(selectedJob?.status || '')}>
                 {getStatusText(selectedJob?.status || '')}
               </Badge>
-            </DialogDescription>
+            </DialogTitle>
           </DialogHeader>
           {selectedJob && (
-            <div className="space-y-4 py-4">
-              <p className="text-sm text-muted-foreground">{selectedJob.description}</p>
-              <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-6 py-4">
+              <div>
+                <h4 className="font-semibold mb-2">Description</h4>
+                <p className="text-sm text-muted-foreground leading-relaxed">
+                  {selectedJob.description}
+                </p>
+              </div>
+              
+              <div className="grid grid-cols-2 gap-6">
                 <div>
-                  <h4 className="font-semibold">Location</h4>
+                  <h4 className="font-semibold mb-2 flex items-center gap-2">
+                    <MapPin className="h-4 w-4" />
+                    Location
+                  </h4>
                   <p>{selectedJob.location}</p>
                 </div>
                 <div>
-                  <h4 className="font-semibold">Payment</h4>
+                  <h4 className="font-semibold mb-2 flex items-center gap-2">
+                    <DollarSign className="h-4 w-4" />
+                    Payment
+                  </h4>
                   <p>${selectedJob.paymentAmount} ({selectedJob.paymentType})</p>
                 </div>
                 {selectedJob.dateNeeded && (
                   <div>
-                    <h4 className="font-semibold">Date Needed</h4>
+                    <h4 className="font-semibold mb-2 flex items-center gap-2">
+                      <Calendar className="h-4 w-4" />
+                      Date Needed
+                    </h4>
                     <p>{new Date(selectedJob.dateNeeded).toLocaleDateString()}</p>
                   </div>
                 )}
                 <div>
-                  <h4 className="font-semibold">Category</h4>
+                  <h4 className="font-semibold mb-2">Category</h4>
                   <p>{selectedJob.category}</p>
+                </div>
+                {selectedJob.estimatedHours && (
+                  <div>
+                    <h4 className="font-semibold mb-2 flex items-center gap-2">
+                      <Clock className="h-4 w-4" />
+                      Estimated Hours
+                    </h4>
+                    <p>{selectedJob.estimatedHours} hours</p>
+                  </div>
+                )}
+                <div>
+                  <h4 className="font-semibold mb-2">Equipment Provided</h4>
+                  <p>{selectedJob.equipmentProvided ? 'Yes' : 'No'}</p>
+                </div>
+              </div>
+
+              {(selectedJob.shiftStartTime || selectedJob.shiftEndTime) && (
+                <div>
+                  <h4 className="font-semibold mb-2">Shift Times</h4>
+                  <p>
+                    {selectedJob.shiftStartTime} - {selectedJob.shiftEndTime}
+                  </p>
+                </div>
+              )}
+
+              <div className="flex items-center justify-between pt-4 border-t">
+                <div className="text-sm text-muted-foreground">
+                  Posted: {selectedJob.datePosted ? new Date(selectedJob.datePosted).toLocaleDateString() : 'N/A'}
+                </div>
+                <div className="flex gap-2">
+                  {selectedJob.status === 'open' && (
+                    <Button 
+                      variant="outline" 
+                      onClick={() => {
+                        setIsViewDialogOpen(false);
+                        handleEditJob(selectedJob);
+                      }}
+                    >
+                      <Edit className="h-4 w-4 mr-2" />
+                      Edit Job
+                    </Button>
+                  )}
+                  <Button 
+                    variant="outline"
+                    onClick={() => setActiveTab('applications')}
+                  >
+                    <Users className="h-4 w-4 mr-2" />
+                    View Applications
+                  </Button>
                 </div>
               </div>
             </div>

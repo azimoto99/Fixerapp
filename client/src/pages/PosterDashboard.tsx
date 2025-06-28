@@ -46,8 +46,13 @@ interface Application {
 }
 
 export default function PosterDashboard() {
-  const { user } = useAuth();
+  const { user, logoutMutation } = useAuth();
   const [selectedJob, setSelectedJob] = useState<Job | null>(null);
+
+  // Handle sign out
+  const handleSignOut = () => {
+    logoutMutation.mutate();
+  };
   const [activeTab, setActiveTab] = useState('overview');
 
   // Fetch poster's jobs
@@ -113,7 +118,7 @@ export default function PosterDashboard() {
             </div>
             <div className="flex items-center gap-4">
               <NewJobButton />
-              <Button variant="outline" onClick={signOut}>Sign Out</Button>
+              <Button variant="outline" onClick={handleSignOut}>Sign Out</Button>
             </div>
           </div>
         </div>
