@@ -76,28 +76,53 @@ const ChartStyle = ({ id, config }: { id: string; config: ChartConfig }) => {
     return null
   }
 
-  return (
-    <style
-      dangerouslySetInnerHTML={{
-        __html: Object.entries(THEMES)
-          .map(
-            ([theme, prefix]) => `
-${prefix} [data-chart=${id}] {
-${colorConfig
-  .map(([key, itemConfig]) => {
-    const color =
-      itemConfig.theme?.[theme as keyof typeof itemConfig.theme] ||
-      itemConfig.color
-    return color ? `  --color-${key}: ${color};` : null
-  })
-  .join("\n")}
-}
-`
-          )
-          .join("\n"),
-      }}
-    />
-  )
+  // Safely create CSS using React.useEffect and createElement instead of dangerouslySetInnerHTML
+  React.useEffect(() => {
+    // Sanitize the id to prevent CSS injection
+    const sanitizedId = id.replace(/[^a-zA-Z0-9-_]/g, '');
+    
+    // Create style element
+    const styleId = `chart-style-${sanitizedId}`;
+    let styleElement = document.getElementById(styleId) as HTMLStyleElement;
+    
+    if (!styleElement) {
+      styleElement = document.createElement('style');
+      styleElement.id = styleId;
+      document.head.appendChild(styleElement);
+    }
+
+    // Generate CSS content safely
+    const cssContent = Object.entries(THEMES)
+      .map(([theme, prefix]) => {
+        const selector = prefix ? `${prefix} [data-chart="${sanitizedId}"]` : `[data-chart="${sanitizedId}"]`;
+        const rules = colorConfig
+          .map(([key, itemConfig]) => {
+            const color = itemConfig.theme?.[theme as keyof typeof itemConfig.theme] || itemConfig.color;
+            // Sanitize key and color values
+            const sanitizedKey = key.replace(/[^a-zA-Z0-9-_]/g, '');
+            const sanitizedColor = color?.replace(/[^a-zA-Z0-9#(),.\s%-]/g, '') || '';
+            return sanitizedColor ? `  --color-${sanitizedKey}: ${sanitizedColor};` : null;
+          })
+          .filter(Boolean)
+          .join('\n');
+        
+        return rules ? `${selector} {\n${rules}\n}` : '';
+      })
+      .filter(Boolean)
+      .join('\n');
+
+    styleElement.textContent = cssContent;
+
+    // Cleanup function
+    return () => {
+      const element = document.getElementById(styleId);
+      if (element) {
+        element.remove();
+      }
+    };
+  }, [id, colorConfig]);
+
+  return null;
 }
 
 const ChartTooltip = RechartsPrimitive.Tooltip

@@ -3,6 +3,23 @@ import mapboxgl from 'mapbox-gl';
 import 'mapbox-gl/dist/mapbox-gl.css';
 import { generatePinStyle, generatePinCSS, type PinConfig } from '@/lib/mapPinStyles';
 
+// Utility function to safely create DOM elements and prevent XSS
+function createSafeElement(tagName: string, styles: Record<string, string> = {}, textContent?: string): HTMLElement {
+  const element = document.createElement(tagName);
+  
+  // Apply styles safely
+  Object.entries(styles).forEach(([property, value]) => {
+    element.style.setProperty(property, value);
+  });
+  
+  // Set text content safely (this escapes any HTML)
+  if (textContent) {
+    element.textContent = textContent;
+  }
+  
+  return element;
+}
+
 // Set the access token from Vite environment variable
 // Note: in a Vite/React app we must use import.meta.env to access env vars at build time.
 mapboxgl.accessToken = import.meta.env.VITE_MAPBOX_ACCESS_TOKEN;
@@ -235,39 +252,42 @@ export default function MapboxMap({
           return;
         }
         
-        // Enhanced user location marker with pulsing animation
-        el.innerHTML = `
-          <div style="
-            position: relative;
-            width: 40px;
-            height: 40px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-          ">
-            <!-- Pulsing outer ring -->
-            <div style="
-              position: absolute;
-              width: 40px;
-              height: 40px;
-              background-color: #10b981;
-              border-radius: 50%;
-              opacity: 0.3;
-              animation: pulse 2s infinite;
-            "></div>
-            <!-- Inner location dot -->
-            <div style="
-              position: relative;
-              width: 20px;
-              height: 20px;
-              background-color: #10b981;
-              border: 3px solid white;
-              border-radius: 50%;
-              box-shadow: 0 2px 8px rgba(0,0,0,0.3);
-              z-index: 2;
-            "></div>
-          </div>
-        `;
+        // Enhanced user location marker with pulsing animation - safe DOM creation
+        const container = createSafeElement('div', {
+          'position': 'relative',
+          'width': '40px',
+          'height': '40px',
+          'display': 'flex',
+          'align-items': 'center',
+          'justify-content': 'center'
+        });
+        
+        // Pulsing outer ring
+        const outerRing = createSafeElement('div', {
+          'position': 'absolute',
+          'width': '40px',
+          'height': '40px',
+          'background-color': '#10b981',
+          'border-radius': '50%',
+          'opacity': '0.3',
+          'animation': 'pulse 2s infinite'
+        });
+        
+        // Inner location dot
+        const innerDot = createSafeElement('div', {
+          'position': 'relative',
+          'width': '20px',
+          'height': '20px',
+          'background-color': '#10b981',
+          'border': '3px solid white',
+          'border-radius': '50%',
+          'box-shadow': '0 2px 8px rgba(0,0,0,0.3)',
+          'z-index': '2'
+        });
+        
+        container.appendChild(outerRing);
+        container.appendChild(innerDot);
+        el.appendChild(container);
         el.style.width = '40px';
         el.style.height = '40px';
         el.style.cursor = 'pointer';
@@ -318,47 +338,58 @@ export default function MapboxMap({
           ? (marker as any).enterpriseIcon 
           : null;
         
-        // Create a large, pulsing enterprise pin
-        el.innerHTML = `
-          <div style="
-            position: relative;
-            width: ${pinStyle.size}px;
-            height: ${pinStyle.size}px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-          ">
-            <!-- Pulsing outer ring -->
-            <div style="
-              position: absolute;
-              width: 100%;
-              height: 100%;
-              background-color: ${pinStyle.backgroundColor};
-              border-radius: 50%;
-              opacity: 0.3;
-              animation: enterprise-pulse 3s infinite;
-            "></div>
-            <!-- Main pin -->
-            <div style="
-              position: relative;
-              width: 85%;
-              height: 85%;
-              background-color: ${pinStyle.backgroundColor};
-              ${logoUrl ? `background-image: url(${logoUrl}); background-size: 80%; background-position: center; background-repeat: no-repeat;` : ''}
-              border: ${pinStyle.borderWidth}px solid ${pinStyle.borderColor};
-              border-radius: 50%;
-              display: flex;
-              align-items: center;
-              justify-content: center;
-              font-size: ${Math.max(pinStyle.size * 0.3, 16)}px;
-              box-shadow: 0 8px 24px rgba(0,0,0,0.4);
-              z-index: 2;
-              overflow: hidden;
-            ">
-              ${logoUrl ? '' : pinStyle.icon}
-            </div>
-          </div>
-        `;
+        // Create a large, pulsing enterprise pin - safe DOM creation
+        const enterpriseContainer = createSafeElement('div', {
+          'position': 'relative',
+          'width': `${pinStyle.size}px`,
+          'height': `${pinStyle.size}px`,
+          'display': 'flex',
+          'align-items': 'center',
+          'justify-content': 'center'
+        });
+        
+        // Pulsing outer ring
+        const pulsingRing = createSafeElement('div', {
+          'position': 'absolute',
+          'width': '100%',
+          'height': '100%',
+          'background-color': pinStyle.backgroundColor,
+          'border-radius': '50%',
+          'opacity': '0.3',
+          'animation': 'enterprise-pulse 3s infinite'
+        });
+        
+        // Main pin
+        const mainPin = createSafeElement('div', {
+          'position': 'relative',
+          'width': '85%',
+          'height': '85%',
+          'background-color': pinStyle.backgroundColor,
+          'border': `${pinStyle.borderWidth}px solid ${pinStyle.borderColor}`,
+          'border-radius': '50%',
+          'display': 'flex',
+          'align-items': 'center',
+          'justify-content': 'center',
+          'font-size': `${Math.max(pinStyle.size * 0.3, 16)}px`,
+          'box-shadow': '0 8px 24px rgba(0,0,0,0.4)',
+          'z-index': '2',
+          'overflow': 'hidden'
+        });
+        
+        // Safely set background image if logoUrl is provided and valid
+        if (logoUrl && logoUrl.startsWith('http')) {
+          mainPin.style.setProperty('background-image', `url(${encodeURI(logoUrl)})`);
+          mainPin.style.setProperty('background-size', '80%');
+          mainPin.style.setProperty('background-position', 'center');
+          mainPin.style.setProperty('background-repeat', 'no-repeat');
+        } else {
+          // Safely set icon text content (this prevents XSS)
+          mainPin.textContent = pinStyle.icon;
+        }
+        
+        enterpriseContainer.appendChild(pulsingRing);
+        enterpriseContainer.appendChild(mainPin);
+        el.appendChild(enterpriseContainer);
         
         // Add enterprise pulse animation
         const style = document.createElement('style');
@@ -398,24 +429,22 @@ export default function MapboxMap({
           el.style.setProperty(property, value);
         });
 
-        // Create a CIRCULAR pin with emoji on top (what the user actually wants)
-        el.innerHTML = `
-          <div style="
-            width: 100%;
-            height: 100%;
-            background-color: ${pinStyle.backgroundColor};
-            border: ${pinStyle.borderWidth}px ${pinStyle.borderStyle} ${pinStyle.borderColor};
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: ${Math.max(pinStyle.size * 0.4, 18)}px;
-            position: relative;
-            box-shadow: 0 4px 12px ${pinStyle.shadowColor};
-          ">
-            ${pinStyle.icon}
-          </div>
-        `;
+        // Create a CIRCULAR pin with emoji on top - safe DOM creation
+        const pinContainer = createSafeElement('div', {
+          'width': '100%',
+          'height': '100%',
+          'background-color': pinStyle.backgroundColor,
+          'border': `${pinStyle.borderWidth}px ${pinStyle.borderStyle} ${pinStyle.borderColor}`,
+          'border-radius': '50%',
+          'display': 'flex',
+          'align-items': 'center',
+          'justify-content': 'center',
+          'font-size': `${Math.max(pinStyle.size * 0.4, 18)}px`,
+          'position': 'relative',
+          'box-shadow': `0 4px 12px ${pinStyle.shadowColor}`
+        }, pinStyle.icon); // Safely set icon as text content
+        
+        el.appendChild(pinContainer);
 
         // Add hover effects without transform (to avoid Mapbox positioning conflicts)
         el.addEventListener('mouseenter', () => {

@@ -69,11 +69,25 @@ export class ErrorBoundarySystem extends Component<ErrorBoundaryProps, ErrorBoun
       timestamp: new Date().toISOString(),
       userAgent: navigator.userAgent,
       url: window.location.href,
-      userId: this.getUserId()
+      userId: this.getUserId(),
+      environment: process.env.NODE_ENV,
+      retryCount: this.retryCount,
+      errorType: this.getErrorType(error)
     };
     
-    // For now, just log to console
+    // Log to console for debugging
     console.error('Error Report:', errorReport);
+    
+    // Store error locally for potential offline reporting
+    try {
+      const existingErrors = JSON.parse(localStorage.getItem('errorReports') || '[]');
+      existingErrors.push(errorReport);
+      // Keep only the last 10 errors to avoid storage bloat
+      const recentErrors = existingErrors.slice(-10);
+      localStorage.setItem('errorReports', JSON.stringify(recentErrors));
+    } catch (storageError) {
+      console.warn('Failed to store error report locally:', storageError);
+    }
     
     // In production, send to monitoring service:
     // errorMonitoringService.captureException(error, errorReport);

@@ -67,18 +67,6 @@ const UserDrawerV2: React.FC<UserDrawerProps> = ({
     }
   }, [externalCloseState, isOpen]);
 
-  // Listen for tab switching events from other components
-  useEffect(() => {
-    const handleTabSwitch = (event: CustomEvent) => {
-      setActiveTab(event.detail);
-    };
-
-    window.addEventListener('switch-user-drawer-tab', handleTabSwitch as EventListener);
-    return () => {
-      window.removeEventListener('switch-user-drawer-tab', handleTabSwitch as EventListener);
-    };
-  }, []);
-  
   // Listen for external isOpen changes
   useEffect(() => {
     if (externalIsOpen !== undefined) {
@@ -87,26 +75,28 @@ const UserDrawerV2: React.FC<UserDrawerProps> = ({
     }
   }, [externalIsOpen]);
   
-  // Listen for custom close events from other components
+  // Listen for custom events from other components - consolidated to prevent memory leaks
   useEffect(() => {
     const handleCloseEvent = () => {
       console.log('UserDrawerV2: Received close-user-drawer event');
       setIsOpen(false);
     };
     
-    const handleTabSwitchEvent = (event: any) => {
+    const handleTabSwitchEvent = (event: CustomEvent) => {
       console.log('UserDrawerV2: Received switch-user-drawer-tab event', event.detail);
       setActiveTab(event.detail);
     };
     
+    // Add event listeners
     window.addEventListener('close-user-drawer', handleCloseEvent);
-    window.addEventListener('switch-user-drawer-tab', handleTabSwitchEvent);
+    window.addEventListener('switch-user-drawer-tab', handleTabSwitchEvent as EventListener);
     
+    // Cleanup function to prevent memory leaks
     return () => {
       window.removeEventListener('close-user-drawer', handleCloseEvent);
-      window.removeEventListener('switch-user-drawer-tab', handleTabSwitchEvent);
+      window.removeEventListener('switch-user-drawer-tab', handleTabSwitchEvent as EventListener);
     };
-  }, []);
+  }, []); // Empty dependency array ensures this effect runs only once
   
   // Notify parent when drawer state changes - debounced to avoid quick flickering
   useEffect(() => {

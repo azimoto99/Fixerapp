@@ -13,7 +13,6 @@ import { useToast } from '@/hooks/use-toast';
 import { apiRequest, queryClient } from '@/lib/queryClient';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { StripeConnectRequired } from '@/components/stripe';
-import JobDetailsCard from './jobs/JobDetailsCard';
 import { useAllJobsForMap } from '@/hooks/useAllJobsForMap';
 import EnterpriseJobCard from './enterprise/EnterpriseJobCard';
 

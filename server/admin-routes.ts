@@ -12,6 +12,14 @@ import { financialService } from "./financial-service";
 import { contentModerationService } from "./content-moderation";
 import { analyticsService } from "./analytics-service";
 import { systemMonitor } from "./system-monitor";
+
+// Utility function to safely get authenticated user ID
+function getAuthenticatedUserId(req: Request): number {
+  if (!req.user?.id) {
+    throw new Error('Authentication required: User not found or missing ID');
+  }
+  return req.user.id;
+}
 // Import health routes directly from the file to avoid build issues
 const healthRoutes = {
   get: (path: string, handler: Function) => {},
@@ -1181,10 +1189,11 @@ export function registerAdminRoutes(app: Express) {
         const moderationResult = await contentModerationService.moderateJobContent(job);
         
         // Update job based on moderation result
+        const adminUserId = getAuthenticatedUserId(req);
         if (moderationResult.action === 'reject') {
-          await contentModerationService.rejectJob(jobId, req.user!.id, 'Automated content moderation');
+          await contentModerationService.rejectJob(jobId, adminUserId, 'Automated content moderation');
         } else if (moderationResult.action === 'flag') {
-          await contentModerationService.flagJobForReview(jobId, 'Automated content flagging', req.user!.id);
+          await contentModerationService.flagJobForReview(jobId, 'Automated content flagging', adminUserId);
         }
 
         res.json({
@@ -1211,8 +1220,9 @@ export function registerAdminRoutes(app: Express) {
       try {
         const jobId = parseInt(req.params.jobId);
         const { notes } = req.body;
+        const adminUserId = getAuthenticatedUserId(req);
 
-        const result = await contentModerationService.approveJob(jobId, req.user!.id, notes);
+        const result = await contentModerationService.approveJob(jobId, adminUserId, notes);
         res.json(result);
       } catch (error) {
         console.error('Job approval error:', error);
@@ -1238,7 +1248,8 @@ export function registerAdminRoutes(app: Express) {
           return res.status(400).json({ message: "Rejection reason is required" });
         }
 
-        const result = await contentModerationService.rejectJob(jobId, req.user!.id, reason);
+        const adminUserId = getAuthenticatedUserId(req);
+        const result = await contentModerationService.rejectJob(jobId, adminUserId, reason);
         res.json(result);
       } catch (error) {
         console.error('Job rejection error:', error);
@@ -1263,7 +1274,8 @@ export function registerAdminRoutes(app: Express) {
           return res.status(400).json({ message: "Flag reason is required" });
         }
 
-        const result = await contentModerationService.flagJobForReview(jobId, reason, req.user!.id);
+        const adminUserId = getAuthenticatedUserId(req);
+        const result = await contentModerationService.flagJobForReview(jobId, reason, adminUserId);
         res.json(result);
       } catch (error) {
         console.error('Job flagging error:', error);
@@ -1296,10 +1308,11 @@ export function registerAdminRoutes(app: Express) {
           return res.status(400).json({ message: `Reason is required for ${action} action` });
         }
 
+        const adminUserId = getAuthenticatedUserId(req);
         const result = await contentModerationService.bulkJobAction(
           jobIds, 
           action, 
-          req.user!.id, 
+          adminUserId, 
           reason
         );
 
@@ -1432,9 +1445,10 @@ export function registerAdminRoutes(app: Express) {
         }
 
         // Create content report (would need reports table)
+        const adminUserId = getAuthenticatedUserId(req);
         const report = {
           jobId,
-          reportedBy: userId || req.user!.id,
+          reportedBy: userId || adminUserId,
           reason,
           category: category || 'general',
           description: description || '',
@@ -1448,7 +1462,7 @@ export function registerAdminRoutes(app: Express) {
         await contentModerationService.flagJobForReview(
           jobId, 
           `User report: ${reason}`, 
-          req.user!.id
+          adminUserId
         );
 
         res.json({
@@ -2196,11 +2210,12 @@ export function registerAdminRoutes(app: Express) {
         
         // In production, this would update a system-wide maintenance flag
         // For now, we'll simulate the functionality
+        const adminUserId = getAuthenticatedUserId(req);
         const maintenanceConfig = {
           enabled: Boolean(enabled),
           message: message || "System maintenance in progress. Please try again later.",
           enabledAt: enabled ? new Date() : null,
-          enabledBy: req.user!.id
+          enabledBy: adminUserId
         };
         
         res.json({
@@ -2557,10 +2572,11 @@ export function registerAdminRoutes(app: Express) {
     async (req, res) => {
       try {
         const currentSettings = await storage.getPlatformSettings();
+        const adminUserId = getAuthenticatedUserId(req);
         const backup = {
           settings: currentSettings,
           timestamp: new Date().toISOString(),
-          createdBy: req.user!.id
+          createdBy: adminUserId
         };
         
         // In a real implementation, this would save to a backups table

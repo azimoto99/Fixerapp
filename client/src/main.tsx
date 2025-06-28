@@ -62,11 +62,25 @@ try {
   console.log('App rendered successfully');
 } catch (error) {
   console.error('Failed to render app:', error);
-  document.body.innerHTML = `
-    <div style="padding: 20px; font-family: monospace;">
-      <h1>Failed to start application</h1>
-      <pre style="color: red;">${error}</pre>
-      <p>Check the browser console for more details</p>
-    </div>
-  `;
+  
+  // Safely create error display without innerHTML injection
+  const container = document.createElement('div');
+  container.style.cssText = 'padding: 20px; font-family: monospace;';
+  
+  const title = document.createElement('h1');
+  title.textContent = 'Failed to start application';
+  
+  const errorPre = document.createElement('pre');
+  errorPre.style.color = 'red';
+  errorPre.textContent = String(error); // Safely convert error to string
+  
+  const message = document.createElement('p');
+  message.textContent = 'Check the browser console for more details';
+  
+  container.appendChild(title);
+  container.appendChild(errorPre);
+  container.appendChild(message);
+  
+  document.body.innerHTML = ''; // Clear existing content
+  document.body.appendChild(container);
 }
