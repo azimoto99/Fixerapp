@@ -5,7 +5,7 @@ import { eq, and, like, notLike, desc, or, asc, gte, lte, count, sum, avg, sql, 
 import { db, pool } from './db';
 import { IStorage } from './storage';
 import {
-  users, jobs, applications, reviews, tasks, earnings, payments, badges, userBadges, notifications, contacts, contactRequests, messages, supportTickets, platformSettings,
+  users, jobs, applications, reviews, tasks, earnings, payments, badges, userBadges, notifications, contacts, contactRequests, messages, supportTickets, disputes, refunds, feedback, platformSettings,
   User, InsertUser,
   Job, InsertJob,
   Application, InsertApplication,
@@ -15,7 +15,10 @@ import {
   Payment, InsertPayment,
   Badge, InsertBadge,
   UserBadge, InsertUserBadge,
-  Notification, InsertNotification
+  Notification, InsertNotification,
+  Dispute, InsertDispute,
+  Refund, InsertRefund,
+  Feedback, InsertFeedback
 } from '@shared/schema';
 import connectPg from "connect-pg-simple";
 import session from "express-session";
@@ -723,6 +726,114 @@ export class UnifiedStorage implements IStorage {
         .returning();
       return result[0] || null;
     }, null, 'addTicketResponse');
+  }
+
+  // DISPUTE OPERATIONS
+  async createDispute(disputeData: any): Promise<any> {
+    return this.safeExecute(async () => {
+      const result = await db.insert(disputes).values({
+        ...disputeData,
+        createdAt: new Date()
+      }).returning();
+      return result[0];
+    }, null as any, 'createDispute');
+  }
+
+  async getDisputesByUserId(userId: number): Promise<any[]> {
+    return this.safeExecute(async () => {
+      return await db.select().from(disputes)
+        .where(or(eq(disputes.raisedBy, userId), eq(disputes.against, userId)))
+        .orderBy(desc(disputes.createdAt));
+    }, [], `getDisputesByUserId(${userId})`);
+  }
+
+  async getDispute(id: number): Promise<any> {
+    return this.safeExecute(async () => {
+      const result = await db.select().from(disputes).where(eq(disputes.id, id));
+      return result[0] || null;
+    }, null, `getDispute(${id})`);
+  }
+
+  async updateDispute(id: number, data: any): Promise<any> {
+    return this.safeExecute(async () => {
+      const result = await db.update(disputes)
+        .set({ ...data, updatedAt: new Date() })
+        .where(eq(disputes.id, id))
+        .returning();
+      return result[0] || null;
+    }, null, `updateDispute(${id})`);
+  }
+
+  // REFUND OPERATIONS
+  async createRefund(refundData: any): Promise<any> {
+    return this.safeExecute(async () => {
+      const result = await db.insert(refunds).values({
+        ...refundData,
+        createdAt: new Date()
+      }).returning();
+      return result[0];
+    }, null as any, 'createRefund');
+  }
+
+  async getRefundsByUserId(userId: number): Promise<any[]> {
+    return this.safeExecute(async () => {
+      return await db.select().from(refunds)
+        .where(eq(refunds.userId, userId))
+        .orderBy(desc(refunds.createdAt));
+    }, [], `getRefundsByUserId(${userId})`);
+  }
+
+  async getRefund(id: number): Promise<any> {
+    return this.safeExecute(async () => {
+      const result = await db.select().from(refunds).where(eq(refunds.id, id));
+      return result[0] || null;
+    }, null, `getRefund(${id})`);
+  }
+
+  async updateRefund(id: number, data: any): Promise<any> {
+    return this.safeExecute(async () => {
+      const result = await db.update(refunds)
+        .set({ ...data, updatedAt: new Date() })
+        .where(eq(refunds.id, id))
+        .returning();
+      return result[0] || null;
+    }, null, `updateRefund(${id})`);
+  }
+
+  // FEEDBACK OPERATIONS
+  async createFeedback(feedbackData: any): Promise<any> {
+    return this.safeExecute(async () => {
+      const result = await db.insert(feedback).values({
+        ...feedbackData,
+        createdAt: new Date()
+      }).returning();
+      return result[0];
+    }, null as any, 'createFeedback');
+  }
+
+  async getFeedbackByUserId(userId: number): Promise<any[]> {
+    return this.safeExecute(async () => {
+      return await db.select().from(feedback)
+        .where(eq(feedback.userId, userId))
+        .orderBy(desc(feedback.createdAt));
+    }, [], `getFeedbackByUserId(${userId})`);
+  }
+
+  async getAllFeedback(): Promise<any[]> {
+    return this.safeExecute(async () => {
+      return await db.select().from(feedback)
+        .orderBy(desc(feedback.createdAt));
+    }, [], 'getAllFeedback');
+  }
+
+  async updateFeedback(id: number, data: any): Promise<any> {
+    return this.safeExecute(async () => {
+      const result = await db.update(feedback)
+        .set({ ...data, updatedAt: new Date() })
+        .where(eq(feedback.id, id))
+        .returning();
+      return result[0] || null;
+    }, null, `updateFeedback(${id})`);
   }
 
   // INTERFACE COMPATIBILITY METHODS

@@ -639,6 +639,29 @@ export const refunds = pgTable("refunds", {
   processedAt: timestamp("processed_at").notNull().defaultNow(),
 });
 
+// Feedback table for user feedback
+export const feedback = pgTable("feedback", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id").notNull().references(() => users.id),
+  type: varchar("type", { length: 50 }).notNull(), // suggestion, bug_report, feature_request, general, compliment
+  rating: integer("rating"), // 1-5 star rating
+  message: text("message").notNull(),
+  email: varchar("email", { length: 255 }),
+  status: varchar("status", { length: 20 }).notNull().default("new"), // new, reviewed, resolved
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  reviewedAt: timestamp("reviewed_at"),
+  reviewedBy: integer("reviewed_by").references(() => users.id),
+});
+
+export const insertRefundSchema = createInsertSchema(refunds);
+export const insertFeedbackSchema = createInsertSchema(feedback);
+
+export type Refund = typeof refunds.$inferSelect;
+export type InsertRefund = z.infer<typeof insertRefundSchema>;
+
+export type Feedback = typeof feedback.$inferSelect;
+export type InsertFeedback = z.infer<typeof insertFeedbackSchema>;
+
 // Categories enum for job types
 export const JOB_CATEGORIES = [
   "Home Maintenance",

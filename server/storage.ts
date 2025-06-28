@@ -192,6 +192,28 @@ export interface IStorage {
   createSettingsBackup(backup: any): Promise<number>;
   getSettingsBackup(backupId: number): Promise<any>;
   getSettingsBackups(): Promise<any[]>;
+
+  // Support ticket operations
+  getSupportTicketsByUserId(userId: number): Promise<any[]>;
+  createSupportTicket(ticketData: any): Promise<any>;
+  
+  // Dispute operations
+  createDispute(disputeData: any): Promise<any>;
+  getDisputesByUserId(userId: number): Promise<any[]>;
+  getDispute(id: number): Promise<any>;
+  updateDispute(id: number, data: any): Promise<any>;
+  
+  // Refund operations
+  createRefund(refundData: any): Promise<any>;
+  getRefundsByUserId(userId: number): Promise<any[]>;
+  getRefund(id: number): Promise<any>;
+  updateRefund(id: number, data: any): Promise<any>;
+  
+  // Feedback operations
+  createFeedback(feedbackData: any): Promise<any>;
+  getFeedbackByUserId(userId: number): Promise<any[]>;
+  getAllFeedback(): Promise<any[]>;
+  updateFeedback(id: number, data: any): Promise<any>;
 }
 
 export class MemStorage implements IStorage {
@@ -1521,6 +1543,70 @@ export class MemStorage implements IStorage {
 
   async getSettingsBackups(): Promise<any[]> {
     return Array.from(this.settingsBackups.values());
+  }
+
+  // Support ticket operations
+  async getSupportTicketsByUserId(userId: number): Promise<any[]> {
+    return Array.from(this.supportTickets.values())
+      .filter(ticket => ticket.userId === userId);
+  }
+
+  async createSupportTicket(ticketData: any): Promise<any> {
+    const id = Date.now();
+    const ticket = { id, ...ticketData, createdAt: new Date() };
+    this.supportTickets.set(id, ticket);
+    return ticket;
+  }
+  
+  // Dispute operations - stubs for memory storage
+  async createDispute(disputeData: any): Promise<any> {
+    return { id: Date.now(), ...disputeData, createdAt: new Date() };
+  }
+  
+  async getDisputesByUserId(userId: number): Promise<any[]> {
+    return [];
+  }
+  
+  async getDispute(id: number): Promise<any> {
+    return null;
+  }
+  
+  async updateDispute(id: number, data: any): Promise<any> {
+    return null;
+  }
+  
+  // Refund operations - stubs for memory storage
+  async createRefund(refundData: any): Promise<any> {
+    return { id: Date.now(), ...refundData, createdAt: new Date() };
+  }
+  
+  async getRefundsByUserId(userId: number): Promise<any[]> {
+    return [];
+  }
+  
+  async getRefund(id: number): Promise<any> {
+    return null;
+  }
+  
+  async updateRefund(id: number, data: any): Promise<any> {
+    return null;
+  }
+  
+  // Feedback operations - stubs for memory storage
+  async createFeedback(feedbackData: any): Promise<any> {
+    return { id: Date.now(), ...feedbackData, createdAt: new Date() };
+  }
+  
+  async getFeedbackByUserId(userId: number): Promise<any[]> {
+    return [];
+  }
+  
+  async getAllFeedback(): Promise<any[]> {
+    return [];
+  }
+  
+  async updateFeedback(id: number, data: any): Promise<any> {
+    return null;
   }
 }
 

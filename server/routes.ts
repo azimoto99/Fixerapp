@@ -10,6 +10,7 @@ import { applySecurity, sanitizeInput, validateSqlInput, validatePasswordStrengt
 import { sqlInjectionProtection, secureValidationSchemas, handleValidationErrors, sanitizeSqlInput, protectedDbQuery } from './sql-injection-protection';
 import { validators, sanitizeRequest, enhancedAdminAuth } from './secure-endpoints';
 import { registerAdminRoutes } from './admin-routes';
+import { registerSupportRoutes } from './routes/support';
 import { body, param, query, validationResult } from 'express-validator';
 import xss from 'xss';
 import { z } from "zod";
@@ -421,6 +422,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // Register the admin API routes
   registerAdminRoutes(app);
+
+  // Register the user-facing support API routes
+  registerSupportRoutes(app);
 
   // Register enterprise API routes using dedicated router
   try {
