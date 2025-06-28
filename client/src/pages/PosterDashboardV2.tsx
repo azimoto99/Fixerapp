@@ -62,6 +62,18 @@ interface PosterStats {
   hiredWorkers: number;
 }
 
+// Default stats to prevent undefined access
+const defaultStats: PosterStats = {
+  totalJobs: 0,
+  activeJobs: 0,
+  completedJobs: 0,
+  totalSpent: 0,
+  pendingApplications: 0,
+  averageRating: 0,
+  totalApplications: 0,
+  hiredWorkers: 0,
+};
+
 interface Application {
   id: number;
   jobId: number;
@@ -89,31 +101,8 @@ export default function PosterDashboardV2() {
   const [searchQuery, setSearchQuery] = useState('');
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
-
-  const handleRefresh = async () => {
-    setIsRefreshing(true);
-    try {
-      await Promise.all([
-        refetchJobs(),
-        refetchApplications()
-      ]);
-      toast({
-        title: 'Data Refreshed',
-        description: 'Your dashboard data has been updated.',
-      });
-    } catch (error) {
-      toast({
-        title: 'Refresh Failed',
-        description: 'Failed to refresh data. Please try again.',
-        variant: 'destructive',
-      });
-    } finally {
-      setIsRefreshing(false);
-    }
-  };
   const [jobToDelete, setJobToDelete] = useState<Job | null>(null);
   const [isViewDialogOpen, setIsViewDialogOpen] = useState(false);
-
   const [lastUpdated, setLastUpdated] = useState<Date>(new Date());
 
   // Update last updated time when data refreshes
@@ -128,11 +117,15 @@ export default function PosterDashboardV2() {
   const [showNotification, setShowNotification] = useState(false);
 
   useEffect(() => {
-    if (applications.length > lastApplicationCount && lastApplicationCount > 0) {
+    const currentApplicationCount = applications?.length || 0;
+    const previousCount = lastApplicationCount || 0;
+    
+    if (currentApplicationCount > previousCount && previousCount > 0) {
       setShowNotification(true);
+      const newApplicationsCount = currentApplicationCount - previousCount;
       toast({
         title: 'New Application Received!',
-        description: `You have ${applications.length - lastApplicationCount} new application(s) to review.`,
+        description: `You have ${newApplicationsCount} new application(s) to review.`,
         action: (
           <Button size="sm" onClick={() => setActiveTab('applications')}>
             View
@@ -141,8 +134,8 @@ export default function PosterDashboardV2() {
       });
       setTimeout(() => setShowNotification(false), 5000);
     }
-    setLastApplicationCount(applications.length);
-  }, [applications.length, lastApplicationCount]);
+    setLastApplicationCount(currentApplicationCount);
+  }, [applications?.length, lastApplicationCount, setActiveTab]);
 
   // Add keyboard shortcuts
   useEffect(() => {
@@ -187,8 +180,12 @@ export default function PosterDashboardV2() {
   } = useQuery({
     queryKey: ['/api/jobs', { posterId: user?.id }],
     queryFn: async () => {
+      if (!user?.id) {
+        throw new Error('User not authenticated');
+      }
+      
       try {
-        const response = await apiRequest('GET', `/api/jobs?posterId=${user?.id}`);
+        const response = await apiRequest('GET', `/api/jobs?posterId=${user.id}`);
         return Array.isArray(response) ? response : [];
       } catch (error) {
         console.error('Error fetching jobs:', error);
@@ -255,8 +252,35 @@ export default function PosterDashboardV2() {
     },
   });
 
-  // Calculate dashboard stats
+  const handleRefresh = async () => {
+    setIsRefreshing(true);
+    try {
+      await Promise.all([
+        refetchJobs(),
+        refetchApplications()
+      ]);
+      toast({
+        title: 'Data Refreshed',
+        description: 'Your dashboard data has been updated.',
+      });
+    } catch (error) {
+      toast({
+        title: 'Refresh Failed',
+        description: 'Failed to refresh data. Please try again.',
+        variant: 'destructive',
+      });
+    } finally {
+      setIsRefreshing(false);
+    }
+  };
+
+  // Calculate dashboard stats with safe defaults
   const stats: PosterStats = React.useMemo(() => {
+    // Return default stats if data is not available
+    if (!jobs && !applications) {
+      return defaultStats;
+    }
+    
     const jobsArray = Array.isArray(jobs) ? jobs : [];
     const applicationsArray = Array.isArray(applications) ? applications : [];
     
@@ -329,11 +353,12 @@ export default function PosterDashboardV2() {
     refetchJobs();
     setActiveTab('jobs');
     
+    const jobTitle = newOrUpdatedJob?.title || 'Untitled Job';
     toast({
       title: selectedJob ? 'Job Updated' : 'Job Posted Successfully',
       description: selectedJob 
-        ? `"${newOrUpdatedJob.title}" has been updated.`
-        : `"${newOrUpdatedJob.title}" is now live and accepting applications.`,
+        ? `"${jobTitle}" has been updated.`
+        : `"${jobTitle}" is now live and accepting applications.`,
     });
   };
 
@@ -416,15 +441,15 @@ export default function PosterDashboardV2() {
                 size="sm"
                 onClick={() => setActiveTab('applications')}
                 className="relative"
-                title={`${stats.pendingApplications} pending applications`}
+                title={`${stats?.pendingApplications || 0} pending applications`}
               >
                 <Bell className="h-4 w-4" />
-                {stats.pendingApplications > 0 && (
+                {(stats?.pendingApplications || 0) > 0 && (
                   <Badge 
                     variant="destructive" 
                     className="absolute -top-2 -right-2 h-5 w-5 rounded-full p-0 flex items-center justify-center text-xs"
                   >
-                    {stats.pendingApplications > 9 ? '9+' : stats.pendingApplications}
+                    {(stats?.pendingApplications || 0) > 9 ? '9+' : (stats?.pendingApplications || 0)}
                   </Badge>
                 )}
               </Button>
@@ -466,17 +491,17 @@ export default function PosterDashboardV2() {
             <TabsTrigger value="overview">Overview</TabsTrigger>
             <TabsTrigger value="jobs">
               My Jobs
-              {stats.activeJobs > 0 && (
+              {(stats?.activeJobs || 0) > 0 && (
                 <Badge variant="secondary" className="ml-2">
-                  {stats.activeJobs}
+                  {stats?.activeJobs || 0}
                 </Badge>
               )}
             </TabsTrigger>
             <TabsTrigger value="applications">
               Applications
-              {stats.pendingApplications > 0 && (
+              {(stats?.pendingApplications || 0) > 0 && (
                 <Badge variant="default" className="ml-2">
-                  {stats.pendingApplications}
+                  {stats?.pendingApplications || 0}
                 </Badge>
               )}
             </TabsTrigger>
@@ -496,7 +521,7 @@ export default function PosterDashboardV2() {
               </Alert>
             )}
 
-            {stats.totalJobs === 0 && !jobsLoading ? (
+            {(stats?.totalJobs || 0) === 0 && !jobsLoading ? (
               <Alert>
                 <Star className="h-4 w-4" />
                 <AlertDescription>
@@ -508,7 +533,7 @@ export default function PosterDashboardV2() {
               <Alert>
                 <CheckCircle className="h-4 w-4" />
                 <AlertDescription>
-                  Welcome back! You have {stats.activeJobs} active jobs and {stats.pendingApplications} pending applications to review.
+                  Welcome back! You have {stats?.activeJobs || 0} active jobs and {stats?.pendingApplications || 0} pending applications to review.
                 </AlertDescription>
               </Alert>
             )}
@@ -524,9 +549,9 @@ export default function PosterDashboardV2() {
                     <div className="h-8 w-16 bg-muted animate-pulse rounded" />
                   ) : (
                     <>
-                      <div className="text-2xl font-bold">{stats.totalJobs}</div>
+                      <div className="text-2xl font-bold">{stats?.totalJobs || 0}</div>
                       <p className="text-xs text-muted-foreground">
-                        {stats.activeJobs} currently active
+                        {stats?.activeJobs || 0} currently active
                       </p>
                     </>
                   )}
@@ -543,9 +568,9 @@ export default function PosterDashboardV2() {
                     <div className="h-8 w-16 bg-muted animate-pulse rounded" />
                   ) : (
                     <>
-                      <div className="text-2xl font-bold">{stats.totalApplications}</div>
+                      <div className="text-2xl font-bold">{stats?.totalApplications || 0}</div>
                       <p className="text-xs text-muted-foreground">
-                        {stats.pendingApplications} pending review
+                        {stats?.pendingApplications || 0} pending review
                       </p>
                     </>
                   )}
@@ -562,9 +587,9 @@ export default function PosterDashboardV2() {
                     <div className="h-8 w-20 bg-muted animate-pulse rounded" />
                   ) : (
                     <>
-                      <div className="text-2xl font-bold">${stats.totalSpent.toLocaleString()}</div>
+                      <div className="text-2xl font-bold">${(stats?.totalSpent || 0).toLocaleString()}</div>
                       <p className="text-xs text-muted-foreground">
-                        Across {stats.completedJobs} completed jobs
+                        Across {stats?.completedJobs || 0} completed jobs
                       </p>
                     </>
                   )}
@@ -582,11 +607,11 @@ export default function PosterDashboardV2() {
                   ) : (
                     <>
                       <div className="text-2xl font-bold flex items-center gap-1">
-                        {stats.averageRating}
+                        {stats?.averageRating || 0}
                         <Star className="h-4 w-4 fill-yellow-400 text-yellow-400" />
                       </div>
                       <p className="text-xs text-muted-foreground">
-                        From {stats.hiredWorkers} hired workers
+                        From {stats?.hiredWorkers || 0} hired workers
                       </p>
                     </>
                   )}
@@ -704,7 +729,7 @@ export default function PosterDashboardV2() {
                           className="w-full" 
                           onClick={() => setActiveTab('applications')}
                         >
-                          View All Applications ({stats.pendingApplications})
+                          View All Applications ({(stats?.pendingApplications || 0)})
                         </Button>
                       )}
                     </div>
