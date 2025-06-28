@@ -22,7 +22,12 @@ function createSafeElement(tagName: string, styles: Record<string, string> = {},
 
 // Set the access token from Vite environment variable
 // Note: in a Vite/React app we must use import.meta.env to access env vars at build time.
-mapboxgl.accessToken = import.meta.env.VITE_MAPBOX_ACCESS_TOKEN;
+// Add safety check to prevent initialization errors
+if (typeof import.meta.env.VITE_MAPBOX_ACCESS_TOKEN === 'string' && import.meta.env.VITE_MAPBOX_ACCESS_TOKEN.length > 0) {
+  mapboxgl.accessToken = import.meta.env.VITE_MAPBOX_ACCESS_TOKEN;
+} else {
+  console.error('VITE_MAPBOX_ACCESS_TOKEN is not defined or empty. Map functionality will be disabled.');
+}
 
 
 interface MapboxMapProps {
@@ -64,6 +69,18 @@ export default function MapboxMap({
   style = { width: '100%', height: '400px' },
   className = ''
 }: MapboxMapProps) {
+  // Early return if Mapbox token is not available
+  if (!mapboxgl.accessToken) {
+    return (
+      <div style={style} className={`${className} flex items-center justify-center bg-muted`}>
+        <div className="text-center p-4">
+          <p className="text-muted-foreground">Map unavailable</p>
+          <p className="text-xs text-muted-foreground">Missing Mapbox configuration</p>
+        </div>
+      </div>
+    );
+  }
+
   const mapContainer = useRef<HTMLDivElement>(null);
   const map = useRef<mapboxgl.Map | null>(null);
   const [mapLoaded, setMapLoaded] = useState(false);
@@ -74,8 +91,16 @@ export default function MapboxMap({
   // Initialize the map
   useEffect(() => {
     if (!mapContainer.current) return;
+    
+    // Additional safety check for mapboxgl
+    if (!mapboxgl || typeof mapboxgl.Map !== 'function') {
+      console.error('Mapbox GL JS is not properly loaded');
+      return;
+    }
+    
+    try {
       // Initialize map
-    map.current = new mapboxgl.Map({
+      map.current = new mapboxgl.Map({
       container: mapContainer.current,
       style: document.documentElement.classList.contains('dark') 
         ? 'mapbox://styles/mapbox/dark-v11'  // Dark theme style
@@ -223,6 +248,11 @@ export default function MapboxMap({
         map.current = null;
       }
     };
+    
+    } catch (error) {
+      console.error('Error initializing Mapbox map:', error);
+      // Set a flag or show error state if needed
+    }
   }, []);
 
   // Track current location marker separately
