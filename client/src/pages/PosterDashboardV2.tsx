@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { useAuth } from '@/hooks/use-auth';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -275,7 +275,7 @@ export default function PosterDashboardV2() {
   };
 
   // Calculate dashboard stats with safe defaults
-  const stats: PosterStats = React.useMemo(() => {
+  const stats: PosterStats = useMemo(() => {
     // Return default stats if data is not available
     if (!jobs && !applications) {
       return defaultStats;
@@ -307,7 +307,7 @@ export default function PosterDashboardV2() {
   }, [jobs, applications]);
 
   // Filter jobs based on current filter and search
-  const filteredJobs = React.useMemo(() => {
+  const filteredJobs = useMemo(() => {
     const jobsArray = Array.isArray(jobs) ? jobs : [];
     let filtered = jobsArray;
     
