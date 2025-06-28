@@ -104,38 +104,10 @@ export default function PosterDashboardV2() {
   const [jobToDelete, setJobToDelete] = useState<Job | null>(null);
   const [isViewDialogOpen, setIsViewDialogOpen] = useState(false);
   const [lastUpdated, setLastUpdated] = useState<Date>(new Date());
-
-  // Update last updated time when data refreshes
-  useEffect(() => {
-    if (!jobsLoading && !applicationsLoading) {
-      setLastUpdated(new Date());
-    }
-  }, [jobsLoading, applicationsLoading]);
-
+  
   // Add real-time notifications for new applications
   const [lastApplicationCount, setLastApplicationCount] = useState(0);
   const [showNotification, setShowNotification] = useState(false);
-
-  useEffect(() => {
-    const currentApplicationCount = applications?.length || 0;
-    const previousCount = lastApplicationCount || 0;
-    
-    if (currentApplicationCount > previousCount && previousCount > 0) {
-      setShowNotification(true);
-      const newApplicationsCount = currentApplicationCount - previousCount;
-      toast({
-        title: 'New Application Received!',
-        description: `You have ${newApplicationsCount} new application(s) to review.`,
-        action: (
-          <Button size="sm" onClick={() => setActiveTab('applications')}>
-            View
-          </Button>
-        ),
-      });
-      setTimeout(() => setShowNotification(false), 5000);
-    }
-    setLastApplicationCount(currentApplicationCount);
-  }, [applications?.length, lastApplicationCount, setActiveTab]);
 
   // Add keyboard shortcuts
   useEffect(() => {
@@ -273,6 +245,35 @@ export default function PosterDashboardV2() {
       setIsRefreshing(false);
     }
   };
+
+  // Update last updated time when data refreshes (moved after useQuery declarations)
+  useEffect(() => {
+    if (!jobsLoading && !applicationsLoading) {
+      setLastUpdated(new Date());
+    }
+  }, [jobsLoading, applicationsLoading]);
+
+  // Real-time notifications for new applications (moved after useQuery declarations)
+  useEffect(() => {
+    const currentApplicationCount = applications?.length || 0;
+    const previousCount = lastApplicationCount || 0;
+    
+    if (currentApplicationCount > previousCount && previousCount > 0) {
+      setShowNotification(true);
+      const newApplicationsCount = currentApplicationCount - previousCount;
+      toast({
+        title: 'New Application Received!',
+        description: `You have ${newApplicationsCount} new application(s) to review.`,
+        action: (
+          <Button size="sm" onClick={() => setActiveTab('applications')}>
+            View
+          </Button>
+        ),
+      });
+      setTimeout(() => setShowNotification(false), 5000);
+    }
+    setLastApplicationCount(currentApplicationCount);
+  }, [applications?.length, lastApplicationCount, setActiveTab]);
 
   // Calculate dashboard stats with safe defaults
   const stats: PosterStats = useMemo(() => {
