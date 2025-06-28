@@ -182,16 +182,21 @@ export default function MapboxMap({
         setCurrentZoom(map.current.getZoom());
       }
     });
-      // Theme change observer
-    const darkModeObserver = new MutationObserver((mutations) => {
-      mutations.forEach((mutation) => {
-        if (mutation.attributeName === 'class' && map.current) {
+      // Theme change observer - safely handle mutations
+    const darkModeObserver = new MutationObserver((mutationsList) => {
+      // Safely iterate through mutations
+      if (!mutationsList || !Array.isArray(mutationsList)) return;
+      
+      for (let i = 0; i < mutationsList.length; i++) {
+        const mutation = mutationsList[i];
+        if (mutation && mutation.attributeName === 'class' && map.current) {
           const isDark = document.documentElement.classList.contains('dark');
           map.current.setStyle(
             isDark ? 'mapbox://styles/mapbox/navigation-night-v1' : 'mapbox://styles/mapbox/streets-v12'
           );
+          break; // Only need to update once
         }
-      });
+      }
     });
 
     darkModeObserver.observe(document.documentElement, {
@@ -207,6 +212,12 @@ export default function MapboxMap({
     
     // Clean up on unmount
     return () => {
+      // Clean up MutationObserver
+      if (darkModeObserver) {
+        darkModeObserver.disconnect();
+      }
+      
+      // Clean up map
       if (map.current) {
         map.current.remove();
         map.current = null;
