@@ -1,5 +1,5 @@
 import { db } from './db';
-import { users, jobs } from '@shared/schema';
+import { users, jobs, platformSettings } from '@shared/schema';
 import { scrypt, randomBytes } from "crypto";
 import { promisify } from "util";
 import { seedPlatformSettings } from './seed-platform-settings';
@@ -16,11 +16,22 @@ async function seedDatabase() {
   console.log('Seeding database...');
   
   try {
-    // Check if we already have users
-    const existingUsers = await db.select({ id: users.id }).from(users);
+    // Check if we already have users and platform settings
+    const [existingUsers, existingSettings] = await Promise.all([
+      db.select({ id: users.id }).from(users),
+      db.select({ key: platformSettings.key }).from(platformSettings)
+    ]);
     
-    if (existingUsers.length > 0) {
+    if (existingUsers.length > 0 && existingSettings.length > 0) {
       console.log('Database already has data, skipping seed');
+      return;
+    }
+    
+    // If we have users but no platform settings, only seed platform settings
+    if (existingUsers.length > 0 && existingSettings.length === 0) {
+      console.log('Seeding only platform settings...');
+      await seedPlatformSettings();
+      console.log('Platform settings seeded successfully');
       return;
     }
   } catch (error) {
@@ -128,8 +139,7 @@ async function seedDatabase() {
   console.log('Database seeded successfully');
 }
 
-// Only run seed in development environment
-if (process.env.NODE_ENV === 'development') {
-  // Temporarily enable seeding for testing purposes
+// Only run seed in development environment OR if explicitly enabled
+if (process.env.NODE_ENV === 'development' || process.env.ENABLE_SEEDING === 'true') {
   seedDatabase().catch(console.error);
 }

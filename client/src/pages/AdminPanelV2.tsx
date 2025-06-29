@@ -10,6 +10,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Switch } from "@/components/ui/switch";
 import { 
   RefreshCw, 
   ChevronLeft, 
@@ -72,6 +73,10 @@ interface SupportTicket {
   userEmail?: string;
   priority: string;
   status: string;
+  description?: string;
+  createdAt?: string;
+  category?: string;
+  jobId?: number;
 }
 
 interface Payment {
@@ -167,17 +172,24 @@ function PlatformSettingsManager() {
   const fetchSettings = useCallback(async () => {
     try {
       setIsLoading(true);
+      console.log('Fetching platform settings...'); // Debug log
+      
       const response = await apiRequest('GET', '/api/admin/settings/platform');
       const data = await response.json();
+      console.log('Fetched settings data:', data); // Debug log
+      
       const fetchedSettings = data.settings || {};
       
       // Merge with defaults to ensure all settings exist
-      setSettings({ ...defaultSettings, ...fetchedSettings });
+      const mergedSettings = { ...defaultSettings, ...fetchedSettings };
+      console.log('Merged settings:', mergedSettings); // Debug log
+      
+      setSettings(mergedSettings);
     } catch (error) {
       console.error('Failed to fetch settings:', error);
       toast({
         title: "Error",
-        description: "Failed to load platform settings",
+        description: `Failed to load platform settings: ${error.message}`,
         variant: "destructive"
       });
       setSettings(defaultSettings);
@@ -190,27 +202,36 @@ function PlatformSettingsManager() {
   const saveSettings = useCallback(async () => {
     try {
       setIsSaving(true);
+      console.log('Saving settings:', settings); // Debug log
+      
       const response = await apiRequest('PUT', '/api/admin/settings/platform', { settings });
       
       if (response.ok) {
+        const result = await response.json();
+        console.log('Settings saved successfully:', result); // Debug log
+        
         toast({
           title: "Success",
           description: "Platform settings updated successfully"
         });
+        
+        // Refresh settings from server to ensure consistency
+        await fetchSettings();
       } else {
-        throw new Error('Failed to save settings');
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.message || 'Failed to save settings');
       }
     } catch (error) {
       console.error('Failed to save settings:', error);
       toast({
         title: "Error",
-        description: "Failed to save platform settings",
+        description: `Failed to save platform settings: ${error.message}`,
         variant: "destructive"
       });
     } finally {
       setIsSaving(false);
     }
-  }, [settings, toast]);
+  }, [settings, toast, fetchSettings]);
 
   // Update individual setting
   const updateSetting = useCallback((key: string, value: any) => {
@@ -284,13 +305,10 @@ function PlatformSettingsManager() {
               <Label>Maintenance Mode</Label>
               <p className="text-sm text-muted-foreground">Temporarily disable platform access</p>
             </div>
-            <Button 
-              variant={settings.maintenanceMode ? "destructive" : "outline"} 
-              size="sm"
-              onClick={() => updateSetting('maintenanceMode', !settings.maintenanceMode)}
-            >
-              {settings.maintenanceMode ? 'Enabled' : 'Disabled'}
-            </Button>
+            <Switch
+              checked={settings.maintenanceMode || false}
+              onCheckedChange={(checked) => updateSetting('maintenanceMode', checked)}
+            />
           </div>
 
           <div className="flex items-center justify-between">
@@ -298,13 +316,10 @@ function PlatformSettingsManager() {
               <Label>User Registration</Label>
               <p className="text-sm text-muted-foreground">Allow new user registrations</p>
             </div>
-            <Button 
-              variant={settings.registrationEnabled ? "default" : "outline"} 
-              size="sm"
-              onClick={() => updateSetting('registrationEnabled', !settings.registrationEnabled)}
-            >
-              {settings.registrationEnabled ? 'Enabled' : 'Disabled'}
-            </Button>
+            <Switch
+              checked={settings.registrationEnabled || false}
+              onCheckedChange={(checked) => updateSetting('registrationEnabled', checked)}
+            />
           </div>
         </div>
       </div>
@@ -366,13 +381,10 @@ function PlatformSettingsManager() {
               <Label>Email Verification Required</Label>
               <p className="text-sm text-muted-foreground">Require email verification for new accounts</p>
             </div>
-            <Button 
-              variant={settings.requireEmailVerification ? "default" : "outline"} 
-              size="sm"
-              onClick={() => updateSetting('requireEmailVerification', !settings.requireEmailVerification)}
-            >
-              {settings.requireEmailVerification ? 'Required' : 'Optional'}
-            </Button>
+            <Switch
+              checked={settings.requireEmailVerification || false}
+              onCheckedChange={(checked) => updateSetting('requireEmailVerification', checked)}
+            />
           </div>
           
           <div className="flex items-center justify-between">
@@ -380,13 +392,10 @@ function PlatformSettingsManager() {
               <Label>Two-Factor Authentication</Label>
               <p className="text-sm text-muted-foreground">Require 2FA for admin accounts</p>
             </div>
-            <Button 
-              variant={settings.require2FA ? "default" : "outline"} 
-              size="sm"
-              onClick={() => updateSetting('require2FA', !settings.require2FA)}
-            >
-              {settings.require2FA ? 'Required' : 'Optional'}
-            </Button>
+            <Switch
+              checked={settings.require2FA || false}
+              onCheckedChange={(checked) => updateSetting('require2FA', checked)}
+            />
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -944,8 +953,11 @@ export default function AdminPanelV2() {
   });
 
   const { mutate: sendTicketResponseMutation } = useMutation({
-    mutationFn: ({ ticketId, response, status }: { ticketId: number, response: string, status?: string }) => {
-      return apiRequest('POST', `/api/admin/support-tickets/${ticketId}/respond`, { response, status });
+    mutationFn: async ({ ticketId, response, status }: { ticketId: number, response: string, status?: string }) => {
+      console.log('Sending ticket response:', { ticketId, response, status });
+      const result = await apiRequest('POST', `/api/admin/support-tickets/${ticketId}/respond`, { response, status });
+      console.log('Ticket response sent:', result);
+      return result;
     },
     onSuccess: () => {
       toast({ title: "Success", description: "Response sent successfully." });
@@ -954,19 +966,24 @@ export default function AdminPanelV2() {
       setTicketResponse("");
     },
     onError: (error: Error) => {
+      console.error('Failed to send ticket response:', error);
       toast({ title: "Error", description: `Failed to send response: ${error.message}`, variant: 'destructive' });
     }
   });
 
   const { mutate: updateTicketStatusMutation } = useMutation({
-    mutationFn: ({ ticketId, status, priority }: { ticketId: number, status?: string, priority?: string }) => {
-      return apiRequest('PATCH', `/api/admin/support-tickets/${ticketId}`, { status, priority });
+    mutationFn: async ({ ticketId, status, priority }: { ticketId: number, status?: string, priority?: string }) => {
+      console.log('Updating ticket status:', { ticketId, status, priority });
+      const result = await apiRequest('PATCH', `/api/admin/support-tickets/${ticketId}`, { status, priority });
+      console.log('Ticket status updated:', result);
+      return result;
     },
     onSuccess: () => {
       toast({ title: "Success", description: "Ticket updated successfully." });
       refetchSupport();
     },
     onError: (error: Error) => {
+      console.error('Failed to update ticket:', error);
       toast({ title: "Error", description: `Failed to update ticket: ${error.message}`, variant: 'destructive' });
     }
   });
@@ -1931,12 +1948,27 @@ export default function AdminPanelV2() {
                           <div>
                               <p><strong>Title:</strong> {selectedTicket.title}</p>
                               <p><strong>User:</strong> {selectedTicket.userName || selectedTicket.userEmail}</p>
+                              {selectedTicket.createdAt && (
+                                <p><strong>Created:</strong> {new Date(selectedTicket.createdAt).toLocaleString()}</p>
+                              )}
                           </div>
                           <div>
                               <p><strong>Priority:</strong> <Badge className={getPriorityColor(selectedTicket.priority)}>{selectedTicket.priority}</Badge></p>
                               <p><strong>Status:</strong> <Badge className={getStatusColor(selectedTicket.status)}>{selectedTicket.status}</Badge></p>
+                              {selectedTicket.category && (
+                                <p><strong>Category:</strong> {selectedTicket.category}</p>
+                              )}
                           </div>
                       </div>
+                      
+                      {selectedTicket.description && (
+                        <div>
+                          <Label>Customer Message</Label>
+                          <div className="bg-muted p-3 rounded-md">
+                            <p className="text-sm">{selectedTicket.description}</p>
+                          </div>
+                        </div>
+                      )}
                       
                       <div>
                           <Label htmlFor="ticketResponse">Admin Response</Label>
@@ -1970,6 +2002,16 @@ export default function AdminPanelV2() {
                           </div>
                           <div className="flex gap-2">
                               <Button variant="outline" onClick={() => setIsTicketDialogOpen(false)}>Cancel</Button>
+                              <Button 
+                                variant="outline" 
+                                onClick={() => sendTicketResponseMutation({ 
+                                  ticketId: selectedTicket.id, 
+                                  response: ticketResponse 
+                                })} 
+                                disabled={!ticketResponse.trim()}
+                              >
+                                  Send Response
+                              </Button>
                               <Button onClick={handleSendTicketResponse} disabled={!ticketResponse.trim()}>
                                   Send Response & Resolve
                               </Button>

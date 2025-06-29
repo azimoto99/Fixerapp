@@ -28,7 +28,8 @@ const healthRoutes = {
 };
 
 export function registerAdminRoutes(app: Express) {
-  // Apply security headers to all admin routes  app.use('/api/admin/*', adminSecurityHeaders);
+  // Apply security headers to all admin routes
+  app.use('/api/admin/*', adminSecurityHeaders);
   app.use('/api/admin/*', adminRateLimit);
   app.use('/api/admin/*', validateAdminInput);
 
