@@ -234,7 +234,7 @@ router.get('/worker', requireAuth, async (req, res) => {
       .from(applications)
       .where(and(
         eq(applications.workerId, userId),
-        gte(applications.createdAt, startDate)
+        gte(applications.dateApplied, startDate)
       ));
 
     // Get accepted applications and their jobs
