@@ -47,7 +47,7 @@ export default function AccountTypeSwitcher({ className = '' }: AccountTypeSwitc
     },
     poster: {
       icon: BriefcaseIcon,
-      label: 'Job Poster',
+      label: 'Fixer',
       description: 'Post jobs and hire workers',
       color: 'bg-green-500'
     },

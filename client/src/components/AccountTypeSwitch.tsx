@@ -49,7 +49,7 @@ const AccountTypeSwitch = () => {
           onClick={handlePosterClick}
         >
           <i className="ri-briefcase-line mr-2"></i>
-          Job Poster Mode
+          Fixer Mode
         </Button>
       </div>
     </div>

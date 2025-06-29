@@ -157,7 +157,7 @@ const WorkerDashboard = () => {
   );
 };
 
-// Job Poster Dashboard Component
+// Fixer Dashboard Component
 const PosterDashboard = () => {
   const { jobs, isLoading } = useJobs({ poster: true });
   const [isJobDrawerOpen, setIsJobDrawerOpen] = useState(false);

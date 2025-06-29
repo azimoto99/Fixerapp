@@ -119,7 +119,7 @@ function RouterWithAuth() {
       <ProtectedRoute path="/stripe-connect/onboarding" component={StripeConnectOnboarding} />
       {/* Enterprise Dashboard - Only accessible to business accounts */}
       <AccountTypeRoute path="/enterprise-dashboard" component={EnterpriseDashboard} allowedType="enterprise" />
-      {/* Poster Dashboard - Only accessible to poster accounts */}
+      {/* Fixer Dashboard - Only accessible to fixer accounts */}
       <AccountTypeRoute path="/poster-dashboard" component={PosterDashboardV2} allowedType="poster" />
       <Route path="/auth" component={AuthPage} />
       <Route path="/business-register" component={BusinessRegister} />

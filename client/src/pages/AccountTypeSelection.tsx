@@ -171,7 +171,7 @@ export default function AccountTypeSelection() {
             <CardHeader className="space-y-1 bg-muted/50">
               <CardTitle className="text-2xl flex items-center space-x-2">
                 <BriefcaseIcon className="h-6 w-6 text-primary" />
-                <span>Job Poster Account</span>
+                <span>Fixer Account</span>
               </CardTitle>
               <CardDescription>
                 Post jobs and hire skilled workers
@@ -251,7 +251,7 @@ export default function AccountTypeSelection() {
                 className="w-full h-12 text-md"
                 onClick={() => handleAccountTypeSelection('poster')}
               >
-                {isPending ? 'Processing...' : 'Continue as Job Poster'}
+                {isPending ? 'Processing...' : 'Continue as Fixer'}
               </Button>
             </CardFooter>
           </Card>

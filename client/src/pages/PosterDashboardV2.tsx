@@ -410,7 +410,7 @@ export default function PosterDashboardV2() {
               <div>
                 <h1 className="text-2xl font-bold flex items-center gap-2">
                   <Briefcase className="h-6 w-6" />
-                  Job Poster Dashboard
+                  Fixer Dashboard
                 </h1>
                 <div className="flex items-center gap-4">
                   <p className="text-muted-foreground">

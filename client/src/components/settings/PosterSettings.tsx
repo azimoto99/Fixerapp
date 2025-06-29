@@ -64,7 +64,7 @@ export default function PosterSettings() {
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Poster Settings</CardTitle>
+        <CardTitle>Fixer Settings</CardTitle>
         <CardDescription>Manage your job posting and application preferences.</CardDescription>
       </CardHeader>
       <CardContent className="space-y-6">
