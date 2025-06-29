@@ -2,6 +2,7 @@ import { db } from './db';
 import { users, jobs } from '@shared/schema';
 import { scrypt, randomBytes } from "crypto";
 import { promisify } from "util";
+import { seedPlatformSettings } from './seed-platform-settings';
 
 const scryptAsync = promisify(scrypt);
 
@@ -120,6 +121,9 @@ async function seedDatabase() {
     requiredSkills: ['Driving'],
     equipmentProvided: false
   });
+  
+  // Seed platform settings
+  await seedPlatformSettings();
   
   console.log('Database seeded successfully');
 }

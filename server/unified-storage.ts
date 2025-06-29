@@ -1369,14 +1369,8 @@ export class UnifiedStorage implements IStorage {
       const settings: Record<string, any> = {};
       
       for (const setting of result) {
-        try {
-          // Try to parse JSON values, fallback to string
-          settings[setting.key] = typeof setting.value === 'string' 
-            ? JSON.parse(setting.value) 
-            : setting.value;
-        } catch {
-          settings[setting.key] = setting.value;
-        }
+        // Drizzle automatically handles JSONB parsing
+        settings[setting.key] = setting.value;
       }
       
       return Object.keys(settings).length > 0 ? settings : undefined;
@@ -1391,7 +1385,7 @@ export class UnifiedStorage implements IStorage {
       // Insert new settings
       const insertData = Object.entries(settings).map(([key, value]) => ({
         key,
-        value: typeof value === 'object' ? JSON.stringify(value) : String(value),
+        value: value, // Let Drizzle handle JSONB serialization
         updatedAt: new Date()
       }));
       

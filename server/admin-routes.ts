@@ -12,6 +12,7 @@ import { financialService } from "./financial-service";
 import { contentModerationService } from "./content-moderation";
 import { analyticsService } from "./analytics-service";
 import { systemMonitor } from "./system-monitor";
+import { sendEmail } from "./utils/email";
 
 // Utility function to safely get authenticated user ID
 function getAuthenticatedUserId(req: Request): number {
@@ -505,6 +506,12 @@ export function registerAdminRoutes(app: Express) {
       const ticketId = parseInt(req.params.ticketId);
       const { response, status } = req.body;
       
+      // Get the original ticket first to access user info
+      const originalTicket = await storage.getSupportTicketById(ticketId);
+      if (!originalTicket) {
+        return res.status(404).json({ message: "Support ticket not found" });
+      }
+      
       // Update the ticket with the response and new status
       const updateData: any = {
         status: status || "resolved"
@@ -519,6 +526,59 @@ export function registerAdminRoutes(app: Express) {
       
       if (!updatedTicket) {
         return res.status(404).json({ message: "Support ticket not found" });
+      }
+      
+      // Send email notification to user
+      try {
+        const adminUser = await storage.getUser(req.user?.id);
+        const adminName = adminUser?.fullName || adminUser?.username || 'Support Team';
+        
+        await sendEmail(
+          originalTicket.userEmail,
+          `Response to Support Ticket #${ticketId}: ${originalTicket.title}`,
+          `
+          <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+            <div style="background: #f8f9fa; padding: 20px; border-radius: 8px; margin-bottom: 20px;">
+              <h2 style="color: #333; margin: 0;">Support Ticket Update</h2>
+            </div>
+            
+            <div style="padding: 20px;">
+              <p>Hi ${originalTicket.userName},</p>
+              
+              <p>You've received a response to your support ticket:</p>
+              
+              <div style="background: #e9ecef; padding: 15px; border-radius: 6px; margin: 20px 0;">
+                <strong>Ticket #${ticketId}:</strong> ${originalTicket.title}
+              </div>
+              
+              <div style="background: #f8f9fa; padding: 15px; border-radius: 6px; border-left: 4px solid #007bff;">
+                <strong>Response from ${adminName}:</strong><br><br>
+                ${response.replace(/\n/g, '<br>')}
+              </div>
+              
+              ${status ? `
+                <div style="background: #d4edda; padding: 10px; border-radius: 6px; margin: 15px 0; border-left: 4px solid #28a745;">
+                  <strong>Status Updated:</strong> ${status.charAt(0).toUpperCase() + status.slice(1)}
+                </div>
+              ` : ''}
+              
+              <p style="margin-top: 30px;">
+                To reply or view the full conversation, please log into your Fixer account and visit the support section.
+              </p>
+              
+              <p>Best regards,<br>The Fixer Support Team</p>
+            </div>
+            
+            <div style="background: #6c757d; color: white; padding: 15px; text-align: center; font-size: 12px;">
+              This is an automated notification from Fixer Support System
+            </div>
+          </div>
+          `
+        );
+        console.log(`✓ Support ticket response email sent to ${originalTicket.userEmail} for ticket #${ticketId}`);
+      } catch (emailError) {
+        console.error('Failed to send support ticket response email:', emailError);
+        // Don't fail the request if email fails
       }
       
       res.json({ 
@@ -689,6 +749,64 @@ export function registerAdminRoutes(app: Express) {
         });
       }
 
+      // Send email notification to user if this is not an internal message
+      if (!isInternal) {
+        try {
+          const ticket = await storage.getSupportTicketById(ticketId);
+          if (ticket) {
+            const adminUser = await storage.getUser(req.user?.id);
+            const adminName = adminUser?.fullName || adminUser?.username || 'Support Team';
+            
+            await sendEmail(
+              ticket.userEmail,
+              `New Message on Support Ticket #${ticketId}: ${ticket.title}`,
+              `
+              <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+                <div style="background: #f8f9fa; padding: 20px; border-radius: 8px; margin-bottom: 20px;">
+                  <h2 style="color: #333; margin: 0;">New Support Message</h2>
+                </div>
+                
+                <div style="padding: 20px;">
+                  <p>Hi ${ticket.userName},</p>
+                  
+                  <p>You've received a new message on your support ticket:</p>
+                  
+                  <div style="background: #e9ecef; padding: 15px; border-radius: 6px; margin: 20px 0;">
+                    <strong>Ticket #${ticketId}:</strong> ${ticket.title}
+                  </div>
+                  
+                  <div style="background: #f8f9fa; padding: 15px; border-radius: 6px; border-left: 4px solid #007bff;">
+                    <strong>Message from ${adminName}:</strong><br><br>
+                    ${message.replace(/\n/g, '<br>')}
+                  </div>
+                  
+                  ${attachmentUrl ? `
+                    <div style="background: #fff3cd; padding: 10px; border-radius: 6px; margin: 15px 0; border-left: 4px solid #ffc107;">
+                      <strong>Attachment:</strong> <a href="${attachmentUrl}" style="color: #007bff;">View Attachment</a>
+                    </div>
+                  ` : ''}
+                  
+                  <p style="margin-top: 30px;">
+                    To reply or view the full conversation, please log into your Fixer account and visit the support section.
+                  </p>
+                  
+                  <p>Best regards,<br>The Fixer Support Team</p>
+                </div>
+                
+                <div style="background: #6c757d; color: white; padding: 15px; text-align: center; font-size: 12px;">
+                  This is an automated notification from Fixer Support System
+                </div>
+              </div>
+              `
+            );
+            console.log(`✓ Support ticket message email sent to ${ticket.userEmail} for ticket #${ticketId}`);
+          }
+        } catch (emailError) {
+          console.error('Failed to send support ticket message email:', emailError);
+          // Don't fail the request if email fails
+        }
+      }
+
       res.json({
         message: "Message sent successfully",
         ticketMessage: newMessage
@@ -704,10 +822,63 @@ export function registerAdminRoutes(app: Express) {
       const ticketId = parseInt(req.params.ticketId);
       const { adminId } = req.body;
 
+      // Get the original ticket first to access user info
+      const originalTicket = await storage.getSupportTicketById(ticketId);
+      if (!originalTicket) {
+        return res.status(404).json({ message: "Support ticket not found" });
+      }
+
       const updatedTicket = await storage.assignSupportTicket(ticketId, adminId || req.user?.id);
       
       if (!updatedTicket) {
         return res.status(404).json({ message: "Support ticket not found" });
+      }
+
+      // Send email notification to user about assignment
+      try {
+        const assignedAdminUser = await storage.getUser(adminId || req.user?.id);
+        const adminName = assignedAdminUser?.fullName || assignedAdminUser?.username || 'Support Team';
+        
+        await sendEmail(
+          originalTicket.userEmail,
+          `Support Ticket #${ticketId} Assigned: ${originalTicket.title}`,
+          `
+          <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+            <div style="background: #f8f9fa; padding: 20px; border-radius: 8px; margin-bottom: 20px;">
+              <h2 style="color: #333; margin: 0;">Support Ticket Assignment</h2>
+            </div>
+            
+            <div style="padding: 20px;">
+              <p>Hi ${originalTicket.userName},</p>
+              
+              <p>Your support ticket has been assigned to our support team:</p>
+              
+              <div style="background: #e9ecef; padding: 15px; border-radius: 6px; margin: 20px 0;">
+                <strong>Ticket #${ticketId}:</strong> ${originalTicket.title}
+              </div>
+              
+              <div style="background: #d4edda; padding: 15px; border-radius: 6px; border-left: 4px solid #28a745;">
+                <strong>Assigned to:</strong> ${adminName}<br>
+                <small>Your ticket is now being actively reviewed and you should receive a response soon.</small>
+              </div>
+              
+              <p style="margin-top: 30px;">
+                To view your ticket or add additional information, please log into your Fixer account and visit the support section.
+              </p>
+              
+              <p>Best regards,<br>The Fixer Support Team</p>
+            </div>
+            
+            <div style="background: #6c757d; color: white; padding: 15px; text-align: center; font-size: 12px;">
+              This is an automated notification from Fixer Support System
+            </div>
+          </div>
+          `
+        );
+        console.log(`✓ Support ticket assignment email sent to ${originalTicket.userEmail} for ticket #${ticketId}`);
+      } catch (emailError) {
+        console.error('Failed to send support ticket assignment email:', emailError);
+        // Don't fail the request if email fails
       }
 
       res.json({

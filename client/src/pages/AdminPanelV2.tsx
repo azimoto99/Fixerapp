@@ -167,8 +167,9 @@ function PlatformSettingsManager() {
   const fetchSettings = useCallback(async () => {
     try {
       setIsLoading(true);
-      const response = await apiRequest('/admin/settings/platform');
-      const fetchedSettings = response.settings || {};
+      const response = await apiRequest('GET', '/api/admin/settings/platform');
+      const data = await response.json();
+      const fetchedSettings = data.settings || {};
       
       // Merge with defaults to ensure all settings exist
       setSettings({ ...defaultSettings, ...fetchedSettings });
@@ -189,15 +190,16 @@ function PlatformSettingsManager() {
   const saveSettings = useCallback(async () => {
     try {
       setIsSaving(true);
-      await apiRequest('/admin/settings/platform', {
-        method: 'PUT',
-        body: JSON.stringify({ settings })
-      });
+      const response = await apiRequest('PUT', '/api/admin/settings/platform', { settings });
       
-      toast({
-        title: "Success",
-        description: "Platform settings updated successfully"
-      });
+      if (response.ok) {
+        toast({
+          title: "Success",
+          description: "Platform settings updated successfully"
+        });
+      } else {
+        throw new Error('Failed to save settings');
+      }
     } catch (error) {
       console.error('Failed to save settings:', error);
       toast({
