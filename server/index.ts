@@ -81,6 +81,12 @@ if (pool) {
 // Initialize authentication first
 setupAuth(app);
 
+// Import RLS middleware
+import { setRLSContext } from './middleware/rls-context';
+
+// Apply RLS context middleware to all API routes
+app.use('/api', setRLSContext);
+
 // Security middleware
 app.use(helmet({
   contentSecurityPolicy: {
