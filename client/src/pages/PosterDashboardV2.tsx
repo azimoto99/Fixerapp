@@ -300,7 +300,7 @@ export default function PosterDashboardV2() {
     const totalApplications = applicationsArray.length;
     const hiredWorkers = applicationsArray.filter((app: Application) => app.status === 'accepted').length;
     
-    const averageRating = 4.2;
+    const averageRating = user?.rating || 0;
 
     return {
       totalJobs,

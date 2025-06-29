@@ -376,13 +376,41 @@ export async function getBusinessStats(req: Request, res: Response) {
       )
     );
 
+    // Calculate average time to hire
+    let averageTimeToHire = 0;
+    try {
+      const acceptedApplications = await db.select({
+        dateApplied: enterpriseApplications.createdAt,
+        dateAccepted: enterpriseApplications.updatedAt
+      })
+      .from(enterpriseApplications)
+      .where(
+        and(
+          eq(enterpriseApplications.enterpriseId, business.id),
+          eq(enterpriseApplications.status, 'accepted')
+        )
+      );
+
+      if (acceptedApplications.length > 0) {
+        const totalDays = acceptedApplications.reduce((sum, app) => {
+          const applied = new Date(app.dateApplied);
+          const accepted = new Date(app.dateAccepted);
+          const diffDays = Math.ceil((accepted.getTime() - applied.getTime()) / (1000 * 60 * 60 * 24));
+          return sum + diffDays;
+        }, 0);
+        averageTimeToHire = Math.round(totalDays / acceptedApplications.length);
+      }
+    } catch (error) {
+      console.error('Error calculating average time to hire:', error);
+    }
+
     res.json({
       totalPositions: positionStats.total,
       activePositions: positionStats.active,
       totalApplications: applicationStats.total,
       pendingApplications: applicationStats.pending,
       hiredThisMonth: hiredStats.count,
-      averageTimeToHire: 5, // TODO: Calculate actual average
+      averageTimeToHire: averageTimeToHire,
       totalHubPins: hubPinStats.total,
       activeHubPins: hubPinStats.active
     });

@@ -1,7 +1,7 @@
 import express from 'express';
 import { db } from '../db.js';
-import { jobs, applications, users } from '@shared/schema';
-import { eq, and, gte, desc, count, avg, sum } from 'drizzle-orm';
+import { jobs, applications, users, earnings } from '@shared/schema';
+import { eq, and, gte, lte, desc, count, avg, sum } from 'drizzle-orm';
 import { requireAuth } from '../auth-helpers.js';
 
 const router = express.Router();
@@ -51,8 +51,17 @@ router.get('/poster', requireAuth, async (req, res) => {
       totalApplications = applicationsResult[0]?.count || 0;
     }
 
-    // Calculate average rating (mock data for now)
-    const averageRating = 4.2;
+    // Calculate average rating from reviews
+    let averageRating = null;
+    try {
+      const user = await db.select().from(users).where(eq(users.id, userId)).limit(1);
+      if (user.length > 0) {
+        averageRating = user[0].rating;
+      }
+    } catch (error) {
+      console.error('Error fetching user rating:', error);  
+      averageRating = null;
+    }
     const averageTimeToHire = 3; // days
 
     // Trends data - group by date
@@ -80,10 +89,32 @@ router.get('/poster', requireAuth, async (req, res) => {
         amount: dayJobs.reduce((sum, job) => sum + (job.paymentAmount || 0), 0)
       });
 
-      // Mock applications data
+      // Calculate real applications data for this date
+      let dayApplicationsCount = 0;
+      if (jobIds.length > 0) {
+        const dayStart = new Date(date);
+        dayStart.setHours(0, 0, 0, 0);
+        const dayEnd = new Date(date);
+        dayEnd.setHours(23, 59, 59, 999);
+        
+        try {
+          const dayApplications = await db
+            .select({ count: count() })
+            .from(applications)
+            .where(and(
+              applications.jobId.in(jobIds),
+              gte(applications.dateApplied, dayStart),
+              lte(applications.dateApplied, dayEnd)
+            ));
+          dayApplicationsCount = dayApplications[0]?.count || 0;
+        } catch (error) {
+          console.error('Error fetching day applications:', error);
+        }
+      }
+      
       applicationsData.push({
         date: date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
-        count: Math.floor(Math.random() * 10)
+        count: dayApplicationsCount
       });
     }
 
@@ -105,11 +136,47 @@ router.get('/poster', requireAuth, async (req, res) => {
       spending: data.spending
     }));
 
-    // Performance metrics (mock data)
+    // Performance metrics calculation
+    let responseRate = 0;
+    let hireRate = 0;
+    let workerRetention = 0;
+
+    if (jobIds.length > 0) {
+      try {
+        // Calculate response rate (jobs with applications / total jobs)
+        const jobsWithApplications = await db
+          .select({ jobId: applications.jobId })
+          .from(applications)
+          .where(applications.jobId.in(jobIds))
+          .groupBy(applications.jobId);
+        
+        responseRate = totalJobs > 0 ? jobsWithApplications.length / totalJobs : 0;
+
+        // Calculate hire rate (accepted applications / total applications)
+        const acceptedApplications = await db
+          .select({ count: count() })
+          .from(applications)
+          .where(and(
+            applications.jobId.in(jobIds),
+            eq(applications.status, 'accepted')
+          ));
+        
+        const acceptedCount = acceptedApplications[0]?.count || 0;
+        hireRate = totalApplications > 0 ? acceptedCount / totalApplications : 0;
+
+        // Worker retention (completion rate for hired workers)
+        if (completedJobs.length > 0) {
+          workerRetention = acceptedCount > 0 ? completedJobs.length / acceptedCount : 0;
+        }
+      } catch (error) {
+        console.error('Error calculating performance metrics:', error);
+      }
+    }
+
     const performance = {
-      responseTime: 0.85, // 85% response rate
-      hireRate: 0.65, // 65% hire rate
-      workerRetention: 0.78 // 78% retention
+      responseTime: responseRate,
+      hireRate: hireRate,
+      workerRetention: workerRetention
     };
 
     const analyticsData = {
@@ -173,30 +240,72 @@ router.get('/worker', requireAuth, async (req, res) => {
     // Get accepted applications and their jobs
     const acceptedApplications = userApplications.filter(app => app.status === 'accepted');
     
-    // Mock analytics data for worker
+    // Get worker's real rating
+    let workerAverageRating = null;
+    try {
+      const user = await db.select().from(users).where(eq(users.id, userId)).limit(1);
+      if (user.length > 0) {
+        workerAverageRating = user[0].rating;
+      }
+    } catch (error) {
+      console.error('Error fetching worker rating:', error);  
+      workerAverageRating = null;
+    }
+
+    // Get real earnings data
+    let totalEarnings = 0;
+    let completedJobsCount = 0;
+    try {
+      const workerEarnings = await db
+        .select()
+        .from(earnings)
+        .where(and(
+          eq(earnings.workerId, userId),
+          gte(earnings.dateEarned, startDate)
+        ));
+      
+      totalEarnings = workerEarnings.reduce((sum, earning) => sum + (earning.netAmount || 0), 0);
+      
+      // Get completed jobs count
+      const acceptedJobIds = acceptedApplications.map(app => app.jobId);
+      if (acceptedJobIds.length > 0) {
+        const completedJobs = await db
+          .select()
+          .from(jobs)
+          .where(and(
+            jobs.id.in(acceptedJobIds),
+            eq(jobs.status, 'completed')
+          ));
+        completedJobsCount = completedJobs.length;
+      }
+    } catch (error) {
+      console.error('Error fetching worker earnings:', error);
+    }
+
+    // Calculate performance metrics
+    const completionRate = acceptedApplications.length > 0 ? completedJobsCount / acceptedApplications.length : 0;
+    const successRate = userApplications.length > 0 ? acceptedApplications.length / userApplications.length : 0;
+
+    // Analytics data for worker
     const analyticsData = {
       overview: {
         totalApplications: userApplications.length,
         acceptedApplications: acceptedApplications.length,
-        totalEarnings: acceptedApplications.length * 150, // Mock earnings
-        averageRating: 4.5,
-        completedJobs: Math.floor(acceptedApplications.length * 0.8),
-        successRate: userApplications.length > 0 ? acceptedApplications.length / userApplications.length : 0
+        totalEarnings: totalEarnings,
+        averageRating: workerAverageRating,
+        completedJobs: completedJobsCount,
+        successRate: successRate
       },
       trends: {
         applications: [],
         earnings: [],
         ratings: []
       },
-      categories: [
-        { name: 'Home Repair', count: 5, earnings: 750 },
-        { name: 'Cleaning', count: 3, earnings: 450 },
-        { name: 'Moving', count: 2, earnings: 300 }
-      ],
+      categories: [], // Will be populated with real job categories
       performance: {
-        responseTime: 0.92,
-        completionRate: 0.88,
-        clientSatisfaction: 0.94
+        responseTime: successRate, // Application acceptance rate
+        completionRate: completionRate,
+        clientSatisfaction: workerAverageRating || 0
       }
     };
 
