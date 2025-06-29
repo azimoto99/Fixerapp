@@ -236,7 +236,7 @@ jobsRouter.patch('/:id/status', isAuthenticated, async (req, res) => {
 // --------------------------------------------------------
 jobsRouter.get('/', optionalAuth, async (req: Request, res: Response) => {
   try {
-    const { page = '1', limit = '20', status, category, search } = req.query as Record<string, string>;
+    const { page = '1', limit = '20', status, category, search, posterId } = req.query as Record<string, string>;
     const pageNum = parseInt(page);
     const limitNum = parseInt(limit);
 
@@ -244,6 +244,12 @@ jobsRouter.get('/', optionalAuth, async (req: Request, res: Response) => {
 
     if (status && status !== 'all') jobs = jobs.filter(j => j.status === status);
     if (category && category !== 'all') jobs = jobs.filter(j => j.category === category);
+    if (posterId) {
+      const posterIdNum = parseInt(posterId);
+      if (!isNaN(posterIdNum)) {
+        jobs = jobs.filter(j => j.posterId === posterIdNum);
+      }
+    }
     if (search) {
       const term = search.toLowerCase();
       jobs = jobs.filter(j => j.title.toLowerCase().includes(term) || j.description.toLowerCase().includes(term));

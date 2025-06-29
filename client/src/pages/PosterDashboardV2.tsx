@@ -158,7 +158,14 @@ export default function PosterDashboardV2() {
       
       try {
         const response = await apiRequest('GET', `/api/jobs?posterId=${user.id}`);
-        return Array.isArray(response) ? response : [];
+        // Handle both direct array response and paginated response
+        if (Array.isArray(response)) {
+          return response;
+        } else if (response && response.results && Array.isArray(response.results)) {
+          return response.results;
+        } else {
+          return [];
+        }
       } catch (error) {
         console.error('Error fetching jobs:', error);
         toast({

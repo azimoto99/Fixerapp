@@ -294,4 +294,83 @@ applicationsRouter.get('/job/:jobId', isAuthenticated, async (req: Request, res:
   }
 });
 
+// GET /api/applications/poster - Get applications for all jobs posted by the authenticated user
+applicationsRouter.get('/poster', isAuthenticated, async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    if (!req.user) {
+      return res.status(401).json({ message: 'Not authenticated' });
+    }
+
+    // Get all jobs posted by this user
+    const userJobs = await storage.getJobs();
+    const posterJobs = userJobs.filter(job => job.posterId === req.user!.id);
+    const jobIds = posterJobs.map(job => job.id);
+
+    if (jobIds.length === 0) {
+      return res.json([]);
+    }
+
+    // Get all applications for these jobs
+    const allApplications = [];
+    for (const jobId of jobIds) {
+      const jobApplications = await storage.getApplicationsByJobId(jobId);
+      // Add job details to each application
+      const job = posterJobs.find(j => j.id === jobId);
+      const applicationsWithJobDetails = jobApplications.map(app => ({
+        ...app,
+        job: {
+          id: job?.id,
+          title: job?.title,
+          paymentAmount: job?.paymentAmount
+        }
+      }));
+      allApplications.push(...applicationsWithJobDetails);
+    }
+
+    // Sort by application date (newest first)
+    allApplications.sort((a, b) => new Date(b.dateApplied).getTime() - new Date(a.dateApplied).getTime());
+
+    res.json(allApplications);
+  } catch (error) {
+    console.error('Error fetching poster applications:', error);
+    res.status(500).json({ message: 'Failed to fetch applications' });
+  }
+});
+
+// PUT /api/applications/:id - Update application status (accept/reject)
+applicationsRouter.put('/:id', isAuthenticated, async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    if (!req.user) {
+      return res.status(401).json({ message: 'Not authenticated' });
+    }
+
+    const applicationId = parseInt(req.params.id);
+    const { status } = req.body;
+
+    if (!['accepted', 'rejected'].includes(status)) {
+      return res.status(400).json({ message: 'Invalid status. Must be "accepted" or "rejected"' });
+    }
+
+    // Get the application
+    const application = await storage.getApplication(applicationId);
+    if (!application) {
+      return res.status(404).json({ message: 'Application not found' });
+    }
+
+    // Get the job to verify the user is the poster
+    const job = await storage.getJob(application.jobId);
+    if (!job || job.posterId !== req.user.id) {
+      return res.status(403).json({ message: 'You can only update applications for your own jobs' });
+    }
+
+    // Update the application status
+    await storage.updateApplication(applicationId, { status });
+
+    res.json({ success: true, message: `Application ${status} successfully` });
+  } catch (error) {
+    console.error('Error updating application:', error);
+    res.status(500).json({ message: 'Failed to update application' });
+  }
+});
+
 export default applicationsRouter;

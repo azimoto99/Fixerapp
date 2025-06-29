@@ -3076,6 +3076,117 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Add analytics endpoint for poster dashboard
+  apiRouter.get('/analytics/poster', isAuthenticated, async (req: Request, res: Response) => {
+    try {
+      if (!req.user) {
+        return res.status(401).json({ message: 'Not authenticated' });
+      }
+
+      // Get user's jobs
+      const userJobs = await storage.getJobs();
+      const posterJobs = userJobs.filter(job => job.posterId === req.user!.id);
+
+      // Get applications for user's jobs
+      const allApplications = [];
+      for (const job of posterJobs) {
+        const jobApplications = await storage.getApplicationsByJobId(job.id);
+        allApplications.push(...jobApplications);
+      }
+
+      // Calculate basic analytics
+      const totalJobs = posterJobs.length;
+      const totalSpent = posterJobs.reduce((sum, job) => sum + (job.paymentAmount || 0), 0);
+      const completedJobs = posterJobs.filter(job => job.status === 'completed').length;
+      const totalApplications = allApplications.length;
+      const completionRate = totalJobs > 0 ? completedJobs / totalJobs : 0;
+
+      // Mock data for charts and trends
+      const mockAnalytics = {
+        success: true,
+        data: {
+          overview: {
+            totalJobs,
+            totalSpent,
+            averageRating: 4.2,
+            completionRate,
+            totalApplications,
+            averageTimeToHire: 3
+          },
+          trends: {
+            jobsPosted: [
+              { date: '2024-01-01', count: 2 },
+              { date: '2024-01-15', count: 1 },
+              { date: '2024-02-01', count: 3 }
+            ],
+            spending: [
+              { date: '2024-01-01', amount: 500 },
+              { date: '2024-01-15', amount: 300 },
+              { date: '2024-02-01', amount: 800 }
+            ],
+            applications: [
+              { date: '2024-01-01', count: 5 },
+              { date: '2024-01-15', count: 3 },
+              { date: '2024-02-01', count: 8 }
+            ]
+          },
+          categories: [
+            { name: 'Cleaning', count: 2, spending: 400 },
+            { name: 'Delivery', count: 1, spending: 200 },
+            { name: 'Handyman', count: 1, spending: 300 }
+          ],
+          performance: {
+            responseTime: 0.85,
+            hireRate: 0.75,
+            workerRetention: 0.90
+          }
+        }
+      };
+
+      res.json(mockAnalytics);
+    } catch (error) {
+      console.error('Analytics error:', error);
+      res.status(500).json({ message: 'Failed to fetch analytics' });
+    }
+  });
+
+  // Add settings endpoints for poster dashboard
+  apiRouter.get('/settings/poster', isAuthenticated, async (req: Request, res: Response) => {
+    try {
+      if (!req.user) {
+        return res.status(401).json({ message: 'Not authenticated' });
+      }
+
+      // Return default settings (can be expanded to store in database)
+      const defaultSettings = {
+        settings: {
+          autoApproveApplications: false,
+          defaultJobDescription: '',
+          receiveApplicationAlerts: true
+        }
+      };
+
+      res.json(defaultSettings);
+    } catch (error) {
+      console.error('Settings error:', error);
+      res.status(500).json({ message: 'Failed to fetch settings' });
+    }
+  });
+
+  apiRouter.put('/settings/poster', isAuthenticated, async (req: Request, res: Response) => {
+    try {
+      if (!req.user) {
+        return res.status(401).json({ message: 'Not authenticated' });
+      }
+
+      // Mock settings update (can be expanded to store in database)
+      res.json({ success: true, message: 'Settings updated successfully' });
+    } catch (error) {
+      console.error('Settings update error:', error);
+      res.status(500).json({ message: 'Failed to update settings' });
+    }
+  });
+
   // Mount the API router to handle all /api routes
   app.use('/api', apiRouter);
 
