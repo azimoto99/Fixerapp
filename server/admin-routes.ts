@@ -2574,11 +2574,13 @@ export function registerAdminRoutes(app: Express) {
   // Get platform settings
   app.get("/api/admin/settings/platform", adminAuth, async (req, res) => {
     try {
+      console.log('Fetching platform settings for user:', req.user?.id);
       const settings = await storage.getPlatformSettings();
+      console.log('Retrieved platform settings:', settings);
       res.json({ settings: settings || {} });
     } catch (error) {
       console.error('Get platform settings error:', error);
-      res.status(500).json({ message: "Failed to fetch platform settings" });
+      res.status(500).json({ message: "Failed to fetch platform settings", error: error.message });
     }
   });
 
@@ -2589,12 +2591,15 @@ export function registerAdminRoutes(app: Express) {
     async (req, res) => {
       try {
         const { settings } = req.body;
+        console.log('Received platform settings update request:', { settings, userId: req.user?.id });
         
         if (!settings || typeof settings !== 'object') {
+          console.log('Invalid settings data received:', settings);
           return res.status(400).json({ message: "Invalid settings data" });
         }
 
         const updatedSettings = await storage.updatePlatformSettings(settings);
+        console.log('Platform settings updated successfully:', updatedSettings);
         
         res.json({ 
           message: "Platform settings updated successfully",
@@ -2602,7 +2607,7 @@ export function registerAdminRoutes(app: Express) {
         });
       } catch (error) {
         console.error('Update platform settings error:', error);
-        res.status(500).json({ message: "Failed to update platform settings" });
+        res.status(500).json({ message: "Failed to update platform settings", error: error.message });
       }
     }
   );
