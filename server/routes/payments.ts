@@ -63,6 +63,36 @@ router.get('/user/:userId', isAuthenticated, async (req: Request, res: Response)
   }
 });
 
+// GET /api/payments/job/:jobId - Get payment by job ID
+router.get('/job/:jobId', isAuthenticated, async (req: Request, res: Response) => {
+  try {
+    const jobId = parseInt(req.params.jobId);
+    
+    if (isNaN(jobId)) {
+      return res.status(400).json({ message: 'Invalid job ID' });
+    }
+
+    const payment = await storage.getPaymentByJobId(jobId);
+    
+    if (!payment) {
+      return res.status(404).json({ message: 'Payment not found for this job' });
+    }
+
+    // Only allow users to view their own payments unless they're admin
+    if (payment.userId !== req.user!.id && payment.workerId !== req.user!.id && !req.user!.isAdmin) {
+      return res.status(403).json({ message: 'Access denied: You can only view your own payments' });
+    }
+
+    res.json(payment);
+  } catch (error) {
+    console.error('Error fetching payment by job ID:', error);
+    res.status(500).json({ 
+      message: 'Failed to fetch payment',
+      error: error instanceof Error ? error.message : 'Unknown error'
+    });
+  }
+});
+
 // GET /api/payments/:paymentId - Get specific payment details
 router.get('/:paymentId', isAuthenticated, async (req: Request, res: Response) => {
   try {

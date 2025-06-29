@@ -185,11 +185,17 @@ export function useJobLifecycle(): JobLifecycleHooks {
           deviceInfo
         });
         
-        if (!response.success) {
-          throw new Error(response.message || 'Location verification failed');
+        if (!response.ok) {
+          const error = await response.text();
+          throw new Error(error || 'Location verification failed');
         }
         
-        return response.job;
+        const data = await response.json();
+        if (!data.success) {
+          throw new Error(data.message || 'Location verification failed');
+        }
+        
+        return data.job;
       } else {
         // Fallback to old endpoint without location verification
         const response = await apiRequest('PUT', `/api/jobs/${jobId}/status`, {
@@ -321,9 +327,19 @@ export function useJobLifecycle(): JobLifecycleHooks {
   // Release payment to worker
   const releasePaymentMutation = useMutation({
     mutationFn: async (jobId: number) => {
+      // First get the payment associated with this job
+      const paymentResponse = await apiRequest('GET', `/api/payments/job/${jobId}`);
+      if (!paymentResponse.ok) {
+        throw new Error('Failed to get payment details for job');
+      }
+      const payment = await paymentResponse.json();
+      
       // This would typically be called automatically when a job is completed
       // But can also be manually triggered by job poster
-      const response = await apiRequest('POST', '/api/payments/release', { paymentId: jobId, amount: 0 });
+      const response = await apiRequest('POST', '/api/payments/release', { 
+        paymentId: payment.id, 
+        amount: payment.amount 
+      });
       
       if (!response.ok) {
         const error = await response.text();

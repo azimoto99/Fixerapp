@@ -6,6 +6,33 @@ import { uploadProfileImage } from '../services/s3Service';
 
 const router = express.Router();
 
+/**
+ * Get current user data
+ * GET /api/user
+ */
+router.get('/', requireAuth, async (req, res) => {
+  if (!req.user) {
+    return res.status(401).json({ message: 'Unauthorized' });
+  }
+
+  try {
+    const user = await storage.getUser(req.user.id);
+    if (!user) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+
+    // Don't return password
+    const { password, ...userData } = user;
+    res.json(userData);
+  } catch (error) {
+    console.error('Error fetching user data:', error);
+    res.status(500).json({
+      message: 'Failed to fetch user data',
+      error: error instanceof Error ? error.message : 'Unknown error'
+    });
+  }
+});
+
 // Configure multer for avatar uploads to memory
 const upload = multer({
   storage: multer.memoryStorage(),

@@ -697,11 +697,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(401).json({ message: "Not authenticated" });
       }
       
-      const notifications = await storage.getNotifications(req.user.id);
+      // Add timeout protection to prevent hanging
+      const notifications = await Promise.race([
+        storage.getNotifications(req.user.id),
+        new Promise<never>((_, reject) =>
+          setTimeout(() => reject(new Error('Notifications fetch timeout')), 10000)
+        )
+      ]);
+      
       res.json(notifications);
     } catch (error) {
       console.error("Error fetching notifications:", error);
-      res.status(500).json({ message: "Error fetching notifications" });
+      if (error instanceof Error && error.message.includes('timeout')) {
+        res.status(500).json({ message: "Request timed out. Please try again." });
+      } else {
+        res.status(500).json({ message: "Error fetching notifications" });
+      }
     }
   });
 

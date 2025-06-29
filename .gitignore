@@ -60,3 +60,7 @@ yarn-error.*
 
 app-example 
 .aider*
+
+# Process files
+*.pid
+server.pid
