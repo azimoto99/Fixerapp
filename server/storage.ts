@@ -196,6 +196,9 @@ export interface IStorage {
   // Support ticket operations
   getSupportTicketsByUserId(userId: number): Promise<any[]>;
   createSupportTicket(ticketData: any): Promise<any>;
+  getSupportTicketById(id: number): Promise<any>;
+  getSupportTicketMessages(ticketId: number): Promise<any[]>;
+  assignSupportTicket(ticketId: number, adminId: number): Promise<any>;
   
   // Dispute operations
   createDispute(disputeData: any): Promise<any>;
@@ -1556,6 +1559,25 @@ export class MemStorage implements IStorage {
     const ticket = { id, ...ticketData, createdAt: new Date() };
     this.supportTickets.set(id, ticket);
     return ticket;
+  }
+
+  async getSupportTicketById(id: number): Promise<any> {
+    return this.supportTickets.get(id) || null;
+  }
+
+  async getSupportTicketMessages(ticketId: number): Promise<any[]> {
+    return [];
+  }
+
+  async assignSupportTicket(ticketId: number, adminId: number): Promise<any> {
+    const ticket = this.supportTickets.get(ticketId);
+    if (ticket) {
+      ticket.assignedTo = adminId;
+      ticket.updatedAt = new Date();
+      this.supportTickets.set(ticketId, ticket);
+      return ticket;
+    }
+    return null;
   }
   
   // Dispute operations - stubs for memory storage

@@ -5,7 +5,7 @@ import { eq, and, like, notLike, desc, or, asc, gte, lte, count, sum, avg, sql, 
 import { db, pool } from './db';
 import { IStorage } from './storage';
 import {
-  users, jobs, applications, reviews, tasks, earnings, payments, badges, userBadges, notifications, contacts, contactRequests, messages, supportTickets, disputes, refunds, feedback, platformSettings,
+  users, jobs, applications, reviews, tasks, earnings, payments, badges, userBadges, notifications, contacts, contactRequests, messages, supportTickets, supportMessages, disputes, refunds, feedback, platformSettings,
   User, InsertUser,
   Job, InsertJob,
   Application, InsertApplication,
@@ -726,6 +726,42 @@ export class UnifiedStorage implements IStorage {
         .returning();
       return result[0] || null;
     }, null, 'addTicketResponse');
+  }
+
+  async getSupportTicketById(id: number): Promise<any> {
+    return this.safeExecute(async () => {
+      const result = await db.select().from(supportTickets).where(eq(supportTickets.id, id));
+      return result[0] || null;
+    }, null, `getSupportTicketById(${id})`);
+  }
+
+  async getSupportTicketMessages(ticketId: number): Promise<any[]> {
+    return this.safeExecute(async () => {
+      // Check if supportMessages table exists and use it, otherwise return empty array
+      try {
+        const result = await db.select().from(supportMessages)
+          .where(eq(supportMessages.ticketId, ticketId))
+          .orderBy(asc(supportMessages.createdAt));
+        return result;
+      } catch (error) {
+        // If supportMessages table doesn't exist, return empty array
+        console.warn('Support messages table not found, returning empty array');
+        return [];
+      }
+    }, [], `getSupportTicketMessages(${ticketId})`);
+  }
+
+  async assignSupportTicket(ticketId: number, adminId: number): Promise<any> {
+    return this.safeExecute(async () => {
+      const result = await db.update(supportTickets)
+        .set({ 
+          assignedTo: adminId,
+          updatedAt: new Date()
+        })
+        .where(eq(supportTickets.id, ticketId))
+        .returning();
+      return result[0] || null;
+    }, null, `assignSupportTicket(${ticketId}, ${adminId})`);
   }
 
   // DISPUTE OPERATIONS

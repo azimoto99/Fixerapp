@@ -941,8 +941,48 @@ export default function AdminPanelV2() {
     }
   });
 
+  const { mutate: sendTicketResponseMutation } = useMutation({
+    mutationFn: ({ ticketId, response, status }: { ticketId: number, response: string, status?: string }) => {
+      return apiRequest('POST', `/api/admin/support-tickets/${ticketId}/respond`, { response, status });
+    },
+    onSuccess: () => {
+      toast({ title: "Success", description: "Response sent successfully." });
+      refetchSupport();
+      setIsTicketDialogOpen(false);
+      setTicketResponse("");
+    },
+    onError: (error: Error) => {
+      toast({ title: "Error", description: `Failed to send response: ${error.message}`, variant: 'destructive' });
+    }
+  });
+
+  const { mutate: updateTicketStatusMutation } = useMutation({
+    mutationFn: ({ ticketId, status, priority }: { ticketId: number, status?: string, priority?: string }) => {
+      return apiRequest('PATCH', `/api/admin/support-tickets/${ticketId}`, { status, priority });
+    },
+    onSuccess: () => {
+      toast({ title: "Success", description: "Ticket updated successfully." });
+      refetchSupport();
+    },
+    onError: (error: Error) => {
+      toast({ title: "Error", description: `Failed to update ticket: ${error.message}`, variant: 'destructive' });
+    }
+  });
+
   const handleVerifyBusiness = (id: number, status: 'verified' | 'rejected') => {
     verifyBusinessMutation({ id, status });
+  };
+
+  const handleSendTicketResponse = () => {
+    if (!selectedTicket || !ticketResponse.trim()) {
+      toast({ title: "Error", description: "Please enter a response.", variant: 'destructive' });
+      return;
+    }
+    sendTicketResponseMutation({ 
+      ticketId: selectedTicket.id, 
+      response: ticketResponse,
+      status: 'resolved' 
+    });
   };
 
   return (
@@ -1881,13 +1921,58 @@ export default function AdminPanelV2() {
       </Dialog>
 
       <Dialog open={isTicketDialogOpen} onOpenChange={setIsTicketDialogOpen}>
-          <DialogContent>
-              <DialogHeader><DialogTitle>Support Ticket</DialogTitle></DialogHeader>
+          <DialogContent className="max-w-2xl">
+              <DialogHeader><DialogTitle>Support Ticket #{selectedTicket?.id}</DialogTitle></DialogHeader>
               {selectedTicket && (
-                  <div>
-                      <p><strong>Title:</strong> {selectedTicket.title}</p>
-                      <Textarea value={ticketResponse} onChange={(e) => setTicketResponse(e.target.value)} placeholder="Respond to ticket..."/>
-                      <Button>Send Response</Button>
+                  <div className="space-y-4">
+                      <div className="grid grid-cols-2 gap-4">
+                          <div>
+                              <p><strong>Title:</strong> {selectedTicket.title}</p>
+                              <p><strong>User:</strong> {selectedTicket.userName || selectedTicket.userEmail}</p>
+                          </div>
+                          <div>
+                              <p><strong>Priority:</strong> <Badge className={getPriorityColor(selectedTicket.priority)}>{selectedTicket.priority}</Badge></p>
+                              <p><strong>Status:</strong> <Badge className={getStatusColor(selectedTicket.status)}>{selectedTicket.status}</Badge></p>
+                          </div>
+                      </div>
+                      
+                      <div>
+                          <Label htmlFor="ticketResponse">Admin Response</Label>
+                          <Textarea 
+                              id="ticketResponse"
+                              value={ticketResponse} 
+                              onChange={(e) => setTicketResponse(e.target.value)} 
+                              placeholder="Type your response to the customer..."
+                              className="min-h-[100px]"
+                          />
+                      </div>
+                      
+                      <div className="flex gap-2 justify-between">
+                          <div className="flex gap-2">
+                              <Button 
+                                  variant="outline" 
+                                  size="sm"
+                                  onClick={() => updateTicketStatusMutation({ ticketId: selectedTicket.id, status: 'in_progress' })}
+                                  disabled={selectedTicket.status === 'in_progress'}
+                              >
+                                  Mark In Progress
+                              </Button>
+                              <Button 
+                                  variant="outline" 
+                                  size="sm"
+                                  onClick={() => updateTicketStatusMutation({ ticketId: selectedTicket.id, status: 'resolved' })}
+                                  disabled={selectedTicket.status === 'resolved'}
+                              >
+                                  Mark Resolved
+                              </Button>
+                          </div>
+                          <div className="flex gap-2">
+                              <Button variant="outline" onClick={() => setIsTicketDialogOpen(false)}>Cancel</Button>
+                              <Button onClick={handleSendTicketResponse} disabled={!ticketResponse.trim()}>
+                                  Send Response & Resolve
+                              </Button>
+                          </div>
+                      </div>
                   </div>
               )}
           </DialogContent>
