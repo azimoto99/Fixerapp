@@ -33,9 +33,17 @@ export function registerSupportRoutes(app: Express) {
         return res.status(400).json({ message: "Subject, description, and category are required" });
       }
 
+      // Get user info for required fields
+      const user = await storage.getUser(userId);
+      if (!user) {
+        return res.status(404).json({ message: "User not found" });
+      }
+
       const ticket = await storage.createSupportTicket({
         userId,
-        subject,
+        userName: user.fullName || user.username,
+        userEmail: user.email,
+        title: subject,
         description,
         category,
         priority: priority || 'medium',
