@@ -14,8 +14,7 @@ import { systemMonitor } from './system-monitor';
 import { DatabaseResilience } from './utils/database-resilience';
 import { storage } from './storage';
 import { errorHandler } from './middleware/error-handler';
-// Import seed script to create initial data
-import "./seed";
+// Seeding removed - run manually if needed with: node server/seed.ts
 import userRoutes from './routes/user';
 import helmet from 'helmet';
 import { securityConfig } from './security-config';

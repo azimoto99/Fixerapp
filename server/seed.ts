@@ -12,14 +12,24 @@ async function hashPassword(password: string) {
   return `${buf.toString("hex")}.${salt}`;
 }
 
+// Global variable to prevent multiple concurrent executions
+let seedingInProgress = false;
+
 async function seedDatabase() {
+  // Prevent multiple concurrent executions
+  if (seedingInProgress) {
+    console.log('Seeding already in progress, skipping...');
+    return;
+  }
+  
+  seedingInProgress = true;
   console.log('Seeding database...');
   
   try {
     // Check if we already have users and platform settings
     const [existingUsers, existingSettings] = await Promise.all([
-      db.select({ id: users.id }).from(users),
-      db.select({ key: platformSettings.key }).from(platformSettings)
+      db.select({ id: users.id }).from(users).limit(1),
+      db.select({ key: platformSettings.key }).from(platformSettings).limit(1)
     ]);
     
     if (existingUsers.length > 0 && existingSettings.length > 0) {
@@ -139,7 +149,8 @@ async function seedDatabase() {
   console.log('Database seeded successfully');
 }
 
-// Only run seed in development environment OR if explicitly enabled
-if (process.env.NODE_ENV === 'development' || process.env.ENABLE_SEEDING === 'true') {
-  seedDatabase().catch(console.error);
-}
+// Seeding removed from automatic execution
+// To run seeding manually, use: npm run db:seed or node server/seed.ts
+// if (process.env.NODE_ENV === 'development' || process.env.ENABLE_SEEDING === 'true') {
+//   seedDatabase().catch(console.error);
+// }
