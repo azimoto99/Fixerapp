@@ -69,6 +69,31 @@ router.get('/poster', requireAuth, async (req, res) => {
     const spending = [];
     const applicationsData = [];
 
+    // Get applications data for the date range in a single query
+    let applicationsMap = new Map();
+    if (jobIds.length > 0) {
+      try {
+        const sevenDaysAgo = new Date(now.getTime() - (6 * 24 * 60 * 60 * 1000));
+        const allApplications = await db
+          .select({
+            dateApplied: applications.dateApplied
+          })
+          .from(applications)
+          .where(and(
+            applications.jobId.in(jobIds),
+            gte(applications.dateApplied, sevenDaysAgo)
+          ));
+
+        // Group applications by date
+        allApplications.forEach(app => {
+          const dateStr = new Date(app.dateApplied).toISOString().split('T')[0];
+          applicationsMap.set(dateStr, (applicationsMap.get(dateStr) || 0) + 1);
+        });
+      } catch (error) {
+        console.error('Error fetching applications data:', error);
+      }
+    }
+
     // Generate trend data for the last 7 periods
     for (let i = 6; i >= 0; i--) {
       const date = new Date(now.getTime() - (i * 24 * 60 * 60 * 1000));
@@ -88,33 +113,10 @@ router.get('/poster', requireAuth, async (req, res) => {
         date: date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
         amount: dayJobs.reduce((sum, job) => sum + (job.paymentAmount || 0), 0)
       });
-
-      // Calculate real applications data for this date
-      let dayApplicationsCount = 0;
-      if (jobIds.length > 0) {
-        const dayStart = new Date(date);
-        dayStart.setHours(0, 0, 0, 0);
-        const dayEnd = new Date(date);
-        dayEnd.setHours(23, 59, 59, 999);
-        
-        try {
-          const dayApplications = await db
-            .select({ count: count() })
-            .from(applications)
-            .where(and(
-              applications.jobId.in(jobIds),
-              gte(applications.dateApplied, dayStart),
-              lte(applications.dateApplied, dayEnd)
-            ));
-          dayApplicationsCount = dayApplications[0]?.count || 0;
-        } catch (error) {
-          console.error('Error fetching day applications:', error);
-        }
-      }
       
       applicationsData.push({
         date: date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
-        count: dayApplicationsCount
+        count: applicationsMap.get(dateStr) || 0
       });
     }
 
@@ -143,31 +145,31 @@ router.get('/poster', requireAuth, async (req, res) => {
 
     if (jobIds.length > 0) {
       try {
-        // Calculate response rate (jobs with applications / total jobs)
-        const jobsWithApplications = await db
-          .select({ jobId: applications.jobId })
+        // Get all application stats in a single query
+        const applicationStats = await db
+          .select({
+            jobId: applications.jobId,
+            status: applications.status,
+            count: count()
+          })
           .from(applications)
           .where(applications.jobId.in(jobIds))
-          .groupBy(applications.jobId);
-        
-        responseRate = totalJobs > 0 ? jobsWithApplications.length / totalJobs : 0;
+          .groupBy(applications.jobId, applications.status);
 
-        // Calculate hire rate (accepted applications / total applications)
-        const acceptedApplications = await db
-          .select({ count: count() })
-          .from(applications)
-          .where(and(
-            applications.jobId.in(jobIds),
-            eq(applications.status, 'accepted')
-          ));
+        // Process the results
+        const jobsWithApplications = new Set();
+        let acceptedCount = 0;
         
-        const acceptedCount = acceptedApplications[0]?.count || 0;
+        applicationStats.forEach(stat => {
+          jobsWithApplications.add(stat.jobId);
+          if (stat.status === 'accepted') {
+            acceptedCount += stat.count;
+          }
+        });
+        
+        responseRate = totalJobs > 0 ? jobsWithApplications.size / totalJobs : 0;
         hireRate = totalApplications > 0 ? acceptedCount / totalApplications : 0;
-
-        // Worker retention (completion rate for hired workers)
-        if (completedJobs.length > 0) {
-          workerRetention = acceptedCount > 0 ? completedJobs.length / acceptedCount : 0;
-        }
+        workerRetention = acceptedCount > 0 ? completedJobs.length / acceptedCount : 0;
       } catch (error) {
         console.error('Error calculating performance metrics:', error);
       }
@@ -270,13 +272,13 @@ router.get('/worker', requireAuth, async (req, res) => {
       const acceptedJobIds = acceptedApplications.map(app => app.jobId);
       if (acceptedJobIds.length > 0) {
         const completedJobs = await db
-          .select()
+          .select({ count: count() })
           .from(jobs)
           .where(and(
             jobs.id.in(acceptedJobIds),
             eq(jobs.status, 'completed')
           ));
-        completedJobsCount = completedJobs.length;
+        completedJobsCount = completedJobs[0]?.count || 0;
       }
     } catch (error) {
       console.error('Error fetching worker earnings:', error);
