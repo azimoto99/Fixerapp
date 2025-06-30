@@ -7,25 +7,32 @@ import { db, client } from '../db';
  */
 export const setRLSContext = async (req: Request, res: Response, next: NextFunction) => {
   try {
+    // Skip RLS setup for health checks and public endpoints to reduce load
+    if (req.path === '/api/health' || req.path.startsWith('/api/auth/') || req.path === '/') {
+      return next();
+    }
+
     // Get user ID from session or request context
     const userId = req.user?.id || req.session?.userId || 0;
+    const isAdmin = req.user?.isAdmin || false;
     
-    // Set the user context for RLS policies
-    if (client && userId) {
-      await client`SELECT set_config('app.current_user_id', ${userId.toString()}, true)`;
-    }
-    
-    // Also set admin context if user is admin
-    if (req.user?.isAdmin) {
-      await client`SELECT set_config('app.is_admin', 'true', true)`;
-    } else {
-      await client`SELECT set_config('app.is_admin', 'false', true)`;
+    // Only set RLS context if we have a valid user to reduce unnecessary queries
+    if (client && userId && userId > 0) {
+      // Use Promise.race to add timeout protection
+      await Promise.race([
+        client`SELECT 
+          set_config('app.current_user_id', ${userId.toString()}, true),
+          set_config('app.is_admin', ${isAdmin.toString()}, true)`,
+        new Promise((_, reject) => 
+          setTimeout(() => reject(new Error('RLS context timeout')), 3000)
+        )
+      ]);
     }
     
     next();
   } catch (error) {
     console.error('Error setting RLS context:', error);
-    // Don't fail the request, but log the error
+    // Don't fail the request, but log the error and continue without RLS
     next();
   }
 };
@@ -52,8 +59,15 @@ export const clearRLSContext = async (req: Request, res: Response, next: NextFun
 export const setUserContext = async (userId: number, isAdmin: boolean = false) => {
   try {
     if (client) {
-      await client`SELECT set_config('app.current_user_id', ${userId.toString()}, true)`;
-      await client`SELECT set_config('app.is_admin', ${isAdmin.toString()}, true)`;
+      // Set both configs in a single query with timeout protection
+      await Promise.race([
+        client`SELECT 
+          set_config('app.current_user_id', ${userId.toString()}, true),
+          set_config('app.is_admin', ${isAdmin.toString()}, true)`,
+        new Promise((_, reject) => 
+          setTimeout(() => reject(new Error('User context timeout')), 2000)
+        )
+      ]);
     }
   } catch (error) {
     console.error('Error setting user context:', error);

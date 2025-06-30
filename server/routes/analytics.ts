@@ -23,14 +23,19 @@ router.get('/poster', requireAuth, async (req, res) => {
     
     const startDate = new Date(now.getTime() - (daysBack * 24 * 60 * 60 * 1000));
 
-    // Get user's jobs
-    const userJobs = await db
-      .select()
-      .from(jobs)
-      .where(and(
-        eq(jobs.posterId, userId),
-        gte(jobs.datePosted, startDate)
-      ));
+    // Get user's jobs with timeout protection
+    const userJobs = await Promise.race([
+      db
+        .select()
+        .from(jobs)
+        .where(and(
+          eq(jobs.posterId, userId),
+          gte(jobs.datePosted, startDate)
+        )),
+      new Promise((_, reject) =>
+        setTimeout(() => reject(new Error('Jobs query timeout')), 8000)
+      )
+    ]) as any;
 
     const jobIds = userJobs.map(job => job.id);
 
@@ -206,9 +211,44 @@ router.get('/poster', requireAuth, async (req, res) => {
 
   } catch (error) {
     console.error('Analytics fetch error:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Failed to fetch analytics data'
+    
+    // Return fallback data to prevent dashboard from breaking
+    const fallbackData = {
+      overview: {
+        totalJobs: 0,
+        totalSpent: 0,
+        averageRating: null,
+        completionRate: 0,
+        totalApplications: 0,
+        averageTimeToHire: 0
+      },
+      trends: {
+        jobsPosted: Array.from({length: 7}, (_, i) => ({
+          date: new Date(Date.now() - i * 24 * 60 * 60 * 1000).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
+          count: 0
+        })).reverse(),
+        spending: Array.from({length: 7}, (_, i) => ({
+          date: new Date(Date.now() - i * 24 * 60 * 60 * 1000).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
+          amount: 0
+        })).reverse(),
+        applications: Array.from({length: 7}, (_, i) => ({
+          date: new Date(Date.now() - i * 24 * 60 * 60 * 1000).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
+          count: 0
+        })).reverse()
+      },
+      categories: [],
+      performance: {
+        responseTime: 0,
+        hireRate: 0,
+        workerRetention: 0
+      }
+    };
+
+    res.json({
+      success: true,
+      data: fallbackData,
+      fallback: true,
+      message: 'Using fallback data due to database timeout'
     });
   }
 });
@@ -318,9 +358,35 @@ router.get('/worker', requireAuth, async (req, res) => {
 
   } catch (error) {
     console.error('Worker analytics fetch error:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Failed to fetch worker analytics data'
+    
+    // Return fallback data for worker analytics
+    const fallbackData = {
+      overview: {
+        totalApplications: 0,
+        acceptedApplications: 0,
+        totalEarnings: 0,
+        averageRating: null,
+        completedJobs: 0,
+        successRate: 0
+      },
+      trends: {
+        applications: [],
+        earnings: [],
+        ratings: []
+      },
+      categories: [],
+      performance: {
+        responseTime: 0,
+        completionRate: 0,
+        clientSatisfaction: 0
+      }
+    };
+
+    res.json({
+      success: true,
+      data: fallbackData,
+      fallback: true,
+      message: 'Using fallback data due to database timeout'
     });
   }
 });

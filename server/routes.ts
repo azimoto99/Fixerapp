@@ -143,11 +143,11 @@ async function isAuthenticated(req: Request, res: Response, next: Function) {
   // Method 1: Standard Passport authentication with extra validation
   if (req.isAuthenticated() && req.user && !hasCookieExpired) {
     try {
-      // Verify user still exists and is active (with timeout protection)
+      // Verify user still exists and is active (with extended timeout protection)
       const currentUser = await Promise.race([
         storage.getUser(req.user.id),
         new Promise<undefined>((_, reject) =>
-          setTimeout(() => reject(new Error('User lookup timeout')), 5000)
+          setTimeout(() => reject(new Error('User lookup timeout')), 10000)
         )
       ]);
 
