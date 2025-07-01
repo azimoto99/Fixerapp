@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 
 // Global modal state management
 export const useModal = () => {
@@ -34,7 +34,7 @@ export const usePaymentModal = () => {
   };
 
   // Subscribe to changes
-  React.useEffect(() => {
+  useEffect(() => {
     const listener = (newIsOpen: boolean) => setIsOpen(newIsOpen);
     globalModalState.listeners.push(listener);
     

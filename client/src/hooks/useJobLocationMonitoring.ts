@@ -82,9 +82,11 @@ export function useJobLocationMonitoring({
         longitude,
         accuracy
       });
+      
+      const result = await response.json();
 
-      if (response.success) {
-        const verification = response.locationVerification;
+      if (result.success) {
+        const verification = result.locationVerification;
         const timestamp = new Date();
 
         setState(prev => ({
@@ -110,7 +112,7 @@ export function useJobLocationMonitoring({
         lastVerificationTimeRef.current = timestamp;
         return verification;
       } else {
-        throw new Error(response.message || 'Verification failed');
+        throw new Error(result.message || 'Verification failed');
       }
     } catch (error) {
       console.error('Location verification error:', error);

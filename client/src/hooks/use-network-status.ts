@@ -1,6 +1,5 @@
 import { useEffect, useState, useCallback } from 'react';
 import { useToast } from './use-toast';
-import { systemMonitor } from '@/lib/system-monitor';
 
 interface NetworkStatus {
   online: boolean;
@@ -35,7 +34,7 @@ export function useNetworkStatus() {
 
   const handleOnline = useCallback(() => {
     updateNetworkInfo();
-    systemMonitor.recordEvent('network_online');
+    // Network status changed to online
     toast({
       title: 'Connection Restored',
       description: 'Your internet connection has been restored.',
@@ -45,7 +44,7 @@ export function useNetworkStatus() {
 
   const handleOffline = useCallback(() => {
     updateNetworkInfo();
-    systemMonitor.recordEvent('network_offline');
+    // Network status changed to offline
     toast({
       title: 'No Internet Connection',
       description: 'Working in offline mode. Some features may be limited.',

@@ -34,7 +34,6 @@ export function ThemeToggle({ variant = "dropdown" }: ThemeToggleProps) {
       toast({
         title: "Theme Updated",
         description: `Theme set to ${newTheme.charAt(0).toUpperCase() + newTheme.slice(1)}`,
-        duration: 2000,
       });
       
       console.log(`Theme changed to: ${newTheme}`);

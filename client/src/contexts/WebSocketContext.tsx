@@ -108,7 +108,6 @@ export function WebSocketProvider({
             toast({
               title: "⚡ New Application!",
               description: `${message.workerName} just applied for your job!`,
-              duration: 6000,
             });
 
             // Refresh applications
@@ -123,7 +122,6 @@ export function WebSocketProvider({
             toast({
               title: "🎉 Application Accepted!",
               description: "Your application has been accepted!",
-              duration: 5000,
             });
 
             // Refresh applications and jobs

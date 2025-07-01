@@ -135,8 +135,7 @@ export function useJobs(
     return allJobs.filter(job => {
       // Location-based search
       if (searchMode === 'location') {
-        return (job.location && job.location.toLowerCase().includes(query)) ||
-               (job.address && job.address.toLowerCase().includes(query));
+        return (job.location && job.location.toLowerCase().includes(query));
       }
 
       // Description-based search - comprehensive search across job fields
