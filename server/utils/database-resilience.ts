@@ -25,7 +25,7 @@ export class DatabaseResilience extends EventEmitter {
   }
 
   private setupErrorHandlers() {
-    this.pool.on('error', (err: Error, client: Client) => {
+    this.pool.on('error', (err: Error, client: any) => {
       console.error('Unexpected database error:', err);
       this.lastError = err;
 
@@ -34,10 +34,12 @@ export class DatabaseResilience extends EventEmitter {
       }
 
       // Remove errored client from pool
-      client.release(true);
+      if (client && typeof client.release === 'function') {
+        client.release(true);
+      }
     });
 
-    this.pool.on('connect', (client: Client) => {
+    this.pool.on('connect', (client: any) => {
       this.connectionAttempts = 0;
       this.lastError = undefined;
       this.emit('connected');

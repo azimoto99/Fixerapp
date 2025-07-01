@@ -64,15 +64,16 @@ export default function JobsOverview({
     
     try {
       const response = await apiRequest('DELETE', `/api/jobs/${jobId}`);
+      const result = await response.json();
       
-      if (response.success) {
+      if (result.success) {
         toast({
           title: 'Job deleted',
           description: 'The job has been deleted successfully.',
         });
         onJobUpdate();
       } else {
-        throw new Error(response.message || 'Failed to delete job');
+        throw new Error(result.message || 'Failed to delete job');
       }
     } catch (error) {
       console.error('Delete job error:', error);

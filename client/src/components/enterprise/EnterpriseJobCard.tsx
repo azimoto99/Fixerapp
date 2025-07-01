@@ -176,7 +176,7 @@ export default function EnterpriseJobCard({ hubPinId, onClose, onApply }: Enterp
         {positions && positions.length > 0 ? (
           <Tabs defaultValue={positions[0]?.id.toString()} className="w-full">
             <TabsList className="w-full justify-start rounded-none border-b h-auto p-0">
-              <ScrollArea className="w-full" orientation="horizontal">
+              <ScrollArea className="w-full">
                 <div className="flex">
                   {positions.map((position: EnterprisePosition) => (
                     <TabsTrigger

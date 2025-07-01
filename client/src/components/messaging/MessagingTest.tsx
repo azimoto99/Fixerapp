@@ -13,7 +13,7 @@ export function MessagingTest() {
     senderId: 1,
     recipientId: 2,
     isRead: true,
-    createdAt: new Date(),
+    sentAt: new Date(),
     status: 'read',
     senderName: 'John Doe',
     senderAvatar: '/avatar.jpg'

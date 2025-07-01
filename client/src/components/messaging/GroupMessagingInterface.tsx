@@ -84,7 +84,8 @@ export function GroupMessagingInterface({
     queryFn: async () => {
       const response = await apiRequest('GET', `/api/conversations/${conversationId}`);
       if (!response.ok) throw new Error('Failed to fetch conversation');
-      return response.json() as Conversation;
+      const data = await response.json();
+      return data as Conversation;
     },
     enabled: !!conversationId
   });
@@ -95,7 +96,8 @@ export function GroupMessagingInterface({
     queryFn: async () => {
       const response = await apiRequest('GET', `/api/conversations/${conversationId}/messages`);
       if (!response.ok) throw new Error('Failed to fetch messages');
-      return response.json() as GroupMessage[];
+      const data = await response.json();
+      return data as GroupMessage[];
     },
     enabled: !!conversationId,
     refetchInterval: 3000 // Poll for new messages every 3 seconds
@@ -457,7 +459,7 @@ export function GroupMessagingInterface({
           <div className="space-y-4">
             <div className="space-y-3 max-h-64 overflow-y-auto">
               {potentialParticipants
-                .filter(p => !conversation.participants.some(cp => cp.userId === p.id))
+                .filter((p: any) => !conversation.participants.some((cp: any) => cp.userId === p.id))
                 .map((user: any) => (
                 <div key={user.id} className="flex items-center space-x-3">
                   <input

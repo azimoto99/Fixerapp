@@ -69,15 +69,15 @@ export function registerSupportRoutes(app: Express) {
       }
 
       // Verify user has access to this job
-      const job = await storage.getJobById(jobId);
-      if (!job || (job.clientId !== userId && job.providerId !== userId)) {
+      const job = await storage.getJob(jobId);
+      if (!job || (job.posterId !== userId && job.workerId !== userId)) {
         return res.status(403).json({ message: "You don't have access to this job" });
       }
 
       const dispute = await storage.createDispute({
         jobId,
         raisedBy: userId,
-        against: userId === job.clientId ? job.providerId : job.clientId,
+        against: userId === job.posterId ? job.workerId : job.posterId,
         reason,
         description,
         amount: amount || null,
@@ -102,8 +102,8 @@ export function registerSupportRoutes(app: Express) {
       }
 
       // Verify user is the client for this job
-      const job = await storage.getJobById(jobId);
-      if (!job || job.clientId !== userId) {
+      const job = await storage.getJob(jobId);
+      if (!job || job.posterId !== userId) {
         return res.status(403).json({ message: "You can only request refunds for your own jobs" });
       }
 

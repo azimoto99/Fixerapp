@@ -82,7 +82,6 @@ export function InstantApplyButton({
       toast({
         title: "⚡ Application Sent!",
         description: `Your application for "${job.title}" was sent instantly!`,
-        duration: 4000,
       });
       
       // Invalidate queries to refresh data

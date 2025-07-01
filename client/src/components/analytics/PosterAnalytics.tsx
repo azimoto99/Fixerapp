@@ -66,8 +66,9 @@ export default function PosterAnalytics() {
     setIsLoading(true);
     try {
       const response = await apiRequest('GET', `/api/analytics/poster?range=${timeRange}`);
-      if (response.success) {
-        setData(response.data);
+      const result = await response.json();
+      if (result.success) {
+        setData(result.data);
       }
     } catch (error) {
       console.error('Failed to fetch analytics:', error);

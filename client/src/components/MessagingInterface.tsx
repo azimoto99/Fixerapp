@@ -317,8 +317,8 @@ export function MessagingInterface({
     allMessages = Array.isArray(conversationData) ? conversationData : [];
   }
 
-  const isRecipientOnline = Array.isArray(onlineUsers) ? onlineUsers.includes(recipientId) : false;
-  const isRecipientTyping = Array.isArray(typingUsers) ? typingUsers.includes(recipientId) : false;
+  const isRecipientOnline = Array.isArray(onlineUsers) ? (onlineUsers as number[]).includes(recipientId) : false;
+  const isRecipientTyping = Array.isArray(typingUsers) ? (typingUsers as number[]).includes(recipientId) : false;
 
   // Show error state if there's a conversation error
   if (conversationError) {

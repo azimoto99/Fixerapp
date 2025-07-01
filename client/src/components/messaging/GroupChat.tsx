@@ -64,7 +64,8 @@ export function GroupChat({ conversationId, currentUserId, onClose }: GroupChatP
     queryFn: async () => {
       const response = await apiRequest('GET', `/api/conversations/${conversationId}`);
       if (!response.ok) throw new Error('Failed to fetch conversation');
-      return response.json() as Conversation;
+      const data = await response.json();
+      return data as Conversation;
     },
     enabled: !!conversationId
   });
@@ -75,7 +76,8 @@ export function GroupChat({ conversationId, currentUserId, onClose }: GroupChatP
     queryFn: async () => {
       const response = await apiRequest('GET', `/api/conversations/${conversationId}/messages`);
       if (!response.ok) throw new Error('Failed to fetch messages');
-      return response.json() as GroupMessage[];
+      const data = await response.json();
+      return data as GroupMessage[];
     },
     enabled: !!conversationId,
     refetchInterval: 3000

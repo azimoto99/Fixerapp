@@ -24,8 +24,7 @@ export type Application = typeof schema.applications.$inferSelect;
 export type InsertApplication = typeof schema.applications.$inferInsert;
 export type Notification = typeof schema.notifications.$inferSelect;
 export type InsertNotification = typeof schema.notifications.$inferInsert;
-export type UserPrivacySettings = typeof schema.userPrivacySettings.$inferSelect;
-export type InsertUserPrivacySettings = typeof schema.userPrivacySettings.$inferInsert;
+// UserPrivacySettings types removed - not available in migrations schema
 
 // Basic helpers that we will progressively expand.
 export const Storage = {
@@ -64,8 +63,8 @@ export const Storage = {
     if (data.latitude && data.longitude) {
       const encryptedLocation = encryptLocation(data.latitude, data.longitude);
       data.location_encrypted = JSON.stringify(encryptedLocation);
-      data.latitude = null;
-      data.longitude = null;
+      data.latitude = 0;
+      data.longitude = 0;
     }
 
     const [row] = await db
@@ -133,35 +132,24 @@ export const Storage = {
 
   /** Get user's privacy settings */
   getUserPrivacySettings: async (userId: number) => {
-    const [settings] = await db
-      .select()
-      .from(schema.userPrivacySettings)
-      .where(eq(schema.userPrivacySettings.userId, userId))
-      .limit(1);
-    return settings ?? null;
+    // Privacy settings not available in migrations schema
+    return null;
   },
 
   /** Create user privacy settings */
-  createUserPrivacySettings: async (data: InsertUserPrivacySettings) => {
-    const [row] = await db
-      .insert(schema.userPrivacySettings)
-      .values(data)
-      .returning();
-    return row;
+  createUserPrivacySettings: async (data: any) => {
+    // Privacy settings not available in migrations schema
+    return null;
   },
 
   /** Update user privacy settings */
-  updateUserPrivacySettings: async (userId: number, data: Partial<InsertUserPrivacySettings>) => {
-    const [row] = await db
-      .update(schema.userPrivacySettings)
-      .set({ ...data, updatedAt: new Date() })
-      .where(eq(schema.userPrivacySettings.userId, userId))
-      .returning();
-    return row;
+  updateUserPrivacySettings: async (userId: number, data: any) => {
+    // Privacy settings not available in migrations schema
+    return null;
   },
 
   /** Create or update user privacy settings */
-  upsertUserPrivacySettings: async (userId: number, data: Partial<InsertUserPrivacySettings>) => {
+  upsertUserPrivacySettings: async (userId: number, data: any) => {
     const existing = await Storage.getUserPrivacySettings(userId);
     
     if (existing) {

@@ -66,7 +66,6 @@ export function RealTimeNotifications({ className = '' }: RealTimeNotificationsP
             toast({
               title: notification.title,
               description: notification.message,
-              duration: 6000,
             });
 
             // Play notification sound (if available)
@@ -96,7 +95,6 @@ export function RealTimeNotifications({ className = '' }: RealTimeNotificationsP
             toast({
               title: notification.title,
               description: notification.message,
-              duration: 8000,
             });
 
             playNotificationSound('success');
@@ -127,7 +125,6 @@ export function RealTimeNotifications({ className = '' }: RealTimeNotificationsP
               title: notification.title,
               description: notification.message,
               variant: 'default',
-              duration: 5000,
             });
 
             // Refresh application data

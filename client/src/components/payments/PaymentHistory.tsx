@@ -82,7 +82,7 @@ function StatusBadge({ status }: { status: string }) {
     case 'succeeded':
     case 'paid':
     case 'completed':
-      variant = 'success';
+      variant = 'default';
       break;
     case 'pending':
     case 'processing':
@@ -396,7 +396,7 @@ export default function PaymentHistory() {
                 <React.Fragment key={page}>
                   {showEllipsisBefore && (
                     <PaginationItem>
-                      <PaginationLink disabled>...</PaginationLink>
+                      <PaginationLink>...</PaginationLink>
                     </PaginationItem>
                   )}
                   
@@ -411,7 +411,7 @@ export default function PaymentHistory() {
                   
                   {showEllipsisAfter && (
                     <PaginationItem>
-                      <PaginationLink disabled>...</PaginationLink>
+                      <PaginationLink>...</PaginationLink>
                     </PaginationItem>
                   )}
                 </React.Fragment>

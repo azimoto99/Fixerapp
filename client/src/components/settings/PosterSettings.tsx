@@ -22,14 +22,19 @@ export default function PosterSettings() {
 
   const { data, isLoading } = useQuery({
     queryKey: ['/api/settings/poster', user?.id],
-    queryFn: () => apiRequest('GET', '/api/settings/poster'),
-    enabled: !!user,
-    onSuccess: (data) => {
-      if (data.settings) {
-        setSettings(data.settings);
-      }
+    queryFn: async () => {
+      const response = await apiRequest('GET', '/api/settings/poster');
+      return await response.json();
     },
+    enabled: !!user,
   });
+
+  // Handle data updates
+  useEffect(() => {
+    if (data?.settings) {
+      setSettings(data.settings);
+    }
+  }, [data]);
 
   const updateSettingsMutation = useMutation({
     mutationFn: (updatedSettings: PosterSettingsData) =>

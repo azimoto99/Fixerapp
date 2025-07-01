@@ -5,7 +5,6 @@ import { z } from 'zod';
 import { useMutation } from '@tanstack/react-query';
 import { apiRequest, queryClient } from '@/lib/queryClient';
 import { useToast } from '@/hooks/use-toast';
-import { insertReviewSchema } from '@shared/schema';
 import { Button } from '@/components/ui/button';
 import {
   Form,
@@ -19,8 +18,11 @@ import {
 import { Textarea } from '@/components/ui/textarea';
 import { Star, Loader2 } from 'lucide-react';
 
-// Extend the insertReviewSchema to add client-side validation
-const reviewFormSchema = insertReviewSchema.extend({
+// Define the review form schema
+const reviewFormSchema = z.object({
+  jobId: z.number(),
+  reviewerId: z.number(),
+  revieweeId: z.number(),
   rating: z.number().min(1, "Please select a rating").max(5),
   comment: z.string().min(5, "Please provide at least 5 characters of feedback")
 });
@@ -66,21 +68,29 @@ const ReviewForm: React.FC<ReviewFormProps> = ({
         throw new Error(error.message || 'Failed to submit review');
       }
       return res.json();
-    },
-    onSuccess: () => {
-      toast.success('Review submitted successfully');
-      queryClient.invalidateQueries({ queryKey: ['/api/reviews/user', revieweeId] });
-      queryClient.invalidateQueries({ queryKey: ['/api/reviews/job', jobId] });
-      onSuccess();
-    },
-    onError: (error: Error) => {
-      toast.error(`Failed to submit review: ${error.message}`);
-    },
+    }
   });
 
   // Handle form submission
   const onSubmit = (data: ReviewFormValues) => {
-    submitReviewMutation.mutate(data);
+    submitReviewMutation.mutate(data, {
+      onSuccess: () => {
+        toast({
+          title: 'Review submitted successfully',
+          description: 'Your review has been posted.'
+        });
+        queryClient.invalidateQueries({ queryKey: ['/api/reviews/user', revieweeId] });
+        queryClient.invalidateQueries({ queryKey: ['/api/reviews/job', jobId] });
+        onSuccess();
+      },
+      onError: (error: Error) => {
+        toast({
+          title: 'Failed to submit review',
+          description: error.message,
+          variant: 'destructive'
+        });
+      }
+    });
   };
 
   return (

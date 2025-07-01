@@ -60,7 +60,7 @@ export class PaymentMonitor extends EventEmitter {
           break;
           
         case 'failed':
-          await storage.updatePaymentStatus(existingPayment.id, 'failed');
+          await storage.updatePaymentStatus(existingPayment.id, 'failed' as any);
           this.pendingPayments.delete(paymentId);
           this.emit('failed', { paymentId, userId, reason: payment.last_payment_error?.message });
           break;

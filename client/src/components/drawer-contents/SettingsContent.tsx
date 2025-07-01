@@ -35,11 +35,11 @@ const SettingsContent: React.FC<SettingsContentProps> = ({ user }) => {
   
   // Notification settings - these should be fetched from user preferences
   const [notificationSettings, setNotificationSettings] = useState({
-    emailNotifications: user.emailNotifications ?? true,
-    pushNotifications: user.pushNotifications ?? true,
-    newJobAlerts: user.newJobAlerts ?? true,
-    paymentUpdates: user.paymentUpdates ?? true,
-    marketingEmails: user.marketingEmails ?? false,
+    emailNotifications: true, // TODO: Get from user preferences
+    pushNotifications: true, // TODO: Get from user preferences
+    newJobAlerts: true, // TODO: Get from user preferences
+    paymentUpdates: true, // TODO: Get from user preferences
+    marketingEmails: false, // TODO: Get from user preferences
   });
 
   // Privacy settings - fetched from real API
@@ -62,6 +62,11 @@ const SettingsContent: React.FC<SettingsContentProps> = ({ user }) => {
     allowMarketingEmails: false,
     allowPushNotifications: true,
     dataRetentionPeriod: 0,
+    // Missing properties that are used in the UI
+    profileVisibility: 'contacts' as 'all' | 'contacts' | 'none',
+    showOnlineStatus: false,
+    shareActivityStatus: false,
+    allowLocationAccess: true,
   });
 
   const handleToggle = (setting: string) => {

@@ -287,7 +287,7 @@ export const enhancedAdminAuth = async (req: any, res: any, next: any) => {
     return res.status(403).json({ error: 'Admin access required' });
   } catch (error) {
     logSecurityEvent('ADMIN_ACCESS_ERROR', {
-      error: error.message,
+      error: error instanceof Error ? error.message : 'Unknown error',
       ip: req.ip,
       userAgent: req.get('User-Agent'),
       path: req.path

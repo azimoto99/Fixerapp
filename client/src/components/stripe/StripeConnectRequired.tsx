@@ -84,7 +84,7 @@ const StripeConnectRequired: React.FC<StripeConnectRequiredProps> = ({
       const timestamp = new Date().toISOString();
       localStorage.setItem('stripe-connect-pending', 'true');
       localStorage.setItem('stripe-connect-timestamp', timestamp);
-      localStorage.setItem('stripe-connect-session', sessionHealth?.sessionId || '');
+      localStorage.setItem('stripe-connect-session', (sessionHealth as any)?.sessionId || '');
       
       // Open Stripe Connect onboarding in new tab
       const stripeWindow = window.open(url, '_blank');
@@ -128,7 +128,7 @@ const StripeConnectRequired: React.FC<StripeConnectRequiredProps> = ({
       let shouldRetry = false;
       
       try {
-        const errorData = error.response?.data || {};
+        const errorData = (error as any).response?.data || {};
         switch (errorData.code) {
           case 'AUTH_REQUIRED':
             errorMessage = 'Please log in again to continue.';
@@ -159,10 +159,7 @@ const StripeConnectRequired: React.FC<StripeConnectRequiredProps> = ({
         title: 'Error',
         description: errorMessage,
         variant: 'destructive',
-        action: shouldRetry ? {
-          label: 'Retry',
-          onClick: () => createStripeConnectAccount()
-        } : undefined
+        action: shouldRetry ? undefined : undefined
       });
     } finally {
       setIsCreating(false);
@@ -181,7 +178,7 @@ const StripeConnectRequired: React.FC<StripeConnectRequiredProps> = ({
         </DialogHeader>
         
         {accountStatus?.requiresAttention && (
-          <Alert className="mb-4" variant="warning">
+          <Alert className="mb-4" variant="destructive">
             <AlertTriangle className="h-4 w-4" />
             <AlertTitle>Action Required</AlertTitle>
             <AlertDescription>

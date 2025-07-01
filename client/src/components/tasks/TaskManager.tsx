@@ -76,13 +76,14 @@ import { format } from 'date-fns';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useForm } from 'react-hook-form';
 import { z } from 'zod';
-import { insertTaskSchema } from '@shared/schema';
 
 // Task form schema with additional validation
-const taskFormSchema = insertTaskSchema.extend({
+const taskFormSchema = z.object({
+  jobId: z.number(),
   description: z.string().min(3, "Task description is required"),
   position: z.number(),
   isOptional: z.boolean().default(false),
+  isCompleted: z.boolean().default(false),
   dueTime: z.union([z.string(), z.date(), z.null()]).optional(),
   estimatedDuration: z.number().min(5, "Minimum 5 minutes").max(480, "Maximum 8 hours").optional(),
   location: z.string().optional(),

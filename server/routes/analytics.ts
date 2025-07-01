@@ -1,7 +1,7 @@
 import express from 'express';
 import { db } from '../db.js';
 import { jobs, applications, users, earnings } from '@shared/schema';
-import { eq, and, gte, lte, desc, count, avg, sum } from 'drizzle-orm';
+import { eq, and, gte, lte, desc, count, avg, sum, inArray } from 'drizzle-orm';
 import { requireAuth } from '../auth-helpers.js';
 
 const router = express.Router();
@@ -10,7 +10,10 @@ const router = express.Router();
 router.get('/poster', requireAuth, async (req, res) => {
   try {
     const { range = '30d' } = req.query;
-    const userId = req.user.id;
+    const userId = req.user?.id;
+    if (!userId) {
+      return res.status(401).json({ error: 'User not authenticated' });
+    }
     
     // Calculate date range
     const now = new Date();
@@ -37,12 +40,12 @@ router.get('/poster', requireAuth, async (req, res) => {
       )
     ]) as any;
 
-    const jobIds = userJobs.map(job => job.id);
+    const jobIds = userJobs.map((job: any) => job.id);
 
     // Overview metrics
     const totalJobs = userJobs.length;
-    const totalSpent = userJobs.reduce((sum, job) => sum + (job.paymentAmount || 0), 0);
-    const completedJobs = userJobs.filter(job => job.status === 'completed');
+    const totalSpent = userJobs.reduce((sum: number, job: any) => sum + (job.paymentAmount || 0), 0);
+    const completedJobs = userJobs.filter((job: any) => job.status === 'completed');
     const completionRate = totalJobs > 0 ? completedJobs.length / totalJobs : 0;
 
     // Get applications for user's jobs
@@ -51,7 +54,7 @@ router.get('/poster', requireAuth, async (req, res) => {
       const applicationsResult = await db
         .select({ count: count() })
         .from(applications)
-        .where(applications.jobId.in(jobIds));
+        .where(inArray(applications.jobId, jobIds));
       
       totalApplications = applicationsResult[0]?.count || 0;
     }
@@ -85,12 +88,12 @@ router.get('/poster', requireAuth, async (req, res) => {
           })
           .from(applications)
           .where(and(
-            applications.jobId.in(jobIds),
+            inArray(applications.jobId, jobIds),
             gte(applications.dateApplied, sevenDaysAgo)
           ));
 
         // Group applications by date
-        allApplications.forEach(app => {
+        allApplications.forEach((app: any) => {
           const dateStr = new Date(app.dateApplied).toISOString().split('T')[0];
           applicationsMap.set(dateStr, (applicationsMap.get(dateStr) || 0) + 1);
         });
@@ -104,7 +107,7 @@ router.get('/poster', requireAuth, async (req, res) => {
       const date = new Date(now.getTime() - (i * 24 * 60 * 60 * 1000));
       const dateStr = date.toISOString().split('T')[0];
       
-      const dayJobs = userJobs.filter(job => {
+      const dayJobs = userJobs.filter((job: any) => {
         const jobDate = new Date(job.datePosted).toISOString().split('T')[0];
         return jobDate === dateStr;
       });
@@ -116,7 +119,7 @@ router.get('/poster', requireAuth, async (req, res) => {
 
       spending.push({
         date: date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
-        amount: dayJobs.reduce((sum, job) => sum + (job.paymentAmount || 0), 0)
+        amount: dayJobs.reduce((sum: number, job: any) => sum + (job.paymentAmount || 0), 0)
       });
       
       applicationsData.push({
@@ -127,7 +130,7 @@ router.get('/poster', requireAuth, async (req, res) => {
 
     // Categories data
     const categoryMap = new Map();
-    userJobs.forEach(job => {
+    userJobs.forEach((job: any) => {
       const category = job.category || 'Other';
       if (!categoryMap.has(category)) {
         categoryMap.set(category, { count: 0, spending: 0 });
@@ -158,14 +161,14 @@ router.get('/poster', requireAuth, async (req, res) => {
             count: count()
           })
           .from(applications)
-          .where(applications.jobId.in(jobIds))
+          .where(inArray(applications.jobId, jobIds))
           .groupBy(applications.jobId, applications.status);
 
         // Process the results
         const jobsWithApplications = new Set();
         let acceptedCount = 0;
         
-        applicationStats.forEach(stat => {
+        applicationStats.forEach((stat: any) => {
           jobsWithApplications.add(stat.jobId);
           if (stat.status === 'accepted') {
             acceptedCount += stat.count;
@@ -257,7 +260,10 @@ router.get('/poster', requireAuth, async (req, res) => {
 router.get('/worker', requireAuth, async (req, res) => {
   try {
     const { range = '30d' } = req.query;
-    const userId = req.user.id;
+    const userId = req.user?.id;
+    if (!userId) {
+      return res.status(401).json({ error: 'User not authenticated' });
+    }
     
     // Calculate date range
     const now = new Date();
@@ -280,7 +286,7 @@ router.get('/worker', requireAuth, async (req, res) => {
       ));
 
     // Get accepted applications and their jobs
-    const acceptedApplications = userApplications.filter(app => app.status === 'accepted');
+    const acceptedApplications = userApplications.filter((app: any) => app.status === 'accepted');
     
     // Get worker's real rating
     let workerAverageRating = null;
@@ -306,16 +312,16 @@ router.get('/worker', requireAuth, async (req, res) => {
           gte(earnings.dateEarned, startDate)
         ));
       
-      totalEarnings = workerEarnings.reduce((sum, earning) => sum + (earning.netAmount || 0), 0);
+      totalEarnings = workerEarnings.reduce((sum: number, earning: any) => sum + (earning.netAmount || 0), 0);
       
       // Get completed jobs count
-      const acceptedJobIds = acceptedApplications.map(app => app.jobId);
+      const acceptedJobIds = acceptedApplications.map((app: any) => app.jobId);
       if (acceptedJobIds.length > 0) {
         const completedJobs = await db
           .select({ count: count() })
           .from(jobs)
           .where(and(
-            jobs.id.in(acceptedJobIds),
+            inArray(jobs.id, acceptedJobIds),
             eq(jobs.status, 'completed')
           ));
         completedJobsCount = completedJobs[0]?.count || 0;

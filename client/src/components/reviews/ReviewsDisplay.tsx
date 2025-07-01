@@ -51,7 +51,11 @@ const ReviewsDisplay: React.FC<ReviewsDisplayProps> = ({
 
   React.useEffect(() => {
     if (error) {
-      toast.error(`Error loading reviews: ${(error as Error).message}`);
+      toast({
+        title: 'Error loading reviews',
+        description: (error as Error).message,
+        variant: 'destructive'
+      });
     }
   }, [error, toast]);
 

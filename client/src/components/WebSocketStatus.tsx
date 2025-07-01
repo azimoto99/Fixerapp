@@ -99,7 +99,7 @@ export function WebSocketStatus({ showDetails = false, className = "" }: WebSock
           {getStatusText()}
         </span>
         {circuitBreakerOpen && (
-          <Zap className="h-3 w-3 text-orange-500" title="Circuit breaker active" />
+          <Zap className="h-3 w-3 text-orange-500" />
         )}
       </div>
     );
@@ -262,7 +262,7 @@ export function WebSocketIndicator({ className = "" }: { className?: string }) {
     <div className={`flex items-center gap-2 ${className}`} title={`WebSocket: ${status}`}>
       <div className={`w-2 h-2 rounded-full ${getIndicatorColor()}`} />
       {circuitBreakerOpen && (
-        <Zap className="h-3 w-3 text-orange-500" title="Circuit breaker active" />
+        <Zap className="h-3 w-3 text-orange-500" />
       )}
     </div>
   );

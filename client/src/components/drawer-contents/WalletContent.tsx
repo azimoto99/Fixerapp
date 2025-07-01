@@ -50,18 +50,30 @@ const WalletContent: React.FC<WalletContentProps> = ({ user }) => {
   // Fetch earnings data
   const { data: earnings, isLoading: earningsLoading } = useQuery({
     queryKey: ['/api/earnings'],
+    queryFn: async () => {
+      const response = await apiRequest('GET', '/api/earnings');
+      return await response.json();
+    },
     enabled: !!user,
   });
 
   // Fetch payments data
   const { data: payments, isLoading: paymentsLoading } = useQuery({
     queryKey: ['/api/payments'],
+    queryFn: async () => {
+      const response = await apiRequest('GET', '/api/payments');
+      return await response.json();
+    },
     enabled: !!user,
   });
 
   // Fetch payment methods
   const { data: paymentMethods, isLoading: paymentMethodsLoading } = useQuery({
     queryKey: ['/api/stripe/payment-methods'],
+    queryFn: async () => {
+      const response = await apiRequest('GET', '/api/stripe/payment-methods');
+      return await response.json();
+    },
     enabled: !!user,
   });
 

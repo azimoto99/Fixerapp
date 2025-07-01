@@ -51,7 +51,8 @@ export default function BusinessSettings({ businessData }: { businessData: Busin
     businessWebsite: businessData?.businessWebsite || '',
     businessPhone: businessData?.businessPhone || '',
     businessEmail: businessData?.businessEmail || '',
-    businessType: businessData?.businessType || 'company'
+    businessType: businessData?.businessType || 'company',
+    businessLogo: businessData?.businessLogo || ''
   });
 
   // Update business profile mutation
@@ -84,7 +85,8 @@ export default function BusinessSettings({ businessData }: { businessData: Busin
         businessWebsite: data?.businessWebsite || '',
         businessPhone: data?.businessPhone || '',
         businessEmail: data?.businessEmail || '',
-        businessType: data?.businessType || 'company'
+        businessType: data?.businessType || 'company',
+        businessLogo: data?.businessLogo || ''
       });
     },
     onError: (error: any) => {
@@ -106,7 +108,8 @@ export default function BusinessSettings({ businessData }: { businessData: Busin
         businessWebsite: businessData.businessWebsite || '',
         businessPhone: businessData.businessPhone || '',
         businessEmail: businessData.businessEmail || '',
-        businessType: businessData.businessType || 'company'
+        businessType: businessData.businessType || 'company',
+        businessLogo: businessData.businessLogo || ''
       });
     }
   }, [businessData, isEditing]);
@@ -122,7 +125,8 @@ export default function BusinessSettings({ businessData }: { businessData: Busin
       businessWebsite: businessData?.businessWebsite || '',
       businessPhone: businessData?.businessPhone || '',
       businessEmail: businessData?.businessEmail || '',
-      businessType: businessData?.businessType || 'company'
+      businessType: businessData?.businessType || 'company',
+      businessLogo: businessData?.businessLogo || ''
     });
     setIsEditing(false);
   };
@@ -303,11 +307,7 @@ export default function BusinessSettings({ businessData }: { businessData: Busin
                         formData.append('logo', file);
                         
                         try {
-                          const res = await apiRequest('POST', '/api/enterprise/upload-logo', formData, {
-                            headers: {
-                              'Content-Type': 'multipart/form-data'
-                            }
-                          });
+                          const res = await apiRequest('POST', '/api/enterprise/upload-logo', formData);
                           const data = await res.json();
                           setFormData(prev => ({...prev, businessLogo: data.url}));
                           if (businessData) {

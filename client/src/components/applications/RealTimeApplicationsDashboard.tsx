@@ -87,7 +87,7 @@ export function RealTimeApplicationsDashboard({
       return response.json();
     },
     onSuccess: (data, applicationId) => {
-      const application = applications.find(app => app.id === applicationId);
+      const application = applications.find((app: any) => app.id === applicationId);
       if (application) {
         // Send real-time notification to worker
         sendRawMessage({
@@ -101,7 +101,6 @@ export function RealTimeApplicationsDashboard({
         toast({
           title: "🎉 Application Accepted!",
           description: `You've selected ${application.worker.fullName} for this job!`,
-          duration: 5000,
         });
       }
 
@@ -131,7 +130,7 @@ export function RealTimeApplicationsDashboard({
       return response.json();
     },
     onSuccess: (data, applicationId) => {
-      const application = applications.find(app => app.id === applicationId);
+      const application = applications.find((app: any) => app.id === applicationId);
       if (application) {
         // Send real-time notification to worker
         sendRawMessage({
@@ -171,7 +170,6 @@ export function RealTimeApplicationsDashboard({
         toast({
           title: "⚡ New Application!",
           description: `${message.workerName} just applied for your job!`,
-          duration: 6000,
         });
 
         // Refresh applications
@@ -183,9 +181,9 @@ export function RealTimeApplicationsDashboard({
     // For now, we'll use the refetch interval
   }, [jobId, queryClient, toast]);
 
-  const pendingApplications = applications.filter(app => app.status === 'pending');
-  const acceptedApplications = applications.filter(app => app.status === 'accepted');
-  const rejectedApplications = applications.filter(app => app.status === 'rejected');
+  const pendingApplications = applications.filter((app: Application) => app.status === 'pending');
+  const acceptedApplications = applications.filter((app: any) => app.status === 'accepted');
+  const rejectedApplications = applications.filter((app: any) => app.status === 'rejected');
 
   const handleAccept = (applicationId: number) => {
     acceptMutation.mutate(applicationId);
@@ -390,14 +388,14 @@ export function RealTimeApplicationsDashboard({
           <ScrollArea className="h-[600px]">
             <div className="space-y-4">
               <AnimatePresence>
-                {pendingApplications.map((application) => (
+                {pendingApplications.map((application: any) => (
                   <ApplicationCard key={application.id} application={application} />
                 ))}
                 
                 {acceptedApplications.length > 0 && (
                   <div className="pt-4">
                     <h4 className="font-medium text-green-700 mb-2">Accepted</h4>
-                    {acceptedApplications.map((application) => (
+                    {acceptedApplications.map((application: any) => (
                       <ApplicationCard key={application.id} application={application} />
                     ))}
                   </div>
@@ -406,7 +404,7 @@ export function RealTimeApplicationsDashboard({
                 {rejectedApplications.length > 0 && (
                   <div className="pt-4">
                     <h4 className="font-medium text-muted-foreground mb-2">Rejected</h4>
-                    {rejectedApplications.map((application) => (
+                    {rejectedApplications.map((application: any) => (
                       <ApplicationCard key={application.id} application={application} />
                     ))}
                   </div>

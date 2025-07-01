@@ -2337,10 +2337,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
           status: payment.status || 'pending',
           date: payment.createdAt || new Date().toISOString(),
           userId: payment.userId,
-          jobId: payment.jobId,
-          user: userMap.get(payment.userId),
-          job: jobMap.get(payment.jobId),
-          description: `Payment for job: ${jobMap.get(payment.jobId)?.title || 'Unknown Job'}`,
+          jobId: payment.jobId || 0,
+          user: userMap.get(payment.userId || 0),
+          job: jobMap.get(payment.jobId || 0),
+          description: `Payment for job: ${jobMap.get(payment.jobId || 0)?.title || 'Unknown Job'}`,
           serviceFee: payment.serviceFee || 0
         })),
         ...allEarnings.map(earning => ({
@@ -2350,10 +2350,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
           status: earning.status || 'pending',
           date: earning.dateEarned || new Date().toISOString(),
           userId: earning.userId,
-          jobId: earning.jobId,
-          user: userMap.get(earning.userId),
-          job: jobMap.get(earning.jobId),
-          description: `Earning from job: ${jobMap.get(earning.jobId)?.title || 'Unknown Job'}`,
+          jobId: earning.jobId || 0,
+          user: userMap.get(earning.userId || 0),
+          job: jobMap.get(earning.jobId || 0),
+          description: `Earning from job: ${jobMap.get(earning.jobId || 0)?.title || 'Unknown Job'}`,
           netAmount: earning.netAmount || 0
         }))
       ];
@@ -2505,7 +2505,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const settings = await db.select().from(platformSettings);
       
       // Convert to key-value object for easier frontend consumption
-      const settingsObject = settings.reduce((acc, setting) => {
+      const settingsObject = settings.reduce((acc: Record<string, any>, setting: any) => {
         acc[setting.key] = setting.value;
         return acc;
       }, {} as Record<string, any>);

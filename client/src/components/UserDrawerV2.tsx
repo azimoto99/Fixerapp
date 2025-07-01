@@ -201,11 +201,11 @@ const UserDrawerV2: React.FC<UserDrawerProps> = ({
           </div>
         );
       case "reviews":
-        return <ReviewsContent user={user} />;
+        return <ReviewsContent userId={user.id} />;
       case "settings":
         return <SettingsContent user={user} />;
       case "support":
-        return <SupportContent user={user} />;
+        return <SupportContent />;
       case "notifications":
         return <NotificationsContent user={user} />;
       default:
@@ -253,17 +253,13 @@ const UserDrawerV2: React.FC<UserDrawerProps> = ({
                       formData.append('avatar', file);
                       
                       try {
-                        const res = await apiRequest('POST', '/api/enterprise/upload-avatar', formData, {
-                          headers: {
-                            'Content-Type': 'multipart/form-data'
-                          }
-                        });
+                        const res = await apiRequest('POST', '/api/enterprise/upload-avatar', formData);
                         const data = await res.json();
                         // Update user context/local storage with new avatar URL
                         user.avatarUrl = data.url;
                         localStorage.setItem('user', JSON.stringify(user));
                         // Invalidate user query to refresh avatar everywhere
-                        queryClient.invalidateQueries(['user']);
+                        queryClient.invalidateQueries({ queryKey: ['user'] });
                         toast({
                           title: 'Avatar Updated',
                           description: 'Your profile picture has been updated successfully.',

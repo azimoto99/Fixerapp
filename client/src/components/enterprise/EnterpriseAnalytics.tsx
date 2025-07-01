@@ -33,7 +33,10 @@ export default function EnterpriseAnalytics({ businessId }: { businessId: number
   // Fetch real analytics data from API
   const { data: analytics, isLoading, error } = useQuery({
     queryKey: ['enterprise-analytics', businessId],
-    queryFn: () => apiRequest('/api/enterprise/analytics'),
+    queryFn: async () => {
+      const response = await apiRequest('GET', '/api/enterprise/analytics');
+      return await response.json();
+    },
     enabled: !!businessId
   });
 
@@ -350,7 +353,7 @@ export default function EnterpriseAnalytics({ businessId }: { businessId: number
             <>
               {/* Top performing position */}
               {(() => {
-                const topPosition = analytics.positionPerformance.reduce((prev, current) => 
+                const topPosition = analytics.positionPerformance.reduce((prev: any, current: any) => 
                   (prev.applications > current.applications) ? prev : current
                 );
                 return (
@@ -365,7 +368,7 @@ export default function EnterpriseAnalytics({ businessId }: { businessId: number
 
               {/* Fastest hiring */}
               {(() => {
-                const fastestHiring = analytics.positionPerformance.reduce((prev, current) => 
+                const fastestHiring = analytics.positionPerformance.reduce((prev: any, current: any) => 
                   (prev.avgTimeToHire < current.avgTimeToHire && prev.avgTimeToHire > 0) ? prev : current
                 );
                 return fastestHiring.avgTimeToHire > 0 ? (
@@ -380,7 +383,7 @@ export default function EnterpriseAnalytics({ businessId }: { businessId: number
 
               {/* Improvement opportunity */}
               {(() => {
-                const slowestHiring = analytics.positionPerformance.reduce((prev, current) => 
+                const slowestHiring = analytics.positionPerformance.reduce((prev: any, current: any) => 
                   (prev.avgTimeToHire > current.avgTimeToHire) ? prev : current
                 );
                 return slowestHiring.avgTimeToHire > 14 ? (

@@ -19,7 +19,7 @@ export class DatabaseErrorHandler extends EventEmitter {
     this.pool.on('error', async (error) => {
       console.error('Database pool error:', error);
       
-      if (error.code === 'XX000' && error.message.includes('db_termination')) {
+      if ((error as any).code === 'XX000' && error.message.includes('db_termination')) {
         await this.handleDisconnect();
       }
       

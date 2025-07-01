@@ -57,14 +57,16 @@ export default function ApplicationsManager({
         status: action === 'accept' ? 'accepted' : 'rejected'
       });
 
-      if (response.success) {
+      const result = await response.json();
+
+      if (result.success) {
         toast({
           title: `Application ${action}ed`,
           description: `The application has been ${action}ed successfully.`,
         });
         onApplicationUpdate();
       } else {
-        throw new Error(response.message || `Failed to ${action} application`);
+        throw new Error(result.message || `Failed to ${action} application`);
       }
     } catch (error) {
       console.error(`Application ${action} error:`, error);

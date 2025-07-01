@@ -191,17 +191,19 @@ export default function LocationVerificationModal({
         source: 'gps',
         deviceInfo
       });
+      
+      const result = await response.json();
 
-      if (response.success) {
+      if (result.success) {
         setStep('complete');
-        onJobStarted(response.job);
+        onJobStarted(result.job);
         
         // Close modal after a brief delay
         setTimeout(() => {
           onClose();
         }, 2000);
       } else {
-        throw new Error(response.message || 'Failed to start job');
+        throw new Error(result.message || 'Failed to start job');
       }
     } catch (error) {
       console.error('Job start error:', error);

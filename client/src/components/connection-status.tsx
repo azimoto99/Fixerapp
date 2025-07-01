@@ -18,8 +18,7 @@ export function ConnectionStatus() {
           description: networkStatus.online 
             ? 'Having trouble with your session. Trying to reconnect...' 
             : 'You are currently offline. Some features may be limited.',
-          variant: 'warning',
-          duration: 10000,
+          variant: 'destructive',
         });
       }, 1000);
     }

@@ -23,7 +23,7 @@ router.get('/*', async (req, res) => {
 
     try {
         // Get the full path from the URL (everything after /api/images/)
-        const key = req.params[0];
+        const key = (req.params as any)[0];
         
         if (!key) {
             return res.status(400).json({ message: 'Image key is required' });

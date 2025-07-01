@@ -50,18 +50,20 @@ export function encryptSensitiveData(data: string): EncryptedData {
   }
 
   const iv = crypto.randomBytes(ENCRYPTION_CONFIG.ivLength);
-  const cipher = crypto.createCipher(ENCRYPTION_CONFIG.algorithm, ENCRYPTION_KEY);
-  cipher.setAAD(Buffer.from('fixer-app-aad')); // Additional authenticated data
+  const cipher = crypto.createCipher(ENCRYPTION_CONFIG.algorithm, ENCRYPTION_KEY) as any;
+  if (cipher.setAAD) {
+    cipher.setAAD(Buffer.from('fixer-app-aad')); // Additional authenticated data
+  }
   
   let encrypted = cipher.update(data, 'utf8', 'base64');
   encrypted += cipher.final('base64');
   
-  const tag = cipher.getAuthTag();
+  const tag = cipher.getAuthTag ? cipher.getAuthTag() : null;
   
   return {
     encrypted,
     iv: iv.toString('base64'),
-    tag: tag.toString('base64'),
+    tag: tag ? tag.toString('base64') : '',
     algorithm: ENCRYPTION_CONFIG.algorithm
   };
 }
@@ -77,9 +79,13 @@ export function decryptSensitiveData(encryptedData: EncryptedData): string {
   const iv = Buffer.from(encryptedData.iv, 'base64');
   const tag = Buffer.from(encryptedData.tag, 'base64');
   
-  const decipher = crypto.createDecipher(encryptedData.algorithm, ENCRYPTION_KEY);
-  decipher.setAAD(Buffer.from('fixer-app-aad'));
-  decipher.setAuthTag(tag);
+  const decipher = crypto.createDecipher(encryptedData.algorithm, ENCRYPTION_KEY) as any;
+  if (decipher.setAAD) {
+    decipher.setAAD(Buffer.from('fixer-app-aad'));
+  }
+  if (decipher.setAuthTag && tag) {
+    decipher.setAuthTag(tag);
+  }
   
   let decrypted = decipher.update(encryptedData.encrypted, 'base64', 'utf8');
   decrypted += decipher.final('utf8');

@@ -89,8 +89,19 @@ export default function JobPostingWizard({ isOpen, onClose, onJobCreated, jobToE
   useEffect(() => {
     if (jobToEdit) {
       reset({
-        ...jobToEdit,
+        title: jobToEdit.title,
+        description: jobToEdit.description,
+        category: jobToEdit.category,
+        location: jobToEdit.location,
+        latitude: jobToEdit.latitude,
+        longitude: jobToEdit.longitude,
+        paymentType: (jobToEdit.paymentType as 'fixed' | 'hourly') || 'fixed',
+        paymentAmount: jobToEdit.paymentAmount || 0,
+        estimatedHours: (jobToEdit as any).estimatedHours,
         dateNeeded: jobToEdit.dateNeeded ? new Date(jobToEdit.dateNeeded).toISOString().split('T')[0] : '',
+        skills: jobToEdit.requiredSkills || [],
+        equipmentProvided: jobToEdit.equipmentProvided || false,
+        urgency: ((jobToEdit as any).urgency as 'low' | 'medium' | 'high') || 'medium',
       });
     } else {
       reset({
@@ -144,15 +155,17 @@ export default function JobPostingWizard({ isOpen, onClose, onJobCreated, jobToE
         dateNeeded: new Date(data.dateNeeded).toISOString(),
         status: 'open'
       });
+      
+      const result = await response.json();
 
-      if (response.success) {
+      if (result.success) {
         toast({
           title: isEditMode ? 'Job updated successfully!' : 'Job posted successfully!',
           description: isEditMode ? 'Your job has been updated.' : 'Your job is now live and workers can apply.',
         });
-        onJobCreated(response.job);
+        onJobCreated(result.job);
       } else {
-        throw new Error(response.message || `Failed to ${isEditMode ? 'update' : 'post'} job`);
+        throw new Error(result.message || `Failed to ${isEditMode ? 'update' : 'post'} job`);
       }
     } catch (error) {
       console.error(`Job ${isEditMode ? 'updating' : 'posting'} error:`, error);

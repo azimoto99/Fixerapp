@@ -606,7 +606,8 @@ export class MemStorage implements IStorage {
       ...insertJob, 
       id, 
       datePosted, 
-      workerId, 
+      workerId,
+      location_encrypted: null, // TODO: Implement location encryption 
       serviceFee, 
       totalAmount,
       status,
@@ -1420,7 +1421,9 @@ export class MemStorage implements IStorage {
 			isEdited: false,
 			editedAt: null,
 			jobId: message.jobId || null,
-			messageType: message.messageType || null
+			messageType: message.messageType || null,
+			conversationId: message.conversationId || null,
+			recipientId: message.recipientId || null
 		};
 		
 		this.messages.set(id, newMessage);

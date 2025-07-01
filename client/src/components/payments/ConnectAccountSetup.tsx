@@ -216,7 +216,8 @@ export default function ConnectAccountSetup() {
         description: 'Your Stripe Connect account has been created. You will now be redirected to complete your setup.',
       });
       
-      // Redirect to Stripe Connect onboarding      const url = data.accountLinkUrl || data.url;  // Support both formats
+      // Redirect to Stripe Connect onboarding
+      const url = data.accountLinkUrl || data.url;  // Support both formats
       if (url) {
         window.open(url, '_blank');
         toast({

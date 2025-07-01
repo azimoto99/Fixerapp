@@ -92,28 +92,43 @@ interface JobDetailsCardProps {
 // Define type for application
 interface Application {
   id: number;
-  status: string;
-  workerId: number;
   jobId: number;
-  createdAt: string;
-  updatedAt: string;
+  workerId: number;
+  status: string;
+  message: string | null;
+  dateApplied: string;
+  hourlyRate: number | null;
+  expectedDuration: string | null;
+  coverLetter: string | null;
+  createdAt?: string;
+  updatedAt?: string;
   worker?: {
     id: number;
     fullName: string | null;
     username: string;
     avatarUrl: string | null;
+    rating?: number | null;
   };
 }
 
-// Define type for task
+// Define type for task matching database schema
 interface Task {
   id: number;
-  title: string;
-  description: string | null;
-  status: 'pending' | 'in_progress' | 'completed';
   jobId: number;
-  createdAt: string;
-  updatedAt: string | null;
+  title?: string; // Optional title for display purposes
+  description: string;
+  isCompleted: boolean;
+  completedAt: string | null;
+  completedBy: number | null;
+  position: number;
+  isOptional: boolean;
+  dueTime: string | null;
+  estimatedDuration: number | null;
+  location: string | null;
+  latitude: number | null;
+  longitude: number | null;
+  bonusAmount: number | null;
+  notes: string | null;
 }
 
 const JobDetailsCard: React.FC<JobDetailsCardProps> = ({ jobId, isOpen, onClose }) => {
@@ -158,16 +173,14 @@ const JobDetailsCard: React.FC<JobDetailsCardProps> = ({ jobId, isOpen, onClose 
     enabled: isOpen && !!jobId,
     retry: 3,
     retryDelay: attemptIndex => Math.min(1000 * 2 ** attemptIndex, 30000),
-    onError: (error) => {
-      console.error('Error fetching job details:', error);
-    },
   });
 
   // Fetch poster details
   const { data: poster, error: posterError } = useQuery({
-    queryKey: ['/api/users', job?.posterId],
+    queryKey: ['/api/users', job?.posterId || 0],
     queryFn: async () => {
-      const response = await apiRequest('GET', `/api/users/${job?.posterId}`);
+      if (!job?.posterId) return null;
+      const response = await apiRequest('GET', `/api/users/${job.posterId}`);
       if (!response.ok) {
         return null;
       }
@@ -201,25 +214,20 @@ const JobDetailsCard: React.FC<JobDetailsCardProps> = ({ jobId, isOpen, onClose 
       return (data.applications || []) as Application[];
     },
     enabled: isOpen && !!jobId && !!user && (user.accountType === 'poster' || user.id === job?.posterId),
-    onError: (error) => {
-      console.error('Error fetching applications:', error);
-    },
   });
 
   // Fetch tasks
-  const { data: tasks = [], error: tasksError } = useQuery({
+  const { data: tasks = [] as Task[], error: tasksError } = useQuery<Task[]>({
     queryKey: ['/api/jobs', jobId, 'tasks'],
     queryFn: async () => {
       const response = await apiRequest('GET', `/api/jobs/${jobId}/tasks`);
       if (!response.ok) {
         return [];
       }
-      return response.json() as Task[];
+      const data = await response.json();
+      return data as Task[];
     },
     enabled: isOpen && !!jobId,
-    onError: (error) => {
-      console.error('Error fetching tasks:', error);
-    },
   });
 
   // Fetch existing ratings for this job
@@ -376,7 +384,6 @@ const JobDetailsCard: React.FC<JobDetailsCardProps> = ({ jobId, isOpen, onClose 
         toast({
           title: "🎉 Application Accepted!",
           description: `You've selected ${application.worker?.fullName || application.worker?.username} for this job!`,
-          duration: 5000,
         });
       }
 
@@ -618,7 +625,7 @@ const JobDetailsCard: React.FC<JobDetailsCardProps> = ({ jobId, isOpen, onClose 
   const calculateProgress = () => {
     if (!tasks || tasks.length === 0) return 100;
     
-    const completedCount = tasks.filter((task: { isCompleted: boolean }) => task.isCompleted).length;
+    const completedCount = (tasks as Task[]).filter((task: { isCompleted: boolean }) => task.isCompleted).length;
     return Math.round((completedCount / tasks.length) * 100);
   };
 
@@ -1562,7 +1569,7 @@ const JobDetailsCard: React.FC<JobDetailsCardProps> = ({ jobId, isOpen, onClose 
                                 <div 
                                   className="bg-primary h-2 rounded-full transition-all duration-300" 
                                   style={{ 
-                                    width: `${tasks.length > 0 ? (tasks.filter(t => t.isCompleted).length / tasks.length) * 100 : 0}%` 
+                                    width: `${tasks.length > 0 ? ((tasks as Task[]).filter((t: any) => t.isCompleted).length / tasks.length) * 100 : 0}%` 
                                   }}
                                 ></div>
                               </div>
