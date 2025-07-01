@@ -66,16 +66,19 @@ const JobSearch: React.FC<JobSearchProps> = memo(({ onSearch }) => {
           setLastSearchLocation(geocodeResult.displayName?.split(',')[0] || query);
 
           // Store coordinates for radius filter to use
-          const coordinates = {
-            latitude: geocodeResult.latitude,
-            longitude: geocodeResult.longitude
-          };
-          setLocationCoordinates(coordinates);
+          let coordinates = null;
+          if (geocodeResult.latitude != null && geocodeResult.longitude != null) {
+            coordinates = {
+              latitude: geocodeResult.latitude,
+              longitude: geocodeResult.longitude
+            };
+            setLocationCoordinates(coordinates);
+          }
 
           onSearch({
             query,
             searchMode,
-            coordinates,
+            coordinates: coordinates || undefined,
             radiusMiles: searchMode === 'location' ? radiusMiles : undefined
           });
         } else {

@@ -25,6 +25,7 @@ type AuthContextType = {
   logoutMutation: UseMutationResult<void, Error, void>;
   registerMutation: UseMutationResult<UserWithFlags, Error, InsertUser>;
   setAccountTypeMutation: UseMutationResult<UserWithFlags, Error, SetAccountTypeData>;
+  refreshUser: () => Promise<void>;
 };
 
 type LoginData = Pick<InsertUser, "username" | "password">;
@@ -240,6 +241,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     },
   });
 
+  const refreshUser = async () => {
+    await queryClient.invalidateQueries({ queryKey: ["/api/user"] });
+  };
+
   return (
     <AuthContext.Provider
       value={{
@@ -250,6 +255,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         logoutMutation,
         registerMutation,
         setAccountTypeMutation,
+        refreshUser,
       }}
     >
       {children}

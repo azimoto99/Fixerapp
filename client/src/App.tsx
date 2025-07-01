@@ -122,15 +122,15 @@ function RouterWithAuth() {
       {/* Fixer Dashboard - Only accessible to fixer accounts */}
       <AccountTypeRoute path="/poster-dashboard" component={PosterDashboardV2} allowedType="poster" />
       <Route path="/auth" component={AuthPage} />
-      <Route path="/business-register" component={BusinessRegister} />
+      <Route path="/business-register" component={() => <BusinessRegister />} />
       <Route path="/login" component={RedirectToAuth} />
       <Route path="/register" component={RedirectToAuth} />
       <Route path="/auth/callback" component={() => <div>Processing authentication...</div>} />
       {/* Account type selection is no longer needed */}
       <Route path="/complete-profile" component={CompleteProfile} />
       <Route path="/email-verified" component={EmailVerified} />
-      <Route path="/forgot-password" component={() => import('@/pages/ForgotPassword').then(m=>m.default)} />
-      <Route path="/reset-password" component={() => import('@/pages/ResetPassword').then(m=>m.default)} />
+      <Route path="/forgot-password" component={React.lazy(() => import('@/pages/ForgotPassword'))} />
+      <Route path="/reset-password" component={React.lazy(() => import('@/pages/ResetPassword'))} />
       <Route component={NotFound} />
     </Switch>
   );

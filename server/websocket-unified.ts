@@ -17,6 +17,14 @@ interface ConnectedUser {
   reconnectCount: number;
 }
 
+interface AuthenticatedWebSocket extends WebSocket {
+  userId?: number;
+  username?: string;
+  isAuthenticated?: boolean;
+  subscribe: (room: string) => void;
+  unsubscribe: (room: string) => void;
+}
+
 interface WebSocketMessage {
   type: string;
   userId?: number;
@@ -34,10 +42,10 @@ export class UnifiedWebSocketService {
   private connectedUsers = new Map<number, ConnectedUser>();
   private connectionsBySocket = new Map<WebSocket, ConnectedUser>();
   private jobRooms = new Map<number, Set<number>>(); // jobId -> Set of userIds
-  private globalHeartbeatInterval: NodeJS.Timeout;
+  private globalHeartbeatInterval: NodeJS.Timeout | null = null;
   private connectionCount = 0;
   private maxConnections = 1000;
-  private cleanupInterval: NodeJS.Timeout;
+  private cleanupInterval: NodeJS.Timeout | null = null;
 
   /**
    * Get the underlying WebSocket server instance
@@ -55,8 +63,7 @@ export class UnifiedWebSocketService {
       path: '/ws',
       perMessageDeflate: {
         threshold: 1024,
-        concurrencyLimit: 10,
-        memLevel: 8
+        concurrencyLimit: 10
       },
       maxPayload: 1024 * 1024, // 1MB max message size
       clientTracking: true
@@ -989,6 +996,6 @@ export class UnifiedWebSocketService {
 
   public isUserOnline(userId: number): boolean {
     const userConnection = this.connectedUsers.get(userId);
-    return userConnection && userConnection.socket.readyState === WebSocket.OPEN;
+    return !!(userConnection && userConnection.socket.readyState === WebSocket.OPEN);
   }
 }

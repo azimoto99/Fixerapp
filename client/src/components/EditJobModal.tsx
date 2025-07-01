@@ -71,7 +71,7 @@ export function EditJobModal({ job, open, onOpenChange }: EditJobModalProps) {
         paymentAmount: job.paymentAmount?.toString() || '',
         location: job.location || '',
         dateNeeded: job.dateNeeded ? new Date(job.dateNeeded).toISOString().split('T')[0] : '',
-        estimatedHours: job.estimatedHours?.toString() || '',
+        // estimatedHours: job.estimatedHours?.toString() || '', // Field doesn't exist in schema
         shiftStartTime: job.shiftStartTime || '',
         shiftEndTime: job.shiftEndTime || '',
         equipmentProvided: job.equipmentProvided || false,

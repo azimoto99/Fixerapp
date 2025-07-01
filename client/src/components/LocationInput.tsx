@@ -39,8 +39,9 @@ export default function LocationInput({
     setIsLoading(true);
     try {
       const response = await apiRequest('GET', `/api/geocode/autocomplete?q=${query}`);
-      if (response.features) {
-        setSuggestions(response.features);
+      const data = await response.json();
+      if (data.features) {
+        setSuggestions(data.features);
       }
     } catch (error) {
       console.error('Error fetching location suggestions:', error);

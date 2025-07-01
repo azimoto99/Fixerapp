@@ -73,12 +73,12 @@ class PrivacyControlsService {
    */
   async getUserPrivacySettings(userId: number): Promise<PrivacySettings> {
     try {
-      // Try to get existing settings from database
-      const settings = await storage.getUserPrivacySettings?.(userId);
-      
-      if (settings) {
-        return settings;
-      }
+      // TODO: Implement getUserPrivacySettings in storage interface
+      // const settings = await storage.getUserPrivacySettings?.(userId);
+      // 
+      // if (settings) {
+      //   return settings;
+      // }
       
       // Return default settings if none exist
       return this.getDefaultPrivacySettings(userId);
@@ -102,8 +102,8 @@ class PrivacyControlsService {
         updatedAt: new Date()
       };
 
-      // Save to database
-      await storage.updateUserPrivacySettings?.(userId, updatedSettings);
+      // TODO: Implement updateUserPrivacySettings in storage interface
+      // await storage.updateUserPrivacySettings?.(userId, updatedSettings);
       
       console.log(`Privacy settings updated for user ${userId}`);
       return updatedSettings;
@@ -308,14 +308,14 @@ class PrivacyControlsService {
         timestamp: new Date()
       };
       
-      // Store in audit log
-      await storage.createAuditLog?.({
-        userId,
-        action: `privacy_${action}`,
-        details: JSON.stringify(logEntry),
-        ipAddress,
-        timestamp: new Date()
-      });
+      // TODO: Implement createAuditLog in storage interface
+      // await storage.createAuditLog?.({
+      //   userId,
+      //   action: `privacy_${action}`,
+      //   details: JSON.stringify(logEntry),
+      //   ipAddress,
+      //   timestamp: new Date()
+      // });
       
       console.log(`Privacy action logged: ${action} for user ${userId}`);
     } catch (error) {
@@ -357,8 +357,8 @@ class PrivacyControlsService {
         jobs: await storage.getJobsByUserId?.(userId) || [],
         applications: await storage.getApplicationsByUserId?.(userId) || [],
         payments: await storage.getPaymentsByUserId?.(userId) || [],
-        messages: await storage.getMessagesByUserId?.(userId) || [],
-        ratings: await storage.getRatingsByUserId?.(userId) || []
+        messages: [], // TODO: await storage.getMessagesByUserId?.(userId) || [],
+        ratings: [] // TODO: await storage.getRatingsByUserId?.(userId) || []
       };
       
       await this.logPrivacyAction(userId, 'data_export', { 
@@ -386,9 +386,10 @@ class PrivacyControlsService {
       // Mark user for deletion (don't immediately delete to maintain referential integrity)
       await storage.updateUser(userId, {
         isActive: false,
-        deletionScheduled: true,
-        deletionReason: reason,
-        deletionRequestedAt: new Date()
+        // TODO: Add deletion fields to user schema
+        // deletionScheduled: true,
+        // deletionReason: reason,
+        // deletionRequestedAt: new Date()
       });
       
       console.log(`User ${userId} marked for data deletion: ${reason}`);

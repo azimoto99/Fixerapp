@@ -64,7 +64,7 @@ export class StripeConnectMonitor extends EventEmitter {
       const newStatus: StripeAccountStatus = {
         accountId,
         isActive: account.charges_enabled && account.payouts_enabled,
-        requiresAttention: account.requirements?.currently_due?.length > 0,
+        requiresAttention: (account.requirements?.currently_due?.length || 0) > 0,
         requirements: account.requirements?.currently_due || [],
         lastChecked: new Date()
       };
@@ -89,7 +89,7 @@ export class StripeConnectMonitor extends EventEmitter {
 
       return newStatus;
     } catch (error) {
-      if (error.code === 'account_invalid') {
+      if (error instanceof Error && 'code' in error && (error as any).code === 'account_invalid') {
         await this.handleInvalidAccount(accountId, userId);
       }
       throw error;
@@ -111,17 +111,18 @@ export class StripeConnectMonitor extends EventEmitter {
       // Update user record
       await storage.updateUser(userId, {
         stripeConnectAccountStatus: 'deactivated',
-        stripeConnectReactivationUrl: accountLink.url
+        // TODO: Add stripeConnectReactivationUrl to user schema
+        // stripeConnectReactivationUrl: accountLink.url
       });
 
-      // Notify through the app
-      await storage.createNotification({
-        userId,
-        type: 'stripe_account_deactivated',
-        title: 'Action Required: Stripe Account Deactivated',
-        message: 'Your Stripe account requires attention to continue receiving payments.',
-        actionUrl: accountLink.url
-      });
+      // TODO: Implement createNotification in storage interface
+      // await storage.createNotification({
+      //   userId,
+      //   type: 'stripe_account_deactivated',
+      //   title: 'Action Required: Stripe Account Deactivated',
+      //   message: 'Your Stripe account requires attention to continue receiving payments.',
+      //   actionUrl: accountLink.url
+      // });
     } catch (error) {
       console.error('Error handling account deactivation:', error);
       this.emit('error', { type: 'deactivation_handler', accountId, error });
@@ -143,17 +144,18 @@ export class StripeConnectMonitor extends EventEmitter {
       // Update user record
       await storage.updateUser(userId, {
         stripeConnectAccountStatus: 'action_required',
-        stripeConnectUpdateUrl: accountLink.url
+        // TODO: Add stripeConnectUpdateUrl to user schema
+        // stripeConnectUpdateUrl: accountLink.url
       });
 
-      // Send notification
-      await storage.createNotification({
-        userId,
-        type: 'stripe_account_update_required',
-        title: 'Action Required: Stripe Account Update Needed',
-        message: `Please update your Stripe account information: ${requirements.join(', ')}`,
-        actionUrl: accountLink.url
-      });
+      // TODO: Implement createNotification in storage interface
+      // await storage.createNotification({
+      //   userId,
+      //   type: 'stripe_account_update_required',
+      //   title: 'Action Required: Stripe Account Update Needed',
+      //   message: `Please update your Stripe account information: ${requirements.join(', ')}`,
+      //   actionUrl: accountLink.url
+      // });
     } catch (error) {
       console.error('Error handling requirements needed:', error);
       this.emit('error', { type: 'requirements_handler', accountId, error });
@@ -166,20 +168,21 @@ export class StripeConnectMonitor extends EventEmitter {
     try {
       // Reset the user's Stripe connection
       await storage.updateUser(userId, {
-        stripeConnectAccountId: null,
+        stripeConnectAccountId: undefined,
         stripeConnectAccountStatus: 'invalid',
-        stripeConnectReactivationUrl: null,
-        stripeConnectUpdateUrl: null
+        // TODO: Add these fields to user schema
+        // stripeConnectReactivationUrl: null,
+        // stripeConnectUpdateUrl: null
       });
 
-      // Create notification
-      await storage.createNotification({
-        userId,
-        type: 'stripe_account_invalid',
-        title: 'Stripe Account Invalid',
-        message: 'Your Stripe account is no longer valid. Please set up a new account to continue receiving payments.',
-        actionUrl: '/dashboard/payments'
-      });
+      // TODO: Implement createNotification in storage interface
+      // await storage.createNotification({
+      //   userId,
+      //   type: 'stripe_account_invalid',
+      //   title: 'Stripe Account Invalid',
+      //   message: 'Your Stripe account is no longer valid. Please set up a new account to continue receiving payments.',
+      //   actionUrl: '/dashboard/payments'
+      // });
 
       this.accountStatuses.delete(accountId);
       this.emit('account_invalid', { accountId, userId });

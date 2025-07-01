@@ -41,9 +41,16 @@ export class PaymentMonitor extends EventEmitter {
     if (!userId) return;
 
     try {
+      // Get the payment record by transaction ID (Stripe payment intent ID)
+      const existingPayment = await storage.getPaymentByTransactionId(paymentId);
+      if (!existingPayment) {
+        console.error(`Payment not found for paymentId: ${paymentId}`);
+        return;
+      }
+
       switch (payment.status) {
         case 'succeeded':
-          await storage.updatePaymentStatus(paymentId, 'completed');
+          await storage.updatePaymentStatus(existingPayment.id, 'completed');
           this.pendingPayments.delete(paymentId);
           this.emit('success', { paymentId, userId });
           break;
@@ -53,7 +60,7 @@ export class PaymentMonitor extends EventEmitter {
           break;
           
         case 'failed':
-          await storage.updatePaymentStatus(paymentId, 'failed');
+          await storage.updatePaymentStatus(existingPayment.id, 'failed');
           this.pendingPayments.delete(paymentId);
           this.emit('failed', { paymentId, userId, reason: payment.last_payment_error?.message });
           break;

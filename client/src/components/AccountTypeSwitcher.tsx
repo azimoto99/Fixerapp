@@ -79,7 +79,9 @@ export default function AccountTypeSwitcher({ className = '' }: AccountTypeSwitc
         createIfNotExists: true
       });
 
-      if (response.success) {
+      const result = await response.json();
+
+      if (result.success) {
         // Refresh user data
         await refreshUser();
         
@@ -101,7 +103,7 @@ export default function AccountTypeSwitcher({ className = '' }: AccountTypeSwitc
             break;
         }
       } else {
-        throw new Error(response.message || 'Failed to switch account type');
+        throw new Error(result.message || 'Failed to switch account type');
       }
     } catch (error) {
       console.error('Account type switch error:', error);
@@ -125,7 +127,9 @@ export default function AccountTypeSwitcher({ className = '' }: AccountTypeSwitc
         email: user?.email
       });
 
-      if (response.success) {
+      const result = await response.json();
+
+      if (result.success) {
         toast({
           title: 'Account created!',
           description: `Your ${accountTypeConfig[accountType].label} account has been created.`,
@@ -134,7 +138,7 @@ export default function AccountTypeSwitcher({ className = '' }: AccountTypeSwitc
         // Switch to the new account
         await handleAccountTypeSwitch(accountType);
       } else {
-        throw new Error(response.message || 'Failed to create account');
+        throw new Error(result.message || 'Failed to create account');
       }
     } catch (error) {
       console.error('Account creation error:', error);

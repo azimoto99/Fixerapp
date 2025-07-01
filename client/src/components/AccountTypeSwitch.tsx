@@ -1,9 +1,9 @@
 import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
-import { useAuth } from '@/hooks/useAuth';
+import { useAuth } from '@/hooks/use-auth';
 
 const AccountTypeSwitch = () => {
-  const { user, updateAccountType } = useAuth();
+  const { user, setAccountTypeMutation } = useAuth();
   const [accountType, setAccountType] = useState<'worker' | 'poster'>(user?.accountType as 'worker' | 'poster' || 'worker');
 
   useEffect(() => {
@@ -14,12 +14,24 @@ const AccountTypeSwitch = () => {
 
   const handleWorkerClick = () => {
     setAccountType('worker');
-    updateAccountType('worker');
+    if (user) {
+      setAccountTypeMutation.mutate({
+        userId: user.id,
+        accountType: 'worker',
+        provider: 'manual'
+      });
+    }
   };
 
   const handlePosterClick = () => {
     setAccountType('poster');
-    updateAccountType('poster');
+    if (user) {
+      setAccountTypeMutation.mutate({
+        userId: user.id,
+        accountType: 'poster',
+        provider: 'manual'
+      });
+    }
   };
 
   return (

@@ -4,7 +4,7 @@ import '@mapbox/mapbox-gl-geocoder/dist/mapbox-gl-geocoder.css';
 import mapboxgl from 'mapbox-gl';
 
 // Use the Mapbox access token from environment variables
-mapboxgl.accessToken = import.meta.env.VITE_MAPBOX_ACCESS_TOKEN;
+mapboxgl.accessToken = import.meta.env.VITE_MAPBOX_ACCESS_TOKEN || '';
 
 interface MapboxAutocompleteProps {
   onSelect: (result: {
@@ -36,15 +36,15 @@ export default function MapboxAutocomplete({
 
     // Initialize the geocoder
     const geocoder = new MapboxGeocoder({
-      accessToken: mapboxgl.accessToken,
+      accessToken: mapboxgl.accessToken || '',
       types: 'address,place,neighborhood',
       placeholder,
       countries: 'us', // Limit to United States
-      mapboxgl: mapboxgl,
+      mapboxgl: mapboxgl as any,
     });
 
     // Add to the container
-    geocoderRef.current.appendChild(geocoder.onAdd());
+    geocoderRef.current.appendChild(geocoder.onAdd(null as any));
 
     // Store the instance for later cleanup
     geocoderInstance.current = geocoder;
