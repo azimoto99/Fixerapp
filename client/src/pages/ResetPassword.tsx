@@ -35,8 +35,8 @@ export default function ResetPassword() {
           onChange={(e) => setPassword(e.target.value)}
           required
         />
-        <Button type="submit" className="w-full" disabled={mutation.isLoading}>
-          {mutation.isLoading ? 'Resetting...' : 'Reset password'}
+        <Button type="submit" className="w-full" disabled={mutation.isPending}>
+          {mutation.isPending ? 'Resetting...' : 'Reset password'}
         </Button>
       </form>
     </div>

@@ -6,7 +6,7 @@ import PaymentHistory from '@/components/payments/PaymentHistory';
 import StripeTransferForm from '@/components/payments/StripeTransferForm';
 import JobPaymentForm from '@/components/payments/JobPaymentForm';
 import PaymentMethodsManager from '@/components/payments/PaymentMethodsManager';
-import StripeConnectSetupV2 from '@/components/stripe/StripeConnectSetupV2_fixed';
+import StripeConnectSetupV2 from '@/components/stripe/StripeConnectSetupV2';
 import {
   Card,
   CardContent,
@@ -210,7 +210,7 @@ export default function PaymentsPage() {
                 </CardDescription>
               </CardHeader>
               <CardContent>
-                <PaymentMethodsManager userId={userData.id} />
+                <PaymentMethodsManager />
               </CardContent>
             </Card>
           </TabsContent>
@@ -227,7 +227,7 @@ export default function PaymentsPage() {
                 </CardDescription>
               </CardHeader>
               <CardContent>
-                <PaymentHistory userId={userData.id} />
+                <PaymentHistory />
               </CardContent>
             </Card>
           </TabsContent>
@@ -297,10 +297,48 @@ export default function PaymentsPage() {
                             
                             <div className="py-4">
                               <JobPaymentForm 
+                                job={{
+                                  id: 1,
+                                  title: "Test Job",
+                                  description: "Test payment",
+                                  paymentAmount: 100,
+                                  category: "test",
+                                  location: "Test Location",
+                                  latitude: 0,
+                                  longitude: 0,
+                                  dateNeeded: new Date().toISOString(),
+                                  status: "open",
+                                  // Add missing required properties
+                                  location_encrypted: null,
+                                  posterId: userData.id,
+                                  workerId: null,
+                                  paymentType: "fixed",
+                                  serviceFee: 0,
+                                  totalAmount: 100,
+                                  datePosted: new Date(),
+                                  requiredSkills: [],
+                                  equipmentProvided: false,
+                                  autoAccept: false,
+                                  startTime: null,
+                                  clockInTime: null,
+                                  completionTime: null,
+                                  completedAt: null,
+                                  shiftStartTime: null,
+                                  shiftEndTime: null,
+                                  workerTrackingEnabled: null,
+                                  verifyLocationToStart: null,
+                                  markerColor: null
+                                }}
                                 onSuccess={() => {
                                   toast({
                                     title: "Payment Successful",
                                     description: "Your payment has been processed successfully.",
+                                  });
+                                }}
+                                onCancel={() => {
+                                  toast({
+                                    title: "Payment Cancelled",
+                                    description: "Payment was cancelled.",
                                   });
                                 }}
                               />
@@ -377,7 +415,7 @@ export default function PaymentsPage() {
             <TabsContent value="receive-payments" className="space-y-6 mt-2">
               <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                 <div className="md:col-span-2">
-                  <StripeConnectSetup />
+                  <StripeConnectSetupV2 />
                 </div>
                 
                 <Card className="shadow-sm border-border/60 h-fit">
@@ -412,7 +450,7 @@ export default function PaymentsPage() {
                   </CardDescription>
                 </CardHeader>
                 <CardContent>
-                  <PaymentHistory workerId={userData.id} />
+                  <PaymentHistory />
                 </CardContent>
               </Card>
             </TabsContent>

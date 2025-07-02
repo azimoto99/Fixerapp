@@ -1138,7 +1138,7 @@ const JobDetailsCard: React.FC<JobDetailsCardProps> = ({ jobId, isOpen, onClose 
                       </div>
                     ) : (
                       <div className="space-y-2">
-                        {tasks.map((task) => (
+                        {tasks.map((task: Task) => (
                           <div key={task.id} className="flex items-start p-3 bg-muted/30 rounded-lg border">
                             <div className="mt-0.5 mr-3">
                               {task.isCompleted ? (

@@ -1,10 +1,21 @@
-import { toast } from "@/lib/toast-utils";
+import { useToast } from "@/hooks/use-toast";
 
-export function handleError(error: any, message: string) {
+// Create a hook that returns the error handler function
+export function useErrorHandler() {
+  const { toast } = useToast();
+  
+  return (error: any, message: string) => {
+    console.error(message, error);
+    toast({
+      title: "Error",
+      description: error instanceof Error ? error.message : message,
+      variant: "destructive"
+    });
+  };
+}
+
+// For non-hook contexts, provide a simpler function that just logs
+export function logError(error: any, message: string) {
   console.error(message, error);
-  toast({
-    title: "Error",
-    description: error instanceof Error ? error.message : message,
-    variant: "destructive"
-  });
+  // Cannot show toast outside of React components
 }

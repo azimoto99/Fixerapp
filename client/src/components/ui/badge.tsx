@@ -25,6 +25,8 @@ const badgeVariants = cva(
         blue: "border-transparent bg-blue-100 text-blue-600 hover:bg-blue-200/80",
         gray: "border-transparent bg-gray-100 text-gray-600 hover:bg-gray-200/80",
         price: "border-transparent bg-green-100 text-green-800 hover:bg-green-200/80",
+        success: "border-transparent bg-green-100 text-green-800 hover:bg-green-200/80",
+        warning: "border-transparent bg-yellow-100 text-yellow-800 hover:bg-yellow-200/80",
       },
       size: {
         default: "px-2.5 py-0.5 text-xs",

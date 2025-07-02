@@ -83,8 +83,13 @@ const WorkerDashboard = () => {
     }
   });
 
-  const handleSelectJob = (job: Job) => {
-    setSelectedJob(job);
+  const handleSelectJob = (job: any) => {
+    // Convert the job to our Job type format
+    const convertedJob: Job = {
+      ...job,
+      dateNeeded: typeof job.dateNeeded === 'string' ? job.dateNeeded : job.dateNeeded?.toISOString?.() || ''
+    };
+    setSelectedJob(convertedJob);
   };
   
   const handleCancelJob = () => {

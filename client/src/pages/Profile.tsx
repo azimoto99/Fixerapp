@@ -6,7 +6,7 @@ import { useToast } from '@/hooks/use-toast';
 import { apiRequest } from '@/lib/queryClient';
 import { Award, Edit, Wallet, DollarSign, Info } from 'lucide-react';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import StripeConnectSetup from '@/components/stripe/StripeConnectSetup';
+import StripeConnectSetup from '@/components/stripe/StripeConnectSetupV2';
 
 import Header from '@/components/Header';
 // Mobile Nav removed as requested
@@ -29,8 +29,14 @@ import {
   SkillsManager,
   BadgesDisplay,
   ProfileEditor,
-  PrivacySettingsForm,
 } from '@/components/profile';
+
+// Temporary placeholder for PrivacySettingsForm
+const PrivacySettingsForm = ({ onSubmit, isSubmitting }: { onSubmit: (values: any) => void, isSubmitting: boolean }) => (
+  <div className="p-4 text-center text-muted-foreground">
+    Privacy settings form not implemented yet
+  </div>
+);
 
 export default function Profile() {
   const { user, logoutMutation } = useAuth();
@@ -80,7 +86,7 @@ export default function Profile() {
     mutationFn: (values) => apiRequest('POST', '/api/privacy', values),
     onSuccess: () => {
       toast({ title: 'Privacy settings updated' });
-      queryClient.invalidateQueries(['/api/privacy']);
+      queryClient.invalidateQueries({ queryKey: ['/api/privacy'] });
     },
     onError: () => {
       toast({ title: 'Failed to update settings', variant: 'destructive' });
@@ -117,12 +123,12 @@ export default function Profile() {
                 <div className="flex flex-col md:flex-row md:items-center">
                   <div className="flex flex-col items-center md:items-start">
                     <Avatar className="h-24 w-24">
-                      <AvatarImage src={user.avatarUrl} alt={user.fullName} />
+                      <AvatarImage src={user.avatarUrl || undefined} alt={user.fullName} />
                       <AvatarFallback className="text-2xl bg-primary text-white">
-                        {user.fullName.charAt(0)}
+                        {user.fullName?.charAt(0) || 'U'}
                       </AvatarFallback>
                     </Avatar>
-                    {userBadges && userBadges.length > 0 && (
+                    {userBadges && Array.isArray(userBadges) && userBadges.length > 0 ? (
                       <div className="flex mt-2">
                         <Button 
                           variant="ghost" 
@@ -131,10 +137,10 @@ export default function Profile() {
                           onClick={() => setActiveTab('badges')}
                         >
                           <Award className="h-3 w-3 text-primary" />
-                          {userBadges.length} {userBadges.length === 1 ? 'Badge' : 'Badges'}
+                          {Array.isArray(userBadges) ? userBadges.length : 0} {Array.isArray(userBadges) && userBadges.length === 1 ? 'Badge' : 'Badges'}
                         </Button>
                       </div>
-                    )}
+                    ) : null}
                   </div>
                   
                   <div className="mt-4 md:mt-0 md:ml-6 flex-1">
@@ -268,7 +274,7 @@ export default function Profile() {
                     </CardDescription>
                   </CardHeader>
                   <CardContent>
-                    {!userJobs || userJobs.length === 0 ? (
+                    {!userJobs || !Array.isArray(userJobs) || userJobs.length === 0 ? (
                       <div className="text-center py-8">
                         <p className="text-gray-500 mb-4">
                           {user.accountType === 'poster' 
@@ -416,9 +422,8 @@ export default function Profile() {
                       <div>Loading...</div>
                     ) : (
                       <PrivacySettingsForm
-                        initialValues={privacySettings}
-                        onSubmit={(values) => updatePrivacySettingsMutation.mutate(values)}
-                        isSubmitting={updatePrivacySettingsMutation.isLoading}
+                        onSubmit={(values: any) => updatePrivacySettingsMutation.mutate(values)}
+                        isSubmitting={updatePrivacySettingsMutation.isPending}
                       />
                     )}
                   </CardContent>

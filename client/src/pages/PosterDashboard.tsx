@@ -18,7 +18,7 @@ import {
   AlertCircle
 } from 'lucide-react';
 import MapSection from '@/components/MapSection';
-import { NewJobButton } from '@/components/NewJobButton';
+import NewJobButton from '@/components/NewJobButton';
 
 interface Job {
   id: number;
@@ -47,7 +47,7 @@ interface Application {
 
 export default function PosterDashboard() {
   const { user, logoutMutation } = useAuth();
-  const [selectedJob, setSelectedJob] = useState<Job | null>(null);
+  const [selectedJob, setSelectedJob] = useState<Job | undefined>(undefined);
 
   // Handle sign out
   const handleSignOut = () => {
@@ -56,16 +56,22 @@ export default function PosterDashboard() {
   const [activeTab, setActiveTab] = useState('overview');
 
   // Fetch poster's jobs
-  const { data: jobs = [], isLoading: jobsLoading } = useQuery({
+  const { data: jobsData = [], isLoading: jobsLoading } = useQuery({
     queryKey: ['/api/jobs/posted'],
     enabled: !!user && user.accountType === 'poster',
   });
+  
+  // Type assertion for jobs
+  const jobs = jobsData as Job[];
 
   // Fetch applications for poster's jobs
-  const { data: applications = [], isLoading: applicationsLoading } = useQuery({
+  const { data: applicationsData = [], isLoading: applicationsLoading } = useQuery({
     queryKey: ['/api/applications/poster'],
     enabled: !!user && user.accountType === 'poster',
   });
+  
+  // Type assertion for applications
+  const applications = applicationsData as Application[];
 
   // Calculate dashboard stats
   const stats = {
@@ -393,7 +399,7 @@ export default function PosterDashboard() {
                   <MapSection 
                     jobs={jobs || []}
                     selectedJob={selectedJob}
-                    onSelectJob={setSelectedJob}
+                    onSelectJob={(job) => setSelectedJob(job)}
                   />
                 </div>
               </CardContent>

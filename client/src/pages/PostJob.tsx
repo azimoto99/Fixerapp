@@ -12,7 +12,7 @@ import { useGeolocation } from '@/hooks/use-react-geolocated';
 import Header from '@/components/Header';
 import PaymentDetailsForm from '@/components/PaymentDetailsForm';
 import AddressAutocomplete from '@/components/AddressAutocomplete';
-import TaskEditor, { TaskItemProps } from '@/components/TaskEditor';
+import TaskEditor, { Task as TaskItemProps } from '@/components/TaskEditor';
 import { Button } from '@/components/ui/button';
 import {
   Form,
@@ -39,13 +39,27 @@ import { JOB_CATEGORIES, SKILLS } from '@shared/schema';
 import { Dialog, DialogContent } from '@/components/ui/dialog';
 import { Card, CardContent } from '@/components/ui/card';
 
-const formSchema = insertJobSchema.extend({
+const formSchema = z.object({
+  title: z.string().min(1, 'Title is required'),
+  description: z.string().min(1, 'Description is required'),
+  category: z.string().min(1, 'Category is required'),
+  paymentType: z.enum(['hourly', 'fixed']),
   paymentAmount: z.coerce
     .number()
     .min(10, 'Minimum payment amount is $10')
     .positive('Payment amount must be positive'),
-  // Handle dateNeeded as string in the form and convert when needed
-  dateNeeded: z.string()
+  location: z.string().min(1, 'Location is required'),
+  latitude: z.number(),
+  longitude: z.number(),
+  dateNeeded: z.string(),
+  requiredSkills: z.array(z.string()).default([]),
+  equipmentProvided: z.boolean().default(false),
+  autoAccept: z.boolean().default(false),
+  shiftStartTime: z.string().optional(),
+  shiftEndTime: z.string().optional(),
+  workerTrackingEnabled: z.boolean().default(true),
+  verifyLocationToStart: z.boolean().default(true),
+  markerColor: z.string().optional(),
 });
 
 export default function PostJob() {
@@ -73,7 +87,7 @@ export default function PostJob() {
       dateNeeded: new Date(Date.now() + 86400000).toISOString().split('T')[0],
       requiredSkills: [],
       equipmentProvided: false,
-      posterId: user?.id || 1
+      // Remove posterId from defaultValues as it's not part of the form schema
     }
   });
 
@@ -439,13 +453,11 @@ export default function PostJob() {
                           onChange={(value) => {
                             field.onChange(value);
                           }}
-                          onLocationSelect={(result) => {
-                            if (result.success) {
-                              // Update the coordinates in the form data
-                              form.setValue("latitude", result.latitude);
-                              form.setValue("longitude", result.longitude);
-                              console.log("Updated coordinates:", result.latitude, result.longitude);
-                            }
+                          onAddressSelect={(address, lat, lng) => {
+                            // Update the coordinates in the form data
+                            form.setValue("latitude", lat);
+                            form.setValue("longitude", lng);
+                            console.log("Updated coordinates:", lat, lng);
                           }}
                         />
                       </FormControl>
@@ -478,7 +490,7 @@ export default function PostJob() {
                   <p className="text-sm text-muted-foreground mb-4">
                     Add specific tasks that need to be completed. You can set required tasks and optional bonus tasks.
                   </p>
-                  <TaskEditor tasks={tasks} setTasks={setTasks} />
+                  <TaskEditor tasks={tasks} onChange={setTasks} />
                 </div>
                 
                 {/* Required Skills */}

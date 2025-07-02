@@ -21,6 +21,7 @@ interface MetricsData {
     total: number;
     cache: number;
     swap: number;
+    percentage: number;
   };
   network: {
     activeConnections: number;
@@ -43,11 +44,14 @@ interface MetricsData {
       uptime: number;
       requests: number;
       avgResponse: number;
+      responseTime?: number;
     };
     cache: {
       status: 'healthy' | 'warning' | 'critical';
       hitRate: number;
       size: number;
+      responseTime?: number;
+      uptime?: number;
     };
   };
   errorRate: number;
@@ -137,7 +141,7 @@ export function MetricsDashboard() {
           <CardDescription>Current user sessions</CardDescription>
         </CardHeader>
         <CardContent>
-          <p className="text-2xl font-bold">{metrics.activeConnections}</p>
+          <p className="text-2xl font-bold">{metrics.network.activeConnections}</p>
         </CardContent>
       </Card>
 
@@ -165,7 +169,8 @@ export function MetricsDashboard() {
                 <div>
                   <p className="font-medium capitalize">{service}</p>
                   <p className="text-sm text-muted-foreground">
-                    {data.responseTime ? `${data.responseTime}ms` : `${data.uptime}% uptime`}
+                    {data.responseTime ? `${data.responseTime}ms` : 
+                     ('uptime' in data) ? `${data.uptime}% uptime` : 'Status OK'}
                   </p>
                 </div>
                 <span className={`font-medium ${getStatusColor(data.status)}`}>

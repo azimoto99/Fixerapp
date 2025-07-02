@@ -161,8 +161,8 @@ export default function PosterDashboardV2() {
         // Handle both direct array response and paginated response
         if (Array.isArray(response)) {
           return response;
-        } else if (response && response.results && Array.isArray(response.results)) {
-          return response.results;
+        } else if (response && (response as any).results && Array.isArray((response as any).results)) {
+          return (response as any).results;
         } else {
           return [];
         }

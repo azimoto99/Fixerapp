@@ -11,6 +11,19 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
+import { Job } from '@/types';
+
+// Define Task interface
+interface Task {
+  id: number;
+  description: string;
+  isCompleted: boolean;
+  isOptional: boolean;
+  position: number;
+  location?: string;
+  completedBy?: number;
+}
+
 import {
   Dialog,
   DialogContent,
@@ -305,7 +318,7 @@ export default function JobManage() {
   const calculateProgress = () => {
     if (!tasks || tasks.length === 0) return 100;
     
-    const completedCount = tasks.filter(task => task.isCompleted).length;
+    const completedCount = tasks.filter((task: Task) => task.isCompleted).length;
     return Math.round((completedCount / tasks.length) * 100);
   };
   
@@ -589,7 +602,7 @@ export default function JobManage() {
                 <div className="space-y-4">
                   <div className="flex justify-between items-center">
                     <p className="text-sm text-muted-foreground">
-                      {tasks.filter(task => task.isCompleted).length} of {tasks.length} tasks completed
+                      {tasks.filter((task: Task) => task.isCompleted).length} of {tasks.length} tasks completed
                     </p>
                     <Badge variant={progress === 100 ? 'success' : 'secondary'}>
                       {progress}% complete
@@ -597,7 +610,7 @@ export default function JobManage() {
                   </div>
                   
                   <div className="space-y-2">
-                    {tasks.map((task) => (
+                    {tasks.map((task: Task) => (
                       <div 
                         key={task.id} 
                         className={`p-3 rounded-md ${

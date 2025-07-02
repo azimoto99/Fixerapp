@@ -8,7 +8,7 @@ import { Button } from '@/components/ui/button';
 
 // Define wrapper components to add onModeChange prop
 const LoginWithMode = (props: any) => {
-  return <Login onModeChange={props.onModeChange} accountType={props.accountType} />;
+  return <Login onModeChange={props.onModeChange} />;
 };
 
 const RegisterWithMode = (props: any) => {

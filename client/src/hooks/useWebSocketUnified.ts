@@ -13,6 +13,11 @@ interface WebSocketMessage {
   message?: any;
   timestamp?: string;
   connectionId?: string;
+  senderId?: number;
+  recipientId?: number;
+  content?: string;
+  status?: string;
+  messageId?: number;
 }
 
 interface ConnectionState {
@@ -285,52 +290,58 @@ export function useWebSocketUnified(options: UseWebSocketOptions = {}) {
         }));
         
         // Update unread count if not from current user
-        if (message.senderId !== user?.id) {
+        if (message.senderId && message.senderId !== user?.id) {
           setMessageState(prev => {
             const newUnreadCounts = new Map(prev.unreadCounts);
-            const currentCount = newUnreadCounts.get(message.senderId) || 0;
-            newUnreadCounts.set(message.senderId, currentCount + 1);
+            const currentCount = newUnreadCounts.get(message.senderId!) || 0;
+            newUnreadCounts.set(message.senderId!, currentCount + 1);
             return { ...prev, unreadCounts: newUnreadCounts };
           });
         }
         break;
 
       case 'user_typing':
-        setMessageState(prev => ({
-          ...prev,
-          typingUsers: new Set([...prev.typingUsers, message.userId])
-        }));
-        
-        // Auto-clear typing after 5 seconds
-        setTimeout(() => {
-          if (mountedRef.current) {
-            setMessageState(prev => {
-              const newTypingUsers = new Set(prev.typingUsers);
-              newTypingUsers.delete(message.userId);
-              return { ...prev, typingUsers: newTypingUsers };
-            });
-          }
-        }, 5000);
+        if (message.userId) {
+          setMessageState(prev => ({
+            ...prev,
+            typingUsers: new Set([...prev.typingUsers, message.userId!])
+          }));
+          
+          // Auto-clear typing after 5 seconds
+          setTimeout(() => {
+            if (mountedRef.current && message.userId) {
+              setMessageState(prev => {
+                const newTypingUsers = new Set(prev.typingUsers);
+                newTypingUsers.delete(message.userId!);
+                return { ...prev, typingUsers: newTypingUsers };
+              });
+            }
+          }, 5000);
+        }
         break;
 
       case 'user_stopped_typing':
-        setMessageState(prev => {
-          const newTypingUsers = new Set(prev.typingUsers);
-          newTypingUsers.delete(message.userId);
-          return { ...prev, typingUsers: newTypingUsers };
-        });
+        if (message.userId) {
+          setMessageState(prev => {
+            const newTypingUsers = new Set(prev.typingUsers);
+            newTypingUsers.delete(message.userId!);
+            return { ...prev, typingUsers: newTypingUsers };
+          });
+        }
         break;
 
       case 'user_status_change':
-        setMessageState(prev => {
-          const newOnlineUsers = new Set(prev.onlineUsers);
-          if (message.status === 'online') {
-            newOnlineUsers.add(message.userId);
-          } else {
-            newOnlineUsers.delete(message.userId);
-          }
-          return { ...prev, onlineUsers: newOnlineUsers };
-        });
+        if (message.userId) {
+          setMessageState(prev => {
+            const newOnlineUsers = new Set(prev.onlineUsers);
+            if (message.status === 'online') {
+              newOnlineUsers.add(message.userId!);
+            } else {
+              newOnlineUsers.delete(message.userId!);
+            }
+            return { ...prev, onlineUsers: newOnlineUsers };
+          });
+        }
         break;
 
       case 'error':

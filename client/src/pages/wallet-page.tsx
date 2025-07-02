@@ -27,14 +27,12 @@ export default function WalletPage() {
         toast({
           title: 'Stripe Connect Setup Complete!',
           description: 'Your payment account has been successfully connected. You can now receive payments.',
-          duration: 5000,
         });
       } else if (status === 'refresh') {
         toast({
           title: 'Additional Information Required',
           description: 'Please complete the remaining setup steps for your payment account.',
           variant: 'default',
-          duration: 5000,
         });
       }
 

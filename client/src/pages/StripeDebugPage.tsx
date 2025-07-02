@@ -180,7 +180,7 @@ const StripeDebugPage = () => {
               ))}
             </div>
             
-            <Alert variant="warning" className="mt-4">
+            <Alert variant="destructive" className="mt-4">
               <AlertTitle>Important</AlertTitle>
               <AlertDescription>
                 Make sure you are logged in before testing the Stripe Connect endpoints.

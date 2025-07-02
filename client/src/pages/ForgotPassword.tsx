@@ -31,8 +31,8 @@ export default function ForgotPassword() {
           onChange={(e) => setEmail(e.target.value)}
           required
         />
-        <Button type="submit" className="w-full" disabled={mutation.isLoading}>
-          {mutation.isLoading ? 'Sending...' : 'Send reset link'}
+        <Button type="submit" className="w-full" disabled={mutation.isPending}>
+          {mutation.isPending ? 'Sending...' : 'Send reset link'}
         </Button>
       </form>
     </div>

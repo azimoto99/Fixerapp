@@ -112,7 +112,7 @@ export const getQueryFn: <T>(options: {
         if (unauthorizedBehavior === "returnNull") {
           return null;
         } else if (unauthorizedBehavior === "returnEmptyArray") {
-          return [] as unknown as T;
+          return [] as unknown as any;
         }
       }
       
@@ -129,7 +129,7 @@ export const getQueryFn: <T>(options: {
       if (error instanceof Error && 
           error.message.includes('Authentication failed') && 
           unauthorizedBehavior === "returnEmptyArray") {
-        return [] as unknown as T;
+        return [] as unknown as any;
       }
       
       throw error;

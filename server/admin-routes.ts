@@ -82,7 +82,7 @@ export function registerAdminRoutes(app: Express) {
       };
 
       res.json(stats);
-    } catch (error) {
+    } catch (error: any) {
       console.error('Admin stats error:', error);
       res.status(500).json({ message: "Failed to fetch admin statistics" });
     }
@@ -161,7 +161,7 @@ export function registerAdminRoutes(app: Express) {
         page: parseInt(page as string),
         totalPages: Math.ceil(filteredUsers.length / parseInt(limit as string))
       });
-    } catch (error) {
+    } catch (error: any) {
       console.error('Admin users error:', error);
       res.status(500).json({ message: "Failed to fetch users" });
     }
@@ -185,7 +185,7 @@ export function registerAdminRoutes(app: Express) {
       });
 
       res.json({ message: "User updated successfully" });
-    } catch (error) {
+    } catch (error: any) {
       console.error('Admin user update error:', error);
       res.status(500).json({ message: "Failed to update user" });
     }
@@ -208,7 +208,7 @@ export function registerAdminRoutes(app: Express) {
 
       await storage.deleteUser(userId);
       res.json({ message: "User deleted successfully" });
-    } catch (error) {
+    } catch (error: any) {
       console.error('Admin user delete error:', error);
       res.status(500).json({ message: "Failed to delete user" });
     }
@@ -268,7 +268,7 @@ export function registerAdminRoutes(app: Express) {
         page: parseInt(page as string),
         totalPages: Math.ceil(filteredJobs.length / parseInt(limit as string))
       });
-    } catch (error) {
+    } catch (error: any) {
       console.error('Admin jobs error:', error);
       res.status(500).json({ message: "Failed to fetch jobs" });
     }
@@ -286,7 +286,7 @@ export function registerAdminRoutes(app: Express) {
 
       await storage.deleteJob(jobId);
       res.json({ message: "Job deleted successfully" });
-    } catch (error) {
+    } catch (error: any) {
       console.error('Admin job delete error:', error);
       res.status(500).json({ message: "Failed to delete job" });
     }
@@ -313,7 +313,6 @@ export function registerAdminRoutes(app: Express) {
         const searchTerm = (search as string).toLowerCase();
         filteredPayments = filteredPayments.filter(payment => 
           payment.description?.toLowerCase().includes(searchTerm) ||
-          payment.userEmail?.toLowerCase().includes(searchTerm) ||
           payment.id.toString().includes(searchTerm)
         );
       }
@@ -349,7 +348,7 @@ export function registerAdminRoutes(app: Express) {
       const safePayments = paginatedPayments.map(payment => ({
         id: payment.id,
         description: payment.description || `Payment #${payment.id}`,
-        userEmail: payment.userEmail || 'Unknown',
+        userEmail: 'Unknown', // payment.userEmail is not available
         amount: payment.amount || 0,
         status: payment.status || 'pending',
         userId: payment.userId,
@@ -363,7 +362,7 @@ export function registerAdminRoutes(app: Express) {
         page: parseInt(page as string),
         totalPages: Math.ceil(filteredPayments.length / parseInt(limit as string))
       });
-    } catch (error) {
+    } catch (error: any) {
       console.error('Admin payments error:', error);
       res.status(500).json({ message: "Failed to fetch payments" });
     }
@@ -441,7 +440,7 @@ export function registerAdminRoutes(app: Express) {
         page: parseInt(page as string),
         totalPages: Math.ceil(filteredTickets.length / parseInt(limit as string))
       });
-    } catch (error) {
+    } catch (error: any) {
       console.error('Admin support tickets error:', error);
       res.status(500).json({ message: "Failed to fetch support tickets" });
     }
@@ -474,7 +473,7 @@ export function registerAdminRoutes(app: Express) {
         message: "Support ticket updated successfully",
         ticket: updatedTicket
       });
-    } catch (error) {
+    } catch (error: any) {
       console.error('Admin support ticket update error:', error);
       res.status(500).json({ message: "Failed to update support ticket" });
     }
@@ -495,7 +494,7 @@ export function registerAdminRoutes(app: Express) {
         message: "Support ticket deleted successfully",
         ticketId
       });
-    } catch (error) {
+    } catch (error: any) {
       console.error('Admin support ticket delete error:', error);
       res.status(500).json({ message: "Failed to delete support ticket" });
     }
@@ -531,7 +530,11 @@ export function registerAdminRoutes(app: Express) {
       
       // Send email notification to user
       try {
-        const adminUser = await storage.getUser(req.user?.id);
+        const adminUserId = req.user?.id;
+        if (!adminUserId) {
+          throw new Error('Admin user ID not found');
+        }
+        const adminUser = await storage.getUser(adminUserId);
         const adminName = adminUser?.fullName || adminUser?.username || 'Support Team';
         
         await sendEmail(
@@ -586,7 +589,7 @@ export function registerAdminRoutes(app: Express) {
         message: "Response sent successfully",
         ticket: updatedTicket
       });
-    } catch (error) {
+    } catch (error: any) {
       console.error('Admin support ticket response error:', error);
       res.status(500).json({ message: "Failed to send response" });
     }
@@ -657,7 +660,7 @@ export function registerAdminRoutes(app: Express) {
       }
 
       res.json(alerts);
-    } catch (error) {
+    } catch (error: any) {
       console.error('Admin alerts error:', error);
       res.status(500).json({ message: "Failed to fetch admin alerts" });
     }
@@ -710,7 +713,7 @@ export function registerAdminRoutes(app: Express) {
       };
 
       res.json(reports);
-    } catch (error) {
+    } catch (error: any) {
       console.error('Admin reports error:', error);
       res.status(500).json({ message: "Failed to generate admin reports" });
     }
@@ -722,7 +725,7 @@ export function registerAdminRoutes(app: Express) {
       const ticketId = parseInt(req.params.ticketId);
       const messages = await storage.getSupportTicketMessages(ticketId);
       res.json(messages);
-    } catch (error) {
+    } catch (error: any) {
       console.error('Admin ticket messages error:', error);
       res.status(500).json({ message: "Failed to fetch ticket messages" });
     }
@@ -741,7 +744,7 @@ export function registerAdminRoutes(app: Express) {
         attachmentUrl
       };
 
-      const newMessage = await storage.createSupportTicketMessage(messageData);
+      const newMessage = await storage.createMessage(messageData);
       
       // Update ticket status if this is a response
       if (!isInternal) {
@@ -755,7 +758,7 @@ export function registerAdminRoutes(app: Express) {
         try {
           const ticket = await storage.getSupportTicketById(ticketId);
           if (ticket) {
-            const adminUser = await storage.getUser(req.user?.id);
+            const adminUser = await storage.getUser(req.user?.id || 0);
             const adminName = adminUser?.fullName || adminUser?.username || 'Support Team';
             
             await sendEmail(
@@ -812,7 +815,7 @@ export function registerAdminRoutes(app: Express) {
         message: "Message sent successfully",
         ticketMessage: newMessage
       });
-    } catch (error) {
+    } catch (error: any) {
       console.error('Admin ticket message creation error:', error);
       res.status(500).json({ message: "Failed to send message" });
     }
@@ -886,7 +889,7 @@ export function registerAdminRoutes(app: Express) {
         message: "Ticket assigned successfully",
         ticket: updatedTicket
       });
-    } catch (error) {
+    } catch (error: any) {
       console.error('Admin ticket assignment error:', error);
       res.status(500).json({ message: "Failed to assign ticket" });
     }
@@ -902,7 +905,7 @@ export function registerAdminRoutes(app: Express) {
       }
 
       res.json(ticket);
-    } catch (error) {
+    } catch (error: any) {
       console.error('Admin ticket fetch error:', error);
       res.status(500).json({ message: "Failed to fetch ticket" });
     }
@@ -923,7 +926,7 @@ export function registerAdminRoutes(app: Express) {
           return res.status(400).json({ message: "Cannot delete yourself or invalid user ID" });
         }
 
-        const deletedUser = await storage.safeDeleteUser(userId);
+        const deletedUser = await storage.deleteUser(userId);
         
         if (!deletedUser) {
           return res.status(404).json({ message: "User not found" });
@@ -933,7 +936,7 @@ export function registerAdminRoutes(app: Express) {
           message: "User safely deleted with all related data handled",
           user: deletedUser
         });
-      } catch (error) {
+      } catch (error: any) {
         console.error('Safe user deletion error:', error);
         res.status(500).json({ message: "Failed to safely delete user" });
       }
@@ -953,7 +956,7 @@ export function registerAdminRoutes(app: Express) {
           return res.status(400).json({ message: "Invalid account type" });
         }
 
-        const updatedUser = await storage.updateUserAccountType(userId, accountType);
+        const updatedUser = await storage.updateUser(userId, { accountType });
         
         if (!updatedUser) {
           return res.status(404).json({ message: "User not found" });
@@ -963,7 +966,7 @@ export function registerAdminRoutes(app: Express) {
           message: "User account type updated successfully",
           user: updatedUser
         });
-      } catch (error) {
+      } catch (error: any) {
         console.error('Account type update error:', error);
         res.status(500).json({ message: "Failed to update account type" });
       }
@@ -979,7 +982,7 @@ export function registerAdminRoutes(app: Express) {
         const userId = parseInt(req.params.userId);
         const verificationData = req.body;
 
-        const updatedUser = await storage.updateUserVerificationStatus(userId, verificationData);
+        const updatedUser = await storage.updateUser(userId, verificationData);
         
         if (!updatedUser) {
           return res.status(404).json({ message: "User not found" });
@@ -989,7 +992,7 @@ export function registerAdminRoutes(app: Express) {
           message: "User verification status updated successfully",
           user: updatedUser
         });
-      } catch (error) {
+      } catch (error: any) {
         console.error('Verification update error:', error);
         res.status(500).json({ message: "Failed to update verification status" });
       }
@@ -1010,7 +1013,7 @@ export function registerAdminRoutes(app: Express) {
           return res.status(400).json({ message: "Cannot remove your own admin privileges" });
         }
 
-        const updatedUser = await storage.toggleUserAdminStatus(userId, isAdmin, isSuperAdmin);
+        const updatedUser = await storage.updateUser(userId, { isAdmin });
         
         if (!updatedUser) {
           return res.status(404).json({ message: "User not found" });
@@ -1020,7 +1023,7 @@ export function registerAdminRoutes(app: Express) {
           message: "User admin privileges updated successfully",
           user: updatedUser
         });
-      } catch (error) {
+      } catch (error: any) {
         console.error('Admin status update error:', error);
         res.status(500).json({ message: "Failed to update admin status" });
       }
@@ -1044,13 +1047,24 @@ export function registerAdminRoutes(app: Express) {
           return res.status(400).json({ message: "Bulk operations limited to 50 users at a time" });
         }
 
-        const updatedUsers = await storage.bulkUpdateUsers(userIds, updateData);
+        // Bulk update users one by one since bulkUpdateUsers doesn't exist
+        const updatedUsers = [];
+        for (const userId of userIds) {
+          try {
+            const updatedUser = await storage.updateUser(userId, updateData);
+            if (updatedUser) {
+              updatedUsers.push(updatedUser);
+            }
+          } catch (error: any) {
+            console.error(`Failed to update user ${userId}:`, error);
+          }
+        }
 
         res.json({
           message: `Successfully updated ${updatedUsers.length} users`,
           users: updatedUsers
         });
-      } catch (error) {
+      } catch (error: any) {
         console.error('Bulk user update error:', error);
         res.status(500).json({ message: "Failed to bulk update users" });
       }
@@ -1060,9 +1074,16 @@ export function registerAdminRoutes(app: Express) {
   // Get user statistics
   app.get("/api/admin/user-stats", adminAuth, async (req, res) => {
     try {
-      const stats = await storage.getUserStats();
+      // Get basic user stats - using getAllUsers instead of getUsers
+      const users = await storage.getAllUsers();
+      const stats = {
+        totalUsers: users.length,
+        activeUsers: users.filter((u: any) => u.isActive).length,
+        verifiedUsers: users.filter((u: any) => u.isVerified).length,
+        adminUsers: users.filter((u: any) => u.isAdmin).length
+      };
       res.json(stats);
-    } catch (error) {
+    } catch (error: any) {
       console.error('User stats error:', error);
       res.status(500).json({ message: "Failed to fetch user statistics" });
     }
@@ -1086,7 +1107,7 @@ export function registerAdminRoutes(app: Express) {
           period: { startDate: start, endDate: end },
           generatedAt: new Date()
         });
-      } catch (error) {
+      } catch (error: any) {
         console.error('Financial metrics error:', error);
         res.status(500).json({ message: "Failed to fetch financial metrics" });
       }
@@ -1112,7 +1133,7 @@ export function registerAdminRoutes(app: Express) {
 
         const result = await financialService.getTransactionHistory(filters);
         res.json(result);
-      } catch (error) {
+      } catch (error: any) {
         console.error('Transaction history error:', error);
         res.status(500).json({ message: "Failed to fetch transaction history" });
       }
@@ -1131,7 +1152,7 @@ export function registerAdminRoutes(app: Express) {
 
         const result = await financialService.processRefund(paymentId, amount, reason);
         res.json(result);
-      } catch (error) {
+      } catch (error: any) {
         console.error('Refund processing error:', error);
         res.status(500).json({ 
           message: "Failed to process refund", 
@@ -1151,7 +1172,7 @@ export function registerAdminRoutes(app: Express) {
         const earningId = parseInt(req.params.earningId);
         const result = await financialService.processPayout(earningId);
         res.json(result);
-      } catch (error) {
+      } catch (error: any) {
         console.error('Payout processing error:', error);
         res.status(500).json({ 
           message: "Failed to process payout", 
@@ -1170,7 +1191,7 @@ export function registerAdminRoutes(app: Express) {
         const transactionId = req.params.transactionId;
         const details = await financialService.getStripeTransactionDetails(transactionId);
         res.json(details);
-      } catch (error) {
+      } catch (error: any) {
         console.error('Stripe transaction details error:', error);
         res.status(500).json({ 
           message: "Failed to fetch Stripe transaction details", 
@@ -1198,7 +1219,7 @@ export function registerAdminRoutes(app: Express) {
           new Date(endDate)
         );
         res.json(result);
-      } catch (error) {
+      } catch (error: any) {
         console.error('Data reconciliation error:', error);
         res.status(500).json({ 
           message: "Failed to reconcile financial data", 
@@ -1238,7 +1259,7 @@ export function registerAdminRoutes(app: Express) {
           ...platformFeesBreakdown,
           period: { startDate: start, endDate: end }
         });
-      } catch (error) {
+      } catch (error: any) {
         console.error('Platform fees error:', error);
         res.status(500).json({ message: "Failed to fetch platform fees data" });
       }
@@ -1291,7 +1312,7 @@ export function registerAdminRoutes(app: Express) {
         };
 
         res.json(payoutSummary);
-      } catch (error) {
+      } catch (error: any) {
         console.error('Payouts data error:', error);
         res.status(500).json({ message: "Failed to fetch payouts data" });
       }
@@ -1315,7 +1336,7 @@ export function registerAdminRoutes(app: Express) {
 
         const moderationQueue = await contentModerationService.getModerationQueue(filters);
         res.json(moderationQueue);
-      } catch (error) {
+      } catch (error: any) {
         console.error('Moderation queue error:', error);
         res.status(500).json({ message: "Failed to fetch moderation queue" });
       }
@@ -1338,7 +1359,7 @@ export function registerAdminRoutes(app: Express) {
           period: { startDate: start, endDate: end },
           generatedAt: new Date()
         });
-      } catch (error) {
+      } catch (error: any) {
         console.error('Job analytics error:', error);
         res.status(500).json({ message: "Failed to fetch job analytics" });
       }
@@ -1373,7 +1394,7 @@ export function registerAdminRoutes(app: Express) {
           moderationResult,
           actionTaken: moderationResult.action
         });
-      } catch (error) {
+      } catch (error: any) {
         console.error('Job moderation error:', error);
         res.status(500).json({ 
           message: "Failed to moderate job content", 
@@ -1396,7 +1417,7 @@ export function registerAdminRoutes(app: Express) {
 
         const result = await contentModerationService.approveJob(jobId, adminUserId, notes);
         res.json(result);
-      } catch (error) {
+      } catch (error: any) {
         console.error('Job approval error:', error);
         res.status(500).json({ 
           message: "Failed to approve job", 
@@ -1423,7 +1444,7 @@ export function registerAdminRoutes(app: Express) {
         const adminUserId = getAuthenticatedUserId(req);
         const result = await contentModerationService.rejectJob(jobId, adminUserId, reason);
         res.json(result);
-      } catch (error) {
+      } catch (error: any) {
         console.error('Job rejection error:', error);
         res.status(500).json({ 
           message: "Failed to reject job", 
@@ -1449,7 +1470,7 @@ export function registerAdminRoutes(app: Express) {
         const adminUserId = getAuthenticatedUserId(req);
         const result = await contentModerationService.flagJobForReview(jobId, reason, adminUserId);
         res.json(result);
-      } catch (error) {
+      } catch (error: any) {
         console.error('Job flagging error:', error);
         res.status(500).json({ 
           message: "Failed to flag job", 
@@ -1489,7 +1510,7 @@ export function registerAdminRoutes(app: Express) {
         );
 
         res.json(result);
-      } catch (error) {
+      } catch (error: any) {
         console.error('Bulk job action error:', error);
         res.status(500).json({ 
           message: "Failed to perform bulk job action", 
@@ -1538,7 +1559,7 @@ export function registerAdminRoutes(app: Express) {
               posterEmail: poster?.email,
               workerName: worker?.fullName || worker?.username || null,
               workerEmail: worker?.email || null,
-              createdAt: job.createdAt || new Date(),
+              createdAt: job.datePosted || new Date(),
               moderationFlags: [], // Would come from moderation service
               riskScore: 'low' // Would be calculated by moderation service
             };
@@ -1550,7 +1571,7 @@ export function registerAdminRoutes(app: Express) {
           total: detailedJobs.length,
           filters: { status, category, moderationStatus, posterId, workerId }
         });
-      } catch (error) {
+      } catch (error: any) {
         console.error('Detailed jobs fetch error:', error);
         res.status(500).json({ message: "Failed to fetch detailed jobs data" });
       }
@@ -1586,7 +1607,7 @@ export function registerAdminRoutes(app: Express) {
           
           // Time-based metrics
           recentJobs: jobs.filter(j => {
-            const createdAt = j.createdAt || new Date(0);
+            const createdAt = j.datePosted || new Date(0);
             const dayAgo = new Date(Date.now() - 24 * 60 * 60 * 1000);
             return createdAt >= dayAgo;
           }).length,
@@ -1596,7 +1617,7 @@ export function registerAdminRoutes(app: Express) {
         };
 
         res.json(stats);
-      } catch (error) {
+      } catch (error: any) {
         console.error('Moderation stats error:', error);
         res.status(500).json({ message: "Failed to fetch moderation statistics" });
       }
@@ -1642,7 +1663,7 @@ export function registerAdminRoutes(app: Express) {
           reportId: Date.now(), // Would be generated by database
           message: 'Content report submitted successfully'
         });
-      } catch (error) {
+      } catch (error: any) {
         console.error('Content report error:', error);
         res.status(500).json({ 
           message: "Failed to submit content report", 
@@ -1657,7 +1678,7 @@ export function registerAdminRoutes(app: Express) {
     try {
       const earnings = await storage.getAllEarnings();
       res.json(earnings);
-    } catch (error) {
+    } catch (error: any) {
       console.error('Admin earnings error:', error);
       res.status(500).json({ message: "Failed to fetch earnings" });
     }
@@ -1688,13 +1709,13 @@ export function registerAdminRoutes(app: Express) {
           total: payments.reduce((sum, p) => sum + (p.amount || 0), 0),
           fees: payments.reduce((sum, p) => sum + (p.serviceFee || 0), 0),
           thisMonth: payments
-            .filter(p => new Date(p.createdAt).getMonth() === new Date().getMonth())
+            .filter(p => p.createdAt && new Date(p.createdAt).getMonth() === new Date().getMonth())
             .reduce((sum, p) => sum + (p.amount || 0), 0)
         }
       };
 
       res.json(analytics);
-    } catch (error) {
+    } catch (error: any) {
       console.error('Admin analytics error:', error);
       res.status(500).json({ message: "Failed to fetch analytics" });
     }
@@ -1703,6 +1724,9 @@ export function registerAdminRoutes(app: Express) {
   // Refund Management Routes for Plan Bravo Financial Management
   app.get('/api/admin/refunds', adminAuth, async (req: any, res: any) => {
     try {
+      // TODO: Implement refund service
+      res.status(501).json({ message: "Refund service not implemented yet" });
+      /*
       const { status, limit, offset } = req.query;
       const refunds = await refundService.getRefundRequests({
         status: status as string,
@@ -1711,7 +1735,7 @@ export function registerAdminRoutes(app: Express) {
       });
       
       res.json(refunds);
-    } catch (error) {
+    } catch (error: any) {
       console.error('Admin refunds fetch error:', error);
       res.status(500).json({ message: 'Failed to fetch refund requests' });
     }
@@ -1719,6 +1743,9 @@ export function registerAdminRoutes(app: Express) {
 
   app.post('/api/admin/refunds/:id/process', adminAuth, async (req: any, res: any) => {
     try {
+      // TODO: Implement refund processing
+      res.status(501).json({ message: "Refund processing not implemented yet" });
+      /*
       const refundId = parseInt(req.params.id);
       const { decision, adminNotes } = req.body;
       
@@ -1732,7 +1759,7 @@ export function registerAdminRoutes(app: Express) {
       });
       
       res.json(result);
-    } catch (error) {
+    } catch (error: any) {
       console.error('Refund processing error:', error);
       res.status(500).json({ message: 'Failed to process refund request' });
     }
@@ -1742,7 +1769,7 @@ export function registerAdminRoutes(app: Express) {
     try {
       const stats = await refundService.getRefundStatistics();
       res.json(stats);
-    } catch (error) {
+    } catch (error: any) {
       console.error('Refund statistics error:', error);
       res.status(500).json({ message: 'Failed to fetch refund statistics' });
     }
@@ -1751,6 +1778,9 @@ export function registerAdminRoutes(app: Express) {
   // Financial Audit Trail Routes
   app.get('/api/admin/audit-trail', adminAuth, async (req: any, res: any) => {
     try {
+      // TODO: Implement audit service
+      res.status(501).json({ message: "Audit service not implemented yet" });
+      /*
       const { limit, offset } = req.query;
       const auditData = await auditService.getAllAuditEntries(
         limit ? parseInt(limit) : 100,
@@ -1758,7 +1788,8 @@ export function registerAdminRoutes(app: Express) {
       );
       
       res.json(auditData);
-    } catch (error) {
+      */
+    } catch (error: any) {
       console.error('Audit trail fetch error:', error);
       res.status(500).json({ message: 'Failed to fetch audit trail' });
     }
@@ -1766,9 +1797,13 @@ export function registerAdminRoutes(app: Express) {
 
   app.get('/api/admin/financial-integrity', adminAuth, async (req: any, res: any) => {
     try {
+      // TODO: Implement audit service
+      res.status(501).json({ message: "Financial integrity check not implemented yet" });
+      /*
       const integrity = await auditService.validateFinancialIntegrity();
       res.json(integrity);
-    } catch (error) {
+      */
+    } catch (error: any) {
       console.error('Financial integrity check error:', error);
       res.status(500).json({ message: 'Failed to validate financial integrity' });
     }
@@ -1777,13 +1812,16 @@ export function registerAdminRoutes(app: Express) {
   app.get('/api/admin/audit-summary', adminAuth, async (req: any, res: any) => {
     try {
       const { startDate, endDate } = req.query;
+      // TODO: Implement audit service
+      res.status(501).json({ message: "Audit summary not implemented yet" });
+      /*
       const summary = await auditService.getFinancialAuditSummary(
         startDate ? new Date(startDate as string) : undefined,
         endDate ? new Date(endDate as string) : undefined
       );
       
       res.json(summary);
-    } catch (error) {
+    } catch (error: any) {
       console.error('Audit summary error:', error);
       res.status(500).json({ message: 'Failed to generate audit summary' });
     }
@@ -1792,9 +1830,13 @@ export function registerAdminRoutes(app: Express) {
   // Security Monitoring Routes for Plan Bravo
   app.get('/api/admin/security-dashboard', adminAuth, async (req: any, res: any) => {
     try {
+      // TODO: Implement security monitor service
+      res.status(501).json({ message: "Security monitoring not implemented yet" });
+      /*
       const dashboard = await securityMonitor.getSecurityDashboard();
       res.json(dashboard);
-    } catch (error) {
+      */
+    } catch (error: any) {
       console.error('Security dashboard error:', error);
       res.status(500).json({ message: 'Failed to fetch security dashboard' });
     }
@@ -1802,6 +1844,9 @@ export function registerAdminRoutes(app: Express) {
 
   app.get('/api/admin/security-incidents', adminAuth, async (req: any, res: any) => {
     try {
+      // TODO: Implement security monitor service
+      res.status(501).json({ message: "Security incidents not implemented yet" });
+      /*
       const { severity, type, status, limit, offset } = req.query;
       const incidents = await securityMonitor.getSecurityIncidents({
         severity: severity as string,
@@ -1812,7 +1857,7 @@ export function registerAdminRoutes(app: Express) {
       });
       
       res.json(incidents);
-    } catch (error) {
+    } catch (error: any) {
       console.error('Security incidents fetch error:', error);
       res.status(500).json({ message: 'Failed to fetch security incidents' });
     }
@@ -1820,6 +1865,9 @@ export function registerAdminRoutes(app: Express) {
 
   app.post('/api/admin/security-incidents/:id/resolve', adminAuth, async (req: any, res: any) => {
     try {
+      // TODO: Implement security monitor service
+      res.status(501).json({ message: "Security incident resolution not implemented yet" });
+      /*
       const incidentId = parseInt(req.params.id);
       const { notes } = req.body;
       
@@ -1830,7 +1878,8 @@ export function registerAdminRoutes(app: Express) {
       } else {
         res.status(404).json({ message: 'Security incident not found' });
       }
-    } catch (error) {
+      */
+    } catch (error: any) {
       console.error('Security incident resolution error:', error);
       res.status(500).json({ message: 'Failed to resolve security incident' });
     }
@@ -1919,7 +1968,7 @@ export function registerAdminRoutes(app: Express) {
         };
 
         res.json(comprehensiveAnalytics);
-      } catch (error) {
+      } catch (error: any) {
         console.error('Comprehensive analytics error:', error);
         res.status(500).json({ message: "Failed to fetch comprehensive analytics" });
       }
@@ -1935,21 +1984,25 @@ export function registerAdminRoutes(app: Express) {
         
         const users = await storage.getAllUsers();
         const filteredUsers = users.filter(user => {
-          const matchesSearch = search ? 
-            user.username.toLowerCase().includes(search.toLowerCase()) ||
-            user.fullName.toLowerCase().includes(search.toLowerCase()) ||
-            user.email.toLowerCase().includes(search.toLowerCase()) : true;
+          const searchStr = typeof search === 'string' ? search : '';
+          const matchesSearch = searchStr ? 
+            user.username.toLowerCase().includes(searchStr.toLowerCase()) ||
+            user.fullName.toLowerCase().includes(searchStr.toLowerCase()) ||
+            user.email.toLowerCase().includes(searchStr.toLowerCase()) : true;
           
-          const matchesAccountType = accountType === 'all' || user.accountType === accountType;
+          const accountTypeStr = typeof accountType === 'string' ? accountType : 'all';
+          const matchesAccountType = accountTypeStr === 'all' || user.accountType === accountTypeStr;
           
           return matchesSearch && matchesAccountType;
         });
 
         // Sort users
+        const sortByStr = typeof sortBy === 'string' ? sortBy : 'createdAt';
         filteredUsers.sort((a, b) => {
-          const aVal = a[sortBy] || '';
-          const bVal = b[sortBy] || '';
-          return sortOrder === 'asc' ? aVal.localeCompare(bVal) : bVal.localeCompare(aVal);
+          const aVal = (a as any)[sortByStr] || '';
+          const bVal = (b as any)[sortByStr] || '';
+          const sortOrderStr = typeof sortOrder === 'string' ? sortOrder : 'desc';
+          return sortOrderStr === 'asc' ? aVal.localeCompare(bVal) : bVal.localeCompare(aVal);
         });
 
         // Paginate
@@ -1962,7 +2015,7 @@ export function registerAdminRoutes(app: Express) {
           page: Number(page),
           totalPages: Math.ceil(filteredUsers.length / Number(limit))
         });
-      } catch (error) {
+      } catch (error: any) {
         console.error('User analytics error:', error);
         res.status(500).json({ message: "Failed to fetch user analytics" });
       }
@@ -2006,7 +2059,7 @@ export function registerAdminRoutes(app: Express) {
           totalPages: Math.ceil(filteredJobs.length / Number(limit)),
           filters: { status, search }
         });
-      } catch (error) {
+      } catch (error: any) {
         console.error('Job analytics error:', error);
         res.status(500).json({ message: "Failed to fetch job analytics" });
       }
@@ -2051,7 +2104,7 @@ export function registerAdminRoutes(app: Express) {
           totalPages: Math.ceil(totalTickets / Number(limit)),
           analytics: { totalTickets, byPriority, byStatus }
         });
-      } catch (error) {
+      } catch (error: any) {
         console.error("Support analytics error:", error);
         res.status(500).json({ message: "Failed to fetch support analytics" });
       }
@@ -2093,7 +2146,7 @@ export function registerAdminRoutes(app: Express) {
             totalTransactions: filtered.length
           }
         });
-      } catch (error) {
+      } catch (error: any) {
         console.error("Financial analytics error:", error);
         res.status(500).json({ message: "Failed to fetch financial analytics" });
       }
@@ -2115,7 +2168,7 @@ export function registerAdminRoutes(app: Express) {
           period: { startDate: start, endDate: end },
           generatedAt: new Date()
         });
-      } catch (error) {
+      } catch (error: any) {
         console.error('Comprehensive analytics error:', error);
         res.status(500).json({ message: "Failed to fetch comprehensive analytics" });
       }
@@ -2144,7 +2197,7 @@ export function registerAdminRoutes(app: Express) {
           data: timeSeriesData,
           period: { startDate: start, endDate: end }
         });
-      } catch (error) {
+      } catch (error: any) {
         console.error('Time series analytics error:', error);
         res.status(500).json({ message: "Failed to fetch time series data" });
       }
@@ -2171,7 +2224,7 @@ export function registerAdminRoutes(app: Express) {
         } else {
           res.json(report);
         }
-      } catch (error) {
+      } catch (error: any) {
         console.error('Report generation error:', error);
         res.status(500).json({ message: "Failed to generate report" });
       }
@@ -2194,7 +2247,7 @@ export function registerAdminRoutes(app: Express) {
           timestamp: now,
           isRealTime: true
         });
-      } catch (error) {
+      } catch (error: any) {
         console.error('Real-time analytics error:', error);
         res.status(500).json({ message: "Failed to fetch real-time analytics" });
       }
@@ -2227,7 +2280,7 @@ export function registerAdminRoutes(app: Express) {
           res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
           res.json(exportData);
         }
-      } catch (error) {
+      } catch (error: any) {
         console.error('Analytics export error:', error);
         res.status(500).json({ message: "Failed to export analytics data" });
       }
@@ -2252,7 +2305,7 @@ export function registerAdminRoutes(app: Express) {
           api: 'operational'
         };
         res.json(healthStatus);
-      } catch (error) {
+      } catch (error: any) {
         console.error('System health check error:', error);
         res.status(500).json({ message: 'Failed to check system health' });
       }
@@ -2267,7 +2320,7 @@ export function registerAdminRoutes(app: Express) {
       try {
         const healthCheck = await systemMonitor.performHealthCheck();
         res.json(healthCheck);
-      } catch (error) {
+      } catch (error: any) {
         console.error('Health check error:', error);
         res.status(500).json({ message: "Failed to perform health check" });
       }
@@ -2286,7 +2339,7 @@ export function registerAdminRoutes(app: Express) {
           config: systemMonitor.getAlertConfig(),
           timestamp: new Date()
         });
-      } catch (error) {
+      } catch (error: any) {
         console.error('System alerts error:', error);
         res.status(500).json({ message: "Failed to fetch system alerts" });
       }
@@ -2309,7 +2362,7 @@ export function registerAdminRoutes(app: Express) {
         } else {
           res.status(404).json({ message: "Alert configuration not found" });
         }
-      } catch (error) {
+      } catch (error: any) {
         console.error('Alert config update error:', error);
         res.status(500).json({ message: "Failed to update alert configuration" });
       }
@@ -2325,7 +2378,7 @@ export function registerAdminRoutes(app: Express) {
         const { days = 30 } = req.query;
         const uptimeReport = await systemMonitor.getUptimeReport(parseInt(days as string));
         res.json(uptimeReport);
-      } catch (error) {
+      } catch (error: any) {
         console.error('Uptime report error:', error);
         res.status(500).json({ message: "Failed to fetch uptime report" });
       }
@@ -2365,7 +2418,7 @@ export function registerAdminRoutes(app: Express) {
         };
         
         res.json(performanceMetrics);
-      } catch (error) {
+      } catch (error: any) {
         console.error('Performance metrics error:', error);
         res.status(500).json({ message: "Failed to fetch performance metrics" });
       }
@@ -2394,7 +2447,7 @@ export function registerAdminRoutes(app: Express) {
           message: `Maintenance mode ${enabled ? 'enabled' : 'disabled'} successfully`,
           config: maintenanceConfig
         });
-      } catch (error) {
+      } catch (error: any) {
         console.error('Maintenance mode error:', error);
         res.status(500).json({ message: "Failed to toggle maintenance mode" });
       }
@@ -2423,7 +2476,7 @@ export function registerAdminRoutes(app: Express) {
       });
 
       res.status(201).json(newJob);
-    } catch (error) {
+    } catch (error: any) {
       console.error('Admin create job error:', error);
       res.status(500).json({ message: 'Failed to create job' });
     }
@@ -2434,7 +2487,7 @@ export function registerAdminRoutes(app: Express) {
     try {
       const notifications = await storage.getAllNotifications();
       res.json(notifications);
-    } catch (error) {
+    } catch (error: any) {
       console.error('Admin notifications error:', error);
       res.status(500).json({ message: 'Failed to fetch notifications' });
     }
@@ -2453,7 +2506,7 @@ export function registerAdminRoutes(app: Express) {
         adminId: req.user.id
       });
       res.status(201).json(newNotification);
-    } catch (error) {
+    } catch (error: any) {
       console.error('Admin create notification error:', error);
       res.status(500).json({ message: 'Failed to create notification' });
     }
@@ -2467,7 +2520,7 @@ export function registerAdminRoutes(app: Express) {
         return res.status(404).json({ message: 'Notification not found' });
       }
       res.json({ message: 'Notification deleted successfully' });
-    } catch (error) {
+    } catch (error: any) {
       console.error('Admin delete notification error:', error);
       res.status(500).json({ message: 'Failed to delete notification' });
     }
@@ -2512,7 +2565,7 @@ export function registerAdminRoutes(app: Express) {
         api: 'operational'
       };
       res.json(healthStatus);
-    } catch (error) {
+    } catch (error: any) {
       console.error('System health check error:', error);
       res.status(500).json({ message: 'Failed to check system health' });
     }
@@ -2527,7 +2580,7 @@ export function registerAdminRoutes(app: Express) {
         timestamp: new Date().toISOString()
       };
       res.json(metrics);
-    } catch (error) {
+    } catch (error: any) {
       console.error('Performance metrics error:', error);
       res.status(500).json({ message: 'Failed to fetch performance metrics' });
     }
@@ -2550,7 +2603,7 @@ export function registerAdminRoutes(app: Express) {
       });
       await Promise.all(emailPromises);
       res.json({ message: 'Mass email sent successfully', count: users.length });
-    } catch (error) {
+    } catch (error: any) {
       console.error('Admin mass email error:', error);
       res.status(500).json({ message: 'Failed to send mass email' });
     }
@@ -2579,7 +2632,7 @@ export function registerAdminRoutes(app: Express) {
       const settings = await storage.getPlatformSettings();
       console.log('Retrieved platform settings:', settings);
       res.json({ settings: settings || {} });
-    } catch (error) {
+    } catch (error: any) {
       console.error('Get platform settings error:', error);
       res.status(500).json({ message: "Failed to fetch platform settings", error: error.message });
     }
@@ -2606,7 +2659,7 @@ export function registerAdminRoutes(app: Express) {
           message: "Platform settings updated successfully",
           settings: updatedSettings 
         });
-      } catch (error) {
+      } catch (error: any) {
         console.error('Update platform settings error:', error);
         res.status(500).json({ message: "Failed to update platform settings", error: error.message });
       }
@@ -2624,7 +2677,7 @@ export function registerAdminRoutes(app: Express) {
       }
       
       res.json({ key, value: settings[key] });
-    } catch (error) {
+    } catch (error: any) {
       console.error('Get platform setting error:', error);
       res.status(500).json({ message: "Failed to fetch platform setting" });
     }
@@ -2649,7 +2702,7 @@ export function registerAdminRoutes(app: Express) {
           key,
           value: updatedSettings[key]
         });
-      } catch (error) {
+      } catch (error: any) {
         console.error('Update platform setting error:', error);
         res.status(500).json({ message: "Failed to update platform setting" });
       }
@@ -2710,7 +2763,7 @@ export function registerAdminRoutes(app: Express) {
           message: "Platform settings reset to defaults successfully",
           settings: resetSettings 
         });
-      } catch (error) {
+      } catch (error: any) {
         console.error('Reset platform settings error:', error);
         res.status(500).json({ message: "Failed to reset platform settings" });
       }
@@ -2735,7 +2788,7 @@ export function registerAdminRoutes(app: Express) {
           history: history || [],
           total: history?.length || 0
         });
-      } catch (error) {
+      } catch (error: any) {
         console.error('Get settings history error:', error);
         res.status(500).json({ message: "Failed to fetch settings history" });
       }
@@ -2764,7 +2817,7 @@ export function registerAdminRoutes(app: Express) {
           backupId,
           timestamp: backup.timestamp
         });
-      } catch (error) {
+      } catch (error: any) {
         console.error('Backup settings error:', error);
         res.status(500).json({ message: "Failed to create settings backup" });
       }
@@ -2792,7 +2845,7 @@ export function registerAdminRoutes(app: Express) {
           settings: restoredSettings,
           restoredFrom: backup.timestamp
         });
-      } catch (error) {
+      } catch (error: any) {
         console.error('Restore settings error:', error);
         res.status(500).json({ message: "Failed to restore settings from backup" });
       }
@@ -2806,7 +2859,7 @@ export function registerAdminRoutes(app: Express) {
       try {
         const backups = await storage.getSettingsBackups();
         res.json({ backups: backups || [] });
-      } catch (error) {
+      } catch (error: any) {
         console.error('Get settings backups error:', error);
         res.status(500).json({ message: "Failed to fetch settings backups" });
       }

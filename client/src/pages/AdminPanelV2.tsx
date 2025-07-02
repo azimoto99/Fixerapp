@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo, useCallback } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -46,7 +46,10 @@ import { useToast } from "@/hooks/use-toast";
 interface AdminStats {
   totalUsers: number;
   totalJobs: number;
+  activeJobs: number;
+  completedJobs: number;
   totalRevenue: number;
+  platformFees: number;
   pendingDisputes: number;
 }
 
@@ -189,7 +192,7 @@ function PlatformSettingsManager() {
       console.error('Failed to fetch settings:', error);
       toast({
         title: "Error",
-        description: `Failed to load platform settings: ${error.message}`,
+        description: `Failed to load platform settings: ${error instanceof Error ? error.message : 'Unknown error'}`,
         variant: "destructive"
       });
       setSettings(defaultSettings);
@@ -225,7 +228,7 @@ function PlatformSettingsManager() {
       console.error('Failed to save settings:', error);
       toast({
         title: "Error",
-        description: `Failed to save platform settings: ${error.message}`,
+        description: `Failed to save platform settings: ${error instanceof Error ? error.message : 'Unknown error'}`,
         variant: "destructive"
       });
     } finally {

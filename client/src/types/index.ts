@@ -44,7 +44,7 @@ export interface Job {
   serviceFee: number;
   totalAmount: number;
   datePosted: Date | null;
-  dateNeeded: Date;
+  dateNeeded: Date | string; // Allow both Date and string for compatibility
   requiredSkills: string[];
   equipmentProvided: boolean;
   autoAccept: boolean;
@@ -57,4 +57,5 @@ export interface Job {
   workerTrackingEnabled: boolean | null;
   verifyLocationToStart: boolean | null;
   markerColor: string | null;
+  estimatedHours?: number; // Add missing property
 }

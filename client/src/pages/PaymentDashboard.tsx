@@ -25,7 +25,7 @@ import {
 } from 'lucide-react';
 import { Payment, Job } from '@shared/schema';
 import DownloadReceipt from '@/components/DownloadReceipt';
-import StripeConnectSetup from '@/components/stripe/StripeConnectSetup';
+import { StripeConnectSetup } from '@/components/stripe';
 import { 
   Table, 
   TableBody, 
