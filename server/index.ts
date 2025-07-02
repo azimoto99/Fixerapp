@@ -190,6 +190,10 @@ app.use('/api/user', userRoutes);
 import imagesRoutes from './routes/images';
 app.use('/api/images', imagesRoutes);
 
+// Register sitemap and robots.txt routes
+import sitemapRoutes from './sitemap';
+app.use('/', sitemapRoutes);
+
 (async () => {
   const server = await registerRoutes(app);
 

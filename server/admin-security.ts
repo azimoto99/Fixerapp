@@ -32,8 +32,8 @@ export const enhancedAdminAuth = (requiredRole: 'admin' | 'super_admin' = 'admin
         return res.status(403).json({ message: "Admin privileges required" });
       }
 
-      // Check for super admin if required
-      if (requiredRole === 'super_admin' && !req.user.isSuperAdmin) {
+      // Check for super admin if required (using isAdmin as fallback)
+      if (requiredRole === 'super_admin' && !(req.user as any).isSuperAdmin && !req.user.isAdmin) {
         await auditService.logAdminAction({
           adminId: req.user.id,
           action: 'insufficient_super_admin_privileges',

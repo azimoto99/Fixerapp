@@ -31,6 +31,9 @@ import { apiRequest } from '@/lib/queryClient';
 import { useToast } from '@/hooks/use-toast';
 import { Badge } from '@/components/ui/badge';
 
+import PageMeta from '@/components/PageMeta';
+import { generateWebsiteStructuredData, generateOrganizationStructuredData } from '@/utils/structuredData';
+
 // Lazy loaded map interface
 const MapSection = lazy(() => import('@/components/MapSection'));
 
@@ -388,6 +391,13 @@ export default function Home() {
 
   return (
     <div className="flex flex-col min-h-screen">
+      <PageMeta
+        title="Fixer - Find Local Jobs and Skilled Workers"
+        description="Fixer is a gig-work platform that connects you with skilled workers in your area. Post jobs, find work, and get things done."
+        keywords={['gig work', 'local jobs', 'skilled workers', 'freelance', 'contractor', 'task marketplace', 'on-demand services']}
+        type="website"
+        structuredData={[generateWebsiteStructuredData(), generateOrganizationStructuredData()]}
+      />
       <Header
         selectedRole={selectedRole}
         onRoleChange={setSelectedRole}

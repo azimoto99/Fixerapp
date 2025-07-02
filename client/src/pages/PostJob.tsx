@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { useLocation } from 'wouter';
+import PageMeta from '@/components/PageMeta';
 import { z } from 'zod';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useForm } from 'react-hook-form';
@@ -253,6 +254,12 @@ export default function PostJob() {
 
   return (
     <div className="min-h-screen flex flex-col bg-background">
+      <PageMeta
+        title="Post a Job - Find Skilled Workers | Fixer"
+        description="Post your job on Fixer and connect with skilled workers in your area. Get quotes, hire professionals, and get your tasks completed quickly."
+        keywords={['post job', 'hire workers', 'find contractors', 'freelance services', 'skilled labor', 'job posting']}
+        type="website"
+      />
       <Header />
       
       <main className="flex-1">

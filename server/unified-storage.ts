@@ -223,6 +223,22 @@ export class UnifiedStorage implements IStorage {
     }, undefined, `getUserByEmail(${email})`);
   }
 
+  async getUserByEmailAndAccountType(email: string, accountType: string): Promise<User | undefined> {
+    return this.safeExecute(async () => {
+      const result = await db.select().from(users).where(
+        and(eq(users.email, email), eq(users.accountType, accountType))
+      );
+      return result[0] || undefined;
+    }, undefined, `getUserByEmailAndAccountType(${email}, ${accountType})`);
+  }
+
+  async getUsersByEmail(email: string): Promise<User[]> {
+    return this.safeExecute(async () => {
+      const result = await db.select().from(users).where(eq(users.email, email));
+      return result;
+    }, [], `getUsersByEmail(${email})`);
+  }
+
   async createUser(userData: InsertUser): Promise<User> {
     return this.safeExecute(async () => {
       const result = await db.insert(users).values(userData).returning();

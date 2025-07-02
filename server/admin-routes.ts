@@ -2031,21 +2031,25 @@ export function registerAdminRoutes(app: Express) {
         
         const jobs = await storage.getAllJobs();
         const filteredJobs = jobs.filter(job => {
-          const matchesSearch = search ? 
-            job.title.toLowerCase().includes(search.toLowerCase()) ||
-            job.description.toLowerCase().includes(search.toLowerCase()) ||
-            job.location.toLowerCase().includes(search.toLowerCase()) : true;
+          const searchStr = typeof search === 'string' ? search : '';
+          const matchesSearch = searchStr ? 
+            job.title.toLowerCase().includes(searchStr.toLowerCase()) ||
+            job.description.toLowerCase().includes(searchStr.toLowerCase()) ||
+            job.location.toLowerCase().includes(searchStr.toLowerCase()) : true;
           
-          const matchesStatus = status === 'all' || job.status === status;
+          const statusStr = typeof status === 'string' ? status : 'all';
+          const matchesStatus = statusStr === 'all' || job.status === statusStr;
           
           return matchesSearch && matchesStatus;
         });
 
         // Sort jobs
+        const sortByStr = typeof sortBy === 'string' ? sortBy : 'id';
+        const sortOrderStr = typeof sortOrder === 'string' ? sortOrder : 'desc';
         filteredJobs.sort((a, b) => {
-          const aVal = a[sortBy] || '';
-          const bVal = b[sortBy] || '';
-          return sortOrder === 'asc' ? String(aVal).localeCompare(String(bVal)) : String(bVal).localeCompare(String(aVal));
+          const aVal = (a as any)[sortByStr] || '';
+          const bVal = (b as any)[sortByStr] || '';
+          return sortOrderStr === 'asc' ? String(aVal).localeCompare(String(bVal)) : String(bVal).localeCompare(String(aVal));
         });
 
         // Paginate
@@ -2072,10 +2076,11 @@ export function registerAdminRoutes(app: Express) {
         const { page = 1, limit = 20, search = "", status = "all", priority = "all" } = req.query as any;
 
         // Pull tickets from storage
-        const tickets = await storage.getAllSupportTickets();
+        const ticketsResult = await storage.getAllSupportTickets({});
+        const tickets = ticketsResult.tickets || [];
 
         // Basic filtering
-        const filtered = tickets.filter(t => {
+        const filtered = tickets.filter((t: any) => {
           const matchesSearch = search ?
             t.title.toLowerCase().includes(search.toLowerCase()) ||
             (t.description || "").toLowerCase().includes(search.toLowerCase()) : true;
@@ -2088,7 +2093,7 @@ export function registerAdminRoutes(app: Express) {
         const totalTickets = filtered.length;
         const byPriority: Record<string, number> = {};
         const byStatus: Record<string, number> = {};
-        filtered.forEach(t => {
+        filtered.forEach((t: any) => {
           byPriority[t.priority] = (byPriority[t.priority] || 0) + 1;
           byStatus[t.status] = (byStatus[t.status] || 0) + 1;
         });
@@ -2266,7 +2271,8 @@ export function registerAdminRoutes(app: Express) {
         const start = startDate ? new Date(startDate as string) : undefined;
         const end = endDate ? new Date(endDate as string) : undefined;
 
-        const exportData = await analyticsService.generateReport(type as string, format, start, end);
+        const reportType = typeof type === 'string' && (type === 'summary' || type === 'detailed') ? type : 'detailed';
+        const exportData = await analyticsService.generateReport(reportType, format, start, end);
         
         const timestamp = new Date().toISOString().split('T')[0];
         const filename = `fixer-analytics-${type}-${timestamp}.${format}`;
@@ -2470,8 +2476,8 @@ export function registerAdminRoutes(app: Express) {
         status: 'open',
         location: location || 'Not specified',
         category: category || 'Uncategorized',
-        skillsRequired: skillsRequired || [],
-        posterId: req.user.id, // Use the admin's ID as the poster
+        requiredSkills: skillsRequired || [],
+        posterId: req.user!.id, // Use the admin's ID as the poster
         datePosted: new Date().toISOString(),
       });
 
@@ -2501,9 +2507,9 @@ export function registerAdminRoutes(app: Express) {
       }
       const newNotification = await storage.createNotification({
         title,
-        body,
+        message: body, // Use 'message' instead of 'body'
         createdAt: new Date().toISOString(),
-        adminId: req.user.id
+        adminId: req.user!.id
       });
       res.status(201).json(newNotification);
     } catch (error: any) {

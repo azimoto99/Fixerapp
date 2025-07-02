@@ -66,7 +66,7 @@ class AnalyticsService {
     });
 
     const filteredJobs = jobs.filter(job => {
-      const jobDate = job.createdAt || new Date(job.datePosted || 0);
+      const jobDate = (job as any).createdAt || job.datePosted || new Date(0);
       return jobDate >= start && jobDate <= end;
     });
 
@@ -158,7 +158,11 @@ class AnalyticsService {
     }, {} as Record<string, { count: number; revenue: number }>);
 
     const topCategories = Object.entries(categoryStats)
-      .map(([category, stats]) => ({ category, ...stats }))
+      .map(([category, stats]) => ({ 
+        category, 
+        count: (stats as any).count || 0, 
+        revenue: (stats as any).revenue || 0 
+      }))
       .sort((a, b) => b.count - a.count)
       .slice(0, 5);
 
@@ -253,8 +257,8 @@ class AnalyticsService {
     }, {} as Record<string, number>);
 
     const geographicDistribution = Object.entries(locationStats)
-      .map(([location, users]) => ({ location, users }))
-      .sort((a, b) => b.users - a.users)
+      .map(([location, users]) => ({ location, users: Number(users) }))
+      .sort((a, b) => Number(b.users) - Number(a.users))
       .slice(0, 10);
 
     // Device types (simulated based on typical web app usage)
@@ -307,7 +311,7 @@ class AnalyticsService {
         case 'jobs':
           const jobs = await storage.getAllJobs();
           value = jobs.filter(job => {
-            const jobDate = new Date(job.createdAt || job.datePosted || 0);
+            const jobDate = new Date((job as any).createdAt || job.datePosted || 0);
             return jobDate.toDateString() === date.toDateString();
           }).length;
           break;

@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '@/hooks/useAuth';
+import PageMeta from '@/components/PageMeta';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -327,6 +328,12 @@ export default function Explore() {
 
   return (
     <div className="container mx-auto p-4 max-w-4xl">
+      <PageMeta
+        title="Explore Local Jobs & Services Near You | Fixer"
+        description="Find local jobs, skilled workers, and verified businesses in your area. Explore opportunities and connect with the community on Fixer."
+        keywords={['local jobs', 'nearby work', 'freelance opportunities', 'local services', 'skilled workers', 'job search']}
+        type="website"
+      />
       <div className="mb-6">
         <h1 className="text-2xl font-bold mb-2">Explore Nearby</h1>
         <p className="text-muted-foreground">

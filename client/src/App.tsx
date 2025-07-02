@@ -47,6 +47,7 @@ import JobCardFix from "@/components/JobCardFix";
 import { useState, useEffect } from "react";
 import { WebSocketProvider } from "@/contexts/WebSocketContext";
 import { ProfilePopup } from "@/components/ProfilePopup";
+import { HelmetProvider } from "react-helmet-async";
 
 // Import new system components
 import { ErrorBoundarySystem, NetworkErrorRecovery, ChunkErrorRecovery } from "@/components/ErrorBoundarySystem";
@@ -242,7 +243,9 @@ function App() {
                       <PaymentDialogProvider>
                         <OnboardingProvider>
                           <WebSocketProvider>
-                            <AuthenticatedContent />
+                            <HelmetProvider>
+                              <AuthenticatedContent />
+                            </HelmetProvider>
                           </WebSocketProvider>
                         </OnboardingProvider>
                       </PaymentDialogProvider>
