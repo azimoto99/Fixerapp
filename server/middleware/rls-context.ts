@@ -7,16 +7,23 @@ import { db, client } from '../db';
  */
 export const setRLSContext = async (req: Request, res: Response, next: NextFunction) => {
   try {
-    // Skip RLS setup for health checks and public endpoints to reduce load
-    if (req.path === '/api/health' || req.path.startsWith('/api/auth/') || req.path === '/') {
+    // Skip RLS setup for health checks, authentication endpoints, and public endpoints to reduce load
+    // This is crucial for login/registration to work properly
+    if (req.path === '/api/health' || 
+        req.path.startsWith('/api/auth/') || 
+        req.path === '/api/login' ||
+        req.path === '/api/register' ||
+        req.path === '/api/logout' ||
+        req.path === '/') {
       return next();
     }
 
     // Get user ID from session or request context
-    const userId = req.user?.id || req.session?.userId || 0;
+    const userId = req.user?.id || req.session?.userId;
     const isAdmin = req.user?.isAdmin || false;
     
-    // Only set RLS context if we have a valid user to reduce unnecessary queries
+    // Only set RLS context if we have a valid authenticated user
+    // Don't set context if userId is undefined/null to allow authentication queries
     if (client && userId && userId > 0) {
       // Use Promise.race to add timeout protection
       await Promise.race([
