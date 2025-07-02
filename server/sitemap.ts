@@ -1,6 +1,6 @@
 import express from 'express';
 import { db } from './db';
-import { jobs, users, enterpriseBusinesses } from './schema';
+import { jobs, users, enterpriseBusinesses } from '../shared/schema';
 import { eq, and, desc } from 'drizzle-orm';
 
 const router = express.Router();
