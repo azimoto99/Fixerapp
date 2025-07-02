@@ -7,6 +7,7 @@ import { promisify } from "util";
 import { storage } from "./storage";
 import { DbUser, InsertUser } from "@shared/schema";
 import MemoryStore from "memorystore";
+import { isAuthenticated } from "./middleware/auth";
 
 // Extend the session data type with our custom properties
 declare module 'express-session' {
@@ -387,35 +388,24 @@ export function setupAuth(app: Express) {
   });
 
   // Get current user endpoint
-  app.get("/api/user", (req: Request, res: Response) => {
-    if (!req.isAuthenticated()) {
-      // Try fallback authentication using userId in session
-      if (req.session.userId) {
-        storage.getUser(req.session.userId)
-          .then(user => {
-            if (user) {
-              // Don't return password in response
-              const { password, ...userResponse } = user as any;
-              return res.json(userResponse);
-            } else {
-              return res.status(401).json({ message: "Not authenticated" });
-            }
-          })
-          .catch(() => {
-            return res.status(401).json({ message: "Not authenticated" });
-          });
-        return;
+  app.get("/api/user", isAuthenticated, async (req: Request, res: Response) => {
+    try {
+      if (!req.user) {
+        return res.status(401).json({ message: "Not authenticated" });
       }
       
-      return res.status(401).json({ message: "Not authenticated" });
-    }
-    
-    // Don't return password in response
-    if (req.user) {
-      const { password, ...userResponse } = req.user as any;
+      // Get fresh user data from database
+      const user = await storage.getUser(req.user.id);
+      if (!user) {
+        return res.status(404).json({ message: "User not found" });
+      }
+      
+      // Don't return password in response
+      const { password, ...userResponse } = user as any;
       res.json(userResponse);
-    } else {
-      res.status(401).json({ message: "Not authenticated" });
+    } catch (error) {
+      console.error("Error fetching user data:", error);
+      res.status(500).json({ message: "Error fetching user data" });
     }
   });
 }

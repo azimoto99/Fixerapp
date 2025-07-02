@@ -1,6 +1,7 @@
 import express from 'express';
 import Stripe from 'stripe';
 import { storage } from '../storage';
+import { isAuthenticated } from '../middleware/auth';
 
 if (!process.env.STRIPE_SECRET_KEY) {
   throw new Error('Missing required Stripe secret: STRIPE_SECRET_KEY');
@@ -11,13 +12,6 @@ const stripe = new Stripe(process.env.STRIPE_SECRET_KEY, {
 });
 
 export const setupStripePaymentMethodsRoutes = (app: express.Express) => {
-  // Authentication middleware for Stripe routes
-  const requireAuth = (req: express.Request, res: express.Response, next: express.NextFunction) => {
-    if (!req.isAuthenticated()) {
-      return res.status(401).json({ message: 'Authentication required' });
-    }
-    next();
-  };
 
   // Get current user's Stripe customer ID or create one if it doesn't exist
   const getOrCreateStripeCustomer = async (userId: number) => {
@@ -56,7 +50,7 @@ export const setupStripePaymentMethodsRoutes = (app: express.Express) => {
   };
 
   // Create a SetupIntent for adding a new payment method
-  app.post('/api/stripe/create-setup-intent', requireAuth, async (req, res) => {
+  app.post('/api/stripe/create-setup-intent', isAuthenticated, async (req, res) => {
     try {
       const userId = req.user?.id;
       if (!userId) {
@@ -78,7 +72,7 @@ export const setupStripePaymentMethodsRoutes = (app: express.Express) => {
   });
 
   // Get all payment methods for the current user
-  app.get('/api/stripe/payment-methods', requireAuth, async (req, res) => {
+  app.get('/api/stripe/payment-methods', isAuthenticated, async (req, res) => {
     try {
       const userId = req.user?.id;
       
@@ -118,7 +112,7 @@ export const setupStripePaymentMethodsRoutes = (app: express.Express) => {
   });
 
   // Add a new payment method for the current user
-  app.post('/api/stripe/payment-methods', requireAuth, async (req, res) => {
+  app.post('/api/stripe/payment-methods', isAuthenticated, async (req, res) => {
     try {
       const userId = req.user?.id;
       const { paymentMethodId } = req.body;
@@ -166,7 +160,7 @@ export const setupStripePaymentMethodsRoutes = (app: express.Express) => {
   });
 
   // Delete a payment method for the current user
-  app.delete('/api/stripe/payment-methods/:paymentMethodId', requireAuth, async (req, res) => {
+  app.delete('/api/stripe/payment-methods/:paymentMethodId', isAuthenticated, async (req, res) => {
     try {
       const userId = req.user?.id;
       const { paymentMethodId } = req.params;
@@ -236,7 +230,7 @@ export const setupStripePaymentMethodsRoutes = (app: express.Express) => {
   });
 
   // Set a payment method as the default for the current user
-  app.post('/api/stripe/payment-methods/default', requireAuth, async (req, res) => {
+  app.post('/api/stripe/payment-methods/default', isAuthenticated, async (req, res) => {
     try {
       const userId = req.user?.id;
       const { paymentMethodId } = req.body;
@@ -288,7 +282,7 @@ export const setupStripePaymentMethodsRoutes = (app: express.Express) => {
   });
 
   // Alias default route to match client-side set-default path
-  app.post('/api/stripe/payment-methods/:paymentMethodId/set-default', requireAuth, async (req, res) => {
+  app.post('/api/stripe/payment-methods/:paymentMethodId/set-default', isAuthenticated, async (req, res) => {
     try {
       const userId = req.user?.id;
       const { paymentMethodId } = req.params;
