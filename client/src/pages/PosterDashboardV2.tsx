@@ -429,7 +429,6 @@ export default function PosterDashboardV2() {
                   </div>
                 </div>
               </div>
-              <AccountTypeSwitcher />
             </div>
             <div className="flex items-center gap-2">
               <Button
