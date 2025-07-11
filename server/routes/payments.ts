@@ -2,15 +2,16 @@ import express, { Request, Response } from 'express';
 import { storage } from '../storage';
 import { requireAuth } from '../auth-helpers';
 import { z } from 'zod';
-import Stripe from 'stripe';
+import { 
+  createPayPalOrder, 
+  capturePayPalOrder, 
+  getPayPalOrder,
+  createPayPalPayout,
+  refundPayPalPayment,
+  processMarketplacePayment
+} from '../paypal-integration';
 
 const router = express.Router();
-
-// Initialize Stripe (shared key check already done elsewhere, but repeat for direct use)
-if (!process.env.STRIPE_SECRET_KEY) {
-  throw new Error('Missing STRIPE_SECRET_KEY');
-}
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY, { apiVersion: '2023-10-16' as any });
 
 // Authentication middleware - matches the pattern from main routes
 function isAuthenticated(req: Request, res: Response, next: any) {
@@ -177,21 +178,21 @@ router.post('/withdraw', isAuthenticated, async (req: Request, res: Response) =>
     const schema = z.object({
       amount: z.number().positive('Amount must be positive'),
       destinationAccountId: z.string().optional(),
-      method: z.enum(['bank_transfer', 'stripe_connect']).default('stripe_connect')
+      method: z.enum(['bank_transfer', 'paypal']).default('paypal')
     });
 
     const { amount, destinationAccountId, method } = schema.parse(req.body);
 
-    // Get user to check if they have Stripe Connect account
+    // Get user to check if they have PayPal account
     const user = await storage.getUser(req.user.id);
     
     if (!user) {
       return res.status(404).json({ message: 'User not found' });
     }
 
-    if (method === 'stripe_connect' && !user.stripeConnectAccountId) {
+    if (method === 'paypal' && !user.email) {
       return res.status(400).json({ 
-        message: 'Stripe Connect account required for withdrawals. Please complete your onboarding first.' 
+        message: 'PayPal account required for withdrawals. Please ensure your email is verified.' 
       });
     }
 
@@ -224,8 +225,29 @@ router.post('/withdraw', isAuthenticated, async (req: Request, res: Response) =>
 
     const withdrawal = await storage.createPayment(withdrawalData);
 
-    // Integrate with Stripe Connect for actual transfers in production
-    // This would use stripe.transfers.create() with proper Connect account handling
+    // Process PayPal payout for actual transfers in production
+    if (method === 'paypal' && user.email) {
+      try {
+        const { payoutBatchId, payoutItemId } = await createPayPalPayout(
+          user.email,
+          amount,
+          'USD',
+          `withdrawal_${withdrawal.id}`,
+          `Withdrawal of $${amount.toFixed(2)}`
+        );
+        
+        // Update withdrawal with PayPal transaction IDs
+        await storage.updatePayment(withdrawal.id, {
+          transactionId: payoutBatchId,
+          paypalPaymentId: payoutItemId,
+          status: 'processing'
+        });
+      } catch (error) {
+        console.error('PayPal payout error:', error);
+        await storage.updatePayment(withdrawal.id, { status: 'failed' });
+        return res.status(500).json({ message: 'Failed to process PayPal withdrawal' });
+      }
+    }
 
     res.json({
       success: true,
@@ -297,51 +319,65 @@ router.get('/balance', isAuthenticated, async (req: Request, res: Response) => {
 });
 
 // ------------------------------------------------------
-// POST /api/payments/setup-intent – Save card for future use
+// POST /api/payments/create-order – Create PayPal order
 // ------------------------------------------------------
-router.post('/setup-intent', isAuthenticated, async (req: Request, res: Response) => {
+router.post('/create-order', isAuthenticated, async (req: Request, res: Response) => {
   try {
     if (!req.user) return res.status(401).json({ message: 'Not authenticated' });
 
-    // Get or create customer
-    let customerId = req.user.stripeCustomerId;
-    if (!customerId) {
-      const customer = await stripe.customers.create({
-        email: req.user.email ?? undefined,
-        name: req.user.fullName ?? req.user.username,
-        metadata: { userId: req.user.id.toString() },
-      });
-      customerId = customer.id;
-      await storage.updateUser(req.user.id, { stripeCustomerId: customerId });
-    }
+    const schema = z.object({
+      amount: z.number().positive(),
+      currency: z.string().default('USD'),
+      jobId: z.string(),
+      description: z.string().optional()
+    });
 
-    const setupIntent = await stripe.setupIntents.create({ customer: customerId, payment_method_types: ['card'], usage: 'off_session' });
-    res.json({ clientSecret: setupIntent.client_secret, setupIntentId: setupIntent.id });
+    const { amount, currency, jobId, description } = schema.parse(req.body);
+
+    const { orderId, approvalUrl } = await createPayPalOrder(
+      amount,
+      currency,
+      jobId,
+      description
+    );
+
+    res.json({ orderId, approvalUrl });
   } catch (err) {
-    console.error('Setup-intent error:', err);
-    res.status(500).json({ message: 'Failed to create setup intent' });
+    console.error('Create order error:', err);
+    if (err instanceof z.ZodError) {
+      return res.status(400).json({ message: 'Invalid request', errors: err.errors });
+    }
+    res.status(500).json({ message: 'Failed to create PayPal order' });
   }
 });
 
 // ------------------------------------------------------
-// POST /api/payments/capture – Capture an authorized PaymentIntent
+// POST /api/payments/capture – Capture PayPal order
 // ------------------------------------------------------
 router.post('/capture', isAuthenticated, async (req: Request, res: Response) => {
-  const schema = z.object({ paymentIntentId: z.string() });
+  const schema = z.object({ orderId: z.string() });
   try {
-    const { paymentIntentId } = schema.parse(req.body);
-    const pi = await stripe.paymentIntents.capture(paymentIntentId);
-    await storage.updatePaymentStatus(paymentIntentId as any, 'succeeded');
-    res.json({ status: pi.status });
+    const { orderId } = schema.parse(req.body);
+    const capture = await capturePayPalOrder(orderId);
+    
+    // Update payment status in database
+    await storage.updatePaymentStatus(orderId as any, 'succeeded');
+    
+    res.json({ 
+      captureId: capture.captureId,
+      status: capture.status,
+      amount: capture.amount,
+      currency: capture.currency
+    });
   } catch (err) {
     if (err instanceof z.ZodError) return res.status(400).json({ message: 'Invalid request', errors: err.errors });
     console.error('Capture error:', err);
-    res.status(500).json({ message: 'Failed to capture payment' });
+    res.status(500).json({ message: 'Failed to capture PayPal payment' });
   }
 });
 
 // ------------------------------------------------------
-// POST /api/payments/release – Release escrow to worker (transfer)
+// POST /api/payments/release – Release escrow to worker (PayPal payout)
 // ------------------------------------------------------
 router.post('/release', isAuthenticated, async (req: Request, res: Response) => {
   const schema = z.object({
@@ -354,19 +390,20 @@ router.post('/release', isAuthenticated, async (req: Request, res: Response) => 
     if (!payment) return res.status(404).json({ message: 'Payment not found' });
     if (!payment.workerId) return res.status(400).json({ message: 'Payment not associated with worker' });
 
-    // Transfer to worker's Stripe account
+    // Send payout to worker's PayPal account
     const worker = await storage.getUser(payment.workerId);
-    if (!worker?.stripeConnectAccountId) return res.status(400).json({ message: 'Worker has no Stripe Connect account' });
+    if (!worker?.email) return res.status(400).json({ message: 'Worker has no PayPal email' });
 
-    const transfer = await stripe.transfers.create({
-      amount: Math.round(amount * 100),
-      currency: 'usd',
-      destination: worker.stripeConnectAccountId,
-      metadata: { paymentId: paymentId.toString(), jobId: payment.jobId?.toString() ?? '' },
-    });
+    const { payoutBatchId, payoutItemId } = await createPayPalPayout(
+      worker.email,
+      amount,
+      'USD',
+      payment.jobId?.toString() ?? paymentId.toString(),
+      `Payment release for job ${payment.jobId}`
+    );
 
     await storage.updatePaymentStatus(paymentId, 'completed');
-    res.json({ success: true, transferId: transfer.id });
+    res.json({ success: true, payoutBatchId, payoutItemId });
   } catch (err) {
     if (err instanceof z.ZodError) return res.status(400).json({ message: 'Invalid request', errors: err.errors });
     console.error('Release error:', err);
@@ -378,11 +415,16 @@ router.post('/release', isAuthenticated, async (req: Request, res: Response) => 
 // POST /api/payments/refund – Refund a completed payment
 // ------------------------------------------------------
 router.post('/refund', isAuthenticated, async (req: Request, res: Response) => {
-  const schema = z.object({ paymentIntentId: z.string(), amount: z.number().positive().optional() });
+  const schema = z.object({ 
+    captureId: z.string(), 
+    amount: z.number().positive().optional(),
+    currency: z.string().default('USD'),
+    reason: z.string().optional()
+  });
   try {
-    const { paymentIntentId, amount } = schema.parse(req.body);
-    const refund = await stripe.refunds.create({ payment_intent: paymentIntentId, amount: amount ? Math.round(amount * 100) : undefined });
-    res.json({ success: true, refundId: refund.id, status: refund.status });
+    const { captureId, amount, currency, reason } = schema.parse(req.body);
+    const refund = await refundPayPalPayment(captureId, amount, currency, reason);
+    res.json({ success: true, refundId: refund.refundId, status: refund.status });
   } catch (err) {
     if (err instanceof z.ZodError) return res.status(400).json({ message: 'Invalid request', errors: err.errors });
     console.error('Refund error:', err);

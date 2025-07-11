@@ -1,5 +1,5 @@
 import express, { type Express, Request, Response, NextFunction } from "express";
-import { createStripeConnectAccount, updateStripeAccountRepresentative, processJobPayment } from './stripe-integration';
+// Stripe integration removed - using PayPal integration
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { isAdmin, requireAuth, getAuthenticatedUser, isAuthenticatedRequest } from "./auth-helpers";
@@ -62,18 +62,11 @@ function calculateDistanceInFeet(lat1: number, lon1: number, lat2: number, lon2:
   
   return distance;
 }
-import Stripe from "stripe";
 import { filterJobContent, validatePaymentAmount } from "./content-filter";
-import { stripeRouter } from "./api/stripe-api";
-import stripeConnectRouter from "./api/stripe-connect";
 import { processPayment } from "./api/process-payment";
 import { preauthorizePayment } from "./api/preauthorize-payment";
 import { taskRouter } from "./api/task-api";
 import { disputeRouter } from "./api/disputes";
-import createPaymentIntentRouter from "./api/stripe-api-create-payment-intent";
-import { setupStripeWebhooks } from "./api/stripe-webhooks";
-import { setupStripeTransfersRoutes } from "./api/stripe-transfers";
-import { setupStripePaymentMethodsRoutes } from "./api/stripe-payment-methods";
 import { paymentsRouter } from "./routes/payments";
 
 // Import enterprise API handlers
@@ -87,9 +80,9 @@ import * as crypto from 'crypto';
 function adaptUserForLogin(user: any): Express.User {
   const adapted = { ...user };
   // Convert null values to undefined for Express.User compatibility
-  if (adapted.stripeCustomerId === null) adapted.stripeCustomerId = undefined;
-  if (adapted.stripeConnectAccountId === null) adapted.stripeConnectAccountId = undefined;
-  if (adapted.stripeConnectAccountStatus === null) adapted.stripeConnectAccountStatus = undefined;
+  if (adapted.paypalMerchantId === null) adapted.paypalMerchantId = undefined;
+  if (adapted.paypalCustomerId === null) adapted.paypalCustomerId = undefined;
+  if (adapted.paypalAccountStatus === null) adapted.paypalAccountStatus = undefined;
   return adapted as Express.User;
 }
 
@@ -114,13 +107,7 @@ import {
 import { setupAuth } from "./auth";
 import { URL } from "url";
 
-// Initialize Stripe with the secret key
-if (!process.env.STRIPE_SECRET_KEY) {
-  throw new Error("Missing required environment variable: STRIPE_SECRET_KEY");
-}
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY, {
-  apiVersion: "2023-10-16" as any, // Using a valid API version, casting to any to bypass typechecking
-});
+// PayPal integration is handled in paypal-integration.ts
 
 // Helper function to validate location parameters
 const locationParamsSchema = z.object({
@@ -397,28 +384,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
     console.error('❌ Failed to register Analytics routes:', error);
   }
 
-  // Mount Stripe Connect routes
-  apiRouter.use('/stripe/connect', stripeConnectRouter);
-
-  // Mount main Stripe routes
-  apiRouter.use('/stripe', stripeRouter);
-  // Mount Stripe create payment intent routes
-  apiRouter.use('/stripe', createPaymentIntentRouter);
-
   // Mount payment routes
   apiRouter.use('/payments', paymentsRouter);
   
   // Mount disputes routes
   apiRouter.use('/disputes', disputeRouter);
-
-  // Set up Stripe payment methods routes
-  setupStripePaymentMethodsRoutes(app);
-
-  // Set up Stripe transfers routes
-  setupStripeTransfersRoutes(app);
-
-  // Set up Stripe webhooks
-  setupStripeWebhooks(app);
 
   // Register the admin API routes
   registerAdminRoutes(app);
@@ -875,7 +845,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   
   // Worker history endpoints
   // Get worker job history
-  apiRouter.get("/workers/:workerId/stripe-connect-status", isAuthenticated, async (req: Request, res: Response) => {
+  apiRouter.get("/workers/:workerId/paypal-connect-status", isAuthenticated, async (req: Request, res: Response) => {
     try {
       const workerId = parseInt(req.params.workerId);
       if (isNaN(workerId)) {
@@ -888,9 +858,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ message: "Worker not found" });
       }
       
-      // Check if the worker has a Stripe Connect account
-      const hasConnectAccount = !!worker.stripeConnectAccountId;
-      const accountStatus = worker.stripeConnectAccountStatus || 'pending';
+      // Check if the worker has a PayPal Connect account
+      const hasConnectAccount = !!worker.paypalMerchantId;
+      const accountStatus = worker.paypalAccountStatus || 'pending';
       
       return res.json({
         workerId: worker.id,
@@ -899,8 +869,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         isActive: accountStatus === 'active' || accountStatus === 'restricted'
       });
     } catch (error) {
-      console.error("Error checking worker Stripe Connect status:", error);
-      return res.status(500).json({ message: "Failed to check worker Stripe Connect status" });
+      console.error("Error checking worker PayPal Connect status:", error);
+      return res.status(500).json({ message: "Failed to check worker PayPal Connect status" });
     }
   });
   
@@ -1608,8 +1578,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
   
-  // Stripe terms of service and representative endpoint
-  apiRouter.post("/users/:id/stripe-terms", isAuthenticated, async (req: Request, res: Response) => {
+  // PayPal terms of service and representative endpoint
+  apiRouter.post("/users/:id/paypal-terms", isAuthenticated, async (req: Request, res: Response) => {
     try {
       const id = parseInt(req.params.id);
       
@@ -1623,7 +1593,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         console.log(`Using direct user lookup for ID ${id} instead of session`);
       } else if (!req.user || req.user.id !== id) {
         return res.status(403).json({ 
-          message: "Forbidden: You can only update your own Stripe terms" 
+          message: "Forbidden: You can only update your own PayPal terms" 
         });
       }
       
@@ -1632,7 +1602,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         acceptTerms: z.boolean().optional(),
         representativeName: z.string().min(2).optional(),
         representativeTitle: z.string().min(2).optional(),
-        // Additional fields for Stripe representative
+        // Additional fields for PayPal representative
         dateOfBirth: z.string().min(10).optional(),
         email: z.string().email().optional(),
         phone: z.string().min(10).optional(),
@@ -1675,20 +1645,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const updateData: any = {};
       
       if (acceptTerms) {
-        updateData.stripeTermsAccepted = true;
-        updateData.stripeTermsAcceptedAt = new Date();
+        updateData.paypalTermsAccepted = true;
+        updateData.paypalTermsAcceptedAt = new Date();
       }
       
       if (representativeName) {
-        updateData.stripeRepresentativeName = representativeName;
+        updateData.paypalRepresentativeName = representativeName;
       }
       
       if (representativeTitle) {
-        updateData.stripeRepresentativeTitle = representativeTitle;
+        updateData.paypalRepresentativeTitle = representativeTitle;
       }
       
       // Store all the additional representative information
-      // In a real application, you would send this directly to Stripe's API
+      // In a real application, you would send this directly to PayPal's API
       // Here we'll store it in user metadata to track that it was provided
       
       // Create a representative metadata object to store additional info
@@ -1721,36 +1691,36 @@ export async function registerRoutes(app: Express): Promise<Server> {
         bankAccountMetadata.accountHolderName = accountHolderName;
         
         // Mark banking details as complete in our system
-        updateData.stripeBankingDetailsComplete = true;
+        updateData.paypalBankingDetailsComplete = true;
       }
       
       // If we collected representative metadata, store it and mark requirements as complete
       if (Object.keys(representativeMetadata).length > 0) {
-        // This would be sent to Stripe in a real implementation
-        console.log('Representative information to send to Stripe:', representativeMetadata);
+        // This would be sent to PayPal in a real implementation
+        console.log('Representative information to send to PayPal:', representativeMetadata);
         
         // Mark representative requirements as complete in our system
-        updateData.stripeRepresentativeRequirementsComplete = true;
+        updateData.paypalRepresentativeRequirementsComplete = true;
         
-        // In a real implementation, you would call the Stripe API here to update
-        // the representative information on the Connect account
+        // In a real implementation, you would call the PayPal API here to update
+        // the representative information on the merchant account
         try {
-          // This is where we would call Stripe API
-          // const stripeAccount = await updateStripeAccountRepresentative(req.user.stripeConnectAccountId, representativeMetadata);
+          // This is where we would call PayPal API
+          // PayPal integration to be implemented
           
-          // Update the local storage with Stripe's response
-          updateData.stripeAccountUpdatedAt = new Date();
-        } catch (stripeError) {
-          console.error('Error updating Stripe account representative:', stripeError);
-          // Continue with local updates even if Stripe update fails
+          // Update the local storage with PayPal's response
+          updateData.paypalAccountUpdatedAt = new Date();
+        } catch (paypalError) {
+          console.error('Error updating PayPal account representative:', paypalError);
+          // Continue with local updates even if PayPal update fails
           // In production, you might want to handle this differently
         }
       }
       
       // If we collected bank account information, log it and mark requirements as complete
       if (Object.keys(bankAccountMetadata).length > 0) {
-        // This would be sent to Stripe in a real implementation
-        console.log('Bank account information to send to Stripe:', {
+        // This would be sent to PayPal in a real implementation
+        console.log('Bank account information to send to PayPal:', {
           ...bankAccountMetadata,
           accountNumber: '******' + bankAccountMetadata.accountNumber.slice(-4) // Hide full account number in logs
         });
@@ -1768,80 +1738,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ message: "User not found" });
       }
       
-      // Update Stripe Connect account with representative information if we have an account ID
-      if (updatedUser.stripeConnectAccountId && stripe) {
+      // Update PayPal merchant account with representative information if we have an account ID
+      if (updatedUser.paypalMerchantAccountId) {
         try {
-          console.log(`Updating Stripe Connect account ${updatedUser.stripeConnectAccountId} with representative information`);
+          console.log(`Updating PayPal merchant account ${updatedUser.paypalMerchantAccountId} with representative information`);
           
-          // This is a simplified version. In a real app, you'd need to format the data
-          // according to Stripe's API requirements
-          if (representativeMetadata.address) {
-            await stripe.accounts.update(updatedUser.stripeConnectAccountId, {
-              individual: {
-                first_name: representativeName?.split(' ')[0] || '',
-                last_name: representativeName?.split(' ').slice(1).join(' ') || '',
-                email: representativeMetadata.email,
-                phone: representativeMetadata.phone,
-                dob: {
-                  day: new Date(representativeMetadata.dateOfBirth).getDate(),
-                  month: new Date(representativeMetadata.dateOfBirth).getMonth() + 1,
-                  year: new Date(representativeMetadata.dateOfBirth).getFullYear(),
-                },
-                ssn_last_4: representativeMetadata.ssnLast4,
-                address: {
-                  line1: representativeMetadata.address.line1,
-                  line2: representativeMetadata.address.line2,
-                  city: representativeMetadata.address.city,
-                  state: representativeMetadata.address.state,
-                  postal_code: representativeMetadata.address.postal_code,
-                  country: representativeMetadata.address.country,
-                },
-              }
-            });
-          }
+          // This is where PayPal API integration would go
+          // PayPal integration to be implemented
+          // This would format the data according to PayPal's API requirements
           
-          // Add bank account if the information was provided
-          if (Object.keys(bankAccountMetadata).length > 0) {
-            try {
-              // In a real implementation, this would call the Stripe API to create an external account
-              // This is a simplification for educational purposes
-              console.log(`Adding bank account to Stripe Connect account ${updatedUser.stripeConnectAccountId}`);
-              
-              // Create bank account token
-              // NOTE: In production, you'd use Stripe.js to securely collect and tokenize bank account details
-              // This is a server-side example for demonstration only
-              const bankAccount = await stripe.tokens.create({
-                bank_account: {
-                  country: 'US',
-                  currency: 'usd',
-                  account_holder_name: bankAccountMetadata.accountHolderName,
-                  account_holder_type: 'individual',
-                  routing_number: bankAccountMetadata.routingNumber,
-                  account_number: bankAccountMetadata.accountNumber,
-                  account_type: bankAccountMetadata.accountType,
-                },
-              });
-              
-              // Attach the bank account to the Connect account
-              if (bankAccount && bankAccount.id) {
-                await stripe.accounts.createExternalAccount(
-                  updatedUser.stripeConnectAccountId,
-                  {
-                    external_account: bankAccount.id,
-                    default_for_currency: true,
-                  }
-                );
-                console.log(`Bank account added successfully to Connect account ${updatedUser.stripeConnectAccountId}`);
-              }
-            } catch (bankError) {
-              console.error('Error adding bank account to Stripe:', bankError);
-              // Continue with response even if bank account creation fails
-              // In production, you would want to handle this differently
-            }
-          }
-        } catch (stripeError) {
-          console.error('Error updating Stripe account:', stripeError);
-          // Continue with response even if Stripe update fails
+          console.log('PayPal API integration not yet implemented');
+        } catch (paypalError) {
+          console.error('Error updating PayPal account:', paypalError);
+          // Continue with response even if PayPal update fails
           // In production, you might want to handle this differently
         }
       }

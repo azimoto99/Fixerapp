@@ -1,29 +1,19 @@
 import { describe, expect, it, beforeEach, jest } from '@jest/globals';
 import { testDb } from '../../tests/setup';
 
-// Mock Stripe to simulate various edge cases
-const mockStripe = {
-  paymentMethods: {
+// Mock PayPal to simulate various edge cases
+const mockPayPal = {
+  orders: {
     create: jest.fn(),
-    attach: jest.fn(),
-    detach: jest.fn(),
-    list: jest.fn()
+    capture: jest.fn(),
+    get: jest.fn()
   },
-  paymentIntents: {
+  payments: {
+    refund: jest.fn()
+  },
+  payouts: {
     create: jest.fn(),
-    confirm: jest.fn(),
-    cancel: jest.fn()
-  },
-  accounts: {
-    create: jest.fn(),
-    retrieve: jest.fn(),
-    update: jest.fn()
-  },
-  transfers: {
-    create: jest.fn()
-  },
-  refunds: {
-    create: jest.fn()
+    get: jest.fn()
   }
 };
 
@@ -33,25 +23,25 @@ describe('Payment System Edge Cases', () => {
     jest.clearAllMocks();
   });
 
-  it('handles payment method creation failure', async () => {
+  it('handles payment order creation failure', async () => {
     // Simulate payment failure scenario
-    const mockError = new Error('Your card was declined.');
+    const mockError = new Error('PayPal order creation failed.');
     
     try {
       throw mockError;
     } catch (error) {
-      expect(error.message).toBe('Your card was declined.');
-      console.log('✓ Payment method creation failure handled correctly');
+      expect(error.message).toBe('PayPal order creation failed.');
+      console.log('✓ Payment order creation failure handled correctly');
     }
   });
 
   it('handles insufficient funds scenario', async () => {
-    const mockError = new Error('Your card has insufficient funds.');
+    const mockError = new Error('Insufficient funds in PayPal account.');
     
     try {
       throw mockError;
     } catch (error) {
-      expect(error.message).toBe('Your card has insufficient funds.');
+      expect(error.message).toBe('Insufficient funds in PayPal account.');
       console.log('✓ Insufficient funds error handled correctly');
     }
   });

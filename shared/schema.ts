@@ -28,16 +28,16 @@ export const users = pgTable("users", {
   googleId: text("google_id"), // Google OAuth ID
   facebookId: text("facebook_id"), // Facebook OAuth ID
   // Payment integration fields
-  stripeCustomerId: text("stripe_customer_id"), // Stripe Customer ID for payments
-  stripeConnectAccountId: text("stripe_connect_account_id"), // Stripe Connect account for receiving payments
-  stripeConnectAccountStatus: text("stripe_connect_account_status"), // Status of Connect account
+  paypalCustomerId: text("paypal_customer_id"), // PayPal Customer ID for payments
+  paypalMerchantId: text("paypal_merchant_id"), // PayPal Merchant account for receiving payments
+  paypalAccountStatus: text("paypal_account_status"), // Status of PayPal account
   // Terms acceptance fields
-  stripeTermsAccepted: boolean("stripe_terms_accepted").default(false), // Whether user has accepted Stripe's TOS
-  stripeTermsAcceptedAt: timestamp("stripe_terms_accepted_at"), // When the user accepted Stripe's TOS
-  stripeRepresentativeName: text("stripe_representative_name"), // Name of the representative for Stripe verification
-  stripeRepresentativeTitle: text("stripe_representative_title"), // Title of the representative for Stripe
-  stripeRepresentativeRequirementsComplete: boolean("stripe_representative_requirements_complete").default(false), // Whether all representative details have been provided
-  stripeBankingDetailsComplete: boolean("stripe_banking_details_complete").default(false), // Whether banking details have been provided
+  paypalTermsAccepted: boolean("paypal_terms_accepted").default(false), // Whether user has accepted PayPal's TOS
+  paypalTermsAcceptedAt: timestamp("paypal_terms_accepted_at"), // When the user accepted PayPal's TOS
+  paypalRepresentativeName: text("paypal_representative_name"), // Name of the representative for PayPal verification
+  paypalRepresentativeTitle: text("paypal_representative_title"), // Title of the representative for PayPal
+  paypalRepresentativeRequirementsComplete: boolean("paypal_representative_requirements_complete").default(false), // Whether all representative details have been provided
+  paypalBankingDetailsComplete: boolean("paypal_banking_details_complete").default(false), // Whether banking details have been provided
   // Contact preferences 
   contactPreferences: jsonb("contact_preferences").default({
     email: true,
@@ -159,9 +159,9 @@ export const earnings = pgTable("earnings", {
   status: text("status").notNull().default("pending"), // "pending", "paid", "cancelled"
   dateEarned: timestamp("date_earned").defaultNow(), // When the job was completed
   datePaid: timestamp("date_paid"), // When the worker was paid
-  transactionId: text("transaction_id"), // Stripe transfer ID or other payment processor ID
+  transactionId: text("transaction_id"), // PayPal transfer ID or other payment processor ID
   paymentId: integer("payment_id"), // References the associated payment record
-  stripeAccountId: text("stripe_account_id"), // Worker's Stripe Connect account ID
+  paypalMerchantId: text("paypal_merchant_id"), // Worker's PayPal Merchant account ID
   description: text("description"), // Description of the earnings
   metadata: jsonb("metadata"), // Additional data about the earnings
   createdAt: timestamp("created_at").defaultNow(),
@@ -176,12 +176,12 @@ export const payments = pgTable("payments", {
   serviceFee: doublePrecision("service_fee"), // Platform fee amount
   type: text("type").notNull(), // "payment", "transfer", "refund", "payout"
   status: text("status").notNull(), // "pending", "processing", "completed", "failed", "refunded"
-  paymentMethod: text("payment_method"), // "card", "bank_account", "stripe", etc.
-  transactionId: text("transaction_id"), // External payment processor ID (Stripe payment/transfer ID)
-  stripePaymentIntentId: text("stripe_payment_intent_id"), // Stripe Payment Intent ID
-  stripeCustomerId: text("stripe_customer_id"), // Customer ID for the payer
-  stripeConnectAccountId: text("stripe_connect_account_id"), // Connect account ID for the worker
-  stripeRefundId: text("stripe_refund_id"), // Stripe Refund ID for refunds
+  paymentMethod: text("payment_method"), // "card", "bank_account", "paypal", etc.
+  transactionId: text("transaction_id"), // External payment processor ID (PayPal payment/transfer ID)
+  paypalPaymentId: text("paypal_payment_id"), // PayPal Payment ID
+  paypalCustomerId: text("paypal_customer_id"), // Customer ID for the payer
+  paypalMerchantId: text("paypal_merchant_id"), // Merchant account ID for the worker
+  paypalRefundId: text("paypal_refund_id"), // PayPal Refund ID for refunds
   jobId: integer("job_id"), // Optional reference to the related job
   description: text("description"), // Description of the payment
   currency: text("currency").default("usd"), // Currency code
@@ -321,15 +321,15 @@ export const insertUserSchema = createInsertSchema(users).pick({
   location: true,
   googleId: true,
   facebookId: true,
-  stripeCustomerId: true,
-  stripeConnectAccountId: true,
-  stripeConnectAccountStatus: true,
-  stripeTermsAccepted: true,
-  stripeTermsAcceptedAt: true,
-  stripeRepresentativeName: true,
-  stripeRepresentativeTitle: true,
-  stripeRepresentativeRequirementsComplete: true,
-  stripeBankingDetailsComplete: true,
+  paypalCustomerId: true,
+  paypalMerchantId: true,
+  paypalAccountStatus: true,
+  paypalTermsAccepted: true,
+  paypalTermsAcceptedAt: true,
+  paypalRepresentativeName: true,
+  paypalRepresentativeTitle: true,
+  paypalRepresentativeRequirementsComplete: true,
+  paypalBankingDetailsComplete: true,
   contactPreferences: true,
   availability: true,
   emailVerified: true,
@@ -421,10 +421,10 @@ export const insertPaymentSchema = createInsertSchema(payments).pick({
   status: true,
   paymentMethod: true,
   transactionId: true,
-  stripePaymentIntentId: true,
-  stripeCustomerId: true,
-  stripeConnectAccountId: true,
-  stripeRefundId: true,
+  paypalPaymentId: true,
+  paypalCustomerId: true,
+  paypalMerchantId: true,
+  paypalRefundId: true,
   jobId: true,
   description: true,
   currency: true,
@@ -496,11 +496,11 @@ export type DbUser = typeof users.$inferSelect & {
   successRate?: number;
   responseTime?: number;
   badgeIds?: string[];
-  requiresStripeTerms?: boolean;
-  requiresStripeRepresentative?: boolean;
-  requiresStripeBankingDetails?: boolean;
+  requiresPaypalTerms?: boolean;
+  requiresPaypalRepresentative?: boolean;
+  requiresPaypalBankingDetails?: boolean;
   profileCompletionPercentage?: number;
-  stripeConnectId?: string;
+  paypalMerchantId?: string;
 };
 
 export type ContactPreferences = {
@@ -520,9 +520,9 @@ export type InsertUser = z.infer<typeof insertUserSchema> & {
   requiresProfileCompletion?: boolean | null;
   needsAccountType?: boolean | null;
   skillsVerified?: Record<string, boolean>;
-  requiresStripeTerms?: boolean;
-  requiresStripeRepresentative?: boolean;
-  requiresStripeBankingDetails?: boolean;
+  requiresPaypalTerms?: boolean;
+  requiresPaypalRepresentative?: boolean;
+  requiresPaypalBankingDetails?: boolean;
   contactPreferences?: ContactPreferences;
   availability?: Availability;
 };
@@ -632,7 +632,7 @@ export const refunds = pgTable("refunds", {
   originalAmount: doublePrecision("original_amount").notNull(),
   refundAmount: doublePrecision("refund_amount").notNull(),
   reason: text("reason"),
-  stripeRefundId: varchar("stripe_refund_id", { length: 100 }),
+  paypalRefundId: varchar("paypal_refund_id", { length: 100 }),
   processedBy: integer("processed_by"),
   status: varchar("status", { length: 20 }).notNull().default("pending"),
   createdAt: timestamp("created_at").defaultNow(),
@@ -998,7 +998,7 @@ export const userSchema = z.object({
   id: z.string(),
   email: z.string().email(),
   name: z.string().optional(),
-  stripeCustomerId: z.string().optional(),
+  paypalCustomerId: z.string().optional(),
 });
 
 export const walletSchema = z.object({
@@ -1042,7 +1042,7 @@ export const enterpriseBusinesses = pgTable("enterprise_businesses", {
   businessPhone: text("business_phone"),
   businessEmail: text("business_email"),
   verificationStatus: text("verification_status").notNull().default("pending"),
-  stripeSubscriptionId: text("stripe_subscription_id"),
+  paypalSubscriptionId: text("paypal_subscription_id"),
   isActive: boolean("is_active").notNull().default(true),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
@@ -1111,7 +1111,7 @@ export const insertEnterpriseBusinessSchema = createInsertSchema(enterpriseBusin
   businessPhone: true,
   businessEmail: true,
   verificationStatus: true,
-  stripeSubscriptionId: true,
+  paypalSubscriptionId: true,
   isActive: true,
 });
 
