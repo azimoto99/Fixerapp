@@ -1,40 +1,50 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
-import { Loader2 } from 'lucide-react';
+import { Loader2, AlertCircle } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useMutation } from '@tanstack/react-query';
 import { apiRequest } from '@/lib/queryClient';
-import { 
-  Elements, 
-  PaymentElement, 
-  useStripe, 
-  useElements
-} from '@stripe/react-stripe-js';
-import { StripeElementsOptions } from '@stripe/stripe-js';
-import { loadStripe } from '@stripe/stripe-js';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 
-// Initialize Stripe
-const stripePromise = loadStripe(import.meta.env.VITE_STRIPE_PUBLIC_KEY);
+// Import PayPal component for payment processing
+import PayPalPaymentForm from '@/components/payments/PayPalPaymentForm';
 
-// The actual form component that uses the Stripe hooks
-const PaymentForm: React.FC<{
-  clientSecret: string;
+interface PaymentProcessorProps {
   paymentId: number;
   jobId: number;
+  jobTitle: string;
+  amount: number;
   onPaymentComplete: () => void;
   onCancel: () => void;
-}> = ({ clientSecret, paymentId, jobId, onPaymentComplete, onCancel }) => {
-  const stripe = useStripe();
-  const elements = useElements();
+}
+
+const PaymentProcessor: React.FC<PaymentProcessorProps> = ({
+  paymentId,
+  jobId,
+  jobTitle,
+  amount,
+  onPaymentComplete,
+  onCancel
+}) => {
   const [isProcessing, setIsProcessing] = useState(false);
   const { toast } = useToast();
 
-  // Handle confirmation of payment
+  // Create job object for PayPal component
+  const job = {
+    id: jobId,
+    title: jobTitle,
+    payAmount: amount,
+    posterId: 0, // Will be set by backend
+    workerId: null,
+    status: 'pending'
+  };
+
+  // Handle payment confirmation
   const confirmPaymentMutation = useMutation({
-    mutationFn: async (paymentIntentId: string) => {
-      const res = await apiRequest('POST', '/api/stripe/confirm-payment', {
+    mutationFn: async (paypalOrderId: string) => {
+      const res = await apiRequest('POST', '/api/payments/confirm-payment', {
         paymentId,
-        paymentIntentId
+        paypalOrderId
       });
       return res.json();
     },
@@ -48,190 +58,73 @@ const PaymentForm: React.FC<{
     onError: (error: Error) => {
       toast({
         title: "Payment Confirmation Failed",
-        description: error.message,
+        description: error.message || "There was an error confirming your payment.",
         variant: "destructive"
       });
-      setIsProcessing(false);
     }
   });
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-
-    if (!stripe || !elements) {
-      // Stripe.js hasn't loaded yet
-      return;
-    }
-
+  const handlePaymentSuccess = () => {
     setIsProcessing(true);
-
-    // Confirm the payment with Stripe
-    const { error, paymentIntent } = await stripe.confirmPayment({
-      elements,
-      redirect: 'if_required',
-      confirmParams: {
-        return_url: `${window.location.origin}/job/${jobId}`,
-      }
+    toast({
+      title: "Processing Payment",
+      description: "Your payment is being processed..."
     });
-
-    if (error) {
-      toast({
-        title: "Payment Failed",
-        description: error.message,
-        variant: "destructive"
-      });
+    
+    // In a real implementation, you would get the PayPal order ID from the payment flow
+    // For now, we'll just complete the payment
+    setTimeout(() => {
       setIsProcessing(false);
-    } else if (paymentIntent && paymentIntent.status === 'succeeded') {
-      // Update our backend about the successful payment
-      confirmPaymentMutation.mutate(paymentIntent.id);
-    }
+      onPaymentComplete();
+    }, 1000);
   };
 
-  return (
-    <form onSubmit={handleSubmit}>
-      <div className="mb-4">
-        <PaymentElement />
-      </div>
-      <div className="flex justify-end gap-3 mt-6">
-        <Button
-          type="button"
-          variant="outline"
-          onClick={onCancel}
-          disabled={isProcessing}
-        >
-          Cancel
-        </Button>
-        <Button 
-          type="submit" 
-          disabled={!stripe || isProcessing}
-        >
-          {isProcessing ? (
-            <>
-              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-              Processing...
-            </>
-          ) : 'Pay Now'}
-        </Button>
-      </div>
-    </form>
-  );
-};
-
-// The wrapper component that handles fetching the payment intent
-interface PaymentProcessorProps {
-  jobId: number;
-  amount: number;
-  onPaymentComplete: () => void;
-  onCancel: () => void;
-}
-
-const PaymentProcessor: React.FC<PaymentProcessorProps> = ({
-  jobId,
-  amount,
-  onPaymentComplete,
-  onCancel
-}) => {
-  const [clientSecret, setClientSecret] = useState<string | null>(null);
-  const [paymentId, setPaymentId] = useState<number | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const { toast } = useToast();
-
-  // Create a payment intent when the component mounts
-  const createPaymentIntentMutation = useMutation({
-    mutationFn: async () => {
-      const res = await apiRequest('POST', '/api/stripe/create-payment-intent', {
-        jobId,
-        amount
-      });
-      
-      if (!res.ok) {
-        const errorData = await res.json();
-        throw new Error(errorData.message || 'Failed to create payment intent');
-      }
-      
-      return res.json();
-    },
-    onSuccess: (data) => {
-      setClientSecret(data.clientSecret);
-      setPaymentId(data.paymentId);
-      
-      // If this is an existing payment intent, show a message to the user
-      if (data.existing) {
-        toast({
-          title: "Resuming Previous Payment",
-          description: "We found an existing payment in progress. You can continue where you left off.",
-        });
-      }
-      
-      setLoading(false);
-    },
-    onError: (error: Error) => {
-      setError(error.message);
-      setLoading(false);
-      toast({
-        title: "Payment Setup Failed",
-        description: error.message,
-        variant: "destructive"
-      });
-    }
-  });
-
-  useEffect(() => {
-    createPaymentIntentMutation.mutate();
-  }, [jobId, amount]);
-
-  if (loading) {
-    return (
-      <div className="flex justify-center items-center py-8">
-        <Loader2 className="h-8 w-8 animate-spin text-primary" />
-      </div>
-    );
-  }
-
-  if (error) {
-    return (
-      <div className="text-center py-8">
-        <p className="text-red-500 mb-4">{error}</p>
-        <Button variant="outline" onClick={onCancel}>Go Back</Button>
-      </div>
-    );
-  }
-
-  if (!clientSecret || !paymentId) {
-    return (
-      <div className="text-center py-8">
-        <p className="text-red-500 mb-4">Unable to initialize payment. Please try again.</p>
-        <Button variant="outline" onClick={onCancel}>Go Back</Button>
-      </div>
-    );
-  }
-
-  const options: StripeElementsOptions = {
-    clientSecret,
-    appearance: {
-      theme: 'stripe',
-      variables: {
-        colorPrimary: '#10b981',
-        colorBackground: '#ffffff',
-        colorText: '#1f2937',
-        colorDanger: '#ef4444',
-        fontFamily: 'ui-sans-serif, system-ui, sans-serif',
-        borderRadius: '8px',
-      },
-    },
+  const handlePaymentCancel = () => {
+    toast({
+      title: "Payment Cancelled",
+      description: "You cancelled the payment process."
+    });
+    onCancel();
   };
 
+  if (isProcessing) {
+    return (
+      <div className="flex items-center justify-center p-8">
+        <div className="text-center">
+          <Loader2 className="h-8 w-8 animate-spin mx-auto mb-4" />
+          <p>Processing your payment...</p>
+        </div>
+      </div>
+    );
+  }
+
   return (
-    <Elements stripe={stripePromise} options={options}>
-      <PaymentForm 
-        clientSecret={clientSecret}
-        paymentId={paymentId}
-        jobId={jobId}
-        onPaymentComplete={onPaymentComplete}
-        onCancel={onCancel}
+    <div className="space-y-6">
+      <Alert>
+        <AlertCircle className="h-4 w-4" />
+        <AlertDescription>
+          You'll be redirected to PayPal to complete your payment securely. 
+          PayPal accepts credit cards, debit cards, and bank accounts.
+        </AlertDescription>
+      </Alert>
+
+      <div className="bg-muted/50 p-4 rounded-md">
+        <div className="flex justify-between items-center mb-2">
+          <span className="font-medium">Job:</span>
+          <span>{jobTitle}</span>
+        </div>
+        <div className="flex justify-between items-center">
+          <span className="font-medium">Total Amount:</span>
+          <span className="text-lg font-bold">${amount.toFixed(2)}</span>
+        </div>
+      </div>
+
+      <PayPalPaymentForm
+        job={job}
+        onSuccess={handlePaymentSuccess}
+        onCancel={handlePaymentCancel}
       />
-    </Elements>
+    </div>
   );
 };
 

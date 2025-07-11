@@ -18,7 +18,7 @@ import CompleteProfile from "@/pages/CompleteProfile";
 import Checkout from "@/pages/checkout";
 import PaymentConfirmation from "@/pages/PaymentConfirmation";
 import PaymentSettings from "@/pages/PaymentSettings";
-import StripeTester from "@/pages/StripeTester";
+// StripeTester removed - using PayPal instead
 import PaymentSuccess from "@/pages/payment-success";
 import PaymentsPage from "@/pages/payments-page";
 import NotificationsPage from "@/pages/notifications-page";
@@ -26,7 +26,7 @@ import UserProfile from "@/pages/UserProfile";
 import AdminPanelV2 from "@/pages/AdminPanelV2";
 import VerifyEmail from "@/pages/VerifyEmail";
 import EmailVerified from "@/pages/EmailVerified";
-import StripeConnectOnboarding from "@/components/StripeConnectOnboarding";
+// StripeConnectOnboarding removed - using PayPal instead
 import WalletPage from "@/pages/wallet-page";
 import EnterpriseDashboard from "@/pages/EnterpriseDashboard";
 import PosterDashboardV2 from "@/pages/PosterDashboardV2";
@@ -35,7 +35,7 @@ import { NotificationProvider } from "@/hooks/use-notifications";
 import { ProtectedRoute } from "@/lib/protected-route";
 import { AccountTypeRoute } from "@/lib/account-type-route";
 import { useAuth } from "@/hooks/use-auth";
-import { StripeConnectCheck, StripeRequirementsCheck } from "@/components/stripe";
+// Stripe connect checks removed - using PayPal instead
 import WelcomeMessage from "@/components/WelcomeMessage";
 import { ThemeProvider } from "@/components/theme";
 import { OnboardingProvider } from "@/components/onboarding/OnboardingProvider";
@@ -113,11 +113,11 @@ function RouterWithAuth() {
       {/* Wallet page for Stripe Connect returns */}
       <ProtectedRoute path="/wallet" component={WalletPage} />
       {/* Removed redundant StripeTest route */}
-      <ProtectedRoute path="/stripe-tester" component={StripeTester} />
+      {/* StripeTester route removed - using PayPal instead */}
       <ProtectedRoute path="/notifications" component={NotificationsPage} />
       <ProtectedRoute path="/admin" component={AdminPanelV2} />
       <ProtectedRoute path="/profile/:id" component={UserProfile} />
-      <ProtectedRoute path="/stripe-connect/onboarding" component={StripeConnectOnboarding} />
+      {/* StripeConnectOnboarding route removed - using PayPal instead */}
       {/* Enterprise Dashboard - Only accessible to business accounts */}
       <AccountTypeRoute path="/enterprise-dashboard" component={EnterpriseDashboard} allowedType="enterprise" />
       {/* Fixer Dashboard - Only accessible to fixer accounts */}
@@ -190,13 +190,7 @@ function AuthenticatedContent() {
   return (
     <>
       <RouterWithAuth />
-      {user && (
-        <StripeConnectCheck workersOnly={true} enforce={false}>
-          <StripeRequirementsCheck user={user}>
-            <WelcomeMessage />
-          </StripeRequirementsCheck>
-        </StripeConnectCheck>
-      )}
+      {user && <WelcomeMessage />}
       {/* Contextual tips will track user actions and show tooltips at the right moments */}
       {user && <ContextualTips />}
       {/* ExpoConnectGuide button removed from UI - use ./expo-connect.sh in console instead */}

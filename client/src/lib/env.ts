@@ -2,12 +2,12 @@
 // that works in the Vite web environment
 
 // Web environment - use Vite's import.meta.env
-export const STRIPE_PUBLIC_KEY = import.meta.env.VITE_STRIPE_PUBLIC_KEY || '';
+export const PAYPAL_CLIENT_ID = import.meta.env.VITE_PAYPAL_CLIENT_ID || '';
 
 // Export other environment variables as needed
 
 // For use in components that need the full environment
 export const getEnv = () => ({
-  STRIPE_PUBLIC_KEY,
+  PAYPAL_CLIENT_ID,
   // Add other variables here
 });

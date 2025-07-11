@@ -12,7 +12,7 @@ import { useAuth } from '@/hooks/use-auth';
 import { useToast } from '@/hooks/use-toast';
 import { apiRequest, queryClient } from '@/lib/queryClient';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { StripeConnectRequired } from '@/components/stripe';
+// StripeConnectRequired removed - using PayPal instead
 import { useAllJobsForMap } from '@/hooks/useAllJobsForMap';
 import EnterpriseJobCard from './enterprise/EnterpriseJobCard';
 
@@ -68,7 +68,7 @@ const MapSection: React.FC<MapSectionProps> = ({ jobs, selectedJob, onSelectJob,
   const handleUserDrawerChange = useCallback((isOpen: boolean) => {
     setIsUserDrawerOpen(isOpen);
   }, []);
-  const [showStripeConnectRequired, setShowStripeConnectRequired] = useState(false);
+  // PayPal integration - no additional setup required
   // Map view is handled by Mapbox
   const [mapView, setMapView] = useState<'standard' | 'heatmap'>('standard');
   
@@ -226,18 +226,8 @@ const MapSection: React.FC<MapSectionProps> = ({ jobs, selectedJob, onSelectJob,
       return;
     }
     
-    // Check if user has a Stripe Connect account
+    // PayPal integration - no additional setup required
     try {
-      const res = await apiRequest('GET', '/api/stripe/connect/account-status');
-      const accountStatus = await res.json();
-      
-      // If user doesn't have an active Connect account, show the setup modal
-      if (!accountStatus || accountStatus.accountStatus !== 'active') {
-        setShowStripeConnectRequired(true);
-        return;
-      }
-      
-      // If they have an active Connect account, proceed with application
       setIsApplying(true);
       await apiRequest('POST', '/api/applications', {
         jobId: selectedJob.id,
@@ -253,12 +243,6 @@ const MapSection: React.FC<MapSectionProps> = ({ jobs, selectedJob, onSelectJob,
       // Close the job detail panel after successful application
       handleCloseDetail();
     } catch (error: any) {
-      // If the error is a 404 (no account), show the Stripe Connect setup
-      if (error.status === 404) {
-        setShowStripeConnectRequired(true);
-        return;
-      }
-      
       toast({
         title: "Application Failed",
         description: "There was an error submitting your application. Please try again.",
@@ -436,19 +420,7 @@ const MapSection: React.FC<MapSectionProps> = ({ jobs, selectedJob, onSelectJob,
   
   return (
     <div className="w-full h-full relative">
-      {/* Stripe Connect Required Modal */}
-      {showStripeConnectRequired && (
-        <StripeConnectRequired
-          onComplete={() => {
-            setShowStripeConnectRequired(false);
-            // After setup, try to apply again after a small delay
-            setTimeout(() => {
-              handleApply();
-            }, 500);
-          }}
-          onSkip={() => setShowStripeConnectRequired(false)}
-        />
-      )}
+      {/* PayPal integration - no additional setup required */}
       
       {/* Enterprise Job Card Modal */}
       {showEnterpriseCard && selectedHubPinId && (

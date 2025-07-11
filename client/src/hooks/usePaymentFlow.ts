@@ -3,21 +3,6 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useAuth } from './use-auth';
 import { useToast } from './use-toast';
 import { apiRequest } from '@/lib/queryClient';
-import { loadStripe } from '@stripe/stripe-js';
-
-// Initialize Stripe
-const stripePromise = loadStripe(import.meta.env.VITE_STRIPE_PUBLIC_KEY);
-
-interface PaymentMethod {
-  id: string;
-  type: string;
-  card?: {
-    brand: string;
-    last4: string;
-    exp_month: number;
-    exp_year: number;
-  };
-}
 
 interface PaymentFlowState {
   isProcessing: boolean;
@@ -36,57 +21,46 @@ export function usePaymentFlow() {
     error: null
   });
 
-  // Get user's payment methods
-  const { data: paymentMethods = [], isLoading: loadingPaymentMethods } = useQuery({
-    queryKey: ['/api/payment-methods'],
+  // Get user's payment history (PayPal doesn't store payment methods client-side)
+  const { data: paymentHistory = [], isLoading: loadingPaymentHistory } = useQuery({
+    queryKey: ['/api/payment-history'],
     queryFn: async () => {
-      const response = await apiRequest('GET', '/api/payment-methods');
+      const response = await apiRequest('GET', '/api/payment-history');
       if (!response.ok) return [];
       return await response.json();
     },
     enabled: !!user
   });
 
-  // Get Stripe Connect status
-  const { data: connectStatus } = useQuery({
-    queryKey: ['/api/stripe/connect/account-status'],
+  // Get PayPal account status
+  const { data: paypalStatus } = useQuery({
+    queryKey: ['/api/paypal/account-status'],
     queryFn: async () => {
-      const response = await apiRequest('GET', '/api/stripe/connect/account-status');
+      const response = await apiRequest('GET', '/api/paypal/account-status');
       if (!response.ok) return null;
       return await response.json();
     },
     enabled: !!user
   });
 
-  // Create setup intent for adding payment methods
-  const createSetupIntentMutation = useMutation({
-    mutationFn: async () => {
-      const response = await apiRequest('POST', '/api/payments/setup-intent');
-      if (!response.ok) {
-        throw new Error('Failed to create setup intent');
-      }
-      return await response.json();
-    }
-  });
-
-  // Process payment for job
+  // Process payment for job using PayPal
   const processPaymentMutation = useMutation({
     mutationFn: async ({ 
       jobId, 
       amount, 
-      paymentMethodId 
+      paypalOrderId 
     }: { 
       jobId: number; 
       amount: number; 
-      paymentMethodId: string; 
+      paypalOrderId: string; 
     }) => {
       setFlowState(prev => ({ ...prev, isProcessing: true, currentStep: 'payment' }));
       
       const response = await apiRequest('POST', '/api/payments/process', {
         jobId,
         amount,
-        paymentMethodId,
-        paymentType: 'fixed'
+        paypalOrderId,
+        paymentType: 'paypal'
       });
       
       if (!response.ok) {
@@ -128,8 +102,8 @@ export function usePaymentFlow() {
     }
   });
 
-  // Create payment intent for immediate payment
-  const createPaymentIntentMutation = useMutation({
+  // Create PayPal order for immediate payment
+  const createPayPalOrderMutation = useMutation({
     mutationFn: async ({ 
       amount, 
       jobId, 
@@ -139,166 +113,90 @@ export function usePaymentFlow() {
       jobId?: number; 
       description?: string; 
     }) => {
-      const response = await apiRequest('POST', '/api/stripe/create-payment-intent', {
+      const response = await apiRequest('POST', '/api/payments/create-order', {
         amount,
         jobId,
         description,
-        return_url: `${window.location.origin}/payment-success`
+        currency: 'USD'
       });
       
       if (!response.ok) {
-        throw new Error('Failed to create payment intent');
+        throw new Error('Failed to create PayPal order');
       }
       
       return await response.json();
     }
   });
 
-  // Set up Stripe Connect account
-  const setupStripeConnectMutation = useMutation({
-    mutationFn: async () => {
-      const response = await apiRequest('POST', '/api/stripe/connect/create-account');
+  // Capture PayPal order
+  const capturePayPalOrderMutation = useMutation({
+    mutationFn: async (orderId: string) => {
+      const response = await apiRequest('POST', '/api/payments/capture', {
+        orderId
+      });
+      
       if (!response.ok) {
-        throw new Error('Failed to create Stripe Connect account');
+        throw new Error('Failed to capture PayPal order');
       }
+      
       return await response.json();
     },
     onSuccess: (result) => {
-      const url = result.accountLinkUrl || result.url;
-      if (url) {
-        // Redirect to Stripe onboarding
-        window.location.href = url;
-      }
+      toast({
+        title: "Payment captured!",
+        description: "Your payment has been successfully captured.",
+      });
+      
+      // Invalidate relevant queries
+      queryClient.invalidateQueries({ queryKey: ['/api/jobs'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/payments'] });
     },
     onError: (error: Error) => {
       toast({
-        title: "Failed to setup payment account",
+        title: "Failed to capture payment",
         description: error.message,
         variant: "destructive",
       });
     }
   });
 
-  // Add payment method using Stripe Elements
-  const addPaymentMethod = useCallback(async (elements: any, cardElement: any) => {
-    try {
-      setFlowState(prev => ({ ...prev, isProcessing: true }));
-      
-      const stripe = await stripePromise;
-      if (!stripe) throw new Error('Stripe not loaded');
-
-      // Create setup intent
-      const { clientSecret } = await createSetupIntentMutation.mutateAsync();
-
-      // Confirm setup intent with card
-      const { error, setupIntent } = await stripe.confirmCardSetup(clientSecret, {
-        payment_method: {
-          card: cardElement,
-          billing_details: {
-            name: user?.fullName || user?.username,
-            email: user?.email,
-          },
-        },
-      });
-
-      if (error) {
-        throw new Error(error.message);
-      }
-
-      if (setupIntent?.status === 'succeeded') {
-        toast({
-          title: "Payment method added!",
-          description: "Your payment method has been saved successfully.",
-        });
-        
-        // Refresh payment methods
-        queryClient.invalidateQueries({ queryKey: ['/api/payment-methods'] });
-        
-        setFlowState(prev => ({ 
-          ...prev, 
-          isProcessing: false, 
-          error: null 
-        }));
-        
-        return setupIntent.payment_method;
-      }
-    } catch (error: any) {
-      setFlowState(prev => ({ 
-        ...prev, 
-        isProcessing: false, 
-        error: error.message 
-      }));
-      
-      toast({
-        title: "Failed to add payment method",
-        description: error.message,
-        variant: "destructive",
-      });
-      
-      throw error;
-    }
-  }, [user, createSetupIntentMutation, queryClient, toast]);
-
-  // Process payment with confirmation
+  // Process payment with PayPal confirmation
   const processPaymentWithConfirmation = useCallback(async ({
     amount,
     jobId,
-    paymentMethodId,
-    requiresConfirmation = false
+    description = 'Service payment'
   }: {
     amount: number;
     jobId?: number;
-    paymentMethodId?: string;
-    requiresConfirmation?: boolean;
+    description?: string;
   }) => {
     try {
       setFlowState(prev => ({ ...prev, isProcessing: true, currentStep: 'payment' }));
       
-      const stripe = await stripePromise;
-      if (!stripe) throw new Error('Stripe not loaded');
-
-      // Create payment intent
-      const { clientSecret, paymentIntentId } = await createPaymentIntentMutation.mutateAsync({
+      // Create PayPal order
+      const { orderId } = await createPayPalOrderMutation.mutateAsync({
         amount,
         jobId,
-        description: jobId ? `Payment for job #${jobId}` : 'Service payment'
+        description
       });
 
-      let result;
+      // In a real implementation, this would redirect to PayPal
+      // For now, we'll simulate a successful payment
+      const captureResult = await capturePayPalOrderMutation.mutateAsync(orderId);
       
-      if (paymentMethodId) {
-        // Use existing payment method
-        result = await stripe.confirmCardPayment(clientSecret, {
-          payment_method: paymentMethodId
-        });
-      } else {
-        // This would be used with Stripe Elements for new payment method
-        throw new Error('Payment method required');
-      }
-
-      if (result.error) {
-        throw new Error(result.error.message);
-      }
-
-      if (result.paymentIntent?.status === 'succeeded') {
-        setFlowState(prev => ({ 
-          ...prev, 
-          isProcessing: false, 
-          currentStep: 'complete',
-          error: null 
-        }));
-        
-        toast({
-          title: "Payment successful!",
-          description: "Your payment has been processed successfully.",
-        });
-        
-        // Invalidate relevant queries
-        queryClient.invalidateQueries({ queryKey: ['/api/jobs'] });
-        queryClient.invalidateQueries({ queryKey: ['/api/payments'] });
-        
-        return result.paymentIntent;
-      }
+      setFlowState(prev => ({ 
+        ...prev, 
+        isProcessing: false, 
+        currentStep: 'complete',
+        error: null 
+      }));
+      
+      toast({
+        title: "Payment successful!",
+        description: "Your payment has been processed successfully.",
+      });
+      
+      return captureResult;
     } catch (error: any) {
       setFlowState(prev => ({ 
         ...prev, 
@@ -314,33 +212,7 @@ export function usePaymentFlow() {
       
       throw error;
     }
-  }, [createPaymentIntentMutation, queryClient, toast]);
-
-  // Remove payment method
-  const removePaymentMethodMutation = useMutation({
-    mutationFn: async (paymentMethodId: string) => {
-      const response = await apiRequest('DELETE', `/api/payment-methods/${paymentMethodId}`);
-      if (!response.ok) {
-        throw new Error('Failed to remove payment method');
-      }
-      return await response.json();
-    },
-    onSuccess: () => {
-      toast({
-        title: "Payment method removed",
-        description: "The payment method has been removed from your account.",
-      });
-      
-      queryClient.invalidateQueries({ queryKey: ['/api/payment-methods'] });
-    },
-    onError: (error: Error) => {
-      toast({
-        title: "Failed to remove payment method",
-        description: error.message,
-        variant: "destructive",
-      });
-    }
-  });
+  }, [createPayPalOrderMutation, capturePayPalOrderMutation, toast]);
 
   // Reset flow state
   const resetFlow = useCallback(() => {
@@ -354,22 +226,20 @@ export function usePaymentFlow() {
   return {
     // State
     flowState,
-    paymentMethods,
-    connectStatus,
-    loadingPaymentMethods,
+    paymentHistory,
+    paypalStatus,
+    loadingPaymentHistory,
     
     // Actions
-    addPaymentMethod,
     processPayment: processPaymentMutation.mutate,
     processPaymentWithConfirmation,
-    setupStripeConnect: setupStripeConnectMutation.mutate,
-    removePaymentMethod: removePaymentMethodMutation.mutate,
+    createPayPalOrder: createPayPalOrderMutation.mutate,
+    capturePayPalOrder: capturePayPalOrderMutation.mutate,
     resetFlow,
     
     // Mutations for direct access
     processPaymentMutation,
-    createPaymentIntentMutation,
-    setupStripeConnectMutation,
-    removePaymentMethodMutation
+    createPayPalOrderMutation,
+    capturePayPalOrderMutation
   };
 }

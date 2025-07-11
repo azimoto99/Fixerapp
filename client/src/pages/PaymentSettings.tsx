@@ -1,20 +1,19 @@
 import React, { useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+// Tabs removed - using single PayPal payment methods section
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/hooks/use-toast';
 import { Separator } from '@/components/ui/separator';
-import { CreditCard, Wallet, Settings, ArrowLeft } from 'lucide-react';
+import { CreditCard, ArrowLeft } from 'lucide-react';
 import Header from '@/components/Header';
 import PaymentMethodsManager from '@/components/payments/PaymentMethodsManager';
-import StripeConnectSetupV2 from '@/components/stripe/StripeConnectSetupV2_fixed';
-import StripeTester from '@/components/payments/StripeTester';
+// Stripe components removed - using PayPal instead
 import { Link } from 'wouter';
 
 const PaymentSettings: React.FC = () => {
   const { user } = useAuth();
-  const [activeTab, setActiveTab] = useState('payment-methods');
+  // PayPal-based payment settings - no tabs needed
   const { toast } = useToast();
 
   if (!user) {
@@ -58,70 +57,16 @@ const PaymentSettings: React.FC = () => {
         
         <Separator className="my-6" />
         
-        <Tabs defaultValue={activeTab} onValueChange={setActiveTab} value={activeTab}>
-          <TabsList className="grid w-full grid-cols-3 mb-8">
-            <TabsTrigger value="payment-methods">
-              <span className="flex items-center">
-                <CreditCard className="h-4 w-4 mr-2" />
-                Payment Methods
-              </span>
-            </TabsTrigger>
-            <TabsTrigger value="connect-account">
-              <span className="flex items-center">
-                <Wallet className="h-4 w-4 mr-2" />
-                Connect Account
-              </span>
-            </TabsTrigger>
-            <TabsTrigger value="test-integration">
-              <span className="flex items-center">
-                <Settings className="h-4 w-4 mr-2" />
-                Test Integration
-              </span>
-            </TabsTrigger>
-          </TabsList>
-          
-          <TabsContent value="payment-methods">
-            <div className="space-y-8">
-              <div>
-                <h2 className="text-xl font-semibold tracking-tight mb-1">Payment Methods</h2>
-                <p className="text-muted-foreground text-sm mb-6">
-                  Add, remove, or update the payment methods you use on this platform
-                </p>
-                
-                <PaymentMethodsManager />
-              </div>
-            </div>
-          </TabsContent>
-          
-          <TabsContent value="connect-account">
-            <div className="space-y-8">
-              <div>
-                <h2 className="text-xl font-semibold tracking-tight mb-1">Stripe Connect Account</h2>
-                <p className="text-muted-foreground text-sm mb-6">
-                  {user.accountType === 'worker' 
-                    ? 'Set up your Stripe Connect account to receive payments directly as a worker'
-                    : 'Manage your payment account settings for sending payments'
-                  }
-                </p>
-                
-                <StripeConnectSetupV2 />
-              </div>
-            </div>
-          </TabsContent>
-          
-          <TabsContent value="test-integration">
-            <div className="space-y-8">
-              <div>
-                <h2 className="text-xl font-semibold tracking-tight mb-1">Test Stripe Integration</h2>
-                <p className="text-muted-foreground text-sm mb-6">
-                  Verify that Stripe payment processing is working correctly
-                </p>
-                
-                <StripeTester />
-              </div>
-            </div>
-          </TabsContent>
-        </Tabs>
+        <div className="space-y-8">
+          <div>
+            <h2 className="text-xl font-semibold tracking-tight mb-1">PayPal Payment Methods</h2>
+            <p className="text-muted-foreground text-sm mb-6">
+              Manage your payment methods through PayPal
+            </p>
+            
+            <PaymentMethodsManager />
+          </div>
+        </div>
       </main>
     </div>
   );

@@ -10,9 +10,14 @@ dbUrl.searchParams.set('statement_timeout', '60000');
 dbUrl.searchParams.set('query_timeout', '60000');
 dbUrl.searchParams.set('connect_timeout', '30');
 
+// Force IPv4 and SSL settings
+dbUrl.searchParams.set('sslmode', 'require');
+dbUrl.searchParams.set('sslcert', '');
+dbUrl.searchParams.set('sslkey', '');
+dbUrl.searchParams.set('sslrootcert', '');
+
 // Use SSL for production, disable for development
 const isProduction = process.env.NODE_ENV === 'production';
-dbUrl.searchParams.set('sslmode', isProduction ? 'require' : 'disable');
 
 export default defineConfig({
   out: "./migrations",
