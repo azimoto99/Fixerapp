@@ -52,6 +52,14 @@ jobsRouter.post('/', isAuthenticated, async (req: JobRequest, res: Response) => 
     const serviceFee = 2.5; // Fixed service fee of $2.50
     const totalAmount = paymentAmount + serviceFee;
 
+    // Log coordinates for debugging
+    console.log('Backend: Creating job with coordinates:', {
+      location,
+      latitude,
+      longitude,
+      title
+    });
+
     // Create the job
     const job = await storage.createJob({
       title,
@@ -65,7 +73,7 @@ jobsRouter.post('/', isAuthenticated, async (req: JobRequest, res: Response) => 
       latitude,
       longitude,
       posterId: req.user.id,
-      status: 'pending', // Job starts as pending until payment is processed
+      status: 'open', // Job is immediately available for applications
       dateNeeded: new Date(dateNeeded),
       requiredSkills: requiredSkills || [],
       equipmentProvided: equipmentProvided || false,
@@ -77,13 +85,13 @@ jobsRouter.post('/', isAuthenticated, async (req: JobRequest, res: Response) => 
       await storage.createNotification({
         userId: req.user.id,
         title: 'Job Created',
-        message: `Your job "${title}" has been created successfully. Please complete the payment to make it visible to workers.`,
+        message: `Your job "${title}" has been created successfully and is now visible to workers.`,
         type: 'job_created',
         sourceId: job.id,
         sourceType: 'job',
         metadata: {
           jobId: job.id,
-          status: 'pending'
+          status: 'open'
         }
       });
     }

@@ -108,7 +108,10 @@ export default function JobPostingWizard({ isOpen, onClose, onJobCreated, jobToE
         paymentType: 'fixed',
         equipmentProvided: false,
         urgency: 'medium',
-        skills: []
+        skills: [],
+        location: '',
+        latitude: 0,
+        longitude: 0
       });
     }
   }, [jobToEdit, reset]);
@@ -145,23 +148,40 @@ export default function JobPostingWizard({ isOpen, onClose, onJobCreated, jobToE
       const url = isEditMode ? `/api/jobs/${jobToEdit.id}` : '/api/jobs';
       const method = isEditMode ? 'PUT' : 'POST';
       
-      const response = await apiRequest(method, url, {
+      const payload = {
         ...data,
         dateNeeded: new Date(data.dateNeeded).toISOString(),
-        status: 'open'
+        requiredSkills: data.skills || [],
+        // Map fields to match backend expectations
+        paymentType: data.paymentType,
+        location: data.location,
+        latitude: data.latitude,
+        longitude: data.longitude,
+        category: data.category
+      };
+
+      console.log('JobPostingWizard: Submitting job with coordinates:', {
+        location: payload.location,
+        latitude: payload.latitude,
+        longitude: payload.longitude,
+        method,
+        url
       });
+
+      const response = await apiRequest(method, url, payload);
+      
+      if (!response.ok) {
+        const result = await response.json();
+        throw new Error(result.message || `Failed to ${isEditMode ? 'update' : 'post'} job`);
+      }
       
       const result = await response.json();
 
-      if (result.success) {
-        toast({
-          title: isEditMode ? 'Job updated successfully!' : 'Job posted successfully!',
-          description: isEditMode ? 'Your job has been updated.' : 'Your job is now live and workers can apply.',
-        });
-        onJobCreated(result.job);
-      } else {
-        throw new Error(result.message || `Failed to ${isEditMode ? 'update' : 'post'} job`);
-      }
+      toast({
+        title: isEditMode ? 'Job updated successfully!' : 'Job posted successfully!',
+        description: isEditMode ? 'Your job has been updated.' : 'Your job is now live and workers can apply.',
+      });
+      onJobCreated(result.job);
     } catch (error) {
       console.error(`Job ${isEditMode ? 'updating' : 'posting'} error:`, error);
       toast({
@@ -259,11 +279,20 @@ export default function JobPostingWizard({ isOpen, onClose, onJobCreated, jobToE
                   if (lat && lng) {
                     setValue('latitude', lat);
                     setValue('longitude', lng);
+                    console.log('JobPostingWizard: Coordinates set', { lat, lng });
                   }
                 }}
               />
+              {/* Hidden inputs to register latitude and longitude with the form */}
+              <input type="hidden" {...register('latitude', { required: true, valueAsNumber: true })} />
+              <input type="hidden" {...register('longitude', { required: true, valueAsNumber: true })} />
               {errors.location && (
                 <p className="text-sm text-red-600 mt-1">{errors.location.message}</p>
+              )}
+              {((!watchedValues.latitude || !watchedValues.longitude || 
+                 watchedValues.latitude === 0 || watchedValues.longitude === 0) && 
+                watchedValues.location) && (
+                <p className="text-sm text-amber-600 mt-1">Please select an address from the dropdown to set coordinates</p>
               )}
             </div>
 
@@ -501,7 +530,9 @@ export default function JobPostingWizard({ isOpen, onClose, onJobCreated, jobToE
                   onClick={handleNext}
                   disabled={
                     (currentStep === 1 && (!watchedValues.title || !watchedValues.description)) ||
-                    (currentStep === 2 && (!watchedValues.location || !watchedValues.dateNeeded)) ||
+                    (currentStep === 2 && (!watchedValues.location || !watchedValues.dateNeeded || 
+                      !watchedValues.latitude || !watchedValues.longitude ||
+                      watchedValues.latitude === 0 || watchedValues.longitude === 0)) ||
                     (currentStep === 3 && !watchedValues.paymentAmount)
                   }
                 >
@@ -511,7 +542,9 @@ export default function JobPostingWizard({ isOpen, onClose, onJobCreated, jobToE
               ) : (
                 <Button
                   type="submit"
-                  disabled={isSubmitting}
+                  disabled={isSubmitting || 
+                    !watchedValues.latitude || !watchedValues.longitude ||
+                    watchedValues.latitude === 0 || watchedValues.longitude === 0}
                 >
                   {isSubmitting ? (
                     <>

@@ -87,8 +87,6 @@ export default function PostJobDrawer({ isOpen, onOpenChange }: PostJobDrawerPro
   const { userLocation } = useGeolocation();
   const queryClient = useQueryClient();
   const [tasks, setTasks] = useState<Task[]>([]);
-  const [showPaymentDialog, setShowPaymentDialog] = useState(false);
-  const [pendingJobData, setPendingJobData] = useState<any>(null);
   
   // For success modal
   const [showSuccessModal, setShowSuccessModal] = useState(false);
@@ -118,8 +116,6 @@ export default function PostJobDrawer({ isOpen, onOpenChange }: PostJobDrawerPro
   };
 
   const onSubmit = async (data: z.infer<typeof formSchema>) => {
-
-    
     if (!user) {
       console.warn('No user found when submitting job');
       toast({
@@ -170,44 +166,18 @@ export default function PostJobDrawer({ isOpen, onOpenChange }: PostJobDrawerPro
         paymentAmount: Number(Number(data.paymentAmount).toFixed(2)),
         // Ensure posterId is set
         posterId: user.id,
+        // Add tasks to the submission
+        tasks
       };
       
-
-      
-      // Store the pending job data
-      setPendingJobData(jobDataToSubmit);
-      
-      // Open the payment method selection dialog
-      openPaymentMethodsDialog({
-        onSelect: (paymentMethodId) => {
-
-          
-          // Update the form with the selected payment method
-          form.setValue('paymentMethodId', paymentMethodId);
-          
-          // Continue with submission
-          const updatedData = {
-            ...jobDataToSubmit,
-            paymentMethodId
-          };
-          processPaymentAndCreateJob(updatedData);
-        },
-        onClose: () => {
-
-          setIsSubmitting(false);
-          toast({
-            title: "Payment Method Required",
-            description: "You need to select a payment method to post a job",
-            variant: "destructive"
-          });
-        }
-      });
+      // Create job directly without payment processing
+      await createJobDirectly(jobDataToSubmit);
     } catch (error) {
-      console.error('Error in job posting preparation:', error);
+      console.error('Error in job posting:', error);
       setIsSubmitting(false);
       toast({
         title: "Job Posting Failed",
-        description: error instanceof Error ? error.message : "Failed to prepare job posting",
+        description: error instanceof Error ? error.message : "Failed to post job",
         variant: "destructive"
       });
     }
@@ -215,13 +185,11 @@ export default function PostJobDrawer({ isOpen, onOpenChange }: PostJobDrawerPro
   
 
   
-  // Function to process payment and create job
-  const processPaymentAndCreateJob = async (data: z.infer<typeof formSchema>) => {
-    setIsSubmitting(true);
+  // Function to create job directly without payment processing
+  const createJobDirectly = async (data: z.infer<typeof formSchema> & { tasks: Task[] }) => {
     try {
-      // Delegate job creation and payment to server
-      const payload = { ...data, tasks };
-      const response = await apiRequest('POST', '/api/jobs/payment-first', payload);
+      // Create job using the standard API endpoint
+      const response = await apiRequest('POST', '/api/jobs', data);
       
       if (!response.ok) {
         const result = await response.json();
@@ -257,6 +225,7 @@ export default function PostJobDrawer({ isOpen, onOpenChange }: PostJobDrawerPro
         description: msg, 
         variant: 'destructive' 
       });
+      throw error; // Re-throw to be caught by onSubmit
     } finally {
       setIsSubmitting(false);
     }
