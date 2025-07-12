@@ -18,9 +18,6 @@ interface JobLifecycleHooks {
   completeJob: (jobId: number) => Promise<Job>;
   cancelJob: (jobId: number, reason?: string) => Promise<void>;
   
-  // Payment flow
-  processJobPayment: (jobId: number, paymentMethodId: string) => Promise<any>;
-  releasePaymentToWorker: (jobId: number) => Promise<any>;
   
   // Review flow
   submitReview: (jobId: number, reviewData: any) => Promise<any>;
@@ -238,11 +235,10 @@ export function useJobLifecycle(): JobLifecycleHooks {
     onSuccess: () => {
       toast({
         title: "Job completed!",
-        description: "The job poster has been notified. Payment will be processed automatically.",
+        description: "The job poster has been notified. You can now arrange payment directly with them.",
       });
       
       queryClient.invalidateQueries({ queryKey: ['/api/jobs'] });
-      queryClient.invalidateQueries({ queryKey: ['/api/earnings'] });
     },
     onError: (error: Error) => {
       toast({
@@ -257,7 +253,6 @@ export function useJobLifecycle(): JobLifecycleHooks {
   const cancelJobMutation = useMutation({
     mutationFn: async ({ jobId, reason }: { jobId: number; reason?: string }) => {
       const response = await apiRequest('DELETE', `/api/jobs/${jobId}`, {
-        withRefund: true,
         reason
       });
       
@@ -271,11 +266,10 @@ export function useJobLifecycle(): JobLifecycleHooks {
     onSuccess: () => {
       toast({
         title: "Job cancelled",
-        description: "The job has been cancelled and any payments have been refunded.",
+        description: "The job has been cancelled successfully.",
       });
       
       queryClient.invalidateQueries({ queryKey: ['/api/jobs'] });
-      queryClient.invalidateQueries({ queryKey: ['/api/payments'] });
     },
     onError: (error: Error) => {
       toast({
@@ -286,81 +280,6 @@ export function useJobLifecycle(): JobLifecycleHooks {
     }
   });
 
-  // Process job payment
-  const processJobPaymentMutation = useMutation({
-    mutationFn: async ({ jobId, paymentMethodId }: { jobId: number; paymentMethodId: string }) => {
-      const response = await apiRequest('POST', '/api/payments/process', {
-        jobId,
-        paymentMethodId,
-        amount: 0 // Amount will be determined by the job
-      });
-      
-      if (!response.ok) {
-        const error = await response.text();
-        throw new Error(error || 'Failed to process payment');
-      }
-      
-      return await response.json();
-    },
-    onSuccess: () => {
-      toast({
-        title: "Payment processed!",
-        description: "Your payment has been processed successfully.",
-      });
-      
-      queryClient.invalidateQueries({ queryKey: ['/api/payments'] });
-      queryClient.invalidateQueries({ queryKey: ['/api/jobs'] });
-    },
-    onError: (error: Error) => {
-      toast({
-        title: "Payment failed",
-        description: error.message,
-        variant: "destructive",
-      });
-    }
-  });
-
-  // Release payment to worker
-  const releasePaymentMutation = useMutation({
-    mutationFn: async (jobId: number) => {
-      // First get the payment associated with this job
-      const paymentResponse = await apiRequest('GET', `/api/payments/job/${jobId}`);
-      if (!paymentResponse.ok) {
-        throw new Error('Failed to get payment details for job');
-      }
-      const payment = await paymentResponse.json();
-      
-      // This would typically be called automatically when a job is completed
-      // But can also be manually triggered by job poster
-      const response = await apiRequest('POST', '/api/payments/release', { 
-        paymentId: payment.id, 
-        amount: payment.amount 
-      });
-      
-      if (!response.ok) {
-        const error = await response.text();
-        throw new Error(error || 'Failed to release payment');
-      }
-      
-      return await response.json();
-    },
-    onSuccess: () => {
-      toast({
-        title: "Payment released!",
-        description: "Payment has been sent to the worker.",
-      });
-      
-      queryClient.invalidateQueries({ queryKey: ['/api/payments'] });
-      queryClient.invalidateQueries({ queryKey: ['/api/earnings'] });
-    },
-    onError: (error: Error) => {
-      toast({
-        title: "Failed to release payment",
-        description: error.message,
-        variant: "destructive",
-      });
-    }
-  });
 
   // Submit review
   const submitReviewMutation = useMutation({
@@ -417,12 +336,6 @@ export function useJobLifecycle(): JobLifecycleHooks {
     
     cancelJob: (jobId: number, reason?: string) => 
       cancelJobMutation.mutateAsync({ jobId, reason }),
-    
-    processJobPayment: (jobId: number, paymentMethodId: string) => 
-      processJobPaymentMutation.mutateAsync({ jobId, paymentMethodId }),
-    
-    releasePaymentToWorker: (jobId: number) => 
-      releasePaymentMutation.mutateAsync(jobId),
     
     submitReview: (jobId: number, reviewData: any) => 
       submitReviewMutation.mutateAsync({ jobId, reviewData })

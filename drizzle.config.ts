@@ -16,8 +16,12 @@ dbUrl.searchParams.set('statement_timeout', '60000');
 dbUrl.searchParams.set('query_timeout', '60000');
 dbUrl.searchParams.set('connect_timeout', '30');
 
-// Configure SSL for Supabase
-dbUrl.searchParams.set('sslmode', 'require');
+// Configure SSL for Supabase - disable SSL verification for push operations
+if (process.env.NODE_ENV !== 'production') {
+  dbUrl.searchParams.set('sslmode', 'require');
+  // Add parameters to bypass SSL certificate verification issues
+  dbUrl.searchParams.set('ssl', 'true');
+}
 
 console.log('🔧 Drizzle Config Info:');
 console.log(`- Environment: ${process.env.NODE_ENV || 'development'}`);
@@ -31,8 +35,11 @@ export default defineConfig({
   dbCredentials: {
     url: dbUrl.toString(),
     // SSL configuration for Supabase
-    ssl: {
-      rejectUnauthorized: false // Allow self-signed certificates for Supabase
+    ssl: isProduction ? {
+      rejectUnauthorized: true
+    } : {
+      rejectUnauthorized: false, // Allow self-signed certificates for development
+      require: true
     }
   },
   introspect: {
