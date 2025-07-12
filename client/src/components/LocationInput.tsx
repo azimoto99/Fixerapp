@@ -1,12 +1,20 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Input } from '@/components/ui/input';
-import { MapPin } from 'lucide-react';
-import { apiRequest } from '@/lib/queryClient';
+import { MapPin, Loader2 } from 'lucide-react';
+
+// Set the access token from environment variable
+const MAPBOX_ACCESS_TOKEN = import.meta.env.VITE_MAPBOX_ACCESS_TOKEN;
 
 interface LocationInputProps {
   onLocationSelect: (location: any) => void;
   placeholder?: string;
   initialValue?: string;
+}
+
+interface GeocodingResult {
+  place_name: string;
+  center: [number, number]; // [longitude, latitude]
+  id: string;
 }
 
 export default function LocationInput({ 
@@ -15,7 +23,7 @@ export default function LocationInput({
   initialValue = ''
 }: LocationInputProps) {
   const [query, setQuery] = useState(initialValue);
-  const [suggestions, setSuggestions] = useState<any[]>([]);
+  const [suggestions, setSuggestions] = useState<GeocodingResult[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
 
@@ -27,6 +35,8 @@ export default function LocationInput({
     const handler = setTimeout(() => {
       if (query.length > 2) {
         fetchSuggestions();
+      } else {
+        setSuggestions([]);
       }
     }, 500); // Debounce time
 
@@ -36,15 +46,98 @@ export default function LocationInput({
   }, [query]);
 
   const fetchSuggestions = async () => {
+    if (!query || query.length < 3) {
+      setSuggestions([]);
+      return;
+    }
+    
     setIsLoading(true);
     try {
-      const response = await apiRequest('GET', `/api/geocode/autocomplete?q=${query}`);
-      const data = await response.json();
-      if (data.features) {
-        setSuggestions(data.features);
+      let results: GeocodingResult[] = [];
+
+      // Try Mapbox first if we have an access token
+      if (MAPBOX_ACCESS_TOKEN) {
+        try {
+          const endpoint = `https://api.mapbox.com/geocoding/v5/mapbox.places/${encodeURIComponent(query)}.json`;
+          const params = new URLSearchParams({
+            access_token: MAPBOX_ACCESS_TOKEN,
+            country: 'us',
+            types: 'address,place,neighborhood,locality',
+            limit: '5',
+          });
+          
+          const response = await fetch(`${endpoint}?${params.toString()}`);
+          if (response.ok) {
+            const data = await response.json();
+            if (data.features && Array.isArray(data.features)) {
+              results = data.features
+                .filter((feature: any) => {
+                  return feature.center && 
+                         Array.isArray(feature.center) && 
+                         feature.center.length === 2 &&
+                         typeof feature.center[0] === 'number' &&
+                         typeof feature.center[1] === 'number' &&
+                         Math.abs(feature.center[1]) <= 90 &&
+                         Math.abs(feature.center[0]) <= 180;
+                })
+                .map((feature: any) => ({
+                  id: feature.id,
+                  place_name: feature.place_name,
+                  center: feature.center,
+                }));
+            }
+          }
+        } catch (mapboxError) {
+          console.warn('Mapbox geocoding failed, trying fallback:', mapboxError);
+        }
       }
+
+      // If Mapbox failed or no results, try Nominatim as fallback
+      if (results.length === 0) {
+        try {
+          const endpoint = `https://nominatim.openstreetmap.org/search`;
+          const params = new URLSearchParams({
+            q: query,
+            format: 'json',
+            limit: '5',
+            addressdetails: '1',
+            countrycodes: 'us',
+          });
+          
+          const response = await fetch(`${endpoint}?${params.toString()}`, {
+            headers: {
+              'Accept-Language': 'en-US,en',
+              'User-Agent': 'Fixer App Address Autocomplete'
+            }
+          });
+          
+          if (response.ok) {
+            const data = await response.json();
+            if (Array.isArray(data) && data.length > 0) {
+              results = data
+                .filter((item: any) => {
+                  const lat = parseFloat(item.lat);
+                  const lon = parseFloat(item.lon);
+                  return !isNaN(lat) && !isNaN(lon) && 
+                         Math.abs(lat) <= 90 && 
+                         Math.abs(lon) <= 180;
+                })
+                .map((item: any, index: number) => ({
+                  id: item.osm_id || `nominatim-${index}`,
+                  place_name: item.display_name,
+                  center: [parseFloat(item.lon), parseFloat(item.lat)]
+                }));
+            }
+          }
+        } catch (nominatimError) {
+          console.warn('Nominatim geocoding failed:', nominatimError);
+        }
+      }
+
+      setSuggestions(results);
     } catch (error) {
-      console.error('Error fetching location suggestions:', error);
+      console.error('Geocoding error:', error);
+      setSuggestions([]);
     } finally {
       setIsLoading(false);
     }

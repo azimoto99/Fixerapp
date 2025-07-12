@@ -18,7 +18,7 @@ const defaultPlatformSettings = [
   { key: 'instantPayoutFee', value: 1.5, description: 'Instant payout fee percentage', category: 'payment' },
   
   // Security Settings
-  { key: 'requireEmailVerification', value: true, description: 'Require email verification for new accounts', category: 'security' },
+  { key: 'requireEmailVerification', value: false, description: 'Email verification disabled - all accounts auto-verified', category: 'security' },
   { key: 'require2FA', value: false, description: 'Require 2FA for admin accounts', category: 'security' },
   { key: 'maxLoginAttempts', value: 5, description: 'Maximum login attempts before lockout', category: 'security' },
   { key: 'passwordMinLength', value: 8, description: 'Minimum password length', category: 'security' },

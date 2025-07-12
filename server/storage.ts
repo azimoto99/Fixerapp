@@ -431,7 +431,7 @@ export class MemStorage implements IStorage {
         hourStart: 9,
         hourEnd: 17
       },
-      emailVerified: false,
+      emailVerified: true, // Auto-verify all emails
       phoneVerified: false,
       identityVerified: false,
       verificationToken: null,

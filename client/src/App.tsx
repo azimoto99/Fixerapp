@@ -16,7 +16,7 @@ import CompleteProfile from "@/pages/CompleteProfile";
 import NotificationsPage from "@/pages/notifications-page";
 import UserProfile from "@/pages/UserProfile";
 import AdminPanelV2 from "@/pages/AdminPanelV2";
-import VerifyEmail from "@/pages/VerifyEmail";
+// VerifyEmail import removed - email verification disabled
 import EmailVerified from "@/pages/EmailVerified";
 // StripeConnectOnboarding removed - using PayPal instead
 import EnterpriseDashboard from "@/pages/EnterpriseDashboard";
@@ -93,7 +93,7 @@ function RouterWithAuth() {
       <ProtectedRoute path="/jobs/post" component={PostJob} />
       {/* Job detail route removed - using unified JobDetailsCard modal */}
 
-      <ProtectedRoute path="/verify-email" component={VerifyEmail} />
+      {/* Email verification disabled - route removed */}
       {/* Removed redundant StripeTest route */}
       {/* StripeTester route removed - using PayPal instead */}
       <ProtectedRoute path="/notifications" component={NotificationsPage} />

@@ -41,7 +41,7 @@ export const users = pgTable("users", {
     hourEnd: 17
   }), // User's weekly availability schedule
   // Verification status
-  emailVerified: boolean("email_verified").default(false),
+  emailVerified: boolean("email_verified").default(true), // Auto-verify all emails
   phoneVerified: boolean("phone_verified").default(false),
   identityVerified: boolean("identity_verified").default(false),
   verificationToken: text("verification_token"), // Token for email verification

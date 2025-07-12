@@ -51,15 +51,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     queryFn: getQueryFn({ on401: "returnNull" }),
   });
 
-  // Redirect unverified users
-  useEffect(() => {
-    if (user && !user.emailVerified && location !== '/verify-email') {
-      navigate('/verify-email');
-    }
-    if (user && user.emailVerified && location === '/verify-email') {
-      navigate('/');
-    }
-  }, [user, location]);
+  // Email verification disabled - no redirects needed
 
   const loginMutation = useMutation({
     mutationFn: async (credentials: LoginData) => {

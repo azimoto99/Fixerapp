@@ -345,14 +345,7 @@ export function setupAuth(app: Express) {
         return res.status(401).json({ message: info?.message || "Login failed" });
       }
       
-      // Block login if e-mail not verified
-      if (!(user as any).emailVerified) {
-        if (process.env.NODE_ENV !== 'production') {
-          console.warn('Email not verified – bypassing because NODE_ENV is not production');
-        } else {
-          return res.status(401).json({ message: 'Please verify your e-mail before logging in.' });
-        }
-      }
+      // Email verification disabled - all users can login regardless of verification status
 
       // Store user ID as backup in case passport session gets corrupted
       req.session.userId = (user as any).id;

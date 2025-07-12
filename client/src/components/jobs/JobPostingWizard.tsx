@@ -24,7 +24,7 @@ import { useForm } from 'react-hook-form';
 import { apiRequest } from '@/lib/queryClient';
 import { useToast } from '@/hooks/use-toast';
 import { Job } from '@/types';
-import LocationInput from '@/components/LocationInput';
+import { AddressAutocompleteInput } from '@/components/AddressAutocompleteInput';
 
 interface JobPostingWizardProps {
   isOpen: boolean;
@@ -129,11 +129,6 @@ export default function JobPostingWizard({ isOpen, onClose, onJobCreated, jobToE
     }
   };
 
-  const handleLocationSelect = (location: any) => {
-    setValue('location', location.displayName);
-    setValue('latitude', location.latitude);
-    setValue('longitude', location.longitude);
-  };
 
   const toggleSkill = (skill: string) => {
     const currentSkills = watchedValues.skills || [];
@@ -256,10 +251,16 @@ export default function JobPostingWizard({ isOpen, onClose, onJobCreated, jobToE
           <div className="space-y-4">
             <div>
               <Label>Job Location *</Label>
-              <LocationInput
+              <AddressAutocompleteInput
                 placeholder="Enter the job address"
-                onLocationSelect={handleLocationSelect}
-                initialValue={watchedValues.location}
+                value={watchedValues.location}
+                onChange={(value, lat, lng) => {
+                  setValue('location', value);
+                  if (lat && lng) {
+                    setValue('latitude', lat);
+                    setValue('longitude', lng);
+                  }
+                }}
               />
               {errors.location && (
                 <p className="text-sm text-red-600 mt-1">{errors.location.message}</p>
