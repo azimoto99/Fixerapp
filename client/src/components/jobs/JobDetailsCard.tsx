@@ -78,7 +78,6 @@ import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '@
 import JobApplicationsTab from './JobApplicationsTab';
 import { InstantApplyButton } from '../applications/InstantApplyButton';
 import { RealTimeApplicationsDashboard } from '../applications/RealTimeApplicationsDashboard';
-import DisputeForm from '../payments/DisputeForm';
 import '../jobcard-fix.css';
 import '../ui/dialog-fix.css';
 import { useEffect as useWindowEffect } from 'react';
@@ -1830,19 +1829,10 @@ const JobDetailsCard: React.FC<JobDetailsCardProps> = ({ jobId, isOpen, onClose 
                     )}
                     
                     {job.status === 'completed' && (
-                      <>
-                        <Button
-                          variant="default"
-                          className="flex-1 bg-green-600 hover:bg-green-700"
-                        >
-                          <DollarSign className="h-4 w-4 mr-2" />
-                          Process Payment
-                        </Button>
-                        <DisputeForm 
-                          jobId={jobId} 
-                          job={job}
-                        />
-                      </>
+                      <div className="text-sm text-muted-foreground p-4 bg-green-50 rounded-lg border border-green-200">
+                        <CheckCircle2 className="h-4 w-4 text-green-600 inline mr-2" />
+                        Job completed! Please arrange payment directly with the worker.
+                      </div>
                     )}
                   </>
                 )}

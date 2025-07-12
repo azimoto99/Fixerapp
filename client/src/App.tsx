@@ -4,7 +4,6 @@ import { QueryClientProvider } from "@tanstack/react-query";
 import { queryClient } from "./lib/queryClient";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { Toaster } from "@/components/ui/toaster";
-import { PaymentDialogProvider } from "@/components/payments/PaymentDialogManager";
 import Home from "@/pages/Home";
 import PostJob from "@/pages/PostJob";
 import Explore from "@/pages/Explore";
@@ -13,21 +12,13 @@ import Explore from "@/pages/Explore";
 import AuthPage from "@/pages/auth-page";
 import BusinessRegister from "@/pages/BusinessRegister";
 import NotFound from "@/pages/not-found";
-import TransactionHistory from "@/pages/TransactionHistory";
 import CompleteProfile from "@/pages/CompleteProfile";
-import Checkout from "@/pages/checkout";
-import PaymentConfirmation from "@/pages/PaymentConfirmation";
-import PaymentSettings from "@/pages/PaymentSettings";
-// StripeTester removed - using PayPal instead
-import PaymentSuccess from "@/pages/payment-success";
-import PaymentsPage from "@/pages/payments-page";
 import NotificationsPage from "@/pages/notifications-page";
 import UserProfile from "@/pages/UserProfile";
 import AdminPanelV2 from "@/pages/AdminPanelV2";
 import VerifyEmail from "@/pages/VerifyEmail";
 import EmailVerified from "@/pages/EmailVerified";
 // StripeConnectOnboarding removed - using PayPal instead
-import WalletPage from "@/pages/wallet-page";
 import EnterpriseDashboard from "@/pages/EnterpriseDashboard";
 import PosterDashboardV2 from "@/pages/PosterDashboardV2";
 import { AuthProvider } from "@/hooks/use-auth";
@@ -102,16 +93,7 @@ function RouterWithAuth() {
       <ProtectedRoute path="/jobs/post" component={PostJob} />
       {/* Job detail route removed - using unified JobDetailsCard modal */}
 
-      <ProtectedRoute path="/transactions" component={TransactionHistory} />
-      <ProtectedRoute path="/checkout/:amount/:jobId" component={Checkout} />
-      <ProtectedRoute path="/payment-success" component={PaymentSuccess} />
-      <ProtectedRoute path="/payment-confirmation" component={PaymentConfirmation} />
-      <ProtectedRoute path="/payment-settings" component={PaymentSettings} />
-      {/* Consolidated payment management */}
-      <ProtectedRoute path="/payments" component={PaymentsPage} />
       <ProtectedRoute path="/verify-email" component={VerifyEmail} />
-      {/* Wallet page for Stripe Connect returns */}
-      <ProtectedRoute path="/wallet" component={WalletPage} />
       {/* Removed redundant StripeTest route */}
       {/* StripeTester route removed - using PayPal instead */}
       <ProtectedRoute path="/notifications" component={NotificationsPage} />
@@ -234,7 +216,6 @@ function App() {
                 <SimpleToastProvider>
                   <AuthProvider>
                     <NotificationProvider>
-                      <PaymentDialogProvider>
                         <OnboardingProvider>
                           <WebSocketProvider>
                             <HelmetProvider>
@@ -242,7 +223,6 @@ function App() {
                             </HelmetProvider>
                           </WebSocketProvider>
                         </OnboardingProvider>
-                      </PaymentDialogProvider>
                     </NotificationProvider>
                   </AuthProvider>
                 </SimpleToastProvider>

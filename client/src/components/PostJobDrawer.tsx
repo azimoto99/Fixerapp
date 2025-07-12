@@ -31,7 +31,6 @@ import { useQueryClient } from '@tanstack/react-query';
 import TaskEditor, { Task } from '@/components/TaskEditor';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { usePaymentDialog } from '@/components/payments/PaymentDialogManager';
 import PostJobSuccessModal from '@/components/PostJobSuccessModal';
 
 // Form schema with enhanced validation and formatting
@@ -90,7 +89,6 @@ export default function PostJobDrawer({ isOpen, onOpenChange }: PostJobDrawerPro
   const [tasks, setTasks] = useState<Task[]>([]);
   const [showPaymentDialog, setShowPaymentDialog] = useState(false);
   const [pendingJobData, setPendingJobData] = useState<any>(null);
-  const { openPaymentMethodsDialog } = usePaymentDialog();
   
   // For success modal
   const [showSuccessModal, setShowSuccessModal] = useState(false);

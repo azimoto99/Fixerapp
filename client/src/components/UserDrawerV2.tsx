@@ -28,11 +28,9 @@ import { Badge } from "@/components/ui/badge";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import ProfileContentV2 from './drawer-contents/ProfileContentV2';
-import WalletContent from './WalletContent'; // Ensure this is the main WalletContent in components, not drawer-contents
 import ReviewsContent from './drawer-contents/ReviewsContent';
 import SettingsContent from './drawer-contents/SettingsContentV2';
 import SupportContent from './drawer-contents/SupportContent';
-import PaymentContent from './drawer-contents/PaymentContent';
 import EarningsContent from './drawer-contents/EarningsContent';
 import NotificationsContent from './drawer-contents/NotificationsContent';
 
@@ -193,11 +191,7 @@ const UserDrawerV2: React.FC<UserDrawerProps> = ({
                 </Button>
               </div>
             </div>
-            {activeSection === 'earnings' ? (
               <EarningsContent user={user} />
-            ) : (
-              <PaymentContent user={user} />
-            )}
           </div>
         );
       case "reviews":

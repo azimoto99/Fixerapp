@@ -102,7 +102,7 @@ export function NotificationItem({ notification, hideControls = false }: Notific
       case 'review':
         return `/reviews/${notification.sourceId}`;
       case 'payment':
-        return `/payments/${notification.sourceId}`;
+        return `/jobs/${notification.sourceId}`;
       default:
         return null;
     }

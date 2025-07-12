@@ -6,7 +6,7 @@ import { Job, Application } from '@shared/schema';
 
 interface JobLifecycleHooks {
   // Job posting flow
-  createJobWithPayment: (jobData: any, paymentData: any) => Promise<Job>;
+  createJob: (jobData: any) => Promise<Job>;
   
   // Application flow
   applyToJob: (jobId: number, applicationData: any) => Promise<Application>;
@@ -31,15 +31,11 @@ export function useJobLifecycle(): JobLifecycleHooks {
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
-  // Job creation with payment integration
-  const createJobWithPaymentMutation = useMutation({
-    mutationFn: async ({ jobData, paymentData }: { jobData: any; paymentData: any }) => {
-      // Step 1: Create the job
-      const jobResponse = await apiRequest('POST', '/api/jobs/payment-first', {
-        ...jobData,
-        paymentMethodId: paymentData.paymentMethodId,
-        amount: jobData.paymentAmount
-      });
+  // Job creation without payment processing
+  const createJobMutation = useMutation({
+    mutationFn: async (jobData: any) => {
+      // Create the job directly without payment
+      const jobResponse = await apiRequest('POST', '/api/jobs', jobData);
       
       if (!jobResponse.ok) {
         const error = await jobResponse.text();
@@ -48,15 +44,15 @@ export function useJobLifecycle(): JobLifecycleHooks {
       
       return await jobResponse.json();
     },
-    onSuccess: (job) => {
+    onSuccess: (result) => {
+      const job = result.job || result;
       toast({
         title: "Job posted successfully!",
-        description: `Your job "${job.title}" is now live and workers can apply.`,
+        description: `Your job "${job.title}" is now live. Workers can apply and you'll arrange payment directly with them.`,
       });
       
       // Invalidate relevant queries
       queryClient.invalidateQueries({ queryKey: ['/api/jobs'] });
-      queryClient.invalidateQueries({ queryKey: ['/api/payments'] });
     },
     onError: (error: Error) => {
       toast({
@@ -401,8 +397,8 @@ export function useJobLifecycle(): JobLifecycleHooks {
   });
 
   return {
-    createJobWithPayment: (jobData: any, paymentData: any) => 
-      createJobWithPaymentMutation.mutateAsync({ jobData, paymentData }),
+    createJob: (jobData: any) => 
+      createJobMutation.mutateAsync(jobData),
     
     applyToJob: (jobId: number, applicationData: any) => 
       applyToJobMutation.mutateAsync({ jobId, applicationData }),
