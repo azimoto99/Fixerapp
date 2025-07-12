@@ -164,7 +164,9 @@ export default function JobPostingWizard({ isOpen, onClose, onJobCreated, jobToE
         location: data.location,
         latitude: data.latitude,
         longitude: data.longitude,
-        category: data.category
+        category: data.category,
+        // Include hourlyRate field when payment type is hourly
+        ...(data.paymentType === 'hourly' && { hourlyRate: data.paymentAmount })
       };
 
       console.log('JobPostingWizard: Submitting job with coordinates:', {

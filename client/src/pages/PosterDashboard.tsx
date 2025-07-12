@@ -57,7 +57,14 @@ export default function PosterDashboard() {
 
   // Fetch poster's jobs
   const { data: jobsData = [], isLoading: jobsLoading } = useQuery({
-    queryKey: ['/api/jobs/posted'],
+    queryKey: ['/api/jobs', { posterId: user?.id }],
+    queryFn: async () => {
+      if (!user?.id) return [];
+      const response = await fetch(`/api/jobs?posterId=${user.id}`);
+      if (!response.ok) throw new Error('Failed to fetch jobs');
+      const data = await response.json();
+      return data.results || [];
+    },
     enabled: !!user && user.accountType === 'poster',
   });
   
@@ -67,6 +74,13 @@ export default function PosterDashboard() {
   // Fetch applications for poster's jobs
   const { data: applicationsData = [], isLoading: applicationsLoading } = useQuery({
     queryKey: ['/api/applications/poster'],
+    queryFn: async () => {
+      const response = await fetch('/api/applications/poster', {
+        credentials: 'include'
+      });
+      if (!response.ok) throw new Error('Failed to fetch applications');
+      return response.json();
+    },
     enabled: !!user && user.accountType === 'poster',
   });
   

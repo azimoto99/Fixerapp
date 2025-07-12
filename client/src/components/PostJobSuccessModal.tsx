@@ -107,7 +107,7 @@ const PostJobSuccessModal: React.FC<PostJobSuccessModalProps> = ({
               <>
                 <h3 className="text-xl font-semibold text-green-700">Job Posted Successfully!</h3>
                 <p className="mt-2 text-gray-600">
-                  "{jobTitle}" has been posted and is now available for workers to view and apply
+                  "{jobTitle}" has been posted and is now live for workers to view and apply
                 </p>
               </>
             ) : (
@@ -127,22 +127,15 @@ const PostJobSuccessModal: React.FC<PostJobSuccessModalProps> = ({
           <Card className="border-2 border-gray-100">
             <CardContent className="pt-6">
               <div className="space-y-4">
-                {/* Payment Status */}
+                {/* Job Posting Status */}
                 <div className="flex items-center">
-                  <div className={`${isSuccess ? 'bg-green-100' : 'bg-red-100'} rounded-full p-1.5 mr-3`}>
-                    {isSuccess ? (
-                      <CheckCircle2 className="h-4 w-4 text-green-600" />
-                    ) : (
-                      <XCircle className="h-4 w-4 text-red-600" />
-                    )}
+                  <div className="bg-green-100 rounded-full p-1.5 mr-3">
+                    <CheckCircle2 className="h-4 w-4 text-green-600" />
                   </div>
                   <div>
-                    <p className="font-medium">Payment {isSuccess ? 'Processed' : 'Failed'}</p>
+                    <p className="font-medium">Job Posted Successfully</p>
                     <p className="text-sm text-gray-500">
-                      {isSuccess 
-                        ? 'Your payment has been securely processed' 
-                        : 'Your card was declined. Please try another payment method'
-                      }
+                      Your job is now live and ready for worker applications
                     </p>
                   </div>
                 </div>
@@ -164,9 +157,9 @@ const PostJobSuccessModal: React.FC<PostJobSuccessModalProps> = ({
                 </div>
               </div>
               
-              {/* Service Fee Notice */}
+              {/* Payment Coordination Notice */}
               <div className="mt-3 p-2 bg-blue-50 rounded-md text-xs text-blue-800">
-                <p>Your payment includes the job cost plus a 10% service fee to help maintain the platform.</p>
+                <p>Payment will be coordinated directly between you and the selected worker. No upfront payment required.</p>
               </div>
             </CardContent>
           </Card>

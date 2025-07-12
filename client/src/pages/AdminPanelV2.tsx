@@ -1056,12 +1056,14 @@ export default function AdminPanelV2() {
 
       <Tabs defaultValue="overview" value={selectedTab} onValueChange={setSelectedTab} className="w-full">
         <div className={`md:block ${isMobileMenuOpen ? 'block' : 'hidden'} mb-6 md:mb-0`}>
-          <TabsList className="grid w-full grid-cols-3 lg:grid-cols-5 xl:grid-cols-9 p-2">
+          <TabsList className="grid w-full grid-cols-3 lg:grid-cols-5 xl:grid-cols-11 p-2">
             <TabsTrigger value="overview" className="w-full justify-start text-xs lg:text-sm">Overview</TabsTrigger>
             <TabsTrigger value="users" className="w-full justify-start text-xs lg:text-sm">Users</TabsTrigger>
             <TabsTrigger value="jobs" className="w-full justify-start text-xs lg:text-sm">Jobs</TabsTrigger>
             <TabsTrigger value="support" className="w-full justify-start text-xs lg:text-sm">Support</TabsTrigger>
             <TabsTrigger value="payments" className="w-full justify-start text-xs lg:text-sm">Payments</TabsTrigger>
+            <TabsTrigger value="location" className="w-full justify-start text-xs lg:text-sm">Location</TabsTrigger>
+            <TabsTrigger value="security" className="w-full justify-start text-xs lg:text-sm">Security</TabsTrigger>
             <TabsTrigger value="analytics" className="w-full justify-start text-xs lg:text-sm">Analytics</TabsTrigger>
             <TabsTrigger value="maintenance" className="w-full justify-start text-xs lg:text-sm">Maintenance</TabsTrigger>
             <TabsTrigger value="settings" className="w-full justify-start text-xs lg:text-sm">Settings</TabsTrigger>
@@ -1829,6 +1831,618 @@ export default function AdminPanelV2() {
                                 <Tooltip />
                               </PieChart>
                             </ResponsiveContainer>
+                          </div>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                </TabsContent>
+              </Tabs>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        {/* Location Verification Tab */}
+        <TabsContent value="location" className="space-y-6">
+          <div className="grid gap-6 md:grid-cols-3 mb-6">
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">Location Verifications Today</CardTitle>
+                <MapPin className="h-4 w-4 text-muted-foreground" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">1,247</div>
+                <p className="text-xs text-muted-foreground">+12% from yesterday</p>
+              </CardContent>
+            </Card>
+            
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">Verification Success Rate</CardTitle>
+                <CheckCircle className="h-4 w-4 text-muted-foreground" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">94.2%</div>
+                <p className="text-xs text-muted-foreground">Within normal range</p>
+              </CardContent>
+            </Card>
+            
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">Suspicious Activity</CardTitle>
+                <AlertTriangle className="h-4 w-4 text-red-500" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold text-red-600">23</div>
+                <p className="text-xs text-muted-foreground">Requires review</p>
+              </CardContent>
+            </Card>
+          </div>
+
+          <Card>
+            <CardHeader>
+              <CardTitle>Location Verification Monitoring</CardTitle>
+              <CardDescription>Monitor GPS verification attempts and detect potential spoofing</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <Tabs defaultValue="overview" className="w-full">
+                <TabsList className="grid w-full grid-cols-4">
+                  <TabsTrigger value="overview">Overview</TabsTrigger>
+                  <TabsTrigger value="suspicious">Suspicious Activity</TabsTrigger>
+                  <TabsTrigger value="analytics">Analytics</TabsTrigger>
+                  <TabsTrigger value="settings">Settings</TabsTrigger>
+                </TabsList>
+
+                <TabsContent value="overview" className="space-y-4">
+                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                    <Card>
+                      <CardHeader>
+                        <CardTitle className="text-lg">Recent Verification Attempts</CardTitle>
+                      </CardHeader>
+                      <CardContent>
+                        <div className="space-y-4">
+                          {[
+                            { user: "john.worker@email.com", location: "San Francisco, CA", accuracy: "98%", status: "verified", time: "2 min ago" },
+                            { user: "mary.poster@email.com", location: "Los Angeles, CA", accuracy: "85%", status: "verified", time: "5 min ago" },
+                            { user: "suspicious.user@email.com", location: "New York, NY", accuracy: "45%", status: "flagged", time: "8 min ago" },
+                            { user: "worker.jane@email.com", location: "Chicago, IL", accuracy: "96%", status: "verified", time: "12 min ago" }
+                          ].map((attempt, i) => (
+                            <div key={i} className="flex items-center justify-between p-3 border rounded-lg">
+                              <div className="flex-1">
+                                <p className="font-medium text-sm">{attempt.user}</p>
+                                <p className="text-xs text-muted-foreground">{attempt.location}</p>
+                              </div>
+                              <div className="text-center">
+                                <p className="text-sm font-medium">{attempt.accuracy}</p>
+                                <p className="text-xs text-muted-foreground">accuracy</p>
+                              </div>
+                              <div className="text-center">
+                                <Badge variant={attempt.status === 'verified' ? 'default' : 'destructive'}>
+                                  {attempt.status}
+                                </Badge>
+                                <p className="text-xs text-muted-foreground mt-1">{attempt.time}</p>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </CardContent>
+                    </Card>
+
+                    <Card>
+                      <CardHeader>
+                        <CardTitle className="text-lg">Accuracy Distribution</CardTitle>
+                      </CardHeader>
+                      <CardContent>
+                        <ResponsiveContainer width="100%" height={200}>
+                          <PieChart>
+                            <Pie
+                              data={[
+                                { name: 'High (90-100%)', value: 75, fill: '#22c55e' },
+                                { name: 'Medium (70-89%)', value: 20, fill: '#eab308' },
+                                { name: 'Low (50-69%)', value: 4, fill: '#f97316' },
+                                { name: 'Very Low (<50%)', value: 1, fill: '#ef4444' }
+                              ]}
+                              dataKey="value"
+                              nameKey="name"
+                              cx="50%"
+                              cy="50%"
+                              outerRadius={80}
+                            >
+                              <Tooltip />
+                            </Pie>
+                          </PieChart>
+                        </ResponsiveContainer>
+                      </CardContent>
+                    </Card>
+                  </div>
+                </TabsContent>
+
+                <TabsContent value="suspicious" className="space-y-4">
+                  <Card>
+                    <CardHeader>
+                      <CardTitle className="text-lg flex items-center gap-2">
+                        <AlertTriangle className="h-5 w-5 text-red-500" />
+                        Suspicious Location Activity
+                      </CardTitle>
+                      <CardDescription>Users and patterns requiring manual review</CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="space-y-4">
+                        {[
+                          {
+                            user: "suspicious.user@email.com",
+                            issue: "Impossible travel speed",
+                            details: "Location changed from NYC to LA in 30 minutes",
+                            risk: "High",
+                            lastSeen: "8 min ago"
+                          },
+                          {
+                            user: "fake.location@email.com", 
+                            issue: "Low GPS accuracy",
+                            details: "Consistent accuracy below 50% across multiple attempts",
+                            risk: "Medium",
+                            lastSeen: "2 hours ago"
+                          },
+                          {
+                            user: "spoofer.account@email.com",
+                            issue: "Device inconsistency", 
+                            details: "Multiple device types from same location simultaneously",
+                            risk: "High",
+                            lastSeen: "4 hours ago"
+                          }
+                        ].map((alert, i) => (
+                          <div key={i} className="p-4 border rounded-lg bg-red-50 border-red-200">
+                            <div className="flex items-start justify-between">
+                              <div className="flex-1">
+                                <div className="flex items-center gap-2 mb-2">
+                                  <p className="font-medium">{alert.user}</p>
+                                  <Badge variant={alert.risk === 'High' ? 'destructive' : 'secondary'}>
+                                    {alert.risk} Risk
+                                  </Badge>
+                                </div>
+                                <p className="text-sm font-medium text-red-700">{alert.issue}</p>
+                                <p className="text-sm text-muted-foreground">{alert.details}</p>
+                                <p className="text-xs text-muted-foreground mt-2">Last seen: {alert.lastSeen}</p>
+                              </div>
+                              <div className="flex gap-2">
+                                <Button size="sm" variant="outline">Investigate</Button>
+                                <Button size="sm" variant="destructive">Block</Button>
+                              </div>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </CardContent>
+                  </Card>
+                </TabsContent>
+
+                <TabsContent value="analytics" className="space-y-4">
+                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                    <Card>
+                      <CardHeader>
+                        <CardTitle>Verification Trends</CardTitle>
+                      </CardHeader>
+                      <CardContent>
+                        <ResponsiveContainer width="100%" height={200}>
+                          <LineChart data={[
+                            { time: '00:00', verifications: 45, failed: 3 },
+                            { time: '04:00', verifications: 12, failed: 1 },
+                            { time: '08:00', verifications: 89, failed: 5 },
+                            { time: '12:00', verifications: 156, failed: 12 },
+                            { time: '16:00', verifications: 134, failed: 8 },
+                            { time: '20:00', verifications: 98, failed: 4 }
+                          ]}>
+                            <CartesianGrid strokeDasharray="3 3" />
+                            <XAxis dataKey="time" />
+                            <YAxis />
+                            <Tooltip />
+                            <Line type="monotone" dataKey="verifications" stroke="#22c55e" name="Successful" />
+                            <Line type="monotone" dataKey="failed" stroke="#ef4444" name="Failed" />
+                          </LineChart>
+                        </ResponsiveContainer>
+                      </CardContent>
+                    </Card>
+
+                    <Card>
+                      <CardHeader>
+                        <CardTitle>Geographic Distribution</CardTitle>
+                      </CardHeader>
+                      <CardContent>
+                        <div className="space-y-3">
+                          {[
+                            { location: "California", count: 342, percentage: 28 },
+                            { location: "New York", count: 187, percentage: 15 },
+                            { location: "Texas", count: 156, percentage: 13 },
+                            { location: "Florida", count: 98, percentage: 8 },
+                            { location: "Other", count: 434, percentage: 36 }
+                          ].map((item, i) => (
+                            <div key={i} className="flex items-center justify-between">
+                              <span className="text-sm font-medium">{item.location}</span>
+                              <div className="flex items-center gap-2">
+                                <div className="w-24 bg-gray-200 rounded-full h-2">
+                                  <div 
+                                    className="bg-blue-600 h-2 rounded-full" 
+                                    style={{ width: `${item.percentage}%` }}
+                                  ></div>
+                                </div>
+                                <span className="text-sm text-muted-foreground w-12">{item.count}</span>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </CardContent>
+                    </Card>
+                  </div>
+                </TabsContent>
+
+                <TabsContent value="settings" className="space-y-4">
+                  <Card>
+                    <CardHeader>
+                      <CardTitle>Location Verification Settings</CardTitle>
+                      <CardDescription>Configure location verification parameters and thresholds</CardDescription>
+                    </CardHeader>
+                    <CardContent className="space-y-6">
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div className="space-y-4">
+                          <div className="space-y-2">
+                            <Label htmlFor="min-accuracy">Minimum GPS Accuracy (%)</Label>
+                            <Input id="min-accuracy" type="number" placeholder="70" />
+                          </div>
+                          <div className="space-y-2">
+                            <Label htmlFor="max-distance">Max Travel Distance (miles/hour)</Label>
+                            <Input id="max-distance" type="number" placeholder="500" />
+                          </div>
+                          <div className="space-y-2">
+                            <Label htmlFor="verification-radius">Verification Radius (meters)</Label>
+                            <Input id="verification-radius" type="number" placeholder="100" />
+                          </div>
+                        </div>
+                        <div className="space-y-4">
+                          <div className="flex items-center justify-between">
+                            <Label htmlFor="auto-flag">Auto-flag suspicious activity</Label>
+                            <Switch id="auto-flag" defaultChecked />
+                          </div>
+                          <div className="flex items-center justify-between">
+                            <Label htmlFor="require-verification">Require verification for job posting</Label>
+                            <Switch id="require-verification" defaultChecked />
+                          </div>
+                          <div className="flex items-center justify-between">
+                            <Label htmlFor="location-history">Store location history</Label>
+                            <Switch id="location-history" defaultChecked />
+                          </div>
+                        </div>
+                      </div>
+                      <div className="flex gap-2">
+                        <Button>Save Settings</Button>
+                        <Button variant="outline">Reset to Defaults</Button>
+                      </div>
+                    </CardContent>
+                  </Card>
+                </TabsContent>
+              </Tabs>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        {/* Security Monitoring Tab */}
+        <TabsContent value="security" className="space-y-6">
+          <div className="grid gap-6 md:grid-cols-4 mb-6">
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">Security Alerts</CardTitle>
+                <Shield className="h-4 w-4 text-muted-foreground" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold text-red-600">7</div>
+                <p className="text-xs text-muted-foreground">Active incidents</p>
+              </CardContent>
+            </Card>
+            
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">Failed Logins</CardTitle>
+                <XCircle className="h-4 w-4 text-muted-foreground" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">142</div>
+                <p className="text-xs text-muted-foreground">Last 24 hours</p>
+              </CardContent>
+            </Card>
+            
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">Account Verifications</CardTitle>
+                <CheckCircle className="h-4 w-4 text-muted-foreground" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">89.3%</div>
+                <p className="text-xs text-muted-foreground">Verification rate</p>
+              </CardContent>
+            </Card>
+            
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">Blocked IPs</CardTitle>
+                <Ban className="h-4 w-4 text-muted-foreground" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">23</div>
+                <p className="text-xs text-muted-foreground">Auto-blocked today</p>
+              </CardContent>
+            </Card>
+          </div>
+
+          <Card>
+            <CardHeader>
+              <CardTitle>Security Monitoring Dashboard</CardTitle>
+              <CardDescription>Monitor security incidents, threats, and system integrity</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <Tabs defaultValue="incidents" className="w-full">
+                <TabsList className="grid w-full grid-cols-4">
+                  <TabsTrigger value="incidents">Security Incidents</TabsTrigger>
+                  <TabsTrigger value="authentication">Authentication</TabsTrigger>
+                  <TabsTrigger value="threats">Threat Analysis</TabsTrigger>
+                  <TabsTrigger value="compliance">Compliance</TabsTrigger>
+                </TabsList>
+
+                <TabsContent value="incidents" className="space-y-4">
+                  <Card>
+                    <CardHeader>
+                      <CardTitle className="text-lg flex items-center gap-2">
+                        <AlertTriangle className="h-5 w-5 text-red-500" />
+                        Active Security Incidents
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="space-y-4">
+                        {[
+                          {
+                            id: "SEC-001",
+                            type: "Brute Force Attack",
+                            severity: "High",
+                            target: "Login endpoints",
+                            status: "Active",
+                            time: "15 min ago",
+                            details: "Multiple failed login attempts from IP range 192.168.1.0/24"
+                          },
+                          {
+                            id: "SEC-002", 
+                            type: "Suspicious Account Creation",
+                            severity: "Medium",
+                            target: "Registration system",
+                            status: "Investigating",
+                            time: "2 hours ago",
+                            details: "Rapid account creation pattern detected from multiple IPs"
+                          },
+                          {
+                            id: "SEC-003",
+                            type: "API Rate Limit Exceeded",
+                            severity: "Low",
+                            target: "Job posting API",
+                            status: "Resolved",
+                            time: "4 hours ago",
+                            details: "Client exceeded rate limits, auto-throttled successfully"
+                          }
+                        ].map((incident, i) => (
+                          <div key={i} className="p-4 border rounded-lg">
+                            <div className="flex items-start justify-between mb-3">
+                              <div className="flex-1">
+                                <div className="flex items-center gap-2 mb-2">
+                                  <span className="font-mono text-sm bg-gray-100 px-2 py-1 rounded">{incident.id}</span>
+                                  <Badge variant={
+                                    incident.severity === 'High' ? 'destructive' : 
+                                    incident.severity === 'Medium' ? 'default' : 'secondary'
+                                  }>
+                                    {incident.severity}
+                                  </Badge>
+                                  <Badge variant={incident.status === 'Active' ? 'destructive' : 'secondary'}>
+                                    {incident.status}
+                                  </Badge>
+                                </div>
+                                <h4 className="font-medium">{incident.type}</h4>
+                                <p className="text-sm text-muted-foreground">{incident.details}</p>
+                                <div className="flex items-center gap-4 mt-2 text-xs text-muted-foreground">
+                                  <span>Target: {incident.target}</span>
+                                  <span>Time: {incident.time}</span>
+                                </div>
+                              </div>
+                              <div className="flex gap-2">
+                                <Button size="sm" variant="outline">Investigate</Button>
+                                <Button size="sm">Resolve</Button>
+                              </div>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </CardContent>
+                  </Card>
+                </TabsContent>
+
+                <TabsContent value="authentication" className="space-y-4">
+                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                    <Card>
+                      <CardHeader>
+                        <CardTitle>Authentication Metrics</CardTitle>
+                      </CardHeader>
+                      <CardContent>
+                        <ResponsiveContainer width="100%" height={200}>
+                          <LineChart data={[
+                            { time: '00:00', successful: 245, failed: 12 },
+                            { time: '04:00', successful: 89, failed: 5 },
+                            { time: '08:00', successful: 456, failed: 23 },
+                            { time: '12:00', successful: 678, failed: 34 },
+                            { time: '16:00', successful: 543, failed: 28 },
+                            { time: '20:00', successful: 321, failed: 15 }
+                          ]}>
+                            <CartesianGrid strokeDasharray="3 3" />
+                            <XAxis dataKey="time" />
+                            <YAxis />
+                            <Tooltip />
+                            <Line type="monotone" dataKey="successful" stroke="#22c55e" name="Successful" />
+                            <Line type="monotone" dataKey="failed" stroke="#ef4444" name="Failed" />
+                          </LineChart>
+                        </ResponsiveContainer>
+                      </CardContent>
+                    </Card>
+
+                    <Card>
+                      <CardHeader>
+                        <CardTitle>Recent Failed Logins</CardTitle>
+                      </CardHeader>
+                      <CardContent>
+                        <div className="space-y-3">
+                          {[
+                            { ip: "192.168.1.100", attempts: 15, user: "admin", time: "2 min ago" },
+                            { ip: "10.0.0.45", attempts: 8, user: "user@test.com", time: "5 min ago" },
+                            { ip: "172.16.0.23", attempts: 12, user: "admin", time: "8 min ago" },
+                            { ip: "203.0.113.42", attempts: 6, user: "support", time: "12 min ago" }
+                          ].map((attempt, i) => (
+                            <div key={i} className="flex items-center justify-between p-2 border rounded">
+                              <div>
+                                <p className="font-mono text-sm">{attempt.ip}</p>
+                                <p className="text-xs text-muted-foreground">User: {attempt.user}</p>
+                              </div>
+                              <div className="text-center">
+                                <p className="text-sm font-medium">{attempt.attempts}</p>
+                                <p className="text-xs text-muted-foreground">attempts</p>
+                              </div>
+                              <div className="text-right">
+                                <p className="text-xs text-muted-foreground">{attempt.time}</p>
+                                <Button size="sm" variant="outline" className="mt-1">Block IP</Button>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </CardContent>
+                    </Card>
+                  </div>
+                </TabsContent>
+
+                <TabsContent value="threats" className="space-y-4">
+                  <Card>
+                    <CardHeader>
+                      <CardTitle>Threat Intelligence</CardTitle>
+                      <CardDescription>Analysis of potential security threats and patterns</CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 mb-6">
+                        <div className="p-4 border rounded-lg">
+                          <h4 className="font-medium mb-2">Malicious IPs Detected</h4>
+                          <p className="text-2xl font-bold text-red-600">12</p>
+                          <p className="text-sm text-muted-foreground">Auto-blocked</p>
+                        </div>
+                        <div className="p-4 border rounded-lg">
+                          <h4 className="font-medium mb-2">Suspicious Patterns</h4>
+                          <p className="text-2xl font-bold text-yellow-600">5</p>
+                          <p className="text-sm text-muted-foreground">Under investigation</p>
+                        </div>
+                        <div className="p-4 border rounded-lg">
+                          <h4 className="font-medium mb-2">Risk Score</h4>
+                          <p className="text-2xl font-bold text-green-600">Low</p>
+                          <p className="text-sm text-muted-foreground">Overall platform risk</p>
+                        </div>
+                      </div>
+
+                      <div className="space-y-4">
+                        <h4 className="font-medium">Recent Threat Analysis</h4>
+                        {[
+                          {
+                            threat: "SQL Injection Attempt",
+                            source: "203.0.113.1",
+                            severity: "High",
+                            blocked: true,
+                            time: "30 min ago"
+                          },
+                          {
+                            threat: "XSS Attack Vector",
+                            source: "198.51.100.2", 
+                            severity: "Medium",
+                            blocked: true,
+                            time: "1 hour ago"
+                          },
+                          {
+                            threat: "Rate Limit Abuse",
+                            source: "192.0.2.3",
+                            severity: "Low",
+                            blocked: false,
+                            time: "2 hours ago"
+                          }
+                        ].map((threat, i) => (
+                          <div key={i} className="flex items-center justify-between p-3 border rounded-lg">
+                            <div className="flex-1">
+                              <p className="font-medium">{threat.threat}</p>
+                              <p className="text-sm text-muted-foreground">Source: {threat.source}</p>
+                            </div>
+                            <div className="text-center">
+                              <Badge variant={
+                                threat.severity === 'High' ? 'destructive' : 
+                                threat.severity === 'Medium' ? 'default' : 'secondary'
+                              }>
+                                {threat.severity}
+                              </Badge>
+                            </div>
+                            <div className="text-center">
+                              <Badge variant={threat.blocked ? 'default' : 'destructive'}>
+                                {threat.blocked ? 'Blocked' : 'Active'}
+                              </Badge>
+                            </div>
+                            <div className="text-right">
+                              <p className="text-xs text-muted-foreground">{threat.time}</p>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </CardContent>
+                  </Card>
+                </TabsContent>
+
+                <TabsContent value="compliance" className="space-y-4">
+                  <Card>
+                    <CardHeader>
+                      <CardTitle>Compliance & Privacy</CardTitle>
+                      <CardDescription>Monitor compliance with privacy regulations and data protection</CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div className="space-y-4">
+                          <h4 className="font-medium">Data Protection Compliance</h4>
+                          <div className="space-y-3">
+                            {[
+                              { item: "GDPR Compliance", status: "Compliant", color: "green" },
+                              { item: "CCPA Compliance", status: "Compliant", color: "green" },
+                              { item: "Data Retention Policy", status: "Active", color: "green" },
+                              { item: "Privacy Policy Updates", status: "Pending", color: "yellow" }
+                            ].map((item, i) => (
+                              <div key={i} className="flex items-center justify-between">
+                                <span className="text-sm">{item.item}</span>
+                                <Badge variant={item.color === 'green' ? 'default' : 'secondary'}>
+                                  {item.status}
+                                </Badge>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+
+                        <div className="space-y-4">
+                          <h4 className="font-medium">Security Audits</h4>
+                          <div className="space-y-3">
+                            {[
+                              { audit: "Security Penetration Test", date: "2024-01-15", status: "Passed" },
+                              { audit: "Data Access Review", date: "2024-01-10", status: "Passed" },
+                              { audit: "Encryption Standards", date: "2024-01-05", status: "Passed" },
+                              { audit: "Access Control Review", date: "2024-01-01", status: "Action Required" }
+                            ].map((audit, i) => (
+                              <div key={i} className="p-3 border rounded">
+                                <div className="flex items-center justify-between">
+                                  <span className="text-sm font-medium">{audit.audit}</span>
+                                  <Badge variant={audit.status === 'Passed' ? 'default' : 'destructive'}>
+                                    {audit.status}
+                                  </Badge>
+                                </div>
+                                <p className="text-xs text-muted-foreground mt-1">{audit.date}</p>
+                              </div>
+                            ))}
                           </div>
                         </div>
                       </div>
