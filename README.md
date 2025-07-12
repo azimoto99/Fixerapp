@@ -44,11 +44,11 @@ Fixer is a production-ready gig economy platform with advanced security features
 - **Application Management** – Comprehensive hiring workflow
 - **Job Lifecycle Tracking** – From posting to completion with status updates
 
-### 💳 **Payment & Financial**
-- **Secure Payments** – PayPal integration with escrow system
-- **Payment Intent Management** – Secure payment processing with fraud protection
-- **Transaction History** – Comprehensive payment tracking and reporting
-- **Enterprise Billing** – Advanced invoicing and payment management
+### 💳 **Payment Coordination**
+- **Payment Amount Display** – Clear payment expectations for jobs
+- **User-Controlled Payments** – Direct coordination between users without platform processing
+- **Payment Communication** – Built-in messaging for payment arrangements
+- **Enterprise Features** – Advanced job management and coordination
 
 ### 📊 **Analytics & Reporting**
 - **Poster Dashboard** – Job performance, application analytics, worker management
@@ -68,7 +68,7 @@ Fixer is a production-ready gig economy platform with advanced security features
 | Backend          | Node.js, Express, TypeScript                    |
 | Database         | PostgreSQL, Drizzle ORM                         |
 | Authentication   | Session-based auth with secure cookies          |
-| Payments         | PayPal Orders, Payouts & Marketplace             |
+| Payment Display  | User-controlled payment coordination             |
 | File Storage     | AWS S3                                           |
 | Maps & Location  | Mapbox API                                       |
 | Real-time        | WebSocket server                                 |
@@ -100,7 +100,6 @@ Fixerapp/
 
 - Node.js ≥ 18 & npm
 - PostgreSQL database
-- PayPal account (for payments)
 - AWS account (for S3 storage)
 - Mapbox account (for location services)
 
@@ -149,12 +148,6 @@ DATABASE_URL=postgresql://username:password@localhost:5432/fixer
 
 # Session
 SESSION_SECRET=your-super-secret-session-key
-
-# PayPal
-PAYPAL_CLIENT_ID=your_paypal_client_id
-PAYPAL_CLIENT_SECRET=your_paypal_client_secret
-VITE_PAYPAL_CLIENT_ID=your_paypal_client_id
-PAYPAL_WEBHOOK_ID=your_webhook_id
 
 # AWS S3
 AWS_ACCESS_KEY_ID=your-access-key
@@ -207,7 +200,7 @@ The API provides comprehensive endpoints for:
 - **User Management** - Profile management, account type switching
 - **Job Management** - CRUD operations, search, filtering
 - **Applications** - Job applications and hiring workflow
-- **Payments** - Stripe integration for secure transactions
+- **Payment Coordination** - User-controlled payment arrangements
 - **Location Services** - GPS verification and geofencing
 - **Admin Functions** - Platform management and analytics
 

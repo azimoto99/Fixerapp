@@ -48,9 +48,7 @@ jobsRouter.post('/', isAuthenticated, async (req: JobRequest, res: Response) => 
       return res.status(400).json({ message: 'Payment amount is required for fixed-price jobs' });
     }
 
-    // Calculate service fee and total amount
-    const serviceFee = 2.5; // Fixed service fee of $2.50
-    const totalAmount = paymentAmount + serviceFee;
+    // No service fee - jobs are free to post
 
     // Log coordinates for debugging
     console.log('Backend: Creating job with coordinates:', {
@@ -68,8 +66,6 @@ jobsRouter.post('/', isAuthenticated, async (req: JobRequest, res: Response) => 
       location,
       paymentAmount: paymentType === 'hourly' ? hourlyRate : paymentAmount,
       paymentType,
-      serviceFee,
-      totalAmount,
       latitude,
       longitude,
       posterId: req.user.id,
@@ -244,11 +240,13 @@ jobsRouter.patch('/:id/status', isAuthenticated, async (req, res) => {
 // --------------------------------------------------------
 jobsRouter.get('/', optionalAuth, async (req: Request, res: Response) => {
   try {
-    const { page = '1', limit = '20', status, category, search, posterId } = req.query as Record<string, string>;
+    const { page = '1', limit = '20', status, category, search, posterId, hasCoordinates } = req.query as Record<string, string>;
     const pageNum = parseInt(page);
     const limitNum = parseInt(limit);
 
     let jobs = await storage.getJobs();
+
+    console.log(`Backend: Retrieved ${jobs.length} total jobs from storage`);
 
     if (status && status !== 'all') jobs = jobs.filter(j => j.status === status);
     if (category && category !== 'all') jobs = jobs.filter(j => j.category === category);
@@ -261,6 +259,21 @@ jobsRouter.get('/', optionalAuth, async (req: Request, res: Response) => {
     if (search) {
       const term = search.toLowerCase();
       jobs = jobs.filter(j => j.title.toLowerCase().includes(term) || j.description.toLowerCase().includes(term));
+    }
+    
+    // Filter for jobs with valid coordinates if requested
+    if (hasCoordinates === 'true') {
+      const jobsWithCoords = jobs.filter(j => {
+        const hasValidCoords = j.latitude !== null && 
+                              j.longitude !== null && 
+                              !isNaN(Number(j.latitude)) && 
+                              !isNaN(Number(j.longitude)) &&
+                              j.latitude !== 0 &&
+                              j.longitude !== 0;
+        return hasValidCoords;
+      });
+      console.log(`Backend: Filtered to ${jobsWithCoords.length} jobs with valid coordinates`);
+      jobs = jobsWithCoords;
     }
 
     jobs.sort((a, b) => new Date(b.datePosted).getTime() - new Date(a.datePosted).getTime());

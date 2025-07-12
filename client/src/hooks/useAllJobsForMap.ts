@@ -8,16 +8,21 @@ import { Job } from '@shared/schema';
  */
 export function useAllJobsForMap() {
   // Query all jobs that have coordinates, regardless of search filters or status
-  const { data: jobsResponse, isLoading, error } = useQuery<Job[]>({
+  const { data: jobsResponse, isLoading, error } = useQuery<{page: number, total: number, results: Job[]}>({
     queryKey: ['/api/jobs', 'map-display'],
     queryFn: async () => {
-      const response = await apiRequest('GET', '/api/jobs?hasCoordinates=true');
-      return response.json();
+      const response = await apiRequest('GET', '/api/jobs?hasCoordinates=true&limit=1000');
+      const data = await response.json();
+      console.log('Raw jobs response from backend:', data);
+      return data;
     }
   });
   
   // Process jobs to ensure coordinates are valid numbers
-  const processedJobs = (Array.isArray(jobsResponse) ? jobsResponse : []).map(job => {
+  const jobsArray = jobsResponse?.results || [];
+  console.log(`Hook: Processing ${jobsArray.length} jobs from backend response`);
+  
+  const processedJobs = jobsArray.map(job => {
     // Convert string coordinates to numbers if needed
     const latitude = typeof job.latitude === 'string' ? parseFloat(job.latitude) : job.latitude;
     const longitude = typeof job.longitude === 'string' ? parseFloat(job.longitude) : job.longitude;
@@ -38,6 +43,17 @@ export function useAllJobsForMap() {
   });
   
   console.log(`Map hook found ${processedJobs.length} jobs with valid coordinates`);
+  
+  // Debug: Log some job details if we have any
+  if (processedJobs.length > 0) {
+    console.log('Sample job coordinates:', processedJobs.slice(0, 3).map(job => ({
+      id: job.id,
+      title: job.title,
+      location: job.location,
+      latitude: job.latitude,
+      longitude: job.longitude
+    })));
+  }
   
   return {
     jobs: processedJobs,

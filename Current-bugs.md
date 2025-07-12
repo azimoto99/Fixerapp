@@ -41,12 +41,12 @@ This document tracks known bugs, potential issues, and areas requiring attention
    - **Impact**: Potential XSS if theme data is compromised
    - **Fix**: Use safer CSS-in-JS approach or validate theme data
 
-### Payment & Financial Issues
+### Legacy Code Issues
 
-7. **Stripe Integration Error Handling** - `/server/stripe-integration.ts:22,72`
-   - **Issue**: Non-null assertions on Stripe API responses without proper error handling
-   - **Impact**: Payment failures could crash the application
-   - **Fix**: Add proper error handling for Stripe API responses
+7. **Outdated Payment Processing References** - Various files
+   - **Issue**: Some references to old payment processing systems may still exist
+   - **Impact**: Confusion about current payment architecture
+   - **Fix**: Remove any remaining payment processing references
 
 ## 🟡 Medium Priority Bugs
 
@@ -163,7 +163,7 @@ This document tracks known bugs, potential issues, and areas requiring attention
 1. **Immediate Action Required**:
    - Fix XSS vulnerabilities (#5, #6, #12)
    - Fix authentication null pointer issues (#3, #4)
-   - Implement proper error handling for Stripe integration (#7)
+   - Remove any remaining payment processing references (#7)
    - Add database connection monitoring (#1)
 
 2. **Short Term (Next Sprint)**:
@@ -186,7 +186,7 @@ This document tracks known bugs, potential issues, and areas requiring attention
 
 ### Testing Recommendations
 
-- Add integration tests for payment flows
+- Add integration tests for job posting and application flows
 - Implement error scenario testing for admin panel
 - Add performance testing for database queries
 - Test memory leak scenarios in long-running sessions

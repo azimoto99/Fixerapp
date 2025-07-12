@@ -48,15 +48,14 @@ Fixer is a comprehensive gig-work platform that connects people who need help wi
 - **Multi-account Types**: Users can have Worker, Poster, and Enterprise accounts with the same email
 - **Location Verification**: GPS-based verification with anti-spoofing measures
 - **Real-time Communication**: WebSocket-based messaging and notifications
-- **Payment Processing**: PayPal integration with escrow and marketplace system
+- **User-Controlled Payments**: Direct payment coordination between users without platform processing
 - **Enterprise Features**: Bulk job posting, hub pins, position management
 
 ### Database Schema
 The application uses Drizzle ORM with PostgreSQL. Key tables include:
 - `users` - User accounts with multi-account type support
-- `jobs` - Job postings with location and payment data
+- `jobs` - Job postings with location and payment amount data
 - `applications` - Job applications and hiring workflow
-- `payments` - Payment processing and transaction history
 - `messages` - Real-time messaging system
 - `enterprise_businesses` - Enterprise account management
 - `hub_pins` - Enterprise location markers
@@ -66,7 +65,7 @@ The application uses Drizzle ORM with PostgreSQL. Key tables include:
 - Row Level Security (RLS) implemented for data protection
 - Content filtering and moderation
 - Location verification with fraud detection
-- PayPal integration for secure payment processing
+- User-controlled payment coordination without platform processing
 
 ## Development Guidelines
 
@@ -86,7 +85,6 @@ The application uses Drizzle ORM with PostgreSQL. Key tables include:
 ### Environment Variables Required
 - `DATABASE_URL` - PostgreSQL connection string
 - `SESSION_SECRET` - Session encryption key
-- PayPal credentials for payment processing
 - AWS credentials for S3 storage
 - Mapbox token for location services
 
@@ -96,7 +94,7 @@ Tests are located in `__tests__/` and cover:
 - API endpoint testing
 - Integration tests for key workflows
 - Location verification testing
-- Payment processing edge cases
+- Job posting and application workflows
 - Load testing scenarios
 
 Use Jest with TypeScript support. Run `npm test` to execute the full test suite.

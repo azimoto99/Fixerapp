@@ -5,7 +5,6 @@ import {
   Settings, 
   LogOut, 
   Star as StarIcon, 
-  Wallet,
   X,
   LayoutDashboard,
   Home,
@@ -31,7 +30,6 @@ import ProfileContentV2 from './drawer-contents/ProfileContentV2';
 import ReviewsContent from './drawer-contents/ReviewsContent';
 import SettingsContent from './drawer-contents/SettingsContentV2';
 import SupportContent from './drawer-contents/SupportContent';
-import EarningsContent from './drawer-contents/EarningsContent';
 import NotificationsContent from './drawer-contents/NotificationsContent';
 
 interface UserDrawerProps {
@@ -54,7 +52,6 @@ const UserDrawerV2: React.FC<UserDrawerProps> = ({
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [activeTab, setActiveTab] = useState<string>("profile");
-  const [activeSection, setActiveSection] = useState<string>("earnings");
   const [isOpen, setIsOpen] = useState(externalIsOpen || false);
   const [, navigate] = useLocation();
   
@@ -164,36 +161,6 @@ const UserDrawerV2: React.FC<UserDrawerProps> = ({
     switch (activeTab) {
       case "profile":
         return <ProfileContentV2 user={user} onSignOut={handleLogout} />;
-      case "wallet":
-        return (
-          <div className="space-y-3">
-            <div className="flex items-center justify-between">
-              <h2 className="text-sm font-semibold flex items-center gap-2">
-                <Wallet className="h-4 w-4" />
-                Wallet
-              </h2>
-              <div className="flex bg-muted rounded-lg p-1">
-                <Button
-                  variant={activeSection === 'earnings' ? 'default' : 'ghost'}
-                  size="sm"
-                  onClick={() => setActiveSection('earnings')}
-                  className="text-xs px-2 h-6"
-                >
-                  Earnings
-                </Button>
-                <Button
-                  variant={activeSection === 'payments' ? 'default' : 'ghost'}
-                  size="sm"
-                  onClick={() => setActiveSection('payments')}
-                  className="text-xs px-2 h-6"
-                >
-                  Payments
-                </Button>
-              </div>
-            </div>
-              <EarningsContent user={user} />
-          </div>
-        );
       case "reviews":
         return <ReviewsContent userId={user.id} />;
       case "settings":
@@ -310,15 +277,6 @@ const UserDrawerV2: React.FC<UserDrawerProps> = ({
                 >
                   <User className="h-3 w-3" />
                   Profile
-                </Button>
-                <Button
-                  variant={activeTab === 'wallet' ? 'default' : 'outline'}
-                  size="sm"
-                  onClick={() => handleTabChange('wallet')}
-                  className="flex items-center gap-1 text-xs px-2 py-1 h-8"
-                >
-                  <Wallet className="h-3 w-3" />
-                  Wallet
                 </Button>
                 <Button
                   variant={activeTab === 'reviews' ? 'default' : 'outline'}

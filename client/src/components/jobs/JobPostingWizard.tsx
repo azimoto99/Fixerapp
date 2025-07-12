@@ -142,6 +142,13 @@ export default function JobPostingWizard({ isOpen, onClose, onJobCreated, jobToE
   };
 
   const onSubmit = async (data: JobFormData) => {
+    // Prevent double submission
+    if (isSubmitting) {
+      console.log('JobPostingWizard: Submission already in progress, ignoring');
+      return;
+    }
+    
+    console.log('JobPostingWizard: Starting job submission');
     setIsSubmitting(true);
     
     try {
@@ -181,6 +188,9 @@ export default function JobPostingWizard({ isOpen, onClose, onJobCreated, jobToE
         title: isEditMode ? 'Job updated successfully!' : 'Job posted successfully!',
         description: isEditMode ? 'Your job has been updated.' : 'Your job is now live and workers can apply.',
       });
+      
+      // Close wizard before calling onJobCreated to prevent any re-renders during submission
+      onClose();
       onJobCreated(result.job);
     } catch (error) {
       console.error(`Job ${isEditMode ? 'updating' : 'posting'} error:`, error);
@@ -392,30 +402,6 @@ export default function JobPostingWizard({ isOpen, onClose, onJobCreated, jobToE
               )}
             </div>
 
-            {watchedValues.paymentAmount && (
-              <Alert>
-                <CheckCircle className="h-4 w-4" />
-                <AlertDescription>
-                  <div className="space-y-1">
-                    <p>Payment breakdown:</p>
-                    <div className="text-sm">
-                      <div className="flex justify-between">
-                        <span>Job payment:</span>
-                        <span>${watchedValues.paymentAmount}</span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span>Service fee (10%):</span>
-                        <span>${(watchedValues.paymentAmount * 0.1).toFixed(2)}</span>
-                      </div>
-                      <div className="flex justify-between font-medium border-t pt-1">
-                        <span>Total you pay:</span>
-                        <span>${(watchedValues.paymentAmount * 1.1).toFixed(2)}</span>
-                      </div>
-                    </div>
-                  </div>
-                </AlertDescription>
-              </Alert>
-            )}
           </div>
         );
 
@@ -510,7 +496,10 @@ export default function JobPostingWizard({ isOpen, onClose, onJobCreated, jobToE
             <Progress value={progress} className="h-2" />
           </div>
 
-          <form onSubmit={handleSubmit(onSubmit)}>
+          <form onSubmit={handleSubmit(onSubmit)} onInvalid={(e) => {
+            console.log('Form invalid:', e);
+            e.preventDefault();
+          }}>
             {renderStep()}
 
             <div className="flex justify-between pt-6 border-t mt-6">
