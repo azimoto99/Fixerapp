@@ -9,7 +9,6 @@ export default defineConfig(async ({ mode }) => {
   
   console.log('Vite environment variables loaded:');
   console.log(`NODE_ENV: ${env.NODE_ENV}`);
-  console.log(`VITE_PAYPAL_CLIENT_ID: ${env.VITE_PAYPAL_CLIENT_ID ? 'Set' : 'Not set'}`);
   console.log(`VITE_MAPBOX_ACCESS_TOKEN: ${env.VITE_MAPBOX_ACCESS_TOKEN ? 'Set' : 'Not set'}`);
   console.log(`MAPBOX_ACCESS_TOKEN: ${env.MAPBOX_ACCESS_TOKEN ? 'Set' : 'Not set'}`);
 
@@ -43,10 +42,8 @@ export default defineConfig(async ({ mode }) => {
       emptyOutDir: true
     },
     define: {
-      __VITE_PAYPAL_CLIENT_ID__: JSON.stringify(env.VITE_PAYPAL_CLIENT_ID),
       __VITE_MAPBOX_ACCESS_TOKEN__: JSON.stringify(env.VITE_MAPBOX_ACCESS_TOKEN),
-      'process.env.VITE_MAPBOX_ACCESS_TOKEN': JSON.stringify(env.VITE_MAPBOX_ACCESS_TOKEN),
-      'process.env.VITE_PAYPAL_CLIENT_ID': JSON.stringify(env.VITE_PAYPAL_CLIENT_ID)
+      'process.env.VITE_MAPBOX_ACCESS_TOKEN': JSON.stringify(env.VITE_MAPBOX_ACCESS_TOKEN)
     },
     server: {
       port: 5000,

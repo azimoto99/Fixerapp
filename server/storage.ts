@@ -4,8 +4,6 @@ import {
   applications, 
   reviews,
   tasks,
-  earnings,
-  payments,
   badges,
   userBadges,
   notifications,
@@ -21,10 +19,6 @@ import {
   type InsertReview,
   type Task,
   type InsertTask,
-  type Earning,
-  type InsertEarning,
-  type Payment,
-  type InsertPayment,
   type Badge,
   type InsertBadge,
   type UserBadge,
@@ -159,13 +153,10 @@ export interface IStorage {
   markMessageAsRead(messageId: number, userId: number): Promise<Message | undefined>;
   // Admin operations
   getAllJobs(): Promise<Job[]>;
-  getAllPayments(): Promise<Payment[]>;
-  getAllEarnings(): Promise<Earning[]>;
   getAllSupportTickets(): Promise<any[]>;
   getSupportTickets(): Promise<any[]>;
   updateSupportTicket(id: number, data: any): Promise<any>;
   deleteSupportTicket(id: number): Promise<any>;
-  getEarnings(userId: number): Promise<Earning[]>;
   addTicketResponse(responseData: any): Promise<any>;
   getUserById(id: number): Promise<User | undefined>;
   deleteUser(id: number): Promise<boolean>;
@@ -1302,23 +1293,6 @@ export class MemStorage implements IStorage {
 		return Array.from(this.jobs.values());
 	}
 
-	async getAllPayments(): Promise<any[]> {
-		return Array.from(this.payments.values());
-	}
-
-	async getAllEarnings(): Promise<any[]> {
-		// Calculate earnings from payments
-		const earnings = Array.from(this.payments.values())
-			.filter(payment => payment.status === 'completed')
-			.map(payment => ({
-				id: payment.id,
-				jobId: payment.jobId,
-				amount: payment.amount,
-				createdAt: payment.createdAt,
-				type: 'job_payment'
-			}));
-		return earnings;
-	}
 	async getAllSupportTickets(): Promise<any[]> {
 		return Array.from(this.supportTickets.values());
 	}

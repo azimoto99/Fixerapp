@@ -5,19 +5,16 @@ import { eq, and, like, notLike, desc, or, asc, gte, lte, count, sum, avg, sql, 
 import { db, pool } from './db';
 import { IStorage } from './storage';
 import {
-  users, jobs, applications, reviews, tasks, earnings, payments, badges, userBadges, notifications, contacts, contactRequests, messages, supportTickets, supportMessages, disputes, refunds, feedback, platformSettings,
+  users, jobs, applications, reviews, tasks, badges, userBadges, notifications, contacts, contactRequests, messages, supportTickets, supportMessages, disputes, feedback, platformSettings,
   User, InsertUser,
   Job, InsertJob,
   Application, InsertApplication,
   Review, InsertReview,
   Task, InsertTask,
-  Earning, InsertEarning,
-  Payment, InsertPayment,
   Badge, InsertBadge,
   UserBadge, InsertUserBadge,
   Notification, InsertNotification,
   Dispute, InsertDispute,
-  Refund, InsertRefund,
   Feedback, InsertFeedback
 } from '@shared/schema';
 import connectPg from "connect-pg-simple";
@@ -395,103 +392,74 @@ export class UnifiedStorage implements IStorage {
     }, [], `getApplicationsByUserId(${userId})`);
   }
 
-  // PAYMENT & EARNING OPERATIONS
+  // PAYMENT & EARNING OPERATIONS REMOVED - payment processing disabled
   async getAllPayments(
     { page = 1, limit = 10, search = '',
       status = 'all', type = 'all',
       sortBy = 'createdAt', sortOrder = 'desc' } = {}
-  ): Promise<Payment[]> {
-    const searchText = String(search);
-    return this.safeExecute(async () => {
-      if (searchText) {
-        return await db.select().from(payments)
-          .where(
-            sql`CAST(${payments.id} AS TEXT) LIKE ${`%${searchText}%`} OR 
-                ${payments.transactionId} LIKE ${`%${searchText}%`} OR 
-                ${payments.description} LIKE ${`%${searchText}%`}`
-          )
-          .orderBy(desc(payments.createdAt));
-      }
-      return await db.select().from(payments).orderBy(desc(payments.createdAt));
-    }, [], 'getAllPayments');
+  ): Promise<any[]> {
+    // Payment processing has been removed - returning empty array
+    return [];
   }
 
-  async getPayment(id: number): Promise<Payment | null> {
-    return this.safeExecute(async () => {
-      const result = await db.select().from(payments).where(eq(payments.id, id));
-      return result[0] || null;
-    }, null, `getPayment(${id})`);
+  async getPayment(id: number): Promise<any | null> {
+    // Payment processing has been removed
+    return null;
   }
 
-  async createPayment(paymentData: InsertPayment): Promise<Payment> {
-    return this.safeExecute(async () => {
-      const result = await db.insert(payments).values(paymentData).returning();
-      return result[0];
-    }, null as any, 'createPayment');
+  async createPayment(paymentData: any): Promise<any> {
+    // Payment processing has been removed
+    throw new Error('Payment processing has been disabled');
   }
 
-  async updatePayment(id: number, paymentData: Partial<Payment>): Promise<Payment | null> {
-    return this.safeExecute(async () => {
-      const result = await db.update(payments).set(paymentData).where(eq(payments.id, id)).returning();
-      return result[0] || null;
-    }, null, `updatePayment(${id})`);
+  async updatePayment(id: number, paymentData: any): Promise<any | null> {
+    // Payment processing has been removed
+    return null;
   }
 
   async deletePayment(id: number): Promise<boolean> {
-    return this.safeExecute(async () => {
-      await db.delete(payments).where(eq(payments.id, id));
-      return true;
-    }, false, `deletePayment(${id})`);
+    // Payment processing has been removed
+    return false;
   }
 
-  async getPaymentsByUserId(userId: number): Promise<Payment[]> {
-    return this.safeExecute(async () => {
-      return await db.select().from(payments).where(eq(payments.userId, userId)).orderBy(desc(payments.createdAt));
-    }, [], `getPaymentsByUserId(${userId})`);
+  async getPaymentsByUserId(userId: number): Promise<any[]> {
+    // Payment processing has been removed
+    return [];
   }
 
-  async getAllEarnings(): Promise<Earning[]> {
-    return this.safeExecute(async () => {
-      return await db.select().from(earnings).orderBy(desc(earnings.dateEarned));
-    }, [], 'getAllEarnings');
+  async getAllEarnings(): Promise<any[]> {
+    // Earnings processing has been removed
+    return [];
   }
 
-  async getEarning(id: number): Promise<Earning | null> {
-    return this.safeExecute(async () => {
-      const result = await db.select().from(earnings).where(eq(earnings.id, id));
-      return result[0] || null;
-    }, null, `getEarning(${id})`);
+  async getEarning(id: number): Promise<any | null> {
+    // Earnings processing has been removed
+    return null;
   }
 
-  async createEarning(earningData: InsertEarning): Promise<Earning> {
-    return this.safeExecute(async () => {
-      const result = await db.insert(earnings).values(earningData).returning();
-      return result[0];
-    }, null as any, 'createEarning');
+  async createEarning(earningData: any): Promise<any> {
+    // Earnings processing has been removed
+    throw new Error('Earnings processing has been disabled');
   }
 
-  async getEarningsByUserId(userId: number): Promise<Earning[]> {
-    return this.safeExecute(async () => {
-      return await db.select().from(earnings).where(eq(earnings.workerId, userId)).orderBy(desc(earnings.dateEarned));
-    }, [], `getEarningsByUserId(${userId})`);
+  async getEarningsByUserId(userId: number): Promise<any[]> {
+    // Earnings processing has been removed
+    return [];
   }
 
-  async getEarningsForWorker(workerId: number): Promise<Earning[]> {
-    return this.safeExecute(async () => {
-      return await db.select().from(earnings).where(eq(earnings.workerId, workerId)).orderBy(desc(earnings.dateEarned));
-    }, [], `getEarningsForWorker(${workerId})`);
+  async getEarningsForWorker(workerId: number): Promise<any[]> {
+    // Earnings processing has been removed
+    return [];
   }
 
-  async getEarningsForJob(jobId: number): Promise<Earning[]> {
-    return this.safeExecute(async () => {
-      return await db.select().from(earnings).where(eq(earnings.jobId, jobId)).orderBy(desc(earnings.dateEarned));
-    }, [], `getEarningsForJob(${jobId})`);
+  async getEarningsForJob(jobId: number): Promise<any[]> {
+    // Earnings processing has been removed
+    return [];
   }
 
-  async getEarnings(userId: number): Promise<Earning[]> {
-    return this.safeExecute(async () => {
-      return await db.select().from(earnings).where(eq(earnings.workerId, userId)).orderBy(desc(earnings.dateEarned));
-    }, [], `getEarnings(${userId})`);
+  async getEarnings(userId: number): Promise<any[]> {
+    // Earnings processing has been removed
+    return [];
   }
 
   // NOTIFICATION OPERATIONS
@@ -580,17 +548,13 @@ export class UnifiedStorage implements IStorage {
   }
 
   async getTotalPaymentsAmount(): Promise<number> {
-    return this.safeExecute(async () => {
-      const result = await db.select({ total: sum(payments.amount) }).from(payments);
-      return result[0].total || 0;
-    }, 0, 'getTotalPaymentsAmount');
+    // Payment processing has been removed
+    return 0;
   }
 
   async getTotalServiceFees(): Promise<number> {
-    return this.safeExecute(async () => {
-      const result = await db.select({ total: sum(payments.serviceFee) }).from(payments);
-      return result[0].total || 0;
-    }, 0, 'getTotalServiceFees');
+    // Payment processing has been removed
+    return 0;
   }
 
   async getJobCompletionRate(): Promise<number> {
@@ -971,47 +935,39 @@ export class UnifiedStorage implements IStorage {
     return this.getApplicationsByUserId(workerId);
   }
 
-  async getPaymentByTransactionId(transactionId: string): Promise<Payment | undefined> {
-    return this.safeExecute(async () => {
-      const result = await db.select().from(payments).where(eq(payments.transactionId, transactionId));
-      return result[0] || undefined;
-    }, undefined, `getPaymentByTransactionId(${transactionId})`);
+  async getPaymentByTransactionId(transactionId: string): Promise<any | undefined> {
+    // Payment processing has been removed
+    return undefined;
   }
 
-  async getPaymentByJobId(jobId: number): Promise<Payment | undefined> {
-    return this.safeExecute(async () => {
-      const result = await db.select().from(payments).where(eq(payments.jobId, jobId));
-      return result[0] || undefined;
-    }, undefined, `getPaymentByJobId(${jobId})`);
+  async getPaymentByJobId(jobId: number): Promise<any | undefined> {
+    // Payment processing has been removed
+    return undefined;
   }
 
-  async getPaymentsForUser(userId: number): Promise<Payment[]> {
-    return this.getPaymentsByUserId(userId);
+  async getPaymentsForUser(userId: number): Promise<any[]> {
+    // Payment processing has been removed
+    return [];
   }
 
-  async updatePaymentStatus(id: number, status: string, transactionId?: string): Promise<Payment | undefined> {
-    const updateData: any = { status };
-    if (transactionId) updateData.transactionId = transactionId;
-    return this.updatePayment(id, updateData);
+  async updatePaymentStatus(id: number, status: string, transactionId?: string): Promise<any | undefined> {
+    // Payment processing has been removed
+    return undefined;
   }
 
-  async updateEarningStatus(id: number, status: string, datePaid?: Date): Promise<Earning | undefined> {
-    const updateData: any = { status };
-    if (datePaid) updateData.datePaid = datePaid;
-    return this.safeExecute(async () => {
-      const result = await db.update(earnings).set(updateData).where(eq(earnings.id, id)).returning();
-      return result[0] || undefined;
-    }, undefined, `updateEarningStatus(${id})`);
+  async updateEarningStatus(id: number, status: string, datePaid?: Date): Promise<any | undefined> {
+    // Earnings processing has been removed
+    return undefined;
   }
 
   // STUB METHODS FOR COMPATIBILITY
-  async getAllReviews(): Promise<Review[]> { return []; }
-  async getReview(id: number): Promise<Review | undefined> { return undefined; }
-  async createReview(reviewData: InsertReview): Promise<Review> { return null as any; }
-  async updateReview(id: number, reviewData: Partial<Review>): Promise<Review | undefined> { return undefined; }
+  async getAllReviews(): Promise<any[]> { return []; }
+  async getReview(id: number): Promise<any | undefined> { return undefined; }
+  async createReview(reviewData: any): Promise<any> { return null as any; }
+  async updateReview(id: number, reviewData: any): Promise<any | undefined> { return undefined; }
   async deleteReview(id: number): Promise<boolean> { return true; }
-  async getReviewsForJob(jobId: number): Promise<Review[]> { return []; }
-  async getReviewsForUser(userId: number): Promise<Review[]> { return []; }
+  async getReviewsForJob(jobId: number): Promise<any[]> { return []; }
+  async getReviewsForUser(userId: number): Promise<any[]> { return []; }
 
   // Additional interface methods for full compatibility
   async getJobsForWorker(workerId: number, filter?: { status?: string }): Promise<Job[]> {

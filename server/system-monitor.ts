@@ -1,5 +1,4 @@
 import { storage } from './storage';
-import Stripe from 'stripe';
 import { loadavg } from 'os';
 import { sql } from 'drizzle-orm';
 
@@ -13,7 +12,6 @@ interface ServiceHealth {
 
 interface SystemMetrics {
   database: ServiceHealth;
-  stripe: ServiceHealth;
   email: ServiceHealth;
   api: ServiceHealth;
   memory: {
@@ -48,13 +46,6 @@ class SystemMonitor {
       enabled: true
     },
     {
-      id: 'stripe-response-time',
-      service: 'stripe',
-      threshold: 2000, // 2 seconds
-      type: 'response_time',
-      enabled: true
-    },
-    {
       id: 'memory-usage',
       service: 'system',
       threshold: 85, // 85% memory usage
@@ -75,9 +66,8 @@ class SystemMonitor {
   private totalRequests = 0;
 
   async getSystemHealth(): Promise<SystemMetrics> {
-    const [databaseHealth, stripeHealth, emailHealth, apiHealth] = await Promise.all([
+    const [databaseHealth, emailHealth, apiHealth] = await Promise.all([
       this.checkDatabaseHealth(),
-      this.checkStripeHealth(),
       this.checkEmailHealth(),
       this.checkApiHealth()
     ]);
@@ -87,7 +77,6 @@ class SystemMonitor {
 
     return {
       database: databaseHealth,
-      stripe: stripeHealth,
       email: emailHealth,
       api: apiHealth,
       memory: {
@@ -145,40 +134,6 @@ class SystemMonitor {
     }
   }
 
-  private async checkStripeHealth(): Promise<ServiceHealth> {
-    const startTime = Date.now();
-    try {
-      if (!process.env.STRIPE_SECRET_KEY) {
-        return {
-          status: 'warning',
-          lastChecked: new Date(),
-          error: 'Stripe API key not configured'
-        };
-      }
-
-      const stripe = new Stripe(process.env.STRIPE_SECRET_KEY, {
-        apiVersion: "2025-05-28.basil",
-      });
-
-      // Simple Stripe API health check
-      await stripe.balance.retrieve();
-      const responseTime = Date.now() - startTime;
-
-      return {
-        status: responseTime < 1000 ? 'healthy' : responseTime < 2000 ? 'warning' : 'critical',
-        responseTime,
-        lastChecked: new Date(),
-        uptime: 99.9
-      };
-    } catch (error) {
-      return {
-        status: 'critical',
-        responseTime: Date.now() - startTime,
-        lastChecked: new Date(),
-        error: error instanceof Error ? error.message : 'Stripe connection failed'
-      };
-    }
-  }
 
   private async checkEmailHealth(): Promise<ServiceHealth> {
     // For now, return a basic status - would integrate with actual email service
@@ -313,7 +268,6 @@ class SystemMonitor {
       overall: 99.9,
       services: {
         database: { uptime: systemHealth.database.uptime || 99.9, incidents: 1 },
-        stripe: { uptime: systemHealth.stripe.uptime || 99.8, incidents: 0 },
         email: { uptime: systemHealth.email.uptime || 99.7, incidents: 2 },
         api: { uptime: systemHealth.api.uptime || 99.95, incidents: 0 }
       },
@@ -344,7 +298,6 @@ class SystemMonitor {
     
     const services = {
       database: systemHealth.database,
-      stripe: systemHealth.stripe,
       email: systemHealth.email,
       api: systemHealth.api
     };

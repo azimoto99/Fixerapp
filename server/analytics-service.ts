@@ -52,12 +52,14 @@ class AnalyticsService {
     const end = endDate || new Date();
     const start = startDate || new Date(Date.now() - 30 * 24 * 60 * 60 * 1000); // 30 days ago
 
-    const [users, jobs, payments, earnings] = await Promise.all([
+    const [users, jobs] = await Promise.all([
       storage.getAllUsers(),
-      storage.getAllJobs(),
-      storage.getAllPayments(),
-      storage.getAllEarnings()
+      storage.getAllJobs()
     ]);
+    
+    // Payment processing has been removed - using placeholder data
+    const payments: any[] = [];
+    const earnings: any[] = [];
 
     // Filter data by date range
     const filteredUsers = users.filter(user => {
@@ -177,43 +179,14 @@ class AnalyticsService {
   }
 
   private calculateFinancialMetrics(allPayments: any[], periodPayments: any[], earnings: any[]) {
-    const completedPayments = allPayments.filter(p => p.status === 'completed');
-    const periodCompletedPayments = periodPayments.filter(p => p.status === 'completed');
-    
-    const totalRevenue = completedPayments.reduce((sum, p) => sum + (p.amount || 0), 0);
-    const monthlyRevenue = periodCompletedPayments.reduce((sum, p) => sum + (p.amount || 0), 0);
-    const platformFees = completedPayments.reduce((sum, p) => sum + (p.serviceFee || 0), 0);
-    
-    const averageTransactionValue = completedPayments.length > 0 
-      ? totalRevenue / completedPayments.length 
-      : 0;
-
-    // Calculate growth rate
-    const now = new Date();
-    const lastMonthStart = new Date(now.getFullYear(), now.getMonth() - 1, 1);
-    const lastMonthEnd = new Date(now.getFullYear(), now.getMonth(), 0);
-    
-    const lastMonthPayments = allPayments.filter(p => {
-      const paymentDate = p.createdAt || new Date();
-      return paymentDate >= lastMonthStart && paymentDate <= lastMonthEnd && p.status === 'completed';
-    });
-    
-    const lastMonthRevenue = lastMonthPayments.reduce((sum, p) => sum + (p.amount || 0), 0);
-    const revenueGrowth = lastMonthRevenue > 0 
-      ? ((monthlyRevenue - lastMonthRevenue) / lastMonthRevenue) * 100 
-      : 0;
-
-    const paymentSuccess = allPayments.length > 0 
-      ? (completedPayments.length / allPayments.length) * 100 
-      : 0;
-
+    // Payment processing has been removed - returning placeholder financial metrics
     return {
-      totalRevenue: Math.round(totalRevenue * 100) / 100,
-      monthlyRevenue: Math.round(monthlyRevenue * 100) / 100,
-      platformFees: Math.round(platformFees * 100) / 100,
-      averageTransactionValue: Math.round(averageTransactionValue * 100) / 100,
-      revenueGrowth: Math.round(revenueGrowth * 100) / 100,
-      paymentSuccess: Math.round(paymentSuccess * 100) / 100
+      totalRevenue: 0,
+      monthlyRevenue: 0,
+      platformFees: 0,
+      averageTransactionValue: 0,
+      revenueGrowth: 0,
+      paymentSuccess: 100
     };
   }
 
@@ -317,13 +290,8 @@ class AnalyticsService {
           break;
           
         case 'revenue':
-          const payments = await storage.getAllPayments();
-          value = payments
-            .filter(payment => {
-              const paymentDate = new Date(payment.createdAt || 0);
-              return paymentDate.toDateString() === date.toDateString() && payment.status === 'completed';
-            })
-            .reduce((sum, payment) => sum + (payment.amount || 0), 0);
+          // Payment processing has been removed - using placeholder data
+          value = 0;
           break;
           
         default:

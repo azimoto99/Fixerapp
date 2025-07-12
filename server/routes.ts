@@ -5,7 +5,6 @@ import { storage } from "./storage";
 import { isAdmin, requireAuth, getAuthenticatedUser, isAuthenticatedRequest } from "./auth-helpers";
 import { connectionManager } from "./connection-manager";
 import { UnifiedWebSocketService } from "./websocket-unified";
-import { createJobWithPaymentFirst, updateJobWithPaymentCheck } from './payment-first-job-posting';
 import { applySecurity, sanitizeInput, validateSqlInput, validatePasswordStrength, validateEmail, validatePhoneNumber, logSecurityEvent, securityConfig } from './security-config';
 import { sqlInjectionProtection, secureValidationSchemas, handleValidationErrors, sanitizeSqlInput, protectedDbQuery } from './sql-injection-protection';
 import { validators, sanitizeRequest, enhancedAdminAuth } from './secure-endpoints';
@@ -23,7 +22,6 @@ import {
   reviews, 
   messages, 
   notifications, 
-  earnings,
   adminUsers,
   adminAuditLog,
   platformAnalytics,
@@ -34,7 +32,6 @@ import {
   supportTickets,
   supportMessages,
   disputes,
-  refunds,
   type DbUser // Import DbUser type
 } from "@shared/schema";
 import multer from 'multer';
@@ -91,8 +88,6 @@ import {
   insertApplicationSchema, 
   insertReviewSchema,
   insertTaskSchema,
-  insertEarningSchema,
-  insertPaymentSchema,
   insertBadgeSchema,
   insertUserBadgeSchema,  JOB_CATEGORIES,
   SKILLS,
@@ -2007,9 +2002,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Admin Transactions endpoint (missing endpoint causing 503)
   apiRouter.get("/admin/transactions", isAuthenticated, isAdmin, async (req: Request, res: Response) => {
     try {
-      // Get all payments and earnings as transactions
-      const allPayments = await storage.getAllPayments();
-      const allEarnings = await storage.getAllEarnings();
+      // Payment and earnings processing has been removed - using placeholder data
+      const allPayments: any[] = [];
+      const allEarnings: any[] = [];
       const allUsers = await storage.getAllUsers();
       const allJobs = await storage.getJobs();
 
@@ -2019,32 +2014,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       // Combine payments and earnings into transactions
       const transactions = [
-        ...allPayments.map(payment => ({
-          id: `payment-${payment.id}`,
-          type: 'payment',
-          amount: payment.amount || 0,
-          status: payment.status || 'pending',
-          date: payment.createdAt || new Date().toISOString(),
-          userId: payment.userId,
-          jobId: payment.jobId || 0,
-          user: userMap.get(payment.userId || 0),
-          job: jobMap.get(payment.jobId || 0),
-          description: `Payment for job: ${jobMap.get(payment.jobId || 0)?.title || 'Unknown Job'}`,
-          serviceFee: payment.serviceFee || 0
-        })),
-        ...allEarnings.map(earning => ({
-          id: `earning-${earning.id}`,
-          type: 'earning',
-          amount: earning.amount || 0,
-          status: earning.status || 'pending',
-          date: earning.dateEarned || new Date().toISOString(),
-          userId: earning.userId,
-          jobId: earning.jobId || 0,
-          user: userMap.get(earning.userId || 0),
-          job: jobMap.get(earning.jobId || 0),
-          description: `Earning from job: ${jobMap.get(earning.jobId || 0)?.title || 'Unknown Job'}`,
-          netAmount: earning.netAmount || 0
-        }))
+        // Payment and earnings processing has been removed - no transactions to display
       ];
 
       // Sort by date (newest first)
@@ -2393,18 +2363,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // lead to unexpected middleware execution counts and performance issues.
   // registerAdminRoutes(app);
 
-  // CRITICAL: Add the payment-first job posting route to fix revenue leak
-  apiRouter.post("/jobs/payment-first", isAuthenticated, async (req: Request, res: Response) => {
-    try {
-      await createJobWithPaymentFirst(req, res);
-    } catch (error) {
-      console.error('Payment-first job posting error:', error);
-      res.status(500).json({ 
-        success: false, 
-        message: 'Failed to create job with payment' 
-      });
-    }
-  });
 
   // Test job posting route (bypasses payment for testing)
   apiRouter.post("/jobs/test", isAuthenticated, async (req: Request, res: Response) => {
@@ -2476,10 +2434,25 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Standard job posting route (alias to payment-first)
+  // Standard job posting route (no payment processing)
   apiRouter.post("/jobs", isAuthenticated, async (req, res) => {
-    try { await createJobWithPaymentFirst(req, res); }
-    catch (error) { console.error('Job posting error:', error); res.status(500).json({ success: false, message: 'Failed to post job' }); }
+    try {
+      if (!req.user) {
+        return res.status(401).json({ message: 'Not authenticated' });
+      }
+
+      const jobData = { ...req.body, posterId: req.user.id };
+      const job = await storage.createJob(jobData);
+      
+      res.json({ 
+        success: true, 
+        job,
+        message: 'Job posted successfully! Workers can now apply and you\'ll arrange payment directly with them.'
+      });
+    } catch (error) { 
+      console.error('Job posting error:', error); 
+      res.status(500).json({ success: false, message: 'Failed to post job' }); 
+    }
   });
 
 

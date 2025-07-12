@@ -34,7 +34,6 @@ class ErrorBoundary extends React.Component<{children: React.ReactNode}, {hasErr
           <p>Check the browser console for more details</p>
           <p>Common issues:</p>
           <ul>
-            <li>Missing VITE_STRIPE_PUBLIC_KEY in .env file</li>
             <li>Missing VITE_MAPBOX_ACCESS_TOKEN in .env file</li>
           </ul>
         </div>

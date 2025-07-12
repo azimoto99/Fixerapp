@@ -749,25 +749,15 @@ export class FixedDatabaseStorage implements IStorage {
   }
 
   async getAllPayments() {
-    try {
-      // Get all payments using database query
-      const result = await this.db.select().from(require('@shared/schema').payments);
-      return result;
-    } catch (error) {
-      console.error("Error in getAllPayments:", error);
-      return [];
-    }
+    // Payment processing has been removed - returning empty array
+    console.log("getAllPayments called but payment processing has been disabled");
+    return [];
   }
 
   async getAllEarnings() {
-    try {
-      // Get all earnings using database query
-      const result = await this.db.select().from(require('@shared/schema').earnings);
-      return result;
-    } catch (error) {
-      console.error("Error in getAllEarnings:", error);
-      return [];
-    }
+    // Earnings processing has been removed - returning empty array
+    console.log("getAllEarnings called but earnings processing has been disabled");
+    return [];
   }
 
   async getUserById(id: number) {

@@ -1,6 +1,6 @@
 import express from 'express';
 import { db } from '../db.js';
-import { jobs, applications, users, earnings } from '@shared/schema';
+import { jobs, applications, users } from '@shared/schema';
 import { eq, and, gte, lte, desc, count, avg, sum, inArray } from 'drizzle-orm';
 import { requireAuth } from '../auth-helpers.js';
 
@@ -300,31 +300,23 @@ router.get('/worker', requireAuth, async (req, res) => {
       workerAverageRating = null;
     }
 
-    // Get real earnings data
+    // Payment processing removed - calculate earnings from completed jobs
     let totalEarnings = 0;
     let completedJobsCount = 0;
     try {
-      const workerEarnings = await db
-        .select()
-        .from(earnings)
-        .where(and(
-          eq(earnings.workerId, userId),
-          gte(earnings.dateEarned, startDate)
-        ));
       
-      totalEarnings = workerEarnings.reduce((sum: number, earning: any) => sum + (earning.netAmount || 0), 0);
-      
-      // Get completed jobs count
+      // Get completed jobs and calculate earnings
       const acceptedJobIds = acceptedApplications.map((app: any) => app.jobId);
       if (acceptedJobIds.length > 0) {
         const completedJobs = await db
-          .select({ count: count() })
+          .select()
           .from(jobs)
           .where(and(
             inArray(jobs.id, acceptedJobIds),
             eq(jobs.status, 'completed')
           ));
-        completedJobsCount = completedJobs[0]?.count || 0;
+        completedJobsCount = completedJobs.length;
+        totalEarnings = completedJobs.reduce((sum: number, job: any) => sum + (job.paymentAmount || 0), 0);
       }
     } catch (error) {
       console.error('Error fetching worker earnings:', error);

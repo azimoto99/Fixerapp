@@ -4,7 +4,7 @@
 // @ts-nocheck
 import { storage } from './storage';
 import { db } from './db';
-import { users, jobs, applications, payments, earnings } from '@shared/schema';
+import { users, jobs, applications } from '@shared/schema';
 import { sql, eq, and, gte, lte, desc, asc, count, sum, avg, or, like } from 'drizzle-orm';
 import { DatabaseStorage } from './database-storage';
 
@@ -138,35 +138,7 @@ const adminMethods = {
     return this.getJob(jobId);
   },
 
-  // Payment-related functions
-  getTotalPaymentsAmount: async function(): Promise<number> {
-    const result = await db.select({ total: sum(payments.amount) }).from(payments);
-    return result[0].total || 0;
-  },
-
-  getTotalServiceFees: async function(): Promise<number> {
-    const result = await db.select({ total: sum(payments.serviceFee) }).from(payments);
-    return result[0].total || 0;
-  },
-
-  getAllPayments: async function(search?: string): Promise<any[]> {
-    if (search) {
-      return await db.select().from(payments)
-        .where(
-          sql`CAST(${payments.id} AS TEXT) LIKE ${`%${search}%`} OR 
-              ${payments.transactionId} LIKE ${`%${search}%`} OR 
-              ${payments.description} LIKE ${`%${search}%`}`
-        )
-        .orderBy(desc(payments.createdAt));
-    }
-    return await db.select().from(payments).orderBy(desc(payments.createdAt));
-  },
-
-  deletePayment: async function(paymentId: number): Promise<boolean> {
-    // This should be a soft delete in a real application
-    await db.delete(payments).where(eq(payments.id, paymentId));
-    return true;
-  },
+  // Payment-related functions removed - payment processing disabled
 
   // Analytics functions
   getJobCompletionRate: async function(): Promise<number> {
@@ -199,7 +171,7 @@ const adminMethods = {
   // Activity tracking
   getRecentActivity: async function(days: number = 30): Promise<any[]> {
     // This is a placeholder. In a real application, you'd have an activity log table
-    // For now, we'll simulate it with recent jobs and payments
+    // For now, we'll simulate it with recent jobs only (payments removed)
     const date = new Date();
     date.setDate(date.getDate() - days);
     
@@ -211,163 +183,16 @@ const adminMethods = {
     })
     .from(jobs)
     .where(gte(jobs.datePosted, date))
-    .limit(10);
+    .limit(20);
     
-    const recentPayments = await db.select({
-      id: payments.id,
-      type: sql<string>`'payment'`,
-      description: sql<string>`CONCAT('Payment processed: $', ${payments.amount})`,
-      timestamp: payments.createdAt
-    })
-    .from(payments)
-    .where(gte(payments.createdAt, date))
-    .limit(10);
-    
-    // Combine and sort
-    return [...recentJobs, ...recentPayments]
-      .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())
-      .slice(0, 20);
+    return recentJobs.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
   }
 };
 
-// Payment processing extensions
-const paymentMethods = {
-  // Process a payment from start to finish
-  processFullPayment: async function(data: {
-    userId: number;
-    jobId?: number;
-    amount: number;
-    paymentMethodId: string;
-    description: string;
-  }): Promise<any> {
-    try {
-      // 1. Create a pending payment record
-      const payment = await this.createPayment({
-        userId: data.userId,
-        jobId: data.jobId,
-        amount: data.amount,
-        serviceFee: data.amount * 0.05, // 5% service fee
-        type: 'payment',
-        status: 'pending',
-        paymentMethod: 'card',
-        description: data.description
-      });
-      
-      // 2. Create a Stripe payment intent
-      const stripeModule = await import('./api/stripe-api');
-      const stripe = stripeModule.getStripeClient();
-      
-      const paymentIntent = await stripe.paymentIntents.create({
-        amount: Math.round(data.amount * 100), // Convert to cents
-        currency: 'usd',
-        payment_method: data.paymentMethodId,
-        confirm: true,
-        description: data.description,
-        metadata: {
-          paymentId: payment.id.toString(),
-          userId: data.userId.toString(),
-          jobId: data.jobId ? data.jobId.toString() : '',
-        }
-      });
-      
-      // 3. Update the payment record with Stripe details
-      const updatedPayment = await this.updatePaymentStatus(
-        payment.id,
-        paymentIntent.status === 'succeeded' ? 'completed' : 'processing',
-        paymentIntent.id
-      );
-      
-      // 4. If job payment, link to the job
-      if (data.jobId) {
-        await this.updateJob(data.jobId, {
-          paymentStatus: paymentIntent.status === 'succeeded' ? 'paid' : 'processing'
-        });
-      }
-      
-      return {
-        payment: updatedPayment,
-        paymentIntent
-      };
-    } catch (error) {
-      console.error('Payment processing error:', error);
-      throw error;
-    }
-  },
-  
-  // Process payment to a worker
-  processWorkerPayment: async function(data: {
-    jobId: number;
-    workerId: number;
-    amount: number;
-    description: string;
-  }): Promise<any> {
-    try {
-      const job = await this.getJob(data.jobId);
-      if (!job) {
-        throw new Error('Job not found');
-      }
-      
-      const worker = await this.getUser(data.workerId);
-      if (!worker) {
-        throw new Error('Worker not found');
-      }
-      
-      if (!worker.stripeConnectAccountId) {
-        throw new Error('Worker does not have a Stripe Connect account');
-      }
-      
-      // 1. Create an earning record
-      const earning = await this.createEarning({
-        workerId: data.workerId,
-        jobId: data.jobId,
-        amount: data.amount,
-        serviceFee: data.amount * 0.05,
-        netAmount: data.amount - (data.amount * 0.05),
-        description: data.description,
-        stripeAccountId: worker.stripeConnectAccountId
-      });
-      
-      // 2. Create a Stripe transfer
-      const stripeModule = await import('./api/stripe-api');
-      const stripe = stripeModule.getStripeClient();
-      
-      const transfer = await stripe.transfers.create({
-        amount: Math.round((data.amount - (data.amount * 0.05)) * 100), // Convert to cents, minus 5% fee
-        currency: 'usd',
-        destination: worker.stripeConnectAccountId,
-        description: `Payment for job #${data.jobId}: ${data.description}`,
-        metadata: {
-          earningId: earning.id.toString(),
-          workerId: data.workerId.toString(),
-          jobId: data.jobId.toString()
-        }
-      });
-      
-      // 3. Update the earning record with transfer details
-      const updatedEarning = await this.updateEarningStatus(
-        earning.id,
-        'paid',
-        new Date()
-      );
-      
-      // 4. Mark the job as paid to the worker
-      await this.updateJob(data.jobId, {
-        workerPaymentStatus: 'paid'
-      });
-      
-      return {
-        earning: updatedEarning,
-        transfer
-      };
-    } catch (error) {
-      console.error('Worker payment processing error:', error);
-      throw error;
-    }
-  }
-};
+// Payment processing extensions removed - payment processing disabled
 
 // Add extension methods to the storage interface
-Object.assign(DatabaseStorage.prototype, adminMethods, paymentMethods);
+Object.assign(DatabaseStorage.prototype, adminMethods);
 
 // Ensure the extensions are recognized by TypeScript
 declare module './database-storage' {
@@ -394,27 +219,12 @@ declare module './database-storage' {
       sortOrder?: 'asc' | 'desc';
     }): Promise<{jobs: any[], total: number}>;
     getJobsByStatus(status: string): Promise<any[]>;
-    getTotalPaymentsAmount(): Promise<number>;
-    getTotalServiceFees(): Promise<number>;
-    getAllPayments(search?: string): Promise<any[]>;
-    deletePayment(paymentId: number): Promise<boolean>;
+    // Payment methods removed - payment processing disabled
     getJobCompletionRate(): Promise<number>;
     getAverageJobValue(): Promise<number>;
     getApplicationSuccessRate(): Promise<number>;
     getRecentActivity(days?: number): Promise<any[]>;
-    processFullPayment(data: {
-      userId: number;
-      jobId?: number;
-      amount: number;
-      paymentMethodId: string;
-      description: string;
-    }): Promise<any>;
-    processWorkerPayment(data: {
-      jobId: number;
-      workerId: number;
-      amount: number;
-      description: string;
-    }): Promise<any>;
+    // Payment processing methods removed - payment processing disabled
   }
 }
 

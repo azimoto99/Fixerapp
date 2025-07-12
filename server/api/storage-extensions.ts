@@ -8,11 +8,7 @@
 import { storage } from '../storage';
 import { 
   User, 
-  Job, 
-  Payment, 
-  Earning,
-  earnings as earningsTable,
-  payments as paymentsTable, 
+  Job,
   users as usersTable,
   jobs as jobsTable 
 } from '@shared/schema';

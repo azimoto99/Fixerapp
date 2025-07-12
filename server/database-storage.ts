@@ -3,14 +3,12 @@ import { eq, and, like, notLike, desc, or, asc, sql } from 'drizzle-orm';
 import { db } from './db';
 import { IStorage } from './storage';
 import {
-  users, jobs, applications, reviews, tasks, earnings, payments, badges, userBadges, notifications, messages,
+  users, jobs, applications, reviews, tasks, badges, userBadges, notifications, messages,
   User, InsertUser,
   Job, InsertJob,
   Application, InsertApplication,
   Review, InsertReview,
   Task, InsertTask,
-  Earning, InsertEarning,
-  Payment, InsertPayment,
   Badge, InsertBadge, 
   UserBadge, InsertUserBadge,
   Notification, InsertNotification

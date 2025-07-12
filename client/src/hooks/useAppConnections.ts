@@ -3,14 +3,13 @@ import { useAuth } from './use-auth';
 import { useWebSocket } from '@/contexts/WebSocketContext';
 import { useNotificationSystem } from './useNotificationSystem';
 import { useJobLifecycle } from './useJobLifecycle';
-import { usePaymentFlow } from './usePaymentFlow';
 import { useAdminSystem } from './useAdminSystem';
 import { useQueryClient } from '@tanstack/react-query';
 import { useToast } from './use-toast';
 
 /**
  * Central connection manager that coordinates all app systems
- * This hook ensures proper flow between authentication, jobs, payments, notifications, etc.
+ * This hook ensures proper flow between authentication, jobs, notifications, etc.
  */
 export function useAppConnections() {
   const { user, isLoading: authLoading } = useAuth();
@@ -24,9 +23,6 @@ export function useAppConnections() {
     switch (message.type) {
       case 'job_update':
         handleJobUpdate(message.data);
-        break;
-      case 'payment_update':
-        handlePaymentUpdate(message.data);
         break;
       case 'application_update':
         handleApplicationUpdate(message.data);
@@ -69,7 +65,6 @@ export function useAppConnections() {
 
   const { notifications, unreadCount, markAsRead } = useNotificationSystem();
   const jobLifecycle = useJobLifecycle();
-  const paymentFlow = usePaymentFlow();
   const adminSystem = useAdminSystem();
 
   // Specific event handlers
@@ -112,27 +107,6 @@ export function useAppConnections() {
     }
   }, [user?.id, queryClient, toast]);
 
-  const handlePaymentUpdate = useCallback((paymentData: any) => {
-    console.log('Payment update received:', paymentData);
-    
-    // Invalidate payment-related queries
-    queryClient.invalidateQueries({ queryKey: ['/api/payments'] });
-    queryClient.invalidateQueries({ queryKey: ['/api/earnings'] });
-    
-    // Show payment status toast
-    if (paymentData.status === 'succeeded') {
-      toast({
-        title: "Payment Processed",
-        description: `Payment of $${paymentData.amount} has been processed successfully.`,
-      });
-    } else if (paymentData.status === 'failed') {
-      toast({
-        title: "Payment Failed",
-        description: "There was an issue processing your payment. Please try again.",
-        variant: "destructive",
-      });
-    }
-  }, [queryClient, toast]);
 
   const handleApplicationUpdate = useCallback((applicationData: any) => {
     console.log('Application update received:', applicationData);
@@ -206,26 +180,9 @@ export function useAppConnections() {
       leaveJobRoom(job.id);
     }
     
-    // Trigger payment processing if applicable
-    if (job.workerId && job.paymentAmount) {
-      console.log('Triggering automatic payment processing for completed job');
-      // Payment processing is handled automatically by the backend
-    }
+    // Job completed - workers handle payment directly with posters
   }, [leaveJobRoom]);
 
-  // Payment flow event handlers
-  const handlePaymentSuccess = useCallback((payment: any) => {
-    console.log('Payment successful:', payment);
-    
-    // Invalidate relevant queries
-    queryClient.invalidateQueries({ queryKey: ['/api/jobs'] });
-    queryClient.invalidateQueries({ queryKey: ['/api/payments'] });
-    
-    toast({
-      title: "Payment Successful!",
-      description: "Your payment has been processed and the job is now active.",
-    });
-  }, [queryClient, toast]);
 
   // Admin system event handlers
   const handleAdminAction = useCallback((action: string, target: any) => {
@@ -317,13 +274,11 @@ export function useAppConnections() {
     
     // System managers
     jobLifecycle,
-    paymentFlow,
     adminSystem,
     
     // Event handlers (for external use)
     handleJobCreated,
     handleJobCompleted,
-    handlePaymentSuccess,
     handleAdminAction,
     
     // WebSocket event handlers
