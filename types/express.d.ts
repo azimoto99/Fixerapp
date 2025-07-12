@@ -18,13 +18,10 @@ declare global {
       rating?: number | null;
       completedJobs?: number | null;      accountType: string;
       isVerified?: boolean | null;
-      stripeCustomerId?: string | undefined;
-      stripeConnectAccountId?: string | undefined;
-      stripeConnectAccountStatus?: string | undefined;
-      stripeTermsAccepted?: boolean | undefined;
-      stripeTermsAcceptedAt?: Date | undefined;
-      stripeRepresentativeName?: string | undefined;
-      stripeRepresentativeTitle?: string | undefined;
+      paypalEmail?: string | undefined;
+      paypalAccountStatus?: string | undefined;
+      paypalTermsAccepted?: boolean | undefined;
+      paypalTermsAcceptedAt?: Date | undefined;
       pushNotificationToken?: string | null;
       notificationPreferences?: unknown | null;
       isOnline?: boolean | null;

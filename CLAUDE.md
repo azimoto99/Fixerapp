@@ -29,7 +29,7 @@ Fixer is a comprehensive gig-work platform that connects people who need help wi
 - **Backend**: Node.js + Express + TypeScript
 - **Database**: PostgreSQL with Drizzle ORM
 - **Authentication**: Session-based auth with secure cookies
-- **Payments**: Stripe Connect & Payment Intents
+- **Payments**: PayPal Orders, Payouts & Marketplace
 - **File Storage**: AWS S3
 - **Maps**: Mapbox API
 - **Real-time**: WebSocket server
@@ -48,7 +48,7 @@ Fixer is a comprehensive gig-work platform that connects people who need help wi
 - **Multi-account Types**: Users can have Worker, Poster, and Enterprise accounts with the same email
 - **Location Verification**: GPS-based verification with anti-spoofing measures
 - **Real-time Communication**: WebSocket-based messaging and notifications
-- **Payment Processing**: Stripe Connect integration with escrow system
+- **Payment Processing**: PayPal integration with escrow and marketplace system
 - **Enterprise Features**: Bulk job posting, hub pins, position management
 
 ### Database Schema
@@ -66,7 +66,7 @@ The application uses Drizzle ORM with PostgreSQL. Key tables include:
 - Row Level Security (RLS) implemented for data protection
 - Content filtering and moderation
 - Location verification with fraud detection
-- Stripe Connect for secure payment processing
+- PayPal integration for secure payment processing
 
 ## Development Guidelines
 
@@ -86,7 +86,7 @@ The application uses Drizzle ORM with PostgreSQL. Key tables include:
 ### Environment Variables Required
 - `DATABASE_URL` - PostgreSQL connection string
 - `SESSION_SECRET` - Session encryption key
-- Stripe keys for payment processing
+- PayPal credentials for payment processing
 - AWS credentials for S3 storage
 - Mapbox token for location services
 

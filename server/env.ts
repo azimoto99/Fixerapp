@@ -49,7 +49,6 @@ const requiredEnvVars = [
   'SUPABASE_URL',
   'SUPABASE_ANON_KEY',
   'SUPABASE_DATABASE_URL',
-  'VITE_STRIPE_PUBLIC_KEY',
   'VITE_MAPBOX_ACCESS_TOKEN'
 ];
 
@@ -75,7 +74,6 @@ console.log(`NODE_ENV: ${process.env.NODE_ENV}`);
 console.log(`SUPABASE_URL: ${process.env.SUPABASE_URL ? 'Set' : 'Not set'}`);
 console.log(`SUPABASE_ANON_KEY: ${process.env.SUPABASE_ANON_KEY ? 'Set' : 'Not set'}`);
 console.log(`SUPABASE_DATABASE_URL: ${process.env.SUPABASE_DATABASE_URL ? 'Set' : 'Not set'}`);
-console.log(`VITE_STRIPE_PUBLIC_KEY: ${process.env.VITE_STRIPE_PUBLIC_KEY ? 'Set' : 'Not set'}`);
 console.log(`VITE_MAPBOX_ACCESS_TOKEN: ${process.env.VITE_MAPBOX_ACCESS_TOKEN ? 'Set' : 'Not set'}`);
 
 export default process.env; 

@@ -27,17 +27,6 @@ export const users = pgTable("users", {
   // Social login fields
   googleId: text("google_id"), // Google OAuth ID
   facebookId: text("facebook_id"), // Facebook OAuth ID
-  // Payment integration fields
-  paypalCustomerId: text("paypal_customer_id"), // PayPal Customer ID for payments
-  paypalMerchantId: text("paypal_merchant_id"), // PayPal Merchant account for receiving payments
-  paypalAccountStatus: text("paypal_account_status"), // Status of PayPal account
-  // Terms acceptance fields
-  paypalTermsAccepted: boolean("paypal_terms_accepted").default(false), // Whether user has accepted PayPal's TOS
-  paypalTermsAcceptedAt: timestamp("paypal_terms_accepted_at"), // When the user accepted PayPal's TOS
-  paypalRepresentativeName: text("paypal_representative_name"), // Name of the representative for PayPal verification
-  paypalRepresentativeTitle: text("paypal_representative_title"), // Title of the representative for PayPal
-  paypalRepresentativeRequirementsComplete: boolean("paypal_representative_requirements_complete").default(false), // Whether all representative details have been provided
-  paypalBankingDetailsComplete: boolean("paypal_banking_details_complete").default(false), // Whether banking details have been provided
   // Contact preferences 
   contactPreferences: jsonb("contact_preferences").default({
     email: true,
@@ -80,9 +69,7 @@ export const jobs = pgTable("jobs", {
   workerId: integer("worker_id"), // References users.id (if assigned)
   status: text("status").notNull().default("open"), // "open", "assigned", "in_progress", "completed", "canceled"
   paymentType: text("payment_type").notNull(), // "hourly" or "fixed"
-  paymentAmount: doublePrecision("payment_amount").notNull(),
-  serviceFee: doublePrecision("service_fee").notNull().default(2.5), // Service fee of $2.50
-  totalAmount: doublePrecision("total_amount").notNull(), // Total amount including service fee
+  paymentAmount: doublePrecision("payment_amount").notNull(), // What the poster is willing to pay
   location: text("location").notNull(), // Address description
   latitude: doublePrecision("latitude").notNull(),
   longitude: doublePrecision("longitude").notNull(),
@@ -146,49 +133,6 @@ export const tasks = pgTable("tasks", {
   notes: text("notes"), // Additional notes or instructions for the task
 });
 
-// Earnings table to track worker earnings
-export const earnings = pgTable("earnings", {
-  id: serial("id").primaryKey(),
-  workerId: integer("worker_id").notNull(), // References users.id
-  userId: integer("user_id").notNull(), // References users.id (same as workerId for compatibility)
-  jobId: integer("job_id"), // References jobs.id (optional for non-job earnings)
-  amount: doublePrecision("amount").notNull(), // Total amount earned before fees
-  serviceFee: doublePrecision("service_fee").notNull().default(2.5), // Service fee amount
-  platformFee: doublePrecision("platform_fee").notNull().default(2.5), // Platform fee amount (alias for serviceFee)
-  netAmount: doublePrecision("net_amount").notNull(), // Net amount after service fee
-  status: text("status").notNull().default("pending"), // "pending", "paid", "cancelled"
-  dateEarned: timestamp("date_earned").defaultNow(), // When the job was completed
-  datePaid: timestamp("date_paid"), // When the worker was paid
-  transactionId: text("transaction_id"), // PayPal transfer ID or other payment processor ID
-  paymentId: integer("payment_id"), // References the associated payment record
-  paypalMerchantId: text("paypal_merchant_id"), // Worker's PayPal Merchant account ID
-  description: text("description"), // Description of the earnings
-  metadata: jsonb("metadata"), // Additional data about the earnings
-  createdAt: timestamp("created_at").defaultNow(),
-});
-
-// Payments table to track payment transactions
-export const payments = pgTable("payments", {
-  id: serial("id").primaryKey(),
-  userId: integer("user_id").notNull(), // References users.id (payer - usually job poster)
-  workerId: integer("worker_id"), // References users.id (payee - usually worker)
-  amount: doublePrecision("amount").notNull(), // Amount of the payment
-  serviceFee: doublePrecision("service_fee"), // Platform fee amount
-  type: text("type").notNull(), // "payment", "transfer", "refund", "payout"
-  status: text("status").notNull(), // "pending", "processing", "completed", "failed", "refunded"
-  paymentMethod: text("payment_method"), // "card", "bank_account", "paypal", etc.
-  transactionId: text("transaction_id"), // External payment processor ID (PayPal payment/transfer ID)
-  paypalPaymentId: text("paypal_payment_id"), // PayPal Payment ID
-  paypalCustomerId: text("paypal_customer_id"), // Customer ID for the payer
-  paypalMerchantId: text("paypal_merchant_id"), // Merchant account ID for the worker
-  paypalRefundId: text("paypal_refund_id"), // PayPal Refund ID for refunds
-  jobId: integer("job_id"), // Optional reference to the related job
-  description: text("description"), // Description of the payment
-  currency: text("currency").default("usd"), // Currency code
-  createdAt: timestamp("created_at").defaultNow(),
-  completedAt: timestamp("completed_at"), // When the payment was completed
-  metadata: jsonb("metadata"), // Additional payment data
-});
 
 // Badges and achievements table
 export const badges = pgTable("badges", {
@@ -321,15 +265,6 @@ export const insertUserSchema = createInsertSchema(users).pick({
   location: true,
   googleId: true,
   facebookId: true,
-  paypalCustomerId: true,
-  paypalMerchantId: true,
-  paypalAccountStatus: true,
-  paypalTermsAccepted: true,
-  paypalTermsAcceptedAt: true,
-  paypalRepresentativeName: true,
-  paypalRepresentativeTitle: true,
-  paypalRepresentativeRequirementsComplete: true,
-  paypalBankingDetailsComplete: true,
   contactPreferences: true,
   availability: true,
   emailVerified: true,
@@ -349,8 +284,6 @@ export const insertJobSchema = createInsertSchema(jobs).pick({
   status: true,
   paymentType: true,
   paymentAmount: true,
-  serviceFee: true,
-  totalAmount: true,
   location: true,
   latitude: true,
   longitude: true,
@@ -400,36 +333,6 @@ export const insertTaskSchema = createInsertSchema(tasks).pick({
   notes: true,
 });
 
-export const insertEarningSchema = createInsertSchema(earnings).pick({
-  workerId: true,
-  userId: true,
-  jobId: true,
-  amount: true,
-  serviceFee: true,
-  platformFee: true,
-  netAmount: true,
-  status: true,
-  description: true,
-});
-
-export const insertPaymentSchema = createInsertSchema(payments).pick({
-  userId: true,
-  workerId: true,
-  amount: true,
-  serviceFee: true,
-  type: true,
-  status: true,
-  paymentMethod: true,
-  transactionId: true,
-  paypalPaymentId: true,
-  paypalCustomerId: true,
-  paypalMerchantId: true,
-  paypalRefundId: true,
-  jobId: true,
-  description: true,
-  currency: true,
-  metadata: true,
-});
 
 export const insertBadgeSchema = createInsertSchema(badges).pick({
   name: true,
@@ -496,11 +399,7 @@ export type DbUser = typeof users.$inferSelect & {
   successRate?: number;
   responseTime?: number;
   badgeIds?: string[];
-  requiresPaypalTerms?: boolean;
-  requiresPaypalRepresentative?: boolean;
-  requiresPaypalBankingDetails?: boolean;
   profileCompletionPercentage?: number;
-  paypalMerchantId?: string;
 };
 
 export type ContactPreferences = {
@@ -520,9 +419,6 @@ export type InsertUser = z.infer<typeof insertUserSchema> & {
   requiresProfileCompletion?: boolean | null;
   needsAccountType?: boolean | null;
   skillsVerified?: Record<string, boolean>;
-  requiresPaypalTerms?: boolean;
-  requiresPaypalRepresentative?: boolean;
-  requiresPaypalBankingDetails?: boolean;
   contactPreferences?: ContactPreferences;
   availability?: Availability;
 };
@@ -539,11 +435,6 @@ export type InsertReview = z.infer<typeof insertReviewSchema>;
 export type Task = typeof tasks.$inferSelect;
 export type InsertTask = z.infer<typeof insertTaskSchema>;
 
-export type Earning = typeof earnings.$inferSelect;
-export type InsertEarning = z.infer<typeof insertEarningSchema>;
-
-export type Payment = typeof payments.$inferSelect;
-export type InsertPayment = z.infer<typeof insertPaymentSchema>;
 
 export type Badge = typeof badges.$inferSelect;
 export type InsertBadge = z.infer<typeof insertBadgeSchema>;
@@ -624,20 +515,6 @@ export type InsertSupportMessage = z.infer<typeof insertSupportMessageSchema>;
 export type Dispute = typeof disputes.$inferSelect;
 export type InsertDispute = z.infer<typeof insertDisputeSchema>;
 
-// Refunds tracking
-export const refunds = pgTable("refunds", {
-  id: serial("id").primaryKey(),
-  jobId: integer("job_id").notNull().references(() => jobs.id),
-  userId: integer("user_id").notNull().references(() => users.id),
-  originalAmount: doublePrecision("original_amount").notNull(),
-  refundAmount: doublePrecision("refund_amount").notNull(),
-  reason: text("reason"),
-  paypalRefundId: varchar("paypal_refund_id", { length: 100 }),
-  processedBy: integer("processed_by"),
-  status: varchar("status", { length: 20 }).notNull().default("pending"),
-  createdAt: timestamp("created_at").defaultNow(),
-  processedAt: timestamp("processed_at").notNull().defaultNow(),
-});
 
 // Feedback table for user feedback
 export const feedback = pgTable("feedback", {
@@ -653,11 +530,7 @@ export const feedback = pgTable("feedback", {
   reviewedBy: integer("reviewed_by").references(() => users.id),
 });
 
-export const insertRefundSchema = createInsertSchema(refunds);
 export const insertFeedbackSchema = createInsertSchema(feedback);
-
-export type Refund = typeof refunds.$inferSelect;
-export type InsertRefund = z.infer<typeof insertRefundSchema>;
 
 export type Feedback = typeof feedback.$inferSelect;
 export type InsertFeedback = z.infer<typeof insertFeedbackSchema>;
@@ -718,8 +591,6 @@ export const NOTIFICATION_TYPES = [
   "application_received",
   "application_accepted",
   "application_rejected",
-  "payment_received",
-  "payment_sent",
   "review_received",
   "system_message"
 ] as const;
@@ -777,9 +648,6 @@ export const platformAnalytics = pgTable("platform_analytics", {
   total_jobs: integer("total_jobs").default(0),
   jobs_posted: integer("jobs_posted").default(0),
   jobs_completed: integer("jobs_completed").default(0),
-  total_revenue: doublePrecision("total_revenue").default(0),
-  platform_fees: doublePrecision("platform_fees").default(0),
-  payouts: doublePrecision("payouts").default(0),
   completion_rate: doublePrecision("completion_rate").default(0),
   average_job_value: doublePrecision("average_job_value").default(0),
   active_sessions: integer("active_sessions").default(0),
@@ -886,9 +754,6 @@ export const insertPlatformAnalyticsSchema = createInsertSchema(platformAnalytic
   total_jobs: true,
   jobs_posted: true,
   jobs_completed: true,
-  total_revenue: true,
-  platform_fees: true,
-  payouts: true,
   completion_rate: true,
   average_job_value: true,
 });
@@ -998,26 +863,6 @@ export const userSchema = z.object({
   id: z.string(),
   email: z.string().email(),
   name: z.string().optional(),
-  paypalCustomerId: z.string().optional(),
-});
-
-export const walletSchema = z.object({
-  id: z.string(),
-  userId: z.string(),
-  balance: z.number(),
-  pendingBalance: z.number(),
-  createdAt: z.date(),
-  updatedAt: z.date(),
-});
-
-export const transactionSchema = z.object({
-  id: z.string(),
-  userId: z.string(),
-  amount: z.number(),
-  type: z.enum(['CREDIT', 'DEBIT']),
-  status: z.enum(['PENDING', 'COMPLETED', 'FAILED']),
-  createdAt: z.date(),
-  updatedAt: z.date(),
 });
 
 export type RawUser = z.infer<typeof userSchema>;
@@ -1042,7 +887,6 @@ export const enterpriseBusinesses = pgTable("enterprise_businesses", {
   businessPhone: text("business_phone"),
   businessEmail: text("business_email"),
   verificationStatus: text("verification_status").notNull().default("pending"),
-  paypalSubscriptionId: text("paypal_subscription_id"),
   isActive: boolean("is_active").notNull().default(true),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
@@ -1111,7 +955,6 @@ export const insertEnterpriseBusinessSchema = createInsertSchema(enterpriseBusin
   businessPhone: true,
   businessEmail: true,
   verificationStatus: true,
-  paypalSubscriptionId: true,
   isActive: true,
 });
 

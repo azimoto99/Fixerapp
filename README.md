@@ -45,7 +45,7 @@ Fixer is a production-ready gig economy platform with advanced security features
 - **Job Lifecycle Tracking** – From posting to completion with status updates
 
 ### 💳 **Payment & Financial**
-- **Secure Payments** – Stripe Connect integration with escrow system
+- **Secure Payments** – PayPal integration with escrow system
 - **Payment Intent Management** – Secure payment processing with fraud protection
 - **Transaction History** – Comprehensive payment tracking and reporting
 - **Enterprise Billing** – Advanced invoicing and payment management
@@ -68,7 +68,7 @@ Fixer is a production-ready gig economy platform with advanced security features
 | Backend          | Node.js, Express, TypeScript                    |
 | Database         | PostgreSQL, Drizzle ORM                         |
 | Authentication   | Session-based auth with secure cookies          |
-| Payments         | Stripe Connect & Payment Intents                |
+| Payments         | PayPal Orders, Payouts & Marketplace             |
 | File Storage     | AWS S3                                           |
 | Maps & Location  | Mapbox API                                       |
 | Real-time        | WebSocket server                                 |
@@ -100,7 +100,7 @@ Fixerapp/
 
 - Node.js ≥ 18 & npm
 - PostgreSQL database
-- Stripe account (for payments)
+- PayPal account (for payments)
 - AWS account (for S3 storage)
 - Mapbox account (for location services)
 
@@ -150,10 +150,11 @@ DATABASE_URL=postgresql://username:password@localhost:5432/fixer
 # Session
 SESSION_SECRET=your-super-secret-session-key
 
-# Stripe
-STRIPE_SECRET_KEY=sk_test_...
-VITE_STRIPE_PUBLIC_KEY=pk_test_...
-STRIPE_WEBHOOK_SECRET=whsec_...
+# PayPal
+PAYPAL_CLIENT_ID=your_paypal_client_id
+PAYPAL_CLIENT_SECRET=your_paypal_client_secret
+VITE_PAYPAL_CLIENT_ID=your_paypal_client_id
+PAYPAL_WEBHOOK_ID=your_webhook_id
 
 # AWS S3
 AWS_ACCESS_KEY_ID=your-access-key

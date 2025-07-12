@@ -17,10 +17,6 @@ interface Config {
   // Authentication
   SESSION_SECRET: string;
   
-  // PayPal
-  PAYPAL_CLIENT_ID: string;
-  PAYPAL_CLIENT_SECRET: string;
-  PAYPAL_WEBHOOK_ID?: string;
   
   // External APIs
   MAPBOX_ACCESS_TOKEN: string;
@@ -48,8 +44,6 @@ function validateEnv(): Config {
     'SUPABASE_URL',
     'SUPABASE_ANON_KEY', 
     'SUPABASE_DATABASE_URL',
-    'PAYPAL_CLIENT_ID',
-    'PAYPAL_CLIENT_SECRET',
     'MAPBOX_ACCESS_TOKEN',
     // Add S3 required variables
     'AWS_REGION',
@@ -77,9 +71,6 @@ function validateEnv(): Config {
     
     SESSION_SECRET: process.env.SESSION_SECRET || 'your-secret-key-change-in-production',
     
-    PAYPAL_CLIENT_ID: process.env.PAYPAL_CLIENT_ID!,
-    PAYPAL_CLIENT_SECRET: process.env.PAYPAL_CLIENT_SECRET!,
-    PAYPAL_WEBHOOK_ID: process.env.PAYPAL_WEBHOOK_ID,
     
     MAPBOX_ACCESS_TOKEN: process.env.VITE_MAPBOX_ACCESS_TOKEN || process.env.MAPBOX_ACCESS_TOKEN!,
     
@@ -108,8 +99,6 @@ console.log(`- PORT: ${config.PORT}`);
 console.log(`- HOST: ${config.HOST}`);
 console.log(`- APP_URL: ${config.APP_URL}`);
 console.log(`- SUPABASE_URL: ${config.SUPABASE_URL ? 'Set' : 'Not set'}`);
-console.log(`- PAYPAL_CLIENT_ID: ${config.PAYPAL_CLIENT_ID ? 'Set' : 'Not set'}`);
 console.log(`- MAPBOX_ACCESS_TOKEN: ${config.MAPBOX_ACCESS_TOKEN ? 'Set' : 'Not set'}`);
-console.log(`- PAYPAL_WEBHOOK_ID: ${config.PAYPAL_WEBHOOK_ID ? 'Set' : 'Not set'}`);
 console.log(`- AWS S3: ${config.AWS_ACCESS_KEY_ID && config.AWS_SECRET_ACCESS_KEY ? 'Configured' : 'Not configured'}`);
 console.log(`- S3 BUCKET: ${config.S3_BUCKET_NAME || 'Not set'}`);

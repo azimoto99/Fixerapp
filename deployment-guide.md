@@ -3,7 +3,7 @@
 ## Prerequisites
 1. Node.js and npm/yarn installed
 2. Git installed
-3. Stripe account with API keys
+3. PayPal account with API credentials
 4. Supabase account
 5. Environment variables configured
 
@@ -11,10 +11,11 @@
 Create a `.env` file with the following variables:
 
 ```env
-# Stripe Configuration
-STRIPE_SECRET_KEY=your_stripe_secret_key
-VITE_STRIPE_PUBLIC_KEY=your_stripe_public_key
-STRIPE_WEBHOOK_SECRET=your_webhook_signing_secret
+# PayPal Configuration
+PAYPAL_CLIENT_ID=your_paypal_client_id
+PAYPAL_CLIENT_SECRET=your_paypal_client_secret
+VITE_PAYPAL_CLIENT_ID=your_paypal_client_id
+PAYPAL_WEBHOOK_ID=your_webhook_id
 
 # Session Configuration
 SESSION_SECRET=your_secure_session_secret
@@ -31,7 +32,7 @@ SESSION_SECRET=your_secure_session_secret
 
 ## Troubleshooting
 1. **Database Connection Issues**: Check your database credentials and connection string
-2. **Stripe API Errors**: Ensure your Stripe keys are set correctly and are for the right environment (test/live)
+2. **PayPal API Errors**: Ensure your PayPal credentials are set correctly and are for the right environment (sandbox/live)
 3. **Session Issues**: Check that SESSION_SECRET is set and persistent between deployments
 4. **Webhook Failures**: Verify the webhook endpoint is accessible and the secret is correct
 
@@ -46,6 +47,6 @@ SESSION_SECRET=your_secure_session_secret
 8. Set up monitoring and logging
 
 ## Additional Resources
-- [Stripe Documentation](https://stripe.com/docs)
+- [PayPal Developer Documentation](https://developer.paypal.com/docs)
 - [Supabase Documentation](https://supabase.com/docs)
 - [Node.js Documentation](https://nodejs.org/docs)

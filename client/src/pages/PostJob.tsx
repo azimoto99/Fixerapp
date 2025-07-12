@@ -11,7 +11,6 @@ import { apiRequest } from '@/lib/queryClient';
 import { useGeolocation } from '@/hooks/use-react-geolocated';
 
 import Header from '@/components/Header';
-import PaymentDetailsForm from '@/components/PaymentDetailsForm';
 import AddressAutocomplete from '@/components/AddressAutocomplete';
 import TaskEditor, { Task as TaskItemProps } from '@/components/TaskEditor';
 import { Button } from '@/components/ui/button';
@@ -37,7 +36,6 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Badge } from '@/components/ui/badge';
 import { JOB_CATEGORIES, SKILLS } from '@shared/schema';
-import { Dialog, DialogContent } from '@/components/ui/dialog';
 import { Card, CardContent } from '@/components/ui/card';
 
 const formSchema = z.object({
@@ -69,9 +67,6 @@ export default function PostJob() {
   const [_, navigate] = useLocation();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const { userLocation } = useGeolocation();
-  const [showPaymentForm, setShowPaymentForm] = useState(false);
-  const [formData, setFormData] = useState<z.infer<typeof formSchema> | null>(null);
-  const [paymentMethodId, setPaymentMethodId] = useState<string | null>(null);
   const [tasks, setTasks] = useState<TaskItemProps[]>([]);
 
   const form = useForm<z.infer<typeof formSchema>>({
@@ -92,13 +87,14 @@ export default function PostJob() {
     }
   });
 
-  // Function to calculate the total amount including service fee
-  const calculateTotalAmount = (amount: number) => {
-    return amount + 2.50;
-  };
 
-  // Handle form submission to move to payment step
-  function handleFormSubmit(values: z.infer<typeof formSchema>) {
+
+
+
+  // Submit job directly - no payment processing required
+  async function onSubmit(values: z.infer<typeof formSchema>) {
+    console.log('Form submitted with values:', values);
+    
     if (!user) {
       toast({
         title: "Login Required",
@@ -118,30 +114,14 @@ export default function PostJob() {
       return;
     }
 
-    // Store form data and show payment form
-    setFormData(values);
-    setShowPaymentForm(true);
-  }
-
-  // Handle payment success
-  const handlePaymentSuccess = async (pmId: string) => {
-    if (!formData || !user) return;
-
     try {
       setIsSubmitting(true);
-      setPaymentMethodId(pmId);
       
       // Set the poster id from the current user
-      const values = { ...formData, posterId: user.id };
+      const jobData = { ...values, posterId: user.id };
       
-      // Add the payment method ID to the job data
-      const jobData = {
-        ...values,
-        paymentMethodId: pmId
-      };
-      
-      // Create the job using the payment-first endpoint
-      const response = await apiRequest('POST', '/api/jobs/payment-first', jobData);
+      // Create the job directly without payment processing
+      const response = await apiRequest('POST', '/api/jobs', jobData);
       
       if (!response.ok) {
         const errorData = await response.json();
@@ -192,15 +172,11 @@ export default function PostJob() {
           });
         }
       }
-      
-      // Close the payment form dialog
-      setShowPaymentForm(false);
 
-      // Show success message with payment details
-      const paymentInfo = jobResponse.payment;
+      // Show success message
       toast({
         title: "Job Posted Successfully!",
-        description: `Your job "${jobResponse.job.title}" has been posted and payment of $${paymentInfo?.amountCharged?.toFixed(2) || 'N/A'} has been processed.`
+        description: `Your job "${jobResponse.job.title}" has been posted. Workers can now apply and you'll handle payment directly with them.`
       });
 
       // Navigate to the job details page
@@ -216,40 +192,6 @@ export default function PostJob() {
     } finally {
       setIsSubmitting(false);
     }
-  };
-
-  // Handle payment cancellation
-  const handlePaymentCancel = () => {
-    setShowPaymentForm(false);
-  };
-
-  // All jobs now require payment-first workflow for security
-  async function onSubmit(values: z.infer<typeof formSchema>) {
-    console.log('Form submitted with values:', values);
-    
-    if (!user) {
-      toast({
-        title: "Login Required",
-        description: "Please login to post a job",
-        variant: "destructive"
-      });
-      navigate('/login');
-      return;
-    }
-
-    if (values.paymentAmount < 10) {
-      toast({
-        title: "Invalid Payment Amount",
-        description: "Minimum payment amount is $10",
-        variant: "destructive"
-      });
-      return;
-    }
-
-    // ALL jobs now require payment-first workflow for security
-    // Store form data and show payment form
-    setFormData(values);
-    setShowPaymentForm(true);
   }
 
   return (
@@ -267,19 +209,6 @@ export default function PostJob() {
           <div className="bg-card shadow rounded-lg p-6">
             <h1 className="text-2xl font-bold text-foreground mb-6">Post a New Job</h1>
             
-            {/* Payment Details Dialog */}
-            <Dialog open={showPaymentForm} onOpenChange={setShowPaymentForm}>
-              <DialogContent className="sm:max-w-lg">
-                {formData && (
-                  <PaymentDetailsForm
-                    amount={calculateTotalAmount(formData.paymentAmount)}
-                    jobTitle={formData.title}
-                    onPaymentSuccess={handlePaymentSuccess}
-                    onPaymentCancel={handlePaymentCancel}
-                  />
-                )}
-              </DialogContent>
-            </Dialog>
             
             <Form {...form}>
               <form 
@@ -403,8 +332,8 @@ export default function PostJob() {
                         </FormControl>
                         <FormDescription>
                           {form.watch('paymentType') === 'hourly' 
-                            ? 'Enter hourly rate in dollars (min $10)' 
-                            : 'Enter total payment in dollars (min $10)'}
+                            ? 'What you\'re willing to pay per hour (min $10)' 
+                            : 'What you\'re willing to pay for this job (min $10)'}
                         </FormDescription>
                         <FormMessage />
                       </FormItem>
@@ -412,38 +341,21 @@ export default function PostJob() {
                   />
                 </div>
 
-                {/* Service Fee Display */}
+                {/* Payment Summary */}
                 <div className="bg-card p-4 rounded-md border border-border">
                   <div className="flex justify-between text-sm mb-2 text-foreground">
                     <span>
                       {form.watch('paymentType') === 'hourly' 
                         ? 'Hourly Rate:' 
-                        : 'Job Amount:'}
+                        : 'Job Payment:'}
                     </span>
                     <span>${parseFloat(String(form.watch('paymentAmount') || '0')).toFixed(2)}</span>
                   </div>
-                  <div className="flex justify-between text-sm mb-2 text-foreground">
-                    <span>Service Fee (5%):</span>
-                    <span>${(parseFloat(String(form.watch('paymentAmount') || '0')) * 0.05).toFixed(2)}</span>
+                  <div className="text-sm text-muted-foreground mt-2">
+                    {form.watch('paymentType') === 'hourly' 
+                      ? 'Workers will see this hourly rate when applying. You\'ll arrange payment directly with the worker you hire.'
+                      : 'Workers will see this payment amount when applying. You\'ll arrange payment directly with the worker you hire.'}
                   </div>
-                  {form.watch('paymentType') === 'fixed' && (
-                    <div className="flex justify-between font-medium border-t border-border pt-2 mt-2 text-foreground">
-                      <span>Total Amount:</span>
-                      <span>${(parseFloat(String(form.watch('paymentAmount') || '0')) * 1.05).toFixed(2)}</span>
-                    </div>
-                  )}
-                  {form.watch('paymentType') === 'fixed' && (
-                    <div className="flex justify-between text-sm mt-2 text-muted-foreground">
-                      <span>Worker Receives:</span>
-                      <span>${parseFloat(String(form.watch('paymentAmount') || '0')).toFixed(2)}</span>
-                    </div>
-                  )}
-                  {form.watch('paymentType') === 'hourly' && (
-                    <div className="flex justify-between text-sm mt-2 text-muted-foreground">
-                      <span>Note:</span>
-                      <span className="text-right">For hourly jobs, the 5% service fee<br/>is added to the total upon completion</span>
-                    </div>
-                  )}
                 </div>
                 
                 {/* Location with Autocomplete */}

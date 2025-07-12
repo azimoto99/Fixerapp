@@ -1,5 +1,5 @@
 import express, { type Express, Request, Response, NextFunction } from "express";
-// Stripe integration removed - using PayPal integration
+// Payment processing removed - jobs posted for free
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { isAdmin, requireAuth, getAuthenticatedUser, isAuthenticatedRequest } from "./auth-helpers";
@@ -63,11 +63,8 @@ function calculateDistanceInFeet(lat1: number, lon1: number, lat2: number, lon2:
   return distance;
 }
 import { filterJobContent, validatePaymentAmount } from "./content-filter";
-import { processPayment } from "./api/process-payment";
-import { preauthorizePayment } from "./api/preauthorize-payment";
 import { taskRouter } from "./api/task-api";
 import { disputeRouter } from "./api/disputes";
-import { paymentsRouter } from "./routes/payments";
 
 // Import enterprise API handlers
 import * as enterpriseApi from "./api/enterprise";
@@ -80,9 +77,6 @@ import * as crypto from 'crypto';
 function adaptUserForLogin(user: any): Express.User {
   const adapted = { ...user };
   // Convert null values to undefined for Express.User compatibility
-  if (adapted.paypalMerchantId === null) adapted.paypalMerchantId = undefined;
-  if (adapted.paypalCustomerId === null) adapted.paypalCustomerId = undefined;
-  if (adapted.paypalAccountStatus === null) adapted.paypalAccountStatus = undefined;
   return adapted as Express.User;
 }
 
@@ -107,7 +101,7 @@ import {
 import { setupAuth } from "./auth";
 import { URL } from "url";
 
-// PayPal integration is handled in paypal-integration.ts
+// Payment processing removed
 
 // Helper function to validate location parameters
 const locationParamsSchema = z.object({
@@ -385,7 +379,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
   }
 
   // Mount payment routes
-  apiRouter.use('/payments', paymentsRouter);
   
   // Mount disputes routes
   apiRouter.use('/disputes', disputeRouter);
@@ -844,35 +837,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
   
   // Worker history endpoints
-  // Get worker job history
-  apiRouter.get("/workers/:workerId/paypal-connect-status", isAuthenticated, async (req: Request, res: Response) => {
-    try {
-      const workerId = parseInt(req.params.workerId);
-      if (isNaN(workerId)) {
-        return res.status(400).json({ message: "Invalid worker ID" });
-      }
-      
-      // Get the worker
-      const worker = await storage.getUser(workerId);
-      if (!worker) {
-        return res.status(404).json({ message: "Worker not found" });
-      }
-      
-      // Check if the worker has a PayPal Connect account
-      const hasConnectAccount = !!worker.paypalMerchantId;
-      const accountStatus = worker.paypalAccountStatus || 'pending';
-      
-      return res.json({
-        workerId: worker.id,
-        hasConnectAccount,
-        accountStatus,
-        isActive: accountStatus === 'active' || accountStatus === 'restricted'
-      });
-    } catch (error) {
-      console.error("Error checking worker PayPal Connect status:", error);
-      return res.status(500).json({ message: "Failed to check worker PayPal Connect status" });
-    }
-  });
   
   apiRouter.get("/workers/:workerId/job-history", isAuthenticated, async (req: Request, res: Response) => {
     try {
@@ -1578,190 +1542,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
   
-  // PayPal terms of service and representative endpoint
-  apiRouter.post("/users/:id/paypal-terms", isAuthenticated, async (req: Request, res: Response) => {
-    try {
-      const id = parseInt(req.params.id);
-      
-      // Add fallback for missing authentication
-      if (!req.user) {
-        // Try to fetch the user directly since we have the ID
-        const user = await storage.getUser(id);
-        if (!user) {
-          return res.status(404).json({ message: "User not found" });
-        }
-        console.log(`Using direct user lookup for ID ${id} instead of session`);
-      } else if (!req.user || req.user.id !== id) {
-        return res.status(403).json({ 
-          message: "Forbidden: You can only update your own PayPal terms" 
-        });
-      }
-      
-      // Validate request with all the representative information fields
-      const schema = z.object({
-        acceptTerms: z.boolean().optional(),
-        representativeName: z.string().min(2).optional(),
-        representativeTitle: z.string().min(2).optional(),
-        // Additional fields for PayPal representative
-        dateOfBirth: z.string().min(10).optional(),
-        email: z.string().email().optional(),
-        phone: z.string().min(10).optional(),
-        ssnLast4: z.string().length(4).optional(),
-        streetAddress: z.string().min(3).optional(),
-        aptUnit: z.string().optional(),
-        city: z.string().min(2).optional(),
-        state: z.string().min(2).optional(),
-        zip: z.string().min(5).optional(),
-        country: z.string().min(2).optional(),
-        // Bank account information
-        accountType: z.enum(["checking", "savings"]).optional(),
-        accountNumber: z.string().min(4).optional(),
-        routingNumber: z.string().length(9).optional(),
-        accountHolderName: z.string().min(2).optional(),
-      });
-      
-      const { 
-        acceptTerms, 
-        representativeName, 
-        representativeTitle,
-        dateOfBirth,
-        email,
-        phone,
-        ssnLast4,
-        streetAddress,
-        aptUnit,
-        city,
-        state,
-        zip,
-        country,
-        // Bank account information
-        accountType,
-        accountNumber,
-        routingNumber,
-        accountHolderName
-      } = schema.parse(req.body);
-      
-      // Build the update object
-      const updateData: any = {};
-      
-      if (acceptTerms) {
-        updateData.paypalTermsAccepted = true;
-        updateData.paypalTermsAcceptedAt = new Date();
-      }
-      
-      if (representativeName) {
-        updateData.paypalRepresentativeName = representativeName;
-      }
-      
-      if (representativeTitle) {
-        updateData.paypalRepresentativeTitle = representativeTitle;
-      }
-      
-      // Store all the additional representative information
-      // In a real application, you would send this directly to PayPal's API
-      // Here we'll store it in user metadata to track that it was provided
-      
-      // Create a representative metadata object to store additional info
-      const representativeMetadata: any = {};
-      
-      if (dateOfBirth) representativeMetadata.dateOfBirth = dateOfBirth;
-      if (email) representativeMetadata.email = email;
-      if (phone) representativeMetadata.phone = phone;
-      if (ssnLast4) representativeMetadata.ssnLast4 = ssnLast4;
-      
-      // Create an address metadata object
-      if (streetAddress || city || state || zip || country) {
-        representativeMetadata.address = {
-          line1: streetAddress,
-          line2: aptUnit || '',
-          city: city,
-          state: state,
-          postal_code: zip,
-          country: country
-        };
-      }
-      
-      // Create bank account metadata if we have the required information
-      const bankAccountMetadata: any = {};
-      
-      if (accountType && accountNumber && routingNumber && accountHolderName) {
-        bankAccountMetadata.accountType = accountType;
-        bankAccountMetadata.accountNumber = accountNumber;
-        bankAccountMetadata.routingNumber = routingNumber;
-        bankAccountMetadata.accountHolderName = accountHolderName;
-        
-        // Mark banking details as complete in our system
-        updateData.paypalBankingDetailsComplete = true;
-      }
-      
-      // If we collected representative metadata, store it and mark requirements as complete
-      if (Object.keys(representativeMetadata).length > 0) {
-        // This would be sent to PayPal in a real implementation
-        console.log('Representative information to send to PayPal:', representativeMetadata);
-        
-        // Mark representative requirements as complete in our system
-        updateData.paypalRepresentativeRequirementsComplete = true;
-        
-        // In a real implementation, you would call the PayPal API here to update
-        // the representative information on the merchant account
-        try {
-          // This is where we would call PayPal API
-          // PayPal integration to be implemented
-          
-          // Update the local storage with PayPal's response
-          updateData.paypalAccountUpdatedAt = new Date();
-        } catch (paypalError) {
-          console.error('Error updating PayPal account representative:', paypalError);
-          // Continue with local updates even if PayPal update fails
-          // In production, you might want to handle this differently
-        }
-      }
-      
-      // If we collected bank account information, log it and mark requirements as complete
-      if (Object.keys(bankAccountMetadata).length > 0) {
-        // This would be sent to PayPal in a real implementation
-        console.log('Bank account information to send to PayPal:', {
-          ...bankAccountMetadata,
-          accountNumber: '******' + bankAccountMetadata.accountNumber.slice(-4) // Hide full account number in logs
-        });
-      }
-      
-      // Only proceed if we have something to update
-      if (Object.keys(updateData).length === 0) {
-        return res.status(400).json({ message: "No valid data provided to update" });
-      }
-      
-      // Update the user
-      const updatedUser = await storage.updateUser(id, updateData);
-      
-      if (!updatedUser) {
-        return res.status(404).json({ message: "User not found" });
-      }
-      
-      // Update PayPal merchant account with representative information if we have an account ID
-      if (updatedUser.paypalMerchantAccountId) {
-        try {
-          console.log(`Updating PayPal merchant account ${updatedUser.paypalMerchantAccountId} with representative information`);
-          
-          // This is where PayPal API integration would go
-          // PayPal integration to be implemented
-          // This would format the data according to PayPal's API requirements
-          
-          console.log('PayPal API integration not yet implemented');
-        } catch (paypalError) {
-          console.error('Error updating PayPal account:', paypalError);
-          // Continue with response even if PayPal update fails
-          // In production, you might want to handle this differently
-        }
-      }
-      
-      // Don't return password in response
-      const { password, ...updatedUserData } = updatedUser;
-      res.json(updatedUserData);
-    } catch (error) {
-      res.status(400).json({ message: (error as Error).message });
-    }
-  });
   
   // Admin authentication middleware
   const requireAdmin = async (req: Request, res: Response, next: NextFunction) => {

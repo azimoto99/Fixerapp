@@ -7,6 +7,10 @@ if (!process.env.SUPABASE_DATABASE_URL) {
 // Parse the database URL to add connection parameters
 const dbUrl = new URL(process.env.SUPABASE_DATABASE_URL);
 
+// Check if we're in a deployment environment (Render, etc.)
+const isDeployment = process.env.RENDER || process.env.NODE_ENV === 'production';
+const isProduction = process.env.NODE_ENV === 'production';
+
 // Set connection timeouts
 dbUrl.searchParams.set('statement_timeout', '60000');
 dbUrl.searchParams.set('query_timeout', '60000');
@@ -14,10 +18,6 @@ dbUrl.searchParams.set('connect_timeout', '30');
 
 // Configure SSL for Supabase
 dbUrl.searchParams.set('sslmode', 'require');
-
-// Check if we're in a deployment environment (Render, etc.)
-const isDeployment = process.env.RENDER || process.env.NODE_ENV === 'production';
-const isProduction = process.env.NODE_ENV === 'production';
 
 console.log('🔧 Drizzle Config Info:');
 console.log(`- Environment: ${process.env.NODE_ENV || 'development'}`);
@@ -32,7 +32,7 @@ export default defineConfig({
     url: dbUrl.toString(),
     // SSL configuration for Supabase
     ssl: {
-      rejectUnauthorized: false // Supabase uses self-signed certificates
+      rejectUnauthorized: false // Allow self-signed certificates for Supabase
     }
   },
   introspect: {
