@@ -6,21 +6,19 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import { Slider } from '@/components/ui/slider';
+import { Label } from '@/components/ui/label';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { 
   MapPin, 
   DollarSign, 
   Clock, 
-  Users, 
-  Building2, 
   Navigation,
   Briefcase,
-  Star,
-  Filter,
   Search,
   ExternalLink,
   Calendar,
-  User
+  Target
 } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -28,43 +26,20 @@ import { apiRequest } from '@/lib/queryClient';
 import { Job } from '@/types';
 import { useLocation } from 'wouter';
 
-interface HubPin {
-  id: number;
-  title: string;
-  description: string;
-  location: string;
-  latitude: number;
-  longitude: number;
-  pinSize: string;
-  pinColor: string;
-  iconUrl?: string;
-  priority: number;
-  isActive: boolean;
-  business: {
-    id: number;
-    businessName: string;
-    businessLogo?: string;
-    verificationStatus: string;
-  };
-}
-
-interface NearbyItem {
-  type: 'job' | 'hubpin';
-  data: Job | HubPin;
+interface JobWithDistance extends Job {
   distance: number;
 }
 
 export default function Explore() {
   const { user } = useAuth();
   const [, navigate] = useLocation();
-  const [nearbyItems, setNearbyItems] = useState<NearbyItem[]>([]);
+  const [nearbyJobs, setNearbyJobs] = useState<JobWithDistance[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
-  const [filterType, setFilterType] = useState<'all' | 'jobs' | 'hubpins'>('all');
   const [sortBy, setSortBy] = useState<'distance' | 'date' | 'amount'>('distance');
+  const [maxDistance, setMaxDistance] = useState<number>(25); // Default 25 miles
   const [userLocation, setUserLocation] = useState<{ latitude: number; longitude: number } | null>(null);
   const [selectedJob, setSelectedJob] = useState<Job | null>(null);
-  const [selectedHubPin, setSelectedHubPin] = useState<HubPin | null>(null);
 
   // Get user's current location
   useEffect(() => {
@@ -99,87 +74,66 @@ export default function Explore() {
     return R * c;
   };
 
-  // Fetch nearby jobs and hub pins
+  // Fetch nearby jobs
   useEffect(() => {
-    const fetchNearbyItems = async () => {
+    const fetchNearbyJobs = async () => {
       if (!userLocation) return;
 
       setLoading(true);
       try {
-        // Fetch nearby jobs
-        const jobsResponse = await apiRequest('GET', '/api/jobs/nearby', {
-          latitude: userLocation.latitude,
-          longitude: userLocation.longitude,
-          radius: 25 // 25 mile radius
-        });
+        console.log(`🔍 Explore: Fetching jobs within ${maxDistance} miles of location:`, userLocation);
+        
+        // Fetch all jobs with coordinates
+        const response = await apiRequest('GET', '/api/jobs?hasCoordinates=true');
+        
+        if (!response.ok) {
+          throw new Error(`Failed to fetch jobs: ${response.status}`);
+        }
+        
+        const allJobs = await response.json();
+        console.log(`📍 Explore: Retrieved ${allJobs.length} jobs with coordinates`);
 
-        // Fetch active hub pins
-        const hubPinsResponse = await apiRequest('GET', '/api/enterprise/hub-pins/active');
+        // Filter jobs to only open status and calculate distances
+        const jobsWithDistance: JobWithDistance[] = allJobs
+          .filter((job: Job) => job.status === 'open' && job.latitude && job.longitude)
+          .map((job: Job) => {
+            const distance = calculateDistance(
+              userLocation.latitude,
+              userLocation.longitude,
+              job.latitude,
+              job.longitude
+            );
+            return {
+              ...job,
+              distance
+            };
+          })
+          .filter((job: JobWithDistance) => job.distance <= maxDistance); // Filter by max distance
 
-        const jobs = Array.isArray(jobsResponse) ? jobsResponse : [];
-        const hubPins = Array.isArray(hubPinsResponse) ? hubPinsResponse : [];
-
-        // Calculate distances and combine items
-        const nearbyJobItems: NearbyItem[] = jobs.map((job: Job) => ({
-          type: 'job' as const,
-          data: job,
-          distance: calculateDistance(
-            userLocation.latitude,
-            userLocation.longitude,
-            job.latitude,
-            job.longitude
-          )
-        }));
-
-        const nearbyHubPinItems: NearbyItem[] = hubPins.map((hubPin: HubPin) => ({
-          type: 'hubpin' as const,
-          data: hubPin,
-          distance: calculateDistance(
-            userLocation.latitude,
-            userLocation.longitude,
-            hubPin.latitude,
-            hubPin.longitude
-          )
-        }));
-
-        const allItems = [...nearbyJobItems, ...nearbyHubPinItems];
-        setNearbyItems(allItems);
+        console.log(`🎯 Explore: Found ${jobsWithDistance.length} jobs within ${maxDistance} miles`);
+        setNearbyJobs(jobsWithDistance);
       } catch (error) {
-        console.error('Error fetching nearby items:', error);
+        console.error('Error fetching nearby jobs:', error);
+        setNearbyJobs([]);
       } finally {
         setLoading(false);
       }
     };
 
-    fetchNearbyItems();
-  }, [userLocation]);
+    fetchNearbyJobs();
+  }, [userLocation, maxDistance]);
 
-  // Filter and sort items
-  const filteredAndSortedItems = nearbyItems
-    .filter(item => {
-      // Filter by type
-      if (filterType !== 'all' && 
-          ((filterType === 'jobs' && item.type !== 'job') || 
-           (filterType === 'hubpins' && item.type !== 'hubpin'))) {
-        return false;
-      }
-
+  // Filter and sort jobs
+  const filteredAndSortedJobs = nearbyJobs
+    .filter(job => {
       // Filter by search query
       if (searchQuery) {
         const searchLower = searchQuery.toLowerCase();
-        if (item.type === 'job') {
-          const job = item.data as Job;
-          return job.title.toLowerCase().includes(searchLower) ||
-                 job.description.toLowerCase().includes(searchLower) ||
-                 job.category.toLowerCase().includes(searchLower);
-        } else {
-          const hubPin = item.data as HubPin;
-          return hubPin.title.toLowerCase().includes(searchLower) ||
-                 hubPin.description.toLowerCase().includes(searchLower) ||
-                 hubPin.business.businessName.toLowerCase().includes(searchLower);
-        }
+        return job.title.toLowerCase().includes(searchLower) ||
+               job.description.toLowerCase().includes(searchLower) ||
+               job.category.toLowerCase().includes(searchLower) ||
+               job.location.toLowerCase().includes(searchLower);
       }
-
       return true;
     })
     .sort((a, b) => {
@@ -187,26 +141,15 @@ export default function Explore() {
         case 'distance':
           return a.distance - b.distance;
         case 'date':
-          if (a.type === 'job' && b.type === 'job') {
-            const jobA = a.data as Job;
-            const jobB = b.data as Job;
-            return new Date(jobB.datePosted || 0).getTime() - new Date(jobA.datePosted || 0).getTime();
-          }
-          return a.distance - b.distance;
+          return new Date(b.datePosted || 0).getTime() - new Date(a.datePosted || 0).getTime();
         case 'amount':
-          if (a.type === 'job' && b.type === 'job') {
-            const jobA = a.data as Job;
-            const jobB = b.data as Job;
-            return jobB.paymentAmount - jobA.paymentAmount;
-          }
-          return a.distance - b.distance;
+          return b.paymentAmount - a.paymentAmount;
         default:
-          return 0;
+          return a.distance - b.distance;
       }
     });
 
-  const renderJobCard = (item: NearbyItem) => {
-    const job = item.data as Job;
+  const renderJobCard = (job: JobWithDistance) => {
     return (
       <Card key={`job-${job.id}`} className="mb-4 hover:shadow-md transition-shadow">
         <CardHeader className="pb-3">
@@ -221,12 +164,17 @@ export default function Explore() {
                 <span>{job.location}</span>
                 <span>•</span>
                 <Navigation className="h-3 w-3" />
-                <span>{item.distance.toFixed(1)} miles away</span>
+                <span>{job.distance.toFixed(1)} miles away</span>
               </div>
             </div>
-            <Badge variant={job.status === 'open' ? 'default' : 'secondary'}>
-              {job.status}
-            </Badge>
+            <div className="flex items-center gap-2">
+              <Badge variant="outline" className="text-xs">
+                {job.category}
+              </Badge>
+              <Badge variant={job.status === 'open' ? 'default' : 'secondary'}>
+                {job.status}
+              </Badge>
+            </div>
           </div>
         </CardHeader>
         <CardContent>
@@ -240,10 +188,10 @@ export default function Explore() {
                 <span className="font-medium">${job.paymentAmount}</span>
                 <span className="text-muted-foreground">/{job.paymentType}</span>
               </div>
-              {job.estimatedHours && (
+              {job.dateNeeded && (
                 <div className="flex items-center gap-1">
                   <Clock className="h-3 w-3 text-orange-600" />
-                  <span>{job.estimatedHours}h</span>
+                  <span>{new Date(job.dateNeeded).toLocaleDateString()}</span>
                 </div>
               )}
             </div>
@@ -260,58 +208,6 @@ export default function Explore() {
     );
   };
 
-  const renderHubPinCard = (item: NearbyItem) => {
-    const hubPin = item.data as HubPin;
-    return (
-      <Card key={`hubpin-${hubPin.id}`} className="mb-4 hover:shadow-md transition-shadow">
-        <CardHeader className="pb-3">
-          <div className="flex items-start justify-between">
-            <div className="flex-1">
-              <CardTitle className="text-lg flex items-center gap-2">
-                <Building2 className="h-4 w-4 text-purple-600" />
-                {hubPin.title}
-              </CardTitle>
-              <div className="flex items-center gap-2 mt-1 text-sm text-muted-foreground">
-                <MapPin className="h-3 w-3" />
-                <span>{hubPin.location}</span>
-                <span>•</span>
-                <Navigation className="h-3 w-3" />
-                <span>{item.distance.toFixed(1)} miles away</span>
-              </div>
-            </div>
-            <div className="flex items-center gap-2">
-              <Badge variant={hubPin.business.verificationStatus === 'verified' ? 'default' : 'secondary'}>
-                {hubPin.business.verificationStatus}
-              </Badge>
-              {hubPin.business.verificationStatus === 'verified' && (
-                <Star className="h-3 w-3 text-yellow-500 fill-current" />
-              )}
-            </div>
-          </div>
-        </CardHeader>
-        <CardContent>
-          <p className="text-sm text-muted-foreground mb-3 line-clamp-2">
-            {hubPin.description}
-          </p>
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2 text-sm">
-              <span className="font-medium">{hubPin.business.businessName}</span>
-              <Badge variant="outline" className="text-xs">
-                Hub Pin
-              </Badge>
-            </div>
-            <Button 
-              size="sm" 
-              variant="outline"
-              onClick={() => setSelectedHubPin(hubPin)}
-            >
-              View Hub
-            </Button>
-          </div>
-        </CardContent>
-      </Card>
-    );
-  };
 
   if (loading) {
     return (
@@ -335,98 +231,159 @@ export default function Explore() {
         type="website"
       />
       <div className="mb-6">
-        <h1 className="text-2xl font-bold mb-2">Explore Nearby</h1>
+        <h1 className="text-2xl font-bold mb-2">Explore Nearby Jobs</h1>
         <p className="text-muted-foreground">
-          Discover jobs and business hubs in your area
+          Find local job opportunities within your preferred distance
         </p>
       </div>
 
       {/* Filters and Search */}
       <Card className="mb-6">
         <CardContent className="p-4">
-          <div className="flex flex-col sm:flex-row gap-4">
-            <div className="flex-1">
-              <div className="relative">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                <Input
-                  placeholder="Search jobs, businesses, or locations..."
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  className="pl-10"
-                />
-              </div>
+          <div className="space-y-4">
+            {/* Search Bar */}
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Input
+                placeholder="Search jobs by title, description, category, or location..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="pl-10"
+              />
             </div>
-            <div className="flex gap-2">
-              <Select value={filterType} onValueChange={(value: 'all' | 'jobs' | 'hubpins') => setFilterType(value)}>
-                <SelectTrigger className="w-32">
-                  <Filter className="h-4 w-4 mr-2" />
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All</SelectItem>
-                  <SelectItem value="jobs">Jobs</SelectItem>
-                  <SelectItem value="hubpins">Hub Pins</SelectItem>
-                </SelectContent>
-              </Select>
-              <Select value={sortBy} onValueChange={(value: 'distance' | 'date' | 'amount') => setSortBy(value)}>
-                <SelectTrigger className="w-32">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="distance">Distance</SelectItem>
-                  <SelectItem value="date">Date</SelectItem>
-                  <SelectItem value="amount">Amount</SelectItem>
-                </SelectContent>
-              </Select>
+            
+            {/* Distance Slider and Sort */}
+            <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-end">
+              <div className="flex-1 space-y-2">
+                <Label className="flex items-center gap-2">
+                  <Target className="h-4 w-4" />
+                  Distance Range: {maxDistance} miles
+                </Label>
+                <Slider
+                  value={[maxDistance]}
+                  onValueChange={(value) => setMaxDistance(value[0])}
+                  max={100}
+                  min={1}
+                  step={1}
+                  className="w-full"
+                />
+                <div className="flex justify-between text-xs text-muted-foreground">
+                  <span>1 mile</span>
+                  <span>100 miles</span>
+                </div>
+              </div>
+              
+              <div className="flex gap-2">
+                <Select value={sortBy} onValueChange={(value: 'distance' | 'date' | 'amount') => setSortBy(value)}>
+                  <SelectTrigger className="w-36">
+                    <SelectValue placeholder="Sort by" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="distance">Distance</SelectItem>
+                    <SelectItem value="date">Date Posted</SelectItem>
+                    <SelectItem value="amount">Payment</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
             </div>
           </div>
         </CardContent>
       </Card>
 
       {/* Results */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-        <div>
-          <h2 className="text-lg font-semibold mb-4 flex items-center gap-2">
-            <Users className="h-5 w-5" />
-            Nearby Opportunities ({filteredAndSortedItems.length})
-          </h2>
-          <ScrollArea className="h-[600px]">
-            {filteredAndSortedItems.length === 0 ? (
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <div className="lg:col-span-2">
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-lg font-semibold flex items-center gap-2">
+              <Briefcase className="h-5 w-5" />
+              Nearby Jobs ({filteredAndSortedJobs.length})
+            </h2>
+            {userLocation && (
+              <div className="text-sm text-muted-foreground">
+                Within {maxDistance} miles of your location
+              </div>
+            )}
+          </div>
+          
+          <ScrollArea className="h-[700px]">
+            {filteredAndSortedJobs.length === 0 ? (
               <Card>
                 <CardContent className="p-8 text-center">
-                  <MapPin className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-                  <h3 className="text-lg font-medium mb-2">No items found</h3>
-                  <p className="text-muted-foreground">
+                  <Target className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+                  <h3 className="text-lg font-medium mb-2">No jobs found</h3>
+                  <p className="text-muted-foreground mb-4">
                     {searchQuery 
-                      ? "Try adjusting your search terms or filters"
-                      : "There are no jobs or hub pins in your area right now"
+                      ? "Try adjusting your search terms or increasing the distance range"
+                      : "There are no open jobs in your selected area"
                     }
                   </p>
+                  {maxDistance < 50 && (
+                    <Button 
+                      variant="outline" 
+                      onClick={() => setMaxDistance(50)}
+                      className="mt-2"
+                    >
+                      Expand to 50 miles
+                    </Button>
+                  )}
                 </CardContent>
               </Card>
             ) : (
-              filteredAndSortedItems.map((item) => 
-                item.type === 'job' ? renderJobCard(item) : renderHubPinCard(item)
-              )
+              filteredAndSortedJobs.map((job) => renderJobCard(job))
             )}
           </ScrollArea>
         </div>
 
-        {/* Map placeholder - you can integrate with your existing map component */}
-        <div className="hidden lg:block">
-          <h2 className="text-lg font-semibold mb-4 flex items-center gap-2">
-            <MapPin className="h-5 w-5" />
-            Map View
+        {/* Quick Stats */}
+        <div className="space-y-4">
+          <h2 className="text-lg font-semibold flex items-center gap-2">
+            <Target className="h-5 w-5" />
+            Quick Stats
           </h2>
-          <Card className="h-[600px]">
-            <CardContent className="p-4 h-full flex items-center justify-center">
-              <div className="text-center text-muted-foreground">
-                <MapPin className="h-12 w-12 mx-auto mb-4" />
-                <p>Map integration coming soon</p>
-                <p className="text-sm">This will show all nearby items on an interactive map</p>
+          
+          <Card>
+            <CardContent className="p-4 space-y-3">
+              <div className="flex justify-between">
+                <span className="text-sm text-muted-foreground">Total Jobs</span>
+                <span className="font-medium">{nearbyJobs.length}</span>
               </div>
+              <div className="flex justify-between">
+                <span className="text-sm text-muted-foreground">After Filters</span>
+                <span className="font-medium">{filteredAndSortedJobs.length}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-sm text-muted-foreground">Distance Range</span>
+                <span className="font-medium">{maxDistance} miles</span>
+              </div>
+              {filteredAndSortedJobs.length > 0 && (
+                <>
+                  <Separator />
+                  <div className="flex justify-between">
+                    <span className="text-sm text-muted-foreground">Closest Job</span>
+                    <span className="font-medium">{filteredAndSortedJobs[0]?.distance.toFixed(1)} mi</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-sm text-muted-foreground">Highest Pay</span>
+                    <span className="font-medium">
+                      ${Math.max(...filteredAndSortedJobs.map(j => j.paymentAmount))}
+                    </span>
+                  </div>
+                </>
+              )}
             </CardContent>
           </Card>
+          
+          {userLocation && (
+            <Card>
+              <CardContent className="p-4">
+                <h3 className="font-medium mb-2">Your Location</h3>
+                <div className="text-sm text-muted-foreground">
+                  <MapPin className="h-3 w-3 inline mr-1" />
+                  {userLocation.latitude.toFixed(4)}, {userLocation.longitude.toFixed(4)}
+                </div>
+              </CardContent>
+            </Card>
+          )}
         </div>
       </div>
 
@@ -499,72 +456,6 @@ export default function Explore() {
                   <Button 
                     variant="outline"
                     onClick={() => setSelectedJob(null)}
-                  >
-                    Close
-                  </Button>
-                </div>
-              </div>
-            </>
-          )}
-        </DialogContent>
-      </Dialog>
-
-      {/* Hub Pin Detail Modal */}
-      <Dialog open={!!selectedHubPin} onOpenChange={() => setSelectedHubPin(null)}>
-        <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
-          {selectedHubPin && (
-            <>
-              <DialogHeader>
-                <DialogTitle className="flex items-center gap-2">
-                  <Building2 className="h-5 w-5 text-purple-600" />
-                  {selectedHubPin.title}
-                </DialogTitle>
-              </DialogHeader>
-              <div className="space-y-4">
-                <div className="flex items-center gap-4 text-sm text-muted-foreground">
-                  <div className="flex items-center gap-1">
-                    <MapPin className="h-4 w-4" />
-                    <span>{selectedHubPin.location}</span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <Badge variant={selectedHubPin.business.verificationStatus === 'verified' ? 'default' : 'secondary'}>
-                      {selectedHubPin.business.verificationStatus}
-                    </Badge>
-                    {selectedHubPin.business.verificationStatus === 'verified' && (
-                      <Star className="h-4 w-4 text-yellow-500 fill-current" />
-                    )}
-                  </div>
-                </div>
-
-                <Separator />
-
-                <div>
-                  <h3 className="font-medium mb-2">Business</h3>
-                  <div className="flex items-center gap-2">
-                    <User className="h-4 w-4" />
-                    <span className="font-medium">{selectedHubPin.business.businessName}</span>
-                  </div>
-                </div>
-
-                <div>
-                  <h3 className="font-medium mb-2">Description</h3>
-                  <p className="text-sm text-muted-foreground">{selectedHubPin.description}</p>
-                </div>
-
-                <div className="flex gap-2 pt-4">
-                  <Button 
-                    className="flex-1"
-                    onClick={() => {
-                      navigate(`/?hubPinId=${selectedHubPin.id}`);
-                      setSelectedHubPin(null);
-                    }}
-                  >
-                    <ExternalLink className="h-4 w-4 mr-2" />
-                    View on Map
-                  </Button>
-                  <Button 
-                    variant="outline"
-                    onClick={() => setSelectedHubPin(null)}
                   >
                     Close
                   </Button>
