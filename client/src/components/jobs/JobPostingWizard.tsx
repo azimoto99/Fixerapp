@@ -84,6 +84,13 @@ export default function JobPostingWizard({ isOpen, onClose, onJobCreated, jobToE
   const { toast } = useToast();
   const isEditMode = !!jobToEdit;
   
+  // Reset step when dialog opens/closes
+  useEffect(() => {
+    if (isOpen) {
+      setCurrentStep(1);
+    }
+  }, [isOpen]);
+  
   const { register, handleSubmit, watch, setValue, reset, formState: { errors } } = useForm<JobFormData>();
 
   useEffect(() => {
@@ -142,6 +149,12 @@ export default function JobPostingWizard({ isOpen, onClose, onJobCreated, jobToE
   };
 
   const onSubmit = async (data: JobFormData) => {
+    // Only allow submission on the final step
+    if (currentStep !== totalSteps) {
+      console.log(`JobPostingWizard: Form submitted on step ${currentStep}, but only step ${totalSteps} should submit. Preventing submission.`);
+      return;
+    }
+    
     // Prevent double submission
     if (isSubmitting) {
       console.log('JobPostingWizard: Submission already in progress, ignoring');
@@ -194,6 +207,9 @@ export default function JobPostingWizard({ isOpen, onClose, onJobCreated, jobToE
       // Close wizard before calling onJobCreated to prevent any re-renders during submission
       onClose();
       onJobCreated(result.job);
+      
+      // Reset to step 1 after successful submission
+      setCurrentStep(1);
     } catch (error) {
       console.error(`Job ${isEditMode ? 'updating' : 'posting'} error:`, error);
       toast({
@@ -498,10 +514,31 @@ export default function JobPostingWizard({ isOpen, onClose, onJobCreated, jobToE
             <Progress value={progress} className="h-2" />
           </div>
 
-          <form onSubmit={handleSubmit(onSubmit)} onInvalid={(e) => {
-            console.log('Form invalid:', e);
-            e.preventDefault();
-          }}>
+          <form 
+            onSubmit={handleSubmit(onSubmit)} 
+            onInvalid={(e) => {
+              console.log('Form invalid:', e);
+              e.preventDefault();
+            }}
+            onKeyDown={(e) => {
+              // Prevent Enter key from submitting form on steps 1-3
+              if (e.key === 'Enter' && currentStep < totalSteps) {
+                e.preventDefault();
+                console.log(`JobPostingWizard: Enter key pressed on step ${currentStep}, preventing form submission`);
+                // Trigger next step instead if conditions are met
+                const canProceed = 
+                  (currentStep === 1 && watchedValues.title && watchedValues.description && watchedValues.category) ||
+                  (currentStep === 2 && watchedValues.location && watchedValues.dateNeeded && 
+                    watchedValues.latitude && watchedValues.longitude &&
+                    watchedValues.latitude !== 0 && watchedValues.longitude !== 0) ||
+                  (currentStep === 3 && watchedValues.paymentAmount);
+                
+                if (canProceed) {
+                  handleNext();
+                }
+              }
+            }}
+          >
             {renderStep()}
 
             <div className="flex justify-between pt-6 border-t mt-6">
