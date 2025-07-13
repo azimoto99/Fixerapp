@@ -28,56 +28,28 @@ export const supabase = createClient(
   }
 );
 
-// Create a pool for database connections with enhanced resilience
-let pool: Pool | undefined = undefined;
+// Single database connection using postgres-js client only
 let db: any = undefined;
 let client: any = undefined;
-let connectionCount = 0; // Track connection count for logging
+let pool: Pool | undefined = undefined; // Keep for session store only
 
 if (process.env.SUPABASE_DATABASE_URL) {
   const connectionString = process.env.SUPABASE_DATABASE_URL;
   const dbUrl = new URL(connectionString);
   
-  // Create the connection pool with optimized settings for production
+  // Create minimal pool ONLY for session store
   pool = new Pool({
     connectionString,
     ssl: { rejectUnauthorized: false },
-    max: 15, // Reduced max connections to prevent overwhelming the database
-    min: 3, // Maintain minimum connections
-    idleTimeoutMillis: 30000, // 30 seconds - shorter idle timeout
-    connectionTimeoutMillis: 10000, // 10 seconds connection timeout
-    acquireTimeoutMillis: 8000, // 8 seconds to acquire connection
+    max: 5, // Minimal connections for session store only
+    min: 1,
+    idleTimeoutMillis: 30000,
+    connectionTimeoutMillis: 10000,
+    acquireTimeoutMillis: 8000,
     allowExitOnIdle: false,
-    keepAlive: true,
-    keepAliveInitialDelayMillis: 5000,
-    // Use consistent timeout settings
-    statement_timeout: 30000, // 30 seconds max for any statement
   });
 
-  // Add error handling for the pool
-  pool.on('error', (err) => {
-    console.error('❌ Database pool error:', err);
-    
-    // Handle specific error cases
-    if (err.message.includes('termination') || err.message.includes('connection')) {
-      console.log('🔄 Database connection lost, attempting to reconnect...');
-      // The pool will automatically attempt to reconnect
-    }
-  });
-
-  pool.on('connect', (client) => {
-    // Only log first few connections to avoid spam
-    if (connectionCount < 3) {
-      console.log(`✅ Database client connected (${connectionCount + 1})`);
-    }
-    connectionCount++;
-    
-    client.on('error', (err) => {
-      console.error('❌ Database client error:', err);
-    });
-  });
-
-  // Create the postgres client with optimized configuration
+  // Create the main postgres client for all queries
   client = postgres({
     host: dbUrl.hostname,
     port: parseInt(dbUrl.port) || 5432,
@@ -85,19 +57,18 @@ if (process.env.SUPABASE_DATABASE_URL) {
     username: dbUrl.username,
     password: dbUrl.password,
     ssl: 'require',
-    max: 8, // Reduced max connections
-    idle_timeout: 20, // Shorter idle timeout
-    connect_timeout: 10, // Shorter connect timeout
-    statement_timeout: 30000, // 30 seconds statement timeout - consistent with pool
+    max: 15, // All connections go through this
+    idle_timeout: 20,
+    connect_timeout: 10,
+    statement_timeout: 30000,
     connection: {
       application_name: 'fixer-app',
-      statement_timeout: '30s', // PostgreSQL setting - consistent with above
+      statement_timeout: '30s',
     },
-    onnotice: () => {}, // Suppress notices
+    onnotice: () => {},
     transform: {
       undefined: null
     },
-    // Add error handling
     onparameter: () => {},
     debug: false
   });

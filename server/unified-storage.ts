@@ -2,7 +2,7 @@
 import { config } from 'dotenv';
 import { drizzle } from 'drizzle-orm/postgres-js';
 import { eq, and, like, notLike, desc, or, asc, gte, lte, count, sum, avg, sql, ilike } from 'drizzle-orm';
-import { db, pool } from './db';
+import { db, pool, client } from './db';
 import { IStorage } from './storage';
 import {
   users, jobs, applications, reviews, tasks, badges, userBadges, notifications, contacts, contactRequests, messages, supportTickets, supportMessages, disputes, feedback, platformSettings,
@@ -201,16 +201,36 @@ export class UnifiedStorage implements IStorage {
 
   async getUserByUsername(username: string): Promise<User | undefined> {
     return this.safeExecute(async () => {
-      const result = await db.select().from(users).where(eq(users.username, username));
+      console.log(`🔍 getUserByUsername: Starting query for "${username}"`);
+      const startTime = Date.now();
+      
+      // Bypass RLS for authentication queries by using admin context
+      const result = await client`
+        SELECT * FROM users 
+        WHERE username = ${username}
+        LIMIT 1
+      `;
+      
+      console.log(`✅ getUserByUsername: Query completed in ${Date.now() - startTime}ms, found: ${result.length > 0}`);
       return result[0] || undefined;
-    }, undefined, `getUserByUsername(${username})`);
+    }, undefined, `getUserByUsername(${username})`, 5000); // Reduced timeout for auth
   }
 
   async getUserByUsernameInsensitive(username: string): Promise<User | undefined> {
     return this.safeExecute(async () => {
-      const result = await db.select().from(users).where(sql`LOWER(${users.username}) = LOWER(${username})`);
+      console.log(`🔍 getUserByUsernameInsensitive: Starting query for "${username}"`);
+      const startTime = Date.now();
+      
+      // Bypass RLS for authentication queries by using admin context
+      const result = await client`
+        SELECT * FROM users 
+        WHERE LOWER(username) = LOWER(${username})
+        LIMIT 1
+      `;
+      
+      console.log(`✅ getUserByUsernameInsensitive: Query completed in ${Date.now() - startTime}ms, found: ${result.length > 0}`);
       return result[0] || undefined;
-    }, undefined, `getUserByUsernameInsensitive(${username})`);
+    }, undefined, `getUserByUsernameInsensitive(${username})`, 5000); // Reduced timeout for auth
   }
 
   async getUserByEmail(email: string): Promise<User | undefined> {
