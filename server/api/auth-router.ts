@@ -2,7 +2,7 @@ import express, { Request, Response } from 'express';
 import { randomBytes, scrypt } from 'crypto';
 import { promisify } from 'util';
 import { z } from 'zod';
-import { storage } from '../storage';
+import { unifiedStorage as storage } from '../unified-storage';
 
 // Utils --------------------------------------------------
 const scryptAsync = promisify(scrypt);
