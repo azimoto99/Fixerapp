@@ -774,6 +774,47 @@ const JobDetailsCard: React.FC<JobDetailsCardProps> = ({ jobId, isOpen, onClose 
     setShowRatingDialog(true);
   };
 
+  // Define card animation variants
+  const variants = {
+    hidden: { y: '100%', opacity: 0 },
+    visible: { 
+      y: isExpanded ? '0%' : '85%', 
+      opacity: 1,
+      transition: { 
+        type: 'spring',
+        damping: 25,
+        stiffness: 300
+      }
+    },
+    exit: { y: '100%', opacity: 0 }
+  };
+
+  // Get status badge variant
+  const getStatusVariant = (status: string) => {
+    switch (status) {
+      case 'open': return 'secondary';
+      case 'assigned': return 'secondary';
+      case 'in_progress': return 'default';
+      case 'completed': return 'secondary';
+      case 'canceled': return 'destructive';
+      case 'pending_payment': return 'outline';
+      default: return 'outline';
+    }
+  };
+
+  // Get status badge class for custom styling
+  const getStatusClass = (status: string) => {
+    switch (status) {
+      case 'open': return 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400 border-green-200 dark:border-green-800';
+      case 'assigned': return 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400 border-blue-200 dark:border-blue-800';
+      case 'in_progress': return 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400 border-yellow-200 dark:border-yellow-800';
+      case 'completed': return 'bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-400 border-purple-200 dark:border-purple-800';
+      case 'canceled': return 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400 border-red-200 dark:border-red-800';
+      case 'pending_payment': return 'bg-orange-100 text-orange-800 dark:bg-orange-900/30 dark:text-orange-400 border-orange-200 dark:border-orange-800';
+      default: return 'bg-gray-100 text-gray-800 dark:bg-gray-900/30 dark:text-gray-400 border-gray-200 dark:border-gray-800';
+    }
+  };
+
   // If the card is closed, don't render anything
   if (!isOpen) return null;
 
