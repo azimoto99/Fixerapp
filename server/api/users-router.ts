@@ -1,6 +1,6 @@
 import express, { Request, Response } from 'express';
 import { z } from 'zod';
-import { storage } from '../storage';
+import { unifiedStorage as storage } from '../unified-storage';
 import { requireAuth, optionalAuth, requireAdmin } from '../middleware/auth';
 
 const router = express.Router();

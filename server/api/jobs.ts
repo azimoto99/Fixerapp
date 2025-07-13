@@ -1,5 +1,5 @@
 import { Router, Request, Response } from 'express';
-import { storage } from '../storage';
+import { unifiedStorage as storage } from '../unified-storage';
 import { isAuthenticated, optionalAuth } from '../middleware/auth';
 import { z } from 'zod';
 
@@ -252,8 +252,11 @@ jobsRouter.get('/', optionalAuth, async (req: Request, res: Response) => {
     if (category && category !== 'all') jobs = jobs.filter(j => j.category === category);
     if (posterId) {
       const posterIdNum = parseInt(posterId);
+      console.log(`Backend: Filtering jobs by posterId ${posterIdNum}`);
       if (!isNaN(posterIdNum)) {
+        const beforeCount = jobs.length;
         jobs = jobs.filter(j => j.posterId === posterIdNum);
+        console.log(`Backend: Filtered from ${beforeCount} to ${jobs.length} jobs for posterId ${posterIdNum}`);
       }
     }
     if (search) {

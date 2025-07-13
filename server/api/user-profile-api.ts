@@ -2,7 +2,7 @@
  * User Profile API Routes - Handles user profile data, badges, and reviews
  */
 import type { Express, Request, Response } from "express";
-import { storage } from "../storage";
+import { unifiedStorage as storage } from "../unified-storage";
 import { z } from "zod";
 
 export function registerUserProfileRoutes(app: Express) {

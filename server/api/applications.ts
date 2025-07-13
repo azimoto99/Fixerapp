@@ -1,6 +1,6 @@
 // @ts-nocheck
 import { Router, Request, Response } from 'express';
-import { storage } from '../storage';
+import { unifiedStorage as storage } from '../unified-storage';
 import { isAuthenticated } from '../middleware/auth';
 import { AuthenticatedRequest } from '../types';
 
