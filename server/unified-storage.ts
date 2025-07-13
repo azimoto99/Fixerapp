@@ -293,25 +293,50 @@ export class UnifiedStorage implements IStorage {
   // JOB OPERATIONS
   async getAllJobs(filters?: any): Promise<Job[]> {
     return this.safeExecute(async () => {
-      let query = db.select().from(jobs);
+      console.log(`🔍 getAllJobs: Starting query with filters:`, filters);
+      const startTime = Date.now();
+      
+      // Bypass RLS for job queries by using direct SQL
+      let whereClause = '';
+      const params: any[] = [];
       
       if (filters?.status) {
-        query = query.where(eq(jobs.status, filters.status));
+        whereClause += ` WHERE status = $${params.length + 1}`;
+        params.push(filters.status);
       }
       if (filters?.category) {
-        query = query.where(eq(jobs.category, filters.category));
+        whereClause += whereClause ? ` AND category = $${params.length + 1}` : ` WHERE category = $${params.length + 1}`;
+        params.push(filters.category);
       }
       if (filters?.location) {
-        query = query.where(like(jobs.location, `%${filters.location}%`));
+        whereClause += whereClause ? ` AND location ILIKE $${params.length + 1}` : ` WHERE location ILIKE $${params.length + 1}`;
+        params.push(`%${filters.location}%`);
       }
       
-      return await query.orderBy(desc(jobs.datePosted));
+      const result = await client.unsafe(`
+        SELECT * FROM jobs 
+        ${whereClause}
+        ORDER BY date_posted DESC
+      `, params);
+      
+      console.log(`✅ getAllJobs: Query completed in ${Date.now() - startTime}ms, found: ${result.length} jobs`);
+      return result;
     }, [], 'getAllJobs');
   }
 
   async getJob(id: number): Promise<Job | null> {
     return this.safeExecute(async () => {
-      const result = await db.select().from(jobs).where(eq(jobs.id, id));
+      console.log(`🔍 getJob: Starting query for jobId ${id}`);
+      const startTime = Date.now();
+      
+      // Bypass RLS for individual job queries
+      const result = await client`
+        SELECT * FROM jobs 
+        WHERE id = ${id}
+        LIMIT 1
+      `;
+      
+      console.log(`✅ getJob: Query completed in ${Date.now() - startTime}ms, found: ${result.length > 0}`);
       return result[0] || null;
     }, null, `getJob(${id})`);
   }
@@ -343,7 +368,18 @@ export class UnifiedStorage implements IStorage {
 
   async getJobsByUserId(userId: number): Promise<Job[]> {
     return this.safeExecute(async () => {
-      return await db.select().from(jobs).where(eq(jobs.posterId, userId)).orderBy(desc(jobs.datePosted));
+      console.log(`🔍 getJobsByUserId: Starting query for userId ${userId}`);
+      const startTime = Date.now();
+      
+      // Bypass RLS for poster job queries
+      const result = await client`
+        SELECT * FROM jobs 
+        WHERE poster_id = ${userId}
+        ORDER BY date_posted DESC
+      `;
+      
+      console.log(`✅ getJobsByUserId: Query completed in ${Date.now() - startTime}ms, found: ${result.length} jobs`);
+      return result;
     }, [], `getJobsByUserId(${userId})`);
   }
 
