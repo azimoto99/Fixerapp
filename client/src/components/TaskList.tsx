@@ -6,8 +6,8 @@ import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/hooks/use-auth';
 import { Loader2, Plus, Check, Move, X } from 'lucide-react';
 import { useForm } from 'react-hook-form';
-import { zodResolver } from '@hookform/resolvers/zod';
-import { z } from 'zod';
+import { zodResolver } from '@/lib/zod-resolver';
+import { z } from 'zod/v4';
 import {
   Card,
   CardContent,

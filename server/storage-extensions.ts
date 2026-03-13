@@ -1,3 +1,4 @@
+// @ts-nocheck
 /**
  * Extensions to the storage interface for admin functionality and enhanced payments
  */

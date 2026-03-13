@@ -1,7 +1,7 @@
 import { useLocation } from 'wouter';
 import { useForm } from 'react-hook-form';
-import { z } from 'zod';
-import { zodResolver } from '@hookform/resolvers/zod';
+import { z } from 'zod/v4';
+import { zodResolver } from '@/lib/zod-resolver';
 import { useAuth } from '@/hooks/use-auth';
 import { SKILLS } from '@shared/schema';
 import logoImg from '@/assets/logo.png';
@@ -40,9 +40,7 @@ const formSchema = z.object({
   phone: z.string().optional(),
   bio: z.string().optional(),
   skills: z.array(z.string()).optional().default([]),
-  accountType: z.enum(['worker', 'poster'], {
-    required_error: 'Please select an account type',
-  }),
+  accountType: z.enum(['worker', 'poster']),
 });
 
 type FormData = z.infer<typeof formSchema>;

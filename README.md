@@ -1,148 +1,113 @@
-# Fixer - Gig Economy Platform
+# Fixer
 
-![Fixer Logo](./logo.png)
+Fixer is a web-first gig marketplace for posting local jobs, discovering nearby work, coordinating tasks, messaging in real time, and handling payments through Stripe.
 
-## Overview
+## What Is Active Today
 
-Fixer is a cutting-edge gig economy platform that revolutionizes job matching, collaboration, and payment workflows for freelancers and employers. It focuses on intuitive user experience and seamless professional connections, featuring advanced geospatial job discovery with proximity-based recommendations, real-time updates, and secure payment processing through Stripe.
+- Frontend: Vite + React + TypeScript
+- Backend: Express + TypeScript
+- Data layer: Drizzle ORM against a Supabase/Postgres database
+- Auth: Passport session auth
+- Realtime: WebSockets for messaging and presence
+- Mobile packaging: Capacitor Android project
 
-## Key Features
+The repo still contains Expo and React Native artifacts from earlier experiments. The maintained application path in this codebase is the React web app served by the Express server.
 
-- **Geolocation-powered job matching**: Find jobs within a configurable radius of your location
-- **Stripe Connect integration**: Complete payment system for job posters and workers
-- **Task management system**: Break down jobs into tasks and track completion
-- **Real-time notifications**: Get alerts for new jobs, applications, and payments
-- **Mobile-first responsive design**: Optimized for all devices with intuitive touch controls
-- **Dual account types**: Create both worker and job poster accounts with the same email
-- **Secure payment processing**: Full payment lifecycle with escrow capabilities
-- **Interactive map**: Enhanced map experience with custom controls and visual job indicators
-- **Rating and review system**: Build reputation based on job performance
+## Core Features
 
-## Technology Stack
+- Location-aware job discovery
+- Job posting with task breakdowns
+- Worker applications and poster workflows
+- Stripe-backed payment and payout flows
+- Realtime messaging
+- Reviews, earnings, notifications, and admin tools
+- Responsive UI that works on desktop and mobile browsers
 
-- **Frontend**: React Native with Expo, TypeScript, and Tailwind CSS
-- **Backend**: Node.js with Express
-- **Database**: Neon PostgreSQL with Drizzle ORM
-- **Authentication**: Passport.js with local strategy
-- **Maps**: Mapbox GL JS for interactive maps with traffic data
-- **Payments**: Stripe Connect API for full payment lifecycle
-- **State Management**: TanStack Query (React Query)
-- **Real-time Updates**: WebSockets for notifications
-- **UI Components**: Shadcn/UI components
+## Prerequisites
+
+- Node.js 18+
+- npm
+- A Postgres database exposed through the Supabase environment variables used by the app
+- Stripe keys for payment flows
+
+## Local Setup
+
+1. Install dependencies:
+
+```bash
+npm install
+```
+
+2. Create a local environment file:
+
+```bash
+cp .env.example .env
+```
+
+3. Fill in the required values from [docs/environment-configuration.md](./docs/environment-configuration.md).
+
+4. Push the schema:
+
+```bash
+npm run db:push
+```
+
+5. Start the app:
+
+```bash
+npm run dev
+```
+
+The app is served on `http://localhost:5000`.
+
+## Verification
+
+```bash
+npm run check
+npm run build
+```
+
+## Using Fixer
+
+- Workers can browse nearby jobs, apply, message posters, and track earnings.
+- Job posters can publish jobs, attach task lists, manage applicants, and complete payment steps.
+- The primary mobile workflow is the responsive web app in a phone browser.
+- Android packaging is available through Capacitor when needed.
+
+## API Surface
+
+- REST endpoints live under `/api`.
+- Realtime messaging and presence use `/ws`.
+- The main implementation lives in `server/routes.ts` and `server/api/`.
+
+## Project Layout
+
+```text
+client/
+  src/
+    components/
+    hooks/
+    lib/
+    pages/
+server/
+  api/
+  routes.ts
+  auth.ts
+  db.ts
+  database-storage.ts
+shared/
+  schema.ts
+docs/
+public/
+migrations/
+```
+
+## Mobile Notes
+
+- Capacitor is the maintained Android packaging path in this repo.
+- Expo and React Native artifacts still exist, but they are not the primary development flow.
 
 ## Documentation
 
-Comprehensive documentation is available in the `docs` directory:
-
-- [User Guide](./docs/user-guide.md) - Complete instructions for end users
-- [API Documentation](./docs/api-documentation.md) - Details of all API endpoints
-- [Environment Configuration](./docs/environment-configuration.md) - Setup and configuration guide
-- [Android Build Guide](./docs/android-build-guide.md) - Build the app for Android devices
-- [Expo Android Guide](./docs/expo-android-guide.md) - Connect to Android with Expo Go
-
-## Getting Started
-
-### Prerequisites
-
-- Node.js (v18+)
-- PostgreSQL database
-- Stripe account for payment processing
-- Android SDK (for building mobile app)
-
-### Mobile App Builds
-
-You can build Fixer as a native Android application using our build script:
-
-```bash
-# Make the script executable
-chmod +x build-android.sh
-
-# Run the build script
-./build-android.sh
-```
-
-The script will:
-1. Build the web application
-2. Initialize or update the Android project
-3. Build an Android APK file
-4. Create a QR code for downloading the APK (optional)
-
-The resulting APK will be available at `./fixer-app.apk` for installation on Android devices.
-
-### Installation
-
-1. Clone the repository:
-   ```bash
-   git clone https://github.com/yourusername/the-job.git
-   cd the-job
-   ```
-
-2. Install dependencies:
-   ```bash
-   npm install
-   ```
-
-3. Create environment variables (see [Environment Configuration](./docs/environment-configuration.md)):
-   ```bash
-   cp .env.example .env
-   # Edit .env with your settings
-   ```
-
-4. Set up the database:
-   ```bash
-   npm run db:push
-   ```
-
-5. Start the development server:
-   ```bash
-   npm run dev
-   ```
-
-6. The application will be available at `http://localhost:5000`
-
-## Development
-
-- The frontend is built with Vite and React
-- The backend uses Express
-- Database interactions use Drizzle ORM
-- The project uses a monorepo structure with shared types
-
-### Project Structure
-
-```
-├── client/            # Frontend code
-│   ├── src/
-│   │   ├── components/  # React components
-│   │   ├── hooks/       # Custom React hooks
-│   │   ├── lib/         # Utility functions
-│   │   ├── pages/       # Page components
-│   │   └── types/       # TypeScript type definitions
-├── server/            # Backend code
-│   ├── api/           # API module endpoints
-│   ├── types/         # Server-specific types
-│   ├── routes.ts      # API routes
-│   ├── storage.ts     # Data storage interface
-│   ├── auth.ts        # Authentication logic
-│   ├── db.ts          # Database connection
-│   └── database-storage.ts # Database implementation
-├── shared/            # Shared code between frontend and backend
-│   └── schema.ts      # Database schema and shared types
-├── public/            # Static assets
-├── migrations/        # Database migrations
-├── scripts/           # Utility scripts
-└── docs/              # Documentation
-```
-
-## Contributing
-
-Contributions are welcome! Please read our [Contributing Guidelines](./CONTRIBUTING.md) for details on the process for submitting pull requests.
-
-## License
-
-This project is licensed under the MIT License - see the [LICENSE](./LICENSE) file for details.
-
-## Acknowledgments
-
-- OpenStreetMap for map data
-- Stripe for payment processing
-- All open-source libraries used in this project
+- [Environment Configuration](./docs/environment-configuration.md)
+- [Android Build Guide](./docs/android-build-guide.md)

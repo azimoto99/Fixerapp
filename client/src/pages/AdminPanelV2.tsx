@@ -92,6 +92,43 @@ interface Payment {
   description: string;
 }
 
+interface DashboardAnalytics {
+  userGrowth?: {
+    totalUsers: number;
+    newUsersToday: number;
+    growthRate: number;
+  };
+  jobMetrics?: {
+    activeJobs: number;
+    totalJobs: number;
+    completionRate: number;
+  };
+  financialMetrics?: {
+    monthlyRevenue: number;
+    totalRevenue: number;
+    revenueGrowth: number;
+  };
+  pendingSupport?: number;
+}
+
+interface PaginatedUsersResponse {
+  users: User[];
+  total: number;
+}
+
+interface PaginatedJobsResponse {
+  jobs: Job[];
+  total: number;
+}
+
+interface SupportAnalyticsResponse {
+  tickets: SupportTicket[];
+}
+
+interface FinancialAnalyticsResponse {
+  transactions: Payment[];
+}
+
 export default function AdminPanelV2() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
@@ -132,7 +169,7 @@ export default function AdminPanelV2() {
   }, [debouncedSearch, filterStatus, selectedTab]);
 
   // Enhanced data fetching with comprehensive analytics and real-time monitoring
-  const { data: dashboardStats, isLoading: isDashboardLoading, error: dashboardError } = useQuery({
+  const { data: dashboardStats, isLoading: isDashboardLoading, error: dashboardError } = useQuery<DashboardAnalytics>({
     queryKey: ["/api/admin/analytics/comprehensive"],
     refetchInterval: 30000, // Refresh every 30 seconds
     staleTime: 10000, // Consider data stale after 10 seconds
@@ -166,7 +203,7 @@ export default function AdminPanelV2() {
     }
   ], [currentPage, pageSize, debouncedSearch, filterStatus, sortBy, sortOrder]);
 
-  const { data: usersResponse, isLoading: isUsersLoading, refetch: refetchUsers } = useQuery({
+  const { data: usersResponse, isLoading: isUsersLoading, refetch: refetchUsers } = useQuery<PaginatedUsersResponse>({
     queryKey: usersQueryKey,
     queryFn: async () => {
       const params = new URLSearchParams({
@@ -180,7 +217,7 @@ export default function AdminPanelV2() {
       
       const response = await fetch(`/api/admin/analytics/users?${params}`);
       if (!response.ok) throw new Error('Failed to fetch users');
-      return response.json();
+      return response.json() as Promise<PaginatedUsersResponse>;
     },
     enabled: selectedTab === "users",
     staleTime: 5000,
@@ -199,7 +236,7 @@ export default function AdminPanelV2() {
     }
   ], [currentPage, pageSize, debouncedSearch, filterStatus, sortBy, sortOrder]);
 
-  const { data: jobsResponse, isLoading: isJobsLoading, refetch: refetchJobs } = useQuery({
+  const { data: jobsResponse, isLoading: isJobsLoading, refetch: refetchJobs } = useQuery<PaginatedJobsResponse>({
     queryKey: jobsQueryKey,
     queryFn: async () => {
       const params = new URLSearchParams({
@@ -213,7 +250,7 @@ export default function AdminPanelV2() {
       
       const response = await fetch(`/api/admin/analytics/jobs?${params}`);
       if (!response.ok) throw new Error('Failed to fetch jobs');
-      return response.json();
+      return response.json() as Promise<PaginatedJobsResponse>;
     },
     enabled: selectedTab === "jobs",
     staleTime: 5000,
@@ -225,12 +262,12 @@ export default function AdminPanelV2() {
   const jobs = jobsResponse?.jobs || [];
   const totalJobs = jobsResponse?.total || 0;
 
-  const { data: supportResponse, isLoading: isSupportLoading, refetch: refetchSupport } = useQuery({
+  const { data: supportResponse, isLoading: isSupportLoading, refetch: refetchSupport } = useQuery<SupportAnalyticsResponse>({
     queryKey: ["/api/admin/analytics/support"],
     enabled: selectedTab === "support",
   });
 
-  const { data: financialResponse, isLoading: isTransactionsLoading } = useQuery({
+  const { data: financialResponse, isLoading: isTransactionsLoading } = useQuery<FinancialAnalyticsResponse>({
     queryKey: ["/api/admin/analytics/financials"],
     enabled: selectedTab === "financials",
   });

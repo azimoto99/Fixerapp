@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useLocation } from 'wouter';
-import { z } from 'zod';
-import { zodResolver } from '@hookform/resolvers/zod';
+import { z } from 'zod/v4';
+import { zodResolver } from '@/lib/zod-resolver';
 import { useForm } from 'react-hook-form';
 import { useToast } from '@/hooks/use-toast';
 import { apiRequest, queryClient } from '@/lib/queryClient';

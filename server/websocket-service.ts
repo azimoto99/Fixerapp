@@ -28,7 +28,7 @@ export class WebSocketService {
   private wss: WebSocketServer;
   private connectedUsers = new Map<number, ConnectedUser>();
   private jobRooms = new Map<number, Set<number>>(); // jobId -> Set of userIds
-  private heartbeatInterval: NodeJS.Timeout;
+  private heartbeatInterval?: NodeJS.Timeout;
 
   constructor(server: Server) {
     this.wss = new WebSocketServer({ 

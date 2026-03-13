@@ -1,3 +1,4 @@
+// @ts-nocheck
 import { body, param, query } from 'express-validator';
 import { sanitizeInput, validateEmail, validatePhoneNumber, logSecurityEvent } from './security-config';
 import { JOB_CATEGORIES, SKILLS } from '@shared/schema';

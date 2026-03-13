@@ -1,75 +1,79 @@
-# Environment Configuration Guide
+# Environment Configuration
 
-## Overview
-This guide explains how to configure environment variables for the Fixer App.
+Fixer expects its configuration from environment variables loaded before the server starts.
 
-## Required Environment Variables
+## Required Variables
 
-### Server Configuration
-- `NODE_ENV`: Set to 'development' or 'production'
-- `PORT`: The port number for the server (default: 5000)
+### Core app
 
-### Database Configuration
-- `DATABASE_URL`: Your database connection string
+- `NODE_ENV`
+- `SESSION_SECRET`
 
-### Stripe Configuration
-- `STRIPE_SECRET_KEY`: Your Stripe secret key
-- `VITE_STRIPE_PUBLIC_KEY`: Your Stripe publishable key
-- `STRIPE_WEBHOOK_SECRET`: Your Stripe webhook signing secret
+### Database and Supabase
 
-### Session Configuration
-- `SESSION_SECRET`: A secure random string for session encryption
+- `SUPABASE_URL`
+- `SUPABASE_ANON_KEY`
+- `SUPABASE_DATABASE_URL`
 
-### Google OAuth Configuration
-- `GOOGLE_OAUTH_CLIENT_ID`: Your Google OAuth client ID
-- `GOOGLE_OAUTH_CLIENT_SECRET`: Your Google OAuth client secret
+### Maps and payments
 
-### OpenAI Configuration
-- `OPENAI_API_KEY`: Your OpenAI API key
+- `VITE_MAPBOX_ACCESS_TOKEN`
+- `STRIPE_SECRET_KEY`
+- `VITE_STRIPE_PUBLIC_KEY`
 
-## Security Best Practices
+## Optional Variables
 
-1. **Never commit sensitive information to version control**
-   - Keep all secrets in `.env` files
-   - Use `.env.example` as a template
-   - Add `.env` to `.gitignore`
+- `APP_URL`
+  Used by some Stripe Connect flows for callback URLs. In local development this is usually `http://localhost:5000`.
+- `STRIPE_WEBHOOK_SECRET`
+- `STRIPE_CONNECT_WEBHOOK_SECRET`
+- `SENDGRID_API_KEY`
+- `DATABASE_URL`
+  Some older scripts and migrations still reference this legacy name. The running app uses `SUPABASE_DATABASE_URL`.
 
-2. **Key Management**
-   - Use test keys for development
-   - Use live keys for production
-   - Rotate keys regularly
-   - Use different keys for different environments
+## Example `.env`
 
-3. **Environment Separation**
-   - Maintain separate configurations for development and production
-   - Use different database instances
-   - Use different API keys
+```bash
+NODE_ENV=development
+SESSION_SECRET=change-me
 
-4. **Access Control**
-   - Limit access to production credentials
-   - Use secure storage for secrets
-   - Implement proper authentication
+SUPABASE_URL=
+SUPABASE_ANON_KEY=
+SUPABASE_DATABASE_URL=
 
-## Setting Up Development Environment
+VITE_MAPBOX_ACCESS_TOKEN=
 
-1. Copy `.env.example` to `.env`
-2. Fill in the required values
-3. Use test API keys for development
-4. Never commit the `.env` file
+STRIPE_SECRET_KEY=
+VITE_STRIPE_PUBLIC_KEY=
+STRIPE_WEBHOOK_SECRET=
+STRIPE_CONNECT_WEBHOOK_SECRET=
 
-## Setting Up Production Environment
+APP_URL=http://localhost:5000
+SENDGRID_API_KEY=
+```
 
-1. Create a new `.env` file on the production server
-2. Use production API keys
-3. Set `NODE_ENV=production`
-4. Configure secure session settings
-5. Set up proper logging
+## Startup Checks
 
-## Troubleshooting
+The server currently validates these values at startup:
 
-If you encounter issues:
-1. Verify all required variables are set
-2. Check for typos in variable names
-3. Ensure proper permissions
-4. Validate API keys are active
-5. Check environment-specific settings
+- `SUPABASE_URL`
+- `SUPABASE_ANON_KEY`
+- `SUPABASE_DATABASE_URL`
+- `VITE_STRIPE_PUBLIC_KEY`
+- `VITE_MAPBOX_ACCESS_TOKEN`
+
+If one of those is missing, the app exits during boot.
+
+## Recommended Workflow
+
+1. Copy `.env.example` to `.env`.
+2. Fill in the required values.
+3. Run `npm run db:push` if your schema changed.
+4. Start the app with `npm run dev`.
+
+## Security Notes
+
+- Do not commit real secrets.
+- Use test Stripe keys in development.
+- Keep production values separate from local development.
+- Rotate long-lived secrets such as `SESSION_SECRET` and API keys.

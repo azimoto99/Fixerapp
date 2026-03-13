@@ -60,14 +60,14 @@ const JobSearch: React.FC<JobSearchProps> = memo(({ onSearch }) => {
       try {
         const geocodeResult = await geocodeAddress(query);
         
-        if (geocodeResult.success) {
+        if (geocodeResult) {
           toast({
             title: "Location found",
-            description: `Searching near ${geocodeResult.displayName?.split(',')[0] || query}`,
+            description: `Searching near ${geocodeResult.formattedAddress.split(',')[0] || query}`,
           });
           
           // Store the location name for displaying to user
-          setLastSearchLocation(geocodeResult.displayName?.split(',')[0] || query);
+          setLastSearchLocation(geocodeResult.formattedAddress.split(',')[0] || query);
           
           // Store coordinates for radius filter to use
           const coordinates = {
@@ -86,7 +86,7 @@ const JobSearch: React.FC<JobSearchProps> = memo(({ onSearch }) => {
         } else {
           toast({
             title: "Location not found",
-            description: geocodeResult.error || "Couldn't find that location. Try a different address or postal code.",
+            description: "Couldn't find that location. Try a different address or postal code.",
             variant: "destructive"
           });
         }
@@ -129,9 +129,9 @@ const JobSearch: React.FC<JobSearchProps> = memo(({ onSearch }) => {
     
     try {
       const result = await geocodeAddress(address);
-      if (result.success) {
+      if (result) {
         // Show a subtle indicator that we found the location
-        setLastSearchLocation(result.displayName?.split(',')[0] || address);
+        setLastSearchLocation(result.formattedAddress.split(',')[0] || address);
       }
     } catch (error) {
       // Silent fail for auto-complete attempts

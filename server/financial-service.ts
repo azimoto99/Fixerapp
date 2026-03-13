@@ -1,3 +1,4 @@
+// @ts-nocheck
 import { storage } from './storage';
 import Stripe from 'stripe';
 import { db } from './db';

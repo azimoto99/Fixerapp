@@ -33,8 +33,8 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { zodResolver } from '@hookform/resolvers/zod';
-import * as z from 'zod';
+import { zodResolver } from '@/lib/zod-resolver';
+import * as z from 'zod/v4';
 
 interface StripeTermsAcceptanceProps {
   userId: number;
@@ -59,9 +59,7 @@ const formSchema = z.object({
   zip: z.string().min(5, "ZIP code is required"),
   country: z.string().min(2, "Country is required").default("US"),
   // Bank account information
-  accountType: z.enum(["checking", "savings"], {
-    required_error: "Account type is required",
-  }),
+  accountType: z.enum(["checking", "savings"]),
   accountNumber: z.string().min(4, "Valid account number is required"),
   routingNumber: z.string().length(9, "Routing number must be 9 digits"),
   accountHolderName: z.string().min(2, "Account holder name is required"),

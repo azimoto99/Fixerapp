@@ -88,7 +88,7 @@ const PaymentSettings: React.FC = () => {
                   Add, remove, or update the payment methods you use on this platform
                 </p>
                 
-                <PaymentMethodsManager userId={user.id} />
+                <PaymentMethodsManager />
               </div>
             </div>
           </TabsContent>
@@ -104,20 +104,7 @@ const PaymentSettings: React.FC = () => {
                   }
                 </p>
                 
-                <StripeConnectSetupV2 
-                  onComplete={() => {
-                    toast({
-                      title: "Stripe Connect Setup Complete",
-                      description: "Your payment account is now set up and ready to use.",
-                    });
-                  }}
-                  onCancel={() => {
-                    toast({
-                      title: "Setup Cancelled",
-                      description: "You can complete your Stripe Connect setup later.",
-                    });
-                  }}
-                />
+                <StripeConnectSetupV2 />
               </div>
             </div>
           </TabsContent>

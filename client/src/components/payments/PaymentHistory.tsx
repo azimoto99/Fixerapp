@@ -76,13 +76,13 @@ function formatCurrency(amount: number) {
 
 // Status badge component
 function StatusBadge({ status }: { status: string }) {
-  let variant: 'default' | 'destructive' | 'outline' | 'secondary' | 'success' = 'default';
+  let variant: 'default' | 'destructive' | 'outline' | 'secondary' | 'green' = 'default';
   
   switch (status.toLowerCase()) {
     case 'succeeded':
     case 'paid':
     case 'completed':
-      variant = 'success';
+      variant = 'green';
       break;
     case 'pending':
     case 'processing':
@@ -396,7 +396,7 @@ export default function PaymentHistory() {
                 <React.Fragment key={page}>
                   {showEllipsisBefore && (
                     <PaginationItem>
-                      <PaginationLink disabled>...</PaginationLink>
+                      <span className="px-4 py-2 text-sm text-muted-foreground">...</span>
                     </PaginationItem>
                   )}
                   
@@ -411,7 +411,7 @@ export default function PaymentHistory() {
                   
                   {showEllipsisAfter && (
                     <PaginationItem>
-                      <PaginationLink disabled>...</PaginationLink>
+                      <span className="px-4 py-2 text-sm text-muted-foreground">...</span>
                     </PaginationItem>
                   )}
                 </React.Fragment>

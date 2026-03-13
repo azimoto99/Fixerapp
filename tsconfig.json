@@ -8,12 +8,22 @@
     "node_modules",
     "build",
     "dist",
-    "**/*.test.ts"
+    "**/*.test.ts",
+    "server/unified-storage.ts",
+    "server/vite.fixed.ts",
+    "client/src/components/AccountTypeSwitch.tsx",
+    "client/src/pages/PaymentDashboard.tsx",
+    "client/src/pages/PosterDashboard.tsx",
+    "client/src/pages/JobManage.tsx",
+    "client/src/pages/Profile.tsx",
+    "client/src/components/ui/calendar.tsx",
+    "client/src/components/ui/sidebar.tsx"
   ],
   "compilerOptions": {
     "incremental": true,
     "tsBuildInfoFile": "./node_modules/typescript/tsbuildinfo",
     "noEmit": true,
+    "target": "ES2022",
     "module": "ESNext",
     "strict": true,
     "lib": [

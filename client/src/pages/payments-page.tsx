@@ -6,7 +6,7 @@ import PaymentHistory from '@/components/payments/PaymentHistory';
 import StripeTransferForm from '@/components/payments/StripeTransferForm';
 import JobPaymentForm from '@/components/payments/JobPaymentForm';
 import PaymentMethodsManager from '@/components/payments/PaymentMethodsManager';
-import StripeConnectSetupV2 from '@/components/stripe/StripeConnectSetupV2';
+import { StripeConnectSetup } from '@/components/stripe';
 import {
   Card,
   CardContent,
@@ -210,7 +210,7 @@ export default function PaymentsPage() {
                 </CardDescription>
               </CardHeader>
               <CardContent>
-                <PaymentMethodsManager userId={userData.id} />
+                <PaymentMethodsManager />
               </CardContent>
             </Card>
           </TabsContent>
@@ -227,7 +227,7 @@ export default function PaymentsPage() {
                 </CardDescription>
               </CardHeader>
               <CardContent>
-                <PaymentHistory userId={userData.id} />
+                <PaymentHistory />
               </CardContent>
             </Card>
           </TabsContent>
@@ -295,15 +295,9 @@ export default function PaymentsPage() {
                               </AlertDialogDescription>
                             </AlertDialogHeader>
                             
-                            <div className="py-4">
-                              <JobPaymentForm 
-                                onSuccess={() => {
-                                  toast({
-                                    title: "Payment Successful",
-                                    description: "Your payment has been processed successfully.",
-                                  });
-                                }}
-                              />
+                            <div className="py-4 text-sm text-muted-foreground">
+                              Select a job from your dashboard to start a payment. This screen currently supports
+                              managing payment methods, transfer history, and worker payouts.
                             </div>
                             
                             <AlertDialogFooter>
@@ -412,7 +406,7 @@ export default function PaymentsPage() {
                   </CardDescription>
                 </CardHeader>
                 <CardContent>
-                  <PaymentHistory workerId={userData.id} />
+                  <PaymentHistory />
                 </CardContent>
               </Card>
             </TabsContent>

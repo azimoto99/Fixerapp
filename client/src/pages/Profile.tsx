@@ -1,12 +1,9 @@
 import { useState } from 'react';
 import { Link, useLocation } from 'wouter';
 import { useQuery } from '@tanstack/react-query';
-import { useAuth } from '@/hooks/useAuth';
-import { useToast } from '@/hooks/use-toast';
-import { apiRequest } from '@/lib/queryClient';
+import { useAuth } from '@/hooks/use-auth';
 import { Award, Edit, Wallet, DollarSign, Info } from 'lucide-react';
-import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import StripeConnectSetup from '@/components/stripe/StripeConnectSetup';
+import { Alert } from '@/components/ui/alert';
 
 import Header from '@/components/Header';
 // Mobile Nav removed as requested
@@ -34,7 +31,6 @@ import {
 export default function Profile() {
   const { user, logoutMutation } = useAuth();
   const [_, navigate] = useLocation();
-  const { toast } = useToast();
   const [activeTab, setActiveTab] = useState('info');
   const [editMode, setEditMode] = useState(false);
   
@@ -283,33 +279,34 @@ export default function Profile() {
               
               {/* Payments Tab - Only for job posting payments */}
               <TabsContent value="payments">
-                <Card>
-                  <CardHeader>
-                    <CardTitle>Payment History</CardTitle>
-                    <CardDescription>
-                      Payments made for posting jobs and hiring workers
-                    </CardDescription>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="space-y-2">
-                      <h3 className="text-sm font-medium text-gray-500 mb-4">Job Posting Payments</h3>
-                      
-                      <div className="rounded-md border">
-                        <div className="divide-y">
-                          <div className="flex items-center justify-between p-4">
-                            <div>
-                              <p className="font-medium">No payments made yet</p>
-                              <p className="text-sm text-gray-500">
-                                When you pay for posted jobs, they will appear here
-                              </p>
+                <div className="space-y-6">
+                  <Card>
+                    <CardHeader>
+                      <CardTitle>Payment History</CardTitle>
+                      <CardDescription>
+                        Payments made for posting jobs and hiring workers
+                      </CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="space-y-2">
+                        <h3 className="text-sm font-medium text-gray-500 mb-4">Job Posting Payments</h3>
+
+                        <div className="rounded-md border">
+                          <div className="divide-y">
+                            <div className="flex items-center justify-between p-4">
+                              <div>
+                                <p className="font-medium">No payments made yet</p>
+                                <p className="text-sm text-gray-500">
+                                  When you pay for posted jobs, they will appear here
+                                </p>
+                              </div>
                             </div>
                           </div>
                         </div>
                       </div>
-                    </div>
-                  </CardContent>
-                </Card>
-                  
+                    </CardContent>
+                  </Card>
+
                   {/* Platform Fees Card */}
                   <Card>
                     <CardHeader>

@@ -55,7 +55,7 @@ export function MessagingDrawer({ open, onOpenChange }: MessagingDrawerProps) {
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const [tab, setTab] = useState("contacts");
 
-  const { data: contacts = [] } = useQuery({
+  const { data: contacts = [] } = useQuery<Contact[]>({
     queryKey: ['/api/contacts'],
     enabled: open,
   });
@@ -69,7 +69,7 @@ export function MessagingDrawer({ open, onOpenChange }: MessagingDrawerProps) {
     isError: isSearchError,
     isLoading: isSearchLoading,
     refetch: refetchSearch
-  } = useQuery({
+  } = useQuery<Contact[]>({
     queryKey: ['/api/users/search', searchQuery],
     queryFn: async () => {
       try {
@@ -93,7 +93,7 @@ export function MessagingDrawer({ open, onOpenChange }: MessagingDrawerProps) {
     staleTime: 30000 // Cache results for 30 seconds
   });
 
-  const { data: messages = [] } = useQuery({
+  const { data: messages = [] } = useQuery<Message[]>({
     queryKey: ['/api/messages', selectedContactId],
     enabled: open && selectedContactId !== null,
   });

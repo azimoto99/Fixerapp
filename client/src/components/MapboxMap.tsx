@@ -120,6 +120,11 @@ export default function MapboxMap({
       title: m.title
     })));
     
+    const currentMap = map.current;
+    if (!currentMap) {
+      return;
+    }
+
     // Add new markers
     markers.forEach(marker => {
       if (!marker.latitude || !marker.longitude) return;
@@ -198,7 +203,7 @@ export default function MapboxMap({
         }
         
         // Add to map and track for cleanup
-        mapboxMarker.addTo(map.current);
+        mapboxMarker.addTo(currentMap);
         mapMarkers.current.push(mapboxMarker);
         
         console.log(`Marker successfully added at [${marker.longitude}, ${marker.latitude}] for: ${marker.title}`);

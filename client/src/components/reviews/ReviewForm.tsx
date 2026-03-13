@@ -1,7 +1,7 @@
 import React from 'react';
 import { useForm } from 'react-hook-form';
-import { zodResolver } from '@hookform/resolvers/zod';
-import { z } from 'zod';
+import { zodResolver } from '@/lib/zod-resolver';
+import { z } from 'zod/v4';
 import { useMutation } from '@tanstack/react-query';
 import { apiRequest, queryClient } from '@/lib/queryClient';
 import { useToast } from '@/hooks/use-toast';
@@ -68,13 +68,20 @@ const ReviewForm: React.FC<ReviewFormProps> = ({
       return res.json();
     },
     onSuccess: () => {
-      toast.success('Review submitted successfully');
+      toast({
+        title: 'Review submitted',
+        description: 'Your review was submitted successfully.',
+      });
       queryClient.invalidateQueries({ queryKey: ['/api/reviews/user', revieweeId] });
       queryClient.invalidateQueries({ queryKey: ['/api/reviews/job', jobId] });
       onSuccess();
     },
     onError: (error: Error) => {
-      toast.error(`Failed to submit review: ${error.message}`);
+      toast({
+        title: 'Review failed',
+        description: `Failed to submit review: ${error.message}`,
+        variant: 'destructive',
+      });
     },
   });
 

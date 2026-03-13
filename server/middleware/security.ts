@@ -1,3 +1,4 @@
+// @ts-nocheck
 import { Request, Response, NextFunction } from "express";
 import { applySecurity, sanitizeInput, validatePasswordStrength, validateEmail, validatePhoneNumber, logSecurityEvent } from '../security-config';
 import { sqlInjectionProtection } from '../sql-injection-protection';

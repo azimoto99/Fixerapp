@@ -8,11 +8,18 @@ import { useQuery } from '@tanstack/react-query';
 interface WebSocketMessage {
   type: string;
   userId?: number;
+  senderId?: number;
   jobId?: number;
   messageId?: number;
   content?: string;
   recipientId?: number;
   timestamp?: string;
+  status?: string;
+  message?: string;
+  connectionId?: string;
+  members?: number[];
+  readBy?: number;
+  isRead?: boolean;
   [key: string]: any;
 }
 
@@ -104,7 +111,7 @@ export function useWebSocket(userId?: number) {
 
       ws.onmessage = (event) => {
         try {
-          const message = JSON.parse(event.data);
+          const message = JSON.parse(event.data) as WebSocketMessage;
           handleMessage(message);
         } catch (error) {
           console.error('❌ Error parsing WebSocket message:', error);
@@ -230,11 +237,12 @@ export function useWebSocket(userId?: number) {
         }));
         
         // Update unread count if not from current user
-        if (message.senderId !== userId) {
+        if (typeof message.senderId === 'number' && message.senderId !== userId) {
+          const senderId = message.senderId;
           setMessageState(prev => {
             const newUnreadCounts = new Map(prev.unreadCounts);
-            const currentCount = newUnreadCounts.get(message.senderId) || 0;
-            newUnreadCounts.set(message.senderId, currentCount + 1);
+            const currentCount = newUnreadCounts.get(senderId) || 0;
+            newUnreadCounts.set(senderId, currentCount + 1);
             return { ...prev, unreadCounts: newUnreadCounts };
           });
         }
@@ -255,39 +263,57 @@ export function useWebSocket(userId?: number) {
         break;
 
       case 'user_typing':
-        setMessageState(prev => ({
-          ...prev,
-          typingUsers: new Set([...prev.typingUsers, message.userId])
-        }));
+        if (typeof message.userId !== 'number') {
+          break;
+        }
+        {
+          const typingUserId = message.userId;
+          setMessageState(prev => ({
+            ...prev,
+            typingUsers: new Set([...prev.typingUsers, typingUserId])
+          }));
         
-        // Auto-clear typing after 3 seconds
-        setTimeout(() => {
-          setMessageState(prev => {
-            const newTypingUsers = new Set(prev.typingUsers);
-            newTypingUsers.delete(message.userId);
-            return { ...prev, typingUsers: newTypingUsers };
-          });
-        }, 3000);
+          // Auto-clear typing after 3 seconds
+          setTimeout(() => {
+            setMessageState(prev => {
+              const newTypingUsers = new Set(prev.typingUsers);
+              newTypingUsers.delete(typingUserId);
+              return { ...prev, typingUsers: newTypingUsers };
+            });
+          }, 3000);
+        }
         break;
 
       case 'user_stopped_typing':
-        setMessageState(prev => {
-          const newTypingUsers = new Set(prev.typingUsers);
-          newTypingUsers.delete(message.userId);
-          return { ...prev, typingUsers: newTypingUsers };
-        });
+        if (typeof message.userId !== 'number') {
+          break;
+        }
+        {
+          const typingUserId = message.userId;
+          setMessageState(prev => {
+            const newTypingUsers = new Set(prev.typingUsers);
+            newTypingUsers.delete(typingUserId);
+            return { ...prev, typingUsers: newTypingUsers };
+          });
+        }
         break;
 
       case 'user_status_change':
-        setMessageState(prev => {
-          const newOnlineUsers = new Set(prev.onlineUsers);
-          if (message.status === 'online') {
-            newOnlineUsers.add(message.userId);
-          } else {
-            newOnlineUsers.delete(message.userId);
-          }
-          return { ...prev, onlineUsers: newOnlineUsers };
-        });
+        if (typeof message.userId !== 'number') {
+          break;
+        }
+        {
+          const statusUserId = message.userId;
+          setMessageState(prev => {
+            const newOnlineUsers = new Set(prev.onlineUsers);
+            if (message.status === 'online') {
+              newOnlineUsers.add(statusUserId);
+            } else {
+              newOnlineUsers.delete(statusUserId);
+            }
+            return { ...prev, onlineUsers: newOnlineUsers };
+          });
+        }
         break;
 
       case 'room_joined':
@@ -306,10 +332,11 @@ export function useWebSocket(userId?: number) {
       case 'ping':
         // Respond to server ping
         if (wsRef.current?.readyState === WebSocket.OPEN) {
-          wsRef.current.send(JSON.stringify({
+          const pongMessage: WebSocketMessage = {
             type: 'pong',
             timestamp: new Date().toISOString()
-          }));
+          };
+          wsRef.current.send(JSON.stringify(pongMessage));
         }
         break;
 
@@ -319,11 +346,11 @@ export function useWebSocket(userId?: number) {
   }, [userId]);
 
   // WebSocket actions
-  const sendMessage = useCallback((message: Omit<WebSocketMessage, 'timestamp'>) => {
+  const sendMessage = useCallback((message: Omit<WebSocketMessage, 'timestamp'> & { type: string }) => {
     const messageWithTimestamp = {
       ...message,
       timestamp: new Date().toISOString()
-    };
+    } as WebSocketMessage;
 
     if (wsRef.current?.readyState === WebSocket.OPEN) {
       wsRef.current.send(JSON.stringify(messageWithTimestamp));

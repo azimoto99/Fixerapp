@@ -1,8 +1,8 @@
 import React, { useState } from 'react';
 import { useLocation } from 'wouter';
 import { useForm } from 'react-hook-form';
-import { zodResolver } from '@hookform/resolvers/zod';
-import { z } from 'zod';
+import { zodResolver } from '@/lib/zod-resolver';
+import { z } from 'zod/v4';
 import { insertJobSchema, JOB_CATEGORIES, SKILLS, insertTaskSchema, type InsertTask } from '@shared/schema';
 import { apiRequest } from '@/lib/queryClient';
 import { useToast } from '@/hooks/use-toast';
@@ -772,6 +772,7 @@ export default function PostJobDrawer({ isOpen, onOpenChange }: PostJobDrawerPro
                                 type="time"
                                 className="pl-9"
                                 {...field}
+                                value={field.value ?? ''}
                               />
                             </div>
                           </FormControl>
@@ -796,6 +797,7 @@ export default function PostJobDrawer({ isOpen, onOpenChange }: PostJobDrawerPro
                                 type="time"
                                 className="pl-9"
                                 {...field}
+                                value={field.value ?? ''}
                               />
                             </div>
                           </FormControl>

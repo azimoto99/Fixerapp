@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useLocation } from 'wouter';
-import { z } from 'zod';
-import { zodResolver } from '@hookform/resolvers/zod';
+import { z } from 'zod/v4';
+import { zodResolver } from '@/lib/zod-resolver';
 import { useForm } from 'react-hook-form';
 import { insertJobSchema, insertTaskSchema } from '@shared/schema';
 import { useAuth } from '@/hooks/use-auth';
@@ -12,7 +12,7 @@ import { useGeolocation } from '@/lib/geolocation';
 import Header from '@/components/Header';
 import PaymentDetailsForm from '@/components/PaymentDetailsForm';
 import AddressAutocomplete from '@/components/AddressAutocomplete';
-import TaskEditor, { TaskItemProps } from '@/components/TaskEditor';
+import TaskEditor, { Task } from '@/components/TaskEditor';
 import { Button } from '@/components/ui/button';
 import {
   Form,
@@ -56,7 +56,7 @@ export default function PostJob() {
   const [showPaymentForm, setShowPaymentForm] = useState(false);
   const [formData, setFormData] = useState<z.infer<typeof formSchema> | null>(null);
   const [paymentMethodId, setPaymentMethodId] = useState<string | null>(null);
-  const [tasks, setTasks] = useState<TaskItemProps[]>([]);
+  const [tasks, setTasks] = useState<Task[]>([]);
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -413,13 +413,10 @@ export default function PostJob() {
                           onChange={(value) => {
                             field.onChange(value);
                           }}
-                          onLocationSelect={(result) => {
-                            if (result.success) {
-                              // Update the coordinates in the form data
-                              form.setValue("latitude", result.latitude);
-                              form.setValue("longitude", result.longitude);
-                              console.log("Updated coordinates:", result.latitude, result.longitude);
-                            }
+                          onAddressSelect={(address, latitude, longitude) => {
+                            form.setValue("location", address);
+                            form.setValue("latitude", latitude);
+                            form.setValue("longitude", longitude);
                           }}
                         />
                       </FormControl>
@@ -452,7 +449,7 @@ export default function PostJob() {
                   <p className="text-sm text-muted-foreground mb-4">
                     Add specific tasks that need to be completed. You can set required tasks and optional bonus tasks.
                   </p>
-                  <TaskEditor tasks={tasks} setTasks={setTasks} />
+                  <TaskEditor tasks={tasks} onChange={setTasks} />
                 </div>
                 
                 {/* Required Skills */}

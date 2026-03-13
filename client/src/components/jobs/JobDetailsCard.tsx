@@ -667,7 +667,7 @@ const JobDetailsCard: React.FC<JobDetailsCardProps> = ({ jobId, isOpen, onClose 
                     className={`px-3 py-2 ${activeTab === 'tasks' ? 'border-b-2 border-primary text-primary' : 'text-muted-foreground'} transition-colors`}
                     onClick={() => setActiveTab('tasks')}
                   >
-                    Tasks {tasks.length > 0 && `(${tasks.filter(t => t.isCompleted).length}/${tasks.length})`}
+                    Tasks {tasks.length > 0 && `(${tasks.filter((t: any) => t.isCompleted).length}/${tasks.length})`}
                   </button>
                   {isJobPoster && (
                     <>
@@ -845,7 +845,7 @@ const JobDetailsCard: React.FC<JobDetailsCardProps> = ({ jobId, isOpen, onClose 
                       <div>
                         <h3 className="text-md font-medium">Task List</h3>
                         <p className="text-sm text-muted-foreground">
-                          {tasks.length === 0 ? 'No tasks defined for this job' : `${tasks.filter(t => t.isCompleted).length} of ${tasks.length} tasks completed`}
+                          {tasks.length === 0 ? 'No tasks defined for this job' : `${tasks.filter((t: any) => t.isCompleted).length} of ${tasks.length} tasks completed`}
                         </p>
                       </div>
                       
@@ -859,7 +859,7 @@ const JobDetailsCard: React.FC<JobDetailsCardProps> = ({ jobId, isOpen, onClose 
                       </div>
                     ) : (
                       <div className="space-y-2">
-                        {tasks.map((task) => (
+                        {tasks.map((task: any) => (
                           <div key={task.id} className="flex items-start p-3 bg-muted/30 rounded-lg border">
                             <div className="mt-0.5 mr-3">
                               {task.isCompleted ? (
@@ -1013,7 +1013,7 @@ const JobDetailsCard: React.FC<JobDetailsCardProps> = ({ jobId, isOpen, onClose 
                           <div className="flex justify-between items-center">
                             <span className="text-sm text-muted-foreground">Task Progress</span>
                             <span className="text-sm font-medium">
-                              {tasks.filter(t => t.isCompleted).length}/{tasks.length} completed
+                              {tasks.filter((t: any) => t.isCompleted).length}/{tasks.length} completed
                             </span>
                           </div>
                         )}
@@ -1129,7 +1129,7 @@ const JobDetailsCard: React.FC<JobDetailsCardProps> = ({ jobId, isOpen, onClose 
                               <div className="flex justify-between items-center">
                                 <span className="text-sm text-muted-foreground">Tasks Completed</span>
                                 <span className="text-sm font-medium">
-                                  {tasks.filter(t => t.isCompleted).length} / {tasks.length}
+                                  {tasks.filter((t: any) => t.isCompleted).length} / {tasks.length}
                                 </span>
                               </div>
                               
@@ -1137,7 +1137,7 @@ const JobDetailsCard: React.FC<JobDetailsCardProps> = ({ jobId, isOpen, onClose 
                                 <div 
                                   className="bg-primary h-2 rounded-full transition-all duration-300" 
                                   style={{ 
-                                    width: `${tasks.length > 0 ? (tasks.filter(t => t.isCompleted).length / tasks.length) * 100 : 0}%` 
+                                    width: `${tasks.length > 0 ? (tasks.filter((t: any) => t.isCompleted).length / tasks.length) * 100 : 0}%` 
                                   }}
                                 ></div>
                               </div>

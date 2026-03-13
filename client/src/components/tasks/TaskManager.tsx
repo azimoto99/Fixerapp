@@ -73,9 +73,9 @@ import {
   HelpCircle,
 } from 'lucide-react';
 import { format } from 'date-fns';
-import { zodResolver } from '@hookform/resolvers/zod';
+import { zodResolver } from '@/lib/zod-resolver';
 import { useForm } from 'react-hook-form';
-import { z } from 'zod';
+import { z } from 'zod/v4';
 import { insertTaskSchema } from '@shared/schema';
 
 // Task form schema with additional validation

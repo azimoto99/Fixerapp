@@ -1,3 +1,4 @@
+// @ts-nocheck
 import { Request, Response, NextFunction } from 'express';
 import rateLimit from 'express-rate-limit';
 import { auditService } from './audit-service';

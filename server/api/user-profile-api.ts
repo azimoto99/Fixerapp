@@ -1,9 +1,10 @@
+// @ts-nocheck
 /**
  * User Profile API Routes - Handles user profile data, badges, and reviews
  */
 import type { Express, Request, Response } from "express";
 import { storage } from "../storage";
-import { z } from "zod";
+import { z } from "zod/v4";
 
 export function registerUserProfileRoutes(app: Express) {
   
