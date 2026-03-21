@@ -1,3 +1,4 @@
+import fs from 'fs';
 import path from 'path';
 import { config } from 'dotenv';
 
@@ -9,12 +10,16 @@ if (!process.env.NODE_ENV) {
   process.env.NODE_ENV = 'development';
 }
 
-// Load environment variables from .env file
-const result = config({ path: path.resolve(process.cwd(), '.env') });
+// Load environment variables from .env when the file exists locally.
+// Platforms like Render provide vars directly via the process environment.
+const envPath = path.resolve(process.cwd(), '.env');
+if (fs.existsSync(envPath)) {
+  const result = config({ path: envPath });
 
-if (result.error) {
-  console.error('Error loading .env file:', result.error);
-  process.exit(1);
+  if (result.error) {
+    console.error('Error loading .env file:', result.error);
+    process.exit(1);
+  }
 }
 
 // Verify required environment variables
