@@ -36,20 +36,6 @@ const app = express();
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
 
-// Add CSP headers
-app.use((req, res, next) => {
-  res.setHeader(
-    'Content-Security-Policy',
-    "default-src 'self'; " +
-    "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://js.stripe.com https://api.mapbox.com; " +
-    "style-src 'self' 'unsafe-inline'; " +
-    "img-src 'self' data: https:; " +
-    "connect-src 'self' https://api.stripe.com https://api.mapbox.com; " +
-    "frame-src 'self' https://js.stripe.com;"
-  );
-  next();
-});
-
 // Serve uploaded avatars statically
 app.use('/avatars', express.static('public/avatars'));
 
@@ -108,10 +94,11 @@ app.use((req, res, next) => {
 
   const requestedPort = Number.parseInt(process.env.PORT ?? "", 10);
   const port = Number.isInteger(requestedPort) ? requestedPort : 5000;
+  const host = process.env.HOST || "0.0.0.0";
   server.listen({
     port,
-    host: "127.0.0.1"
+    host
   }, () => {
-    log(`serving on port ${port}`);
+    log(`serving on ${host}:${port}`);
   });
 })();
