@@ -22,7 +22,10 @@ import pkg from 'pg';
 const { Pool } = pkg;
 import { config } from 'dotenv';
 config();
-const pool = new Pool({ connectionString: process.env.SUPABASE_DATABASE_URL });
+const pool = new Pool({
+  connectionString: process.env.SUPABASE_DATABASE_URL,
+  ssl: { rejectUnauthorized: false }
+});
 
 // Define a set of vibrant colors for job markers
 const JOB_MARKER_COLORS = [

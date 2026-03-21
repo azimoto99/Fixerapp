@@ -18,6 +18,6 @@ export const supabase = createClient(
 
 // Create PostgreSQL connection for Drizzle
 const connectionString = process.env.SUPABASE_DATABASE_URL!;
-const client = postgres(connectionString);
+const client = postgres(connectionString, { ssl: 'require' });
 export const db = drizzle(client, { schema });
 export { client };
