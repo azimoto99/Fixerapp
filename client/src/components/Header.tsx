@@ -1,30 +1,21 @@
 import * as React from 'react';
-import { useState } from 'react';
 import { Link, useLocation } from 'wouter';
 import { useAuth } from '@/hooks/use-auth';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { 
-  DropdownMenu, 
-  DropdownMenuContent, 
-  DropdownMenuItem,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-  DropdownMenuSub,
-  DropdownMenuSubContent,
-  DropdownMenuSubTrigger,
-  DropdownMenuLabel
-} from '@/components/ui/dropdown-menu';
-import { 
-  Sheet,
-  SheetContent,
-  SheetTrigger,
-  SheetClose
-} from '@/components/ui/sheet';
+import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Menu, X, Briefcase, MessageSquare } from 'lucide-react';
 import { ThemeToggle } from '@/components/theme';
 import { NotificationPopover } from '@/components/notifications';
 import UserDrawerV2 from '@/components/UserDrawerV2';
+import {
+  BellRing,
+  BriefcaseBusiness,
+  Compass,
+  MessageSquareMore,
+  Plus,
+  Sparkles,
+  Wallet,
+} from 'lucide-react';
 
 interface HeaderProps {
   selectedRole?: 'worker' | 'poster';
@@ -34,132 +25,238 @@ interface HeaderProps {
   postedJobsCount?: number;
 }
 
-const Header: React.FC<HeaderProps> = ({ 
-  selectedRole, 
+const Header: React.FC<HeaderProps> = ({
+  selectedRole,
   onRoleChange,
   onTogglePostedJobs,
   onToggleMessaging,
-  postedJobsCount = 0
+  postedJobsCount = 0,
 }) => {
-  const { user, logoutMutation } = useAuth();
+  const { user } = useAuth();
   const [location] = useLocation();
-  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
-  const handleLogout = () => {
-    logoutMutation.mutate();
+  const profileHref = user?.id ? `/profile/${user.id}` : '/auth';
+
+  const navigation = [
+    { href: '/', label: 'Discover', icon: Compass },
+    { href: '/post-job', label: 'Post Job', icon: Plus },
+    { href: '/payments', label: 'Payments', icon: Wallet },
+    { href: '/notifications', label: 'Updates', icon: BellRing },
+  ];
+
+  const isActiveRoute = (href: string) => {
+    if (href === '/') {
+      return location === '/';
+    }
+
+    return location.startsWith(href);
   };
-  
-  // Create a reusable navigation link component for consistency
-  const NavLink = ({ href, isActive, children }: { href: string; isActive: boolean; children: React.ReactNode }) => (
-    <Link href={href}>
-      <div className={`text-gray-500 hover:text-gray-900 font-medium px-1 py-3 cursor-pointer transition-colors ${isActive ? 'text-emerald-600 font-semibold' : ''}`}>
-        {children}
-      </div>
-    </Link>
-  );
 
   return (
-    <header className="bg-background shadow-sm">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex justify-between items-center h-16">
-        {/* Logo and desktop navigation */}
-        <div className="flex items-center">
-          <Link href="/">
-            <div className="flex-shrink-0 flex items-center cursor-pointer">
-              <svg 
-                width="40" 
-                height="40" 
-                viewBox="0 0 512 512" 
-                fill="none" 
-                xmlns="http://www.w3.org/2000/svg"
-                className="h-10 w-auto"
-              >
-                <circle cx="256" cy="256" r="240" fill="#10B981"/>
-                <path d="M323 160C290 160 263 187 263 220C263 226 264 231 265 236L176 325C171 324 166 323 160 323C127 323 100 350 100 383C100 416 127 443 160 443C193 443 220 416 220 383C220 377 219 372 218 367L307 278C312 279 317 280 323 280C356 280 383 253 383 220C383 187 356 160 323 160Z" fill="white"/>
-                <circle cx="323" cy="220" r="25" fill="#10B981"/>
-                <circle cx="160" cy="383" r="25" fill="#10B981"/>
-              </svg>
-              <span className="ml-2 text-xl font-bold text-emerald-600">Fixer</span>
+    <header className="sticky top-0 z-[var(--z-header)] px-4 pt-4 sm:px-6 lg:px-8">
+      <div className="mx-auto max-w-[1480px] overflow-hidden rounded-[32px] border border-white/70 bg-white/78 shadow-[0_22px_70px_rgba(15,23,42,0.10)] backdrop-blur-2xl dark:border-white/10 dark:bg-slate-950/78">
+        <div className="flex flex-col gap-4 px-4 py-4 sm:px-5 sm:py-5">
+          <div className="flex items-center justify-between gap-3">
+            <div className="flex min-w-0 items-center gap-3">
+              <Link href="/">
+                <button className="group flex items-center gap-3 rounded-full border border-white/70 bg-white/80 px-3 py-2 text-left shadow-[0_10px_30px_rgba(15,23,42,0.08)] transition-all hover:translate-y-[-1px] hover:shadow-[0_16px_40px_rgba(15,23,42,0.12)] dark:border-white/10 dark:bg-slate-950/72">
+                  <div className="flex h-11 w-11 items-center justify-center rounded-full bg-[linear-gradient(135deg,hsl(var(--primary)),hsl(var(--accent)))] text-primary-foreground shadow-[0_12px_30px_rgba(3,105,161,0.26)]">
+                    <Sparkles className="h-5 w-5" />
+                  </div>
+                  <div className="hidden sm:block">
+                    <div className="text-[11px] font-semibold uppercase tracking-[0.22em] text-muted-foreground">
+                      Local work platform
+                    </div>
+                    <div className="font-['Sora'] text-lg font-semibold tracking-tight text-foreground">
+                      Fixer
+                    </div>
+                  </div>
+                </button>
+              </Link>
+
+              <nav className="hidden items-center gap-2 lg:flex">
+                {navigation.map((item) => {
+                  const Icon = item.icon;
+                  const active = isActiveRoute(item.href);
+
+                  return (
+                    <Link key={item.href} href={item.href}>
+                      <button
+                        className={[
+                          'flex items-center gap-2 rounded-full px-4 py-2.5 text-sm font-semibold transition-all',
+                          active
+                            ? 'bg-[linear-gradient(135deg,hsl(var(--primary)),hsl(var(--accent)))] text-primary-foreground shadow-[0_12px_28px_rgba(3,105,161,0.22)]'
+                            : 'bg-transparent text-foreground/70 hover:bg-foreground/5 hover:text-foreground',
+                        ].join(' ')}
+                      >
+                        <Icon className="h-4 w-4" />
+                        <span>{item.label}</span>
+                      </button>
+                    </Link>
+                  );
+                })}
+              </nav>
             </div>
-          </Link>
-          
-          {/* Desktop navigation links removed */}
-        </div>
-        
-        {/* Right side elements */}
-        <div className="flex items-center space-x-4">
-          <div className="relative hidden md:block">
-            {user && <NotificationPopover />}
-          </div>
-          
-          {/* Messaging Button - placed to the left of Posted Jobs button */}
-          {user && onToggleMessaging && (
-            <div>
-              <Button 
-                onClick={onToggleMessaging}
-                className="bg-emerald-600 text-white shadow hover:bg-emerald-700 rounded-full flex items-center justify-center transition-all hover:scale-105 active:scale-95 p-2 md:p-2"
-                aria-label="Messages"
-              >
-                <MessageSquare className="h-5 w-5" />
-                <span className="ml-1 hidden md:inline">Messages</span>
-              </Button>
-            </div>
-          )}
-          
-          {/* Posted Jobs Button - always visible when user is logged in */}
-          {user && onTogglePostedJobs && (
-            <div className="relative">
-              <Button 
-                onClick={onTogglePostedJobs}
-                className="bg-blue-600 text-white shadow hover:bg-blue-700 rounded-full flex items-center justify-center transition-all hover:scale-105 active:scale-95 p-2 md:p-2"
-                aria-label="My Posted Jobs"
-              >
-                <Briefcase className="h-5 w-5" />
-                <span className="ml-1 hidden md:inline">My Jobs</span>
-              </Button>
-              {postedJobsCount > 0 && (
-                <div className="absolute -top-1 -right-1 z-10 pointer-events-none">
-                  <span className="bg-red-500 text-white rounded-full w-5 h-5 flex items-center justify-center text-xs">
-                    {postedJobsCount}
-                  </span>
+
+            <div className="flex items-center gap-2">
+              {user && onToggleMessaging ? (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="hidden md:inline-flex"
+                  onClick={onToggleMessaging}
+                >
+                  <MessageSquareMore className="h-4 w-4" />
+                  Messages
+                </Button>
+              ) : null}
+
+              {user && onTogglePostedJobs ? (
+                <div className="relative hidden md:block">
+                  <Button variant="secondary" size="sm" onClick={onTogglePostedJobs}>
+                    <BriefcaseBusiness className="h-4 w-4" />
+                    My Jobs
+                  </Button>
+                  {postedJobsCount > 0 ? (
+                    <Badge
+                      variant="destructive"
+                      size="sm"
+                      className="absolute -right-2 -top-2 min-w-[1.35rem] justify-center px-1.5"
+                    >
+                      {postedJobsCount}
+                    </Badge>
+                  ) : null}
                 </div>
+              ) : null}
+
+              {user ? <NotificationPopover /> : null}
+
+              <div className="hidden sm:block">
+                <ThemeToggle />
+              </div>
+
+              {user ? (
+                <UserDrawerV2>
+                  <button className="flex items-center gap-3 rounded-full border border-white/70 bg-white/80 px-2 py-2 shadow-[0_10px_28px_rgba(15,23,42,0.08)] transition-all hover:border-primary/20 hover:shadow-[0_14px_34px_rgba(15,23,42,0.12)] dark:border-white/10 dark:bg-slate-950/72">
+                    <Avatar className="h-10 w-10">
+                      <AvatarImage src={user.avatarUrl || undefined} alt={user.fullName} />
+                      <AvatarFallback>{user.fullName?.charAt(0) || 'U'}</AvatarFallback>
+                    </Avatar>
+                    <div className="hidden text-left md:block">
+                      <div className="text-sm font-semibold text-foreground">{user.fullName}</div>
+                      <div className="text-xs text-muted-foreground">
+                        {user.accountType === 'poster' ? 'Hiring mode' : 'Worker mode'}
+                      </div>
+                    </div>
+                  </button>
+                </UserDrawerV2>
+              ) : (
+                <Link href="/auth">
+                  <Button size="sm">Sign In</Button>
+                </Link>
               )}
             </div>
-          )}
-          
-          {/* Mobile menu button - now uses UserDrawerV2 */}
-          {user ? (
-            <div className="md:hidden">
-              <UserDrawerV2>
-                <Button variant="ghost" size="icon">
-                  <Menu className="h-5 w-5" />
-                  <span className="sr-only">Open menu</span>
+          </div>
+
+          <div className="flex items-center gap-2 overflow-x-auto lg:hidden">
+            {navigation.map((item) => {
+              const Icon = item.icon;
+              const active = isActiveRoute(item.href);
+
+              return (
+                <Link key={item.href} href={item.href}>
+                  <button
+                    className={[
+                      'flex shrink-0 items-center gap-2 rounded-full px-3.5 py-2 text-sm font-semibold transition-all',
+                      active
+                        ? 'bg-[linear-gradient(135deg,hsl(var(--primary)),hsl(var(--accent)))] text-primary-foreground shadow-[0_10px_24px_rgba(3,105,161,0.20)]'
+                        : 'bg-foreground/[0.04] text-foreground/75',
+                    ].join(' ')}
+                  >
+                    <Icon className="h-4 w-4" />
+                    <span>{item.label}</span>
+                  </button>
+                </Link>
+              );
+            })}
+
+            {user && onToggleMessaging ? (
+              <Button variant="ghost" size="sm" className="shrink-0" onClick={onToggleMessaging}>
+                <MessageSquareMore className="h-4 w-4" />
+                Messages
+              </Button>
+            ) : null}
+
+            {user && onTogglePostedJobs ? (
+              <div className="relative shrink-0">
+                <Button variant="ghost" size="sm" onClick={onTogglePostedJobs}>
+                  <BriefcaseBusiness className="h-4 w-4" />
+                  Jobs
                 </Button>
-              </UserDrawerV2>
-            </div>
-          ) : (
-            <Link href="/login" className="md:hidden">
-              <Button size="sm" variant="default">Login</Button>
-            </Link>
-          )}
-          
-          {/* User account section - using UserDrawerV2 */}
-          {user ? (
-            <div className="hidden md:block">
-              <UserDrawerV2>
-                <button className="flex items-center text-sm rounded-full focus:outline-none">
-                  <Avatar className="h-8 w-8">
-                    <AvatarImage src={user.avatarUrl || undefined} alt={user.fullName} />
-                    <AvatarFallback>{user.fullName?.charAt(0) || 'U'}</AvatarFallback>
-                  </Avatar>
-                  <span className="hidden md:block ml-2 text-sm font-medium">{user.fullName}</span>
+                {postedJobsCount > 0 ? (
+                  <Badge
+                    variant="destructive"
+                    size="sm"
+                    className="absolute -right-2 -top-2 min-w-[1.35rem] justify-center px-1.5"
+                  >
+                    {postedJobsCount}
+                  </Badge>
+                ) : null}
+              </div>
+            ) : null}
+          </div>
+
+          {selectedRole && onRoleChange ? (
+            <div className="flex flex-col gap-3 border-t border-border/70 pt-4 md:flex-row md:items-center md:justify-between">
+              <div>
+                <div className="text-xs font-semibold uppercase tracking-[0.2em] text-muted-foreground">
+                  Dashboard mode
+                </div>
+                <div className="mt-1 text-sm text-foreground/75">
+                  Switch between finding nearby gigs and managing posted jobs.
+                </div>
+              </div>
+
+              <div className="inline-flex rounded-full border border-white/70 bg-white/80 p-1.5 shadow-[0_10px_25px_rgba(15,23,42,0.06)] dark:border-white/10 dark:bg-slate-950/70">
+                <button
+                  onClick={() => onRoleChange('worker')}
+                  className={[
+                    'rounded-full px-4 py-2 text-sm font-semibold transition-all',
+                    selectedRole === 'worker'
+                      ? 'bg-[linear-gradient(135deg,hsl(var(--primary)),hsl(var(--accent)))] text-primary-foreground shadow-[0_12px_28px_rgba(3,105,161,0.20)]'
+                      : 'text-foreground/70 hover:text-foreground',
+                  ].join(' ')}
+                >
+                  Worker
                 </button>
-              </UserDrawerV2>
+                <button
+                  onClick={() => onRoleChange('poster')}
+                  className={[
+                    'rounded-full px-4 py-2 text-sm font-semibold transition-all',
+                    selectedRole === 'poster'
+                      ? 'bg-[linear-gradient(135deg,hsl(var(--primary)),hsl(var(--accent)))] text-primary-foreground shadow-[0_12px_28px_rgba(3,105,161,0.20)]'
+                      : 'text-foreground/70 hover:text-foreground',
+                  ].join(' ')}
+                >
+                  Poster
+                </button>
+              </div>
             </div>
-          ) : (
-            <Link href="/login" className="hidden md:block">
-              <Button variant="outline" size="sm">Login</Button>
-            </Link>
-          )}
+          ) : user ? (
+            <div className="hidden items-center justify-between border-t border-border/70 pt-4 md:flex">
+              <div className="flex items-center gap-2">
+                <Badge variant="outline">Signed in as {user.username}</Badge>
+                <Badge variant="secondary">
+                  {user.accountType === 'poster' ? 'Posting jobs' : 'Ready to work'}
+                </Badge>
+              </div>
+              <Link href={profileHref}>
+                <Button variant="ghost" size="sm">
+                  View profile
+                </Button>
+              </Link>
+            </div>
+          ) : null}
         </div>
       </div>
     </header>

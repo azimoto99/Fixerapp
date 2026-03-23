@@ -17,7 +17,8 @@ export function useJobs(
     query?: string; 
     category?: string; 
     searchMode?: 'location' | 'description';
-    coordinates?: { latitude: number; longitude: number }
+    coordinates?: { latitude: number; longitude: number };
+    radiusMiles?: number;
   }
 ) {
   const { userLocation } = useGeolocation();
@@ -29,6 +30,7 @@ export function useJobs(
     includeAll = false,
     forMapDisplay = false
   } = options || {};
+  const activeRadiusMiles = searchParams?.radiusMiles ?? radiusMiles;
   
   // Default search mode is location if not specified
   const searchMode = searchParams?.searchMode || 'location';
@@ -84,7 +86,7 @@ export function useJobs(
     const queryParams: string[] = [
       `latitude=${coordinates.latitude}`,
       `longitude=${coordinates.longitude}`,
-      `radius=${radiusMiles}`
+      `radius=${activeRadiusMiles}`
     ];
     
     if (searchParams?.query && searchMode === 'description') {
@@ -105,7 +107,7 @@ export function useJobs(
   };
   
   // Decide which query to use
-  const queryPath = nearbyOnly && userLocation 
+  const queryPath = nearbyOnly && (userLocation || searchParams?.coordinates)
     ? buildNearbyJobsQuery() 
     : buildStandardJobsQuery();
   

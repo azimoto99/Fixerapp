@@ -50,7 +50,7 @@ interface RegisterProps {
 }
 
 export default function Register({ onModeChange }: RegisterProps) {
-  const [_, navigate] = useLocation();
+  const [, navigate] = useLocation();
   const { registerMutation } = useAuth();
 
   const form = useForm<FormData>({
@@ -102,27 +102,31 @@ export default function Register({ onModeChange }: RegisterProps) {
   }
 
   return (
-    <div className="w-full max-w-md">
-      <div className="text-center mb-8">
+    <div className="w-full max-w-3xl">
+      <div className="mb-8 text-center">
         <div className="flex justify-center">
-          <div className="bg-gray-100 p-5 rounded-xl shadow-sm">
-            <img 
-              src={logoImg} 
-              alt="Fixer" 
-              className="h-28 w-auto" 
-            />
+          <div className="rounded-[28px] border border-white/70 bg-white/78 p-5 shadow-[0_18px_40px_rgba(15,23,42,0.08)] backdrop-blur-xl dark:border-white/10 dark:bg-slate-950/72">
+            <img src={logoImg} alt="Fixer" className="h-24 w-auto" />
           </div>
         </div>
+        <p className="mt-5 text-sm font-semibold uppercase tracking-[0.2em] text-muted-foreground">Create your account</p>
+        <h1 className="mt-3 font-['Sora'] text-3xl font-semibold tracking-tight text-foreground">
+          Start working smarter with Fixer.
+        </h1>
+        <p className="mt-3 text-sm leading-6 text-muted-foreground">
+          Set up your account once, then move between finding work, posting jobs, messaging, and payments in one
+          cleaner flow.
+        </p>
       </div>
       
-      <Card>
+      <Card className="surface-panel">
         <CardHeader>
           <CardTitle>Create an Account</CardTitle>
           <CardDescription>Sign up for Fixer to start finding or posting gigs</CardDescription>
         </CardHeader>
         <CardContent>
           <Form {...form}>
-            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-5">
               
               <FormField
                 control={form.control}
@@ -158,7 +162,7 @@ export default function Register({ onModeChange }: RegisterProps) {
                 )}
               />
               
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
                 <FormField
                   control={form.control}
                   name="username"
@@ -216,7 +220,7 @@ export default function Register({ onModeChange }: RegisterProps) {
                 )}
               />
               
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
                 <FormField
                   control={form.control}
                   name="password"
@@ -325,10 +329,10 @@ export default function Register({ onModeChange }: RegisterProps) {
 
         </CardContent>
         <CardFooter className="flex justify-center">
-          <p className="text-sm text-gray-600">
+          <p className="text-sm text-muted-foreground">
             Already have an account?{' '}
             <span 
-              className="font-medium text-primary-600 hover:text-primary-500 cursor-pointer"
+              className="cursor-pointer font-semibold text-primary"
               onClick={onModeChange}
             >
               Log in

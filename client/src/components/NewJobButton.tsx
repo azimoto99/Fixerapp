@@ -34,12 +34,12 @@ const NewJobButton: React.FC = () => {
         <Button 
           size="lg"
           onClick={handleClick}
-          className="bg-primary hover:bg-primary/90 text-primary-foreground font-medium py-4 px-6 rounded-full shadow-lg transition-transform hover:scale-105 transform-gpu flex items-center gap-2"
+          className="rounded-full px-6 py-4 text-base font-semibold shadow-[0_22px_55px_rgba(3,105,161,0.30)] transition-transform hover:scale-[1.02] flex items-center gap-2"
           style={{ width: "auto", height: "auto" }}
           aria-label="Post a new job"
         >
           <Plus className="h-5 w-5" />
-          <span className="text-base">Post Job</span>
+          <span className="text-base">Create Job</span>
         </Button>
       </div>
     </>

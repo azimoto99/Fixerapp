@@ -3,7 +3,6 @@ import { Switch, Route, useLocation, useRoute } from "wouter";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { queryClient } from "./lib/queryClient";
 import { TooltipProvider } from "@/components/ui/tooltip";
-import { Toaster } from "@/components/ui/toaster";
 import { PaymentDialogProvider } from "@/components/payments/PaymentDialogManager";
 import Home from "@/pages/Home";
 import PostJob from "@/pages/PostJob";
@@ -33,10 +32,9 @@ import { ThemeProvider } from "@/components/theme";
 import { OnboardingProvider } from "@/components/onboarding/OnboardingProvider";
 import ContextualTips from "@/components/onboarding/ContextualTips";
 import { SimpleToastProvider } from "@/hooks/use-simple-toast";
-import { MessagingDrawer } from "@/components/MessagingDrawer";
-import ExpoConnectGuide from "@/components/ExpoConnectGuide";
 import JobCardFix from "@/components/JobCardFix";
-import { useState, useEffect } from "react";
+import MobileNav from "@/components/MobileNav";
+import { useEffect } from "react";
 
 // Redirect component for old routes
 function RedirectToAuth() {
@@ -105,28 +103,19 @@ function RouterWithAuth() {
 // This component uses auth context, so it must be inside the AuthProvider
 function AuthenticatedContent() {
   const { user } = useAuth();
-  const [isMessagingOpen, setIsMessagingOpen] = useState(false);
-  const [selectedUserId, setSelectedUserId] = useState<number | null>(null);
-  
-  // Listen for messaging events
-  useEffect(() => {
-    const handleOpenMessaging = (event: CustomEvent) => {
-      setIsMessagingOpen(true);
-      if (event.detail?.userId) {
-        setSelectedUserId(event.detail.userId);
-      }
-    };
-    
-    window.addEventListener('open-messaging' as any, handleOpenMessaging);
-    
-    return () => {
-      window.removeEventListener('open-messaging' as any, handleOpenMessaging);
-    };
-  }, []);
   
   return (
-    <>
-      <RouterWithAuth />
+    <div className="relative min-h-screen">
+      <div className="pointer-events-none fixed inset-0 -z-10 overflow-hidden">
+        <div className="absolute left-[-6rem] top-[-6rem] h-56 w-56 rounded-full bg-primary/10 blur-3xl" />
+        <div className="absolute right-[-4rem] top-24 h-64 w-64 rounded-full bg-accent/10 blur-3xl" />
+        <div className="absolute bottom-[-8rem] left-1/3 h-72 w-72 rounded-full bg-secondary/50 blur-3xl" />
+      </div>
+
+      <div className={user ? "pb-24 md:pb-0" : ""}>
+        <RouterWithAuth />
+      </div>
+
       {user && (
         <StripeConnectCheck workersOnly={true} enforce={false}>
           <StripeRequirementsCheck user={user}>
@@ -136,12 +125,10 @@ function AuthenticatedContent() {
       )}
       {/* Contextual tips will track user actions and show tooltips at the right moments */}
       {user && <ContextualTips />}
-      {/* ExpoConnectGuide button removed from UI - use ./expo-connect.sh in console instead */}
-      {/* Messaging drawer is now handled in Home.tsx */}
       {/* JobCardFix ensures job details card appears on top of other UI elements */}
       {user && <JobCardFix />}
-      <Toaster />
-    </>
+      {user && <MobileNav />}
+    </div>
   );
 }
 

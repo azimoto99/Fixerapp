@@ -1,8 +1,9 @@
 import React, { memo } from 'react';
-import { Badge } from "@/components/ui/badge";
-import { getCategoryIcon, getCategoryColor, formatCurrency, formatDistance, getTimeAgo } from "@/lib/utils";
-import { Job } from '@shared/schema';
 import { Link } from 'wouter';
+import { CalendarDays, Clock3, MapPin, Sparkles } from 'lucide-react';
+import { Badge } from '@/components/ui/badge';
+import { Job } from '@shared/schema';
+import { formatCurrency, formatDistance, getTimeAgo } from '@/lib/utils';
 
 interface JobCardProps {
   job: Job;
@@ -10,115 +11,106 @@ interface JobCardProps {
   onSelect?: (job: Job) => void;
 }
 
-// Use React.memo to prevent unnecessary re-renders when job data hasn't changed
-const JobCard: React.FC<JobCardProps> = memo(({ job, isSelected, onSelect }) => {
-  const {
-    id,
-    title,
-    category,
-    paymentType,
-    paymentAmount,
-    location,
-    status,
-    datePosted,
-    dateNeeded
-  } = job;
-  
-  // Calculate service fee and total amount based on payment amount
-  const serviceFee = paymentAmount ? Math.max(1.5, paymentAmount * 0.05) : 0;
-  const totalAmount = paymentAmount ? paymentAmount + serviceFee : 0;
-  
-  // Calculate proper distance if we have coordinates, otherwise use 0
-  // In a real app, this would come from the server with the job data
-  const distance = (job as any).distanceMiles || 0;
+const statusVariantMap: Record<string, 'default' | 'secondary' | 'outline' | 'green' | 'amber' | 'blue'> = {
+  open: 'green',
+  assigned: 'blue',
+  in_progress: 'secondary',
+  completed: 'default',
+  cancelled: 'outline',
+};
 
-  const handleClick = (e: React.MouseEvent) => {
-    e.preventDefault(); // Prevent navigation when clicking to select
-    if (onSelect) onSelect(job);
-  };
-  
-  const categoryColor = getCategoryColor(category);
-  const categoryIcon = getCategoryIcon(category);
+const JobCard: React.FC<JobCardProps> = memo(
+  ({ job, isSelected, onSelect }) => {
+    const distance = (job as any).distanceMiles || 0;
 
-  return (
-    <Link href={`/job/${id}`}>
-      <div 
-        className={`border-b border-border hover:bg-secondary/40 cursor-pointer transition-colors duration-150 ease-in-out 
-          ${isSelected ? 'bg-primary/10 border-l-4 border-l-primary' : ''}`}
-        onClick={handleClick}
-      >
-        <div className="px-4 py-4 sm:px-6">
-          {/* Top section with category, title, and payment info */}
-          <div className="flex items-center justify-between">
-            <div className="flex items-center overflow-hidden">
-              <div className="flex-shrink-0 bg-primary/10 rounded-md p-2 text-primary">
-                <i className={`ri-${categoryIcon} text-xl`}></i>
+    const handleClick = (event: React.MouseEvent) => {
+      if (!onSelect) {
+        return;
+      }
+
+      event.preventDefault();
+      onSelect(job);
+    };
+
+    return (
+      <Link href={`/job/${job.id}`}>
+        <div
+          onClick={handleClick}
+          className={[
+            'group cursor-pointer rounded-[26px] border p-4 transition-all duration-200',
+            isSelected
+              ? 'border-primary/40 bg-[linear-gradient(135deg,rgba(2,132,199,0.12),rgba(251,146,60,0.08))] shadow-[0_18px_40px_rgba(3,105,161,0.18)]'
+              : 'border-white/70 bg-white/78 shadow-[0_12px_28px_rgba(15,23,42,0.06)] hover:border-primary/25 hover:shadow-[0_18px_40px_rgba(15,23,42,0.10)] dark:border-white/10 dark:bg-slate-950/70',
+          ].join(' ')}
+        >
+          <div className="flex items-start justify-between gap-3">
+            <div className="min-w-0">
+              <div className="flex flex-wrap items-center gap-2">
+                <Badge variant="outline" className="bg-background/70">
+                  {job.category}
+                </Badge>
+                {job.status ? (
+                  <Badge variant={statusVariantMap[job.status] || 'secondary'} className="capitalize">
+                    {job.status.replace('_', ' ')}
+                  </Badge>
+                ) : null}
               </div>
-              <div className="ml-3 overflow-hidden">
-                <div className="flex items-center space-x-2">
-                  <p className="text-xs font-medium text-primary px-2 py-0.5 bg-primary/5 rounded-full">
-                    {category}
-                  </p>
-                  {status && (
-                    <Badge variant={
-                      status === 'open' ? 'outline' : 
-                      status === 'assigned' ? 'secondary' : 
-                      status === 'completed' ? 'default' : 'outline'
-                    } className="capitalize text-xs">
-                      {status}
-                    </Badge>
-                  )}
-                </div>
-                <p className="text-sm font-medium text-foreground line-clamp-1 mt-0.5">{title}</p>
-              </div>
+
+              <h3 className="mt-3 font-['Sora'] text-base font-semibold tracking-tight text-foreground sm:text-lg">
+                {job.title}
+              </h3>
+
+              <p className="mt-2 line-clamp-2 text-sm leading-6 text-muted-foreground">
+                {job.description}
+              </p>
             </div>
-            <div className="ml-2 flex-shrink-0 flex flex-col items-end">
-              <Badge variant="outline" className="bg-primary/10 text-primary border-primary/30 font-medium">
-                {paymentType === 'hourly' ? `${formatCurrency(paymentAmount)}/hr` : formatCurrency(paymentAmount)}
-              </Badge>
-              <div className="text-xs text-muted-foreground mt-1">
-                {paymentType === 'fixed' 
-                  ? `Total: ${formatCurrency(totalAmount)}` 
-                  : `Est. fee: ${formatCurrency(serviceFee)}`}
+
+            <div className="shrink-0 rounded-[22px] bg-[linear-gradient(135deg,rgba(2,132,199,0.16),rgba(251,146,60,0.14))] px-3 py-2 text-right shadow-[0_10px_25px_rgba(3,105,161,0.12)]">
+              <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-foreground/55">
+                Pay
+              </div>
+              <div className="mt-1 text-base font-semibold text-foreground">
+                {job.paymentType === 'hourly'
+                  ? `${formatCurrency(job.paymentAmount)}/hr`
+                  : formatCurrency(job.paymentAmount)}
               </div>
             </div>
           </div>
-          
-          {/* Bottom section with location, date info */}
-          <div className="mt-2 grid grid-cols-2 gap-2">
-            <div className="flex items-center text-xs text-muted-foreground">
-              <i className="ri-map-pin-line mr-1"></i>
-              {location ? (
-                <span className="truncate">{location}</span>
-              ) : distance > 0 ? (
-                <span>{formatDistance(distance)}</span>
-              ) : (
-                <span>Remote</span>
-              )}
-            </div>
-            
-            <div className="flex items-center text-xs text-muted-foreground justify-end">
-              <i className="ri-time-line mr-1"></i>
-              <span>
-                {datePosted ? getTimeAgo(datePosted) : 'Recently posted'}
+
+          <div className="mt-4 grid gap-2 text-sm text-muted-foreground">
+            <div className="flex items-center gap-2">
+              <MapPin className="h-4 w-4 text-primary" />
+              <span className="truncate">
+                {job.location ? job.location : distance > 0 ? formatDistance(distance) : 'Remote'}
               </span>
             </div>
-            
-            {dateNeeded && (
-              <div className="flex items-center text-xs text-muted-foreground col-span-2 mt-1">
-                <i className="ri-calendar-line mr-1"></i>
-                <span>Needed by {new Date(dateNeeded).toLocaleDateString()}</span>
+
+            <div className="flex items-center gap-2">
+              <Clock3 className="h-4 w-4 text-primary" />
+              <span>{job.datePosted ? getTimeAgo(job.datePosted) : 'Just posted'}</span>
+            </div>
+
+            {job.dateNeeded ? (
+              <div className="flex items-center gap-2">
+                <CalendarDays className="h-4 w-4 text-primary" />
+                <span>Needed by {new Date(job.dateNeeded).toLocaleDateString()}</span>
               </div>
-            )}
+            ) : null}
+          </div>
+
+          <div className="mt-4 flex items-center justify-between border-t border-border/60 pt-3">
+            <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground">
+              <Sparkles className="h-3.5 w-3.5" />
+              Nearby opportunity
+            </div>
+            <span className="text-sm font-semibold text-primary">Open details</span>
           </div>
         </div>
-      </div>
-    </Link>
-  );
-}, (prevProps, nextProps) => {
-  // Custom comparison for memo - only re-render if these props change
-  return prevProps.job.id === nextProps.job.id && 
-         prevProps.isSelected === nextProps.isSelected;
-});
+      </Link>
+    );
+  },
+  (prevProps, nextProps) =>
+    prevProps.job.id === nextProps.job.id && prevProps.isSelected === nextProps.isSelected
+);
 
 export default JobCard;

@@ -1,9 +1,11 @@
 import { useState } from 'react';
 import { Filter } from 'lucide-react';
 import { useNotifications } from '@/hooks/use-notifications';
-import { NotificationList, NotificationItem } from '@/components/notifications';
+import { NotificationItem } from '@/components/notifications';
 import Header from '@/components/Header';
 import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -79,99 +81,79 @@ export default function NotificationsPage() {
     <div className="min-h-screen bg-background">
       <Header />
       
-      <main className="max-w-4xl mx-auto px-4 py-8">
-        <div className="flex justify-between items-center mb-6">
-          <h1 className="text-2xl font-bold">Notifications</h1>
-          
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant="outline" size="sm" className="flex items-center">
-                <Filter className="h-4 w-4 mr-2" />
-                <span>{getFilterLabel(activeFilter)}</span>
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-56">
-              <DropdownMenuLabel>Filter Notifications</DropdownMenuLabel>
-              <DropdownMenuSeparator />
-              <DropdownMenuGroup>
-                <DropdownMenuItem 
-                  onClick={() => setActiveFilter('all')}
-                  className={activeFilter === 'all' ? 'bg-muted' : ''}
-                >
-                  {getFilterLabel('all')}
-                </DropdownMenuItem>
-                <DropdownMenuItem 
-                  onClick={() => setActiveFilter('unread')}
-                  className={activeFilter === 'unread' ? 'bg-muted' : ''}
-                >
-                  {getFilterLabel('unread')}
-                </DropdownMenuItem>
-                <DropdownMenuSeparator />
-                <DropdownMenuItem 
-                  onClick={() => setActiveFilter('job')}
-                  className={activeFilter === 'job' ? 'bg-muted' : ''}
-                >
-                  {getFilterLabel('job')}
-                </DropdownMenuItem>
-                <DropdownMenuItem 
-                  onClick={() => setActiveFilter('application')}
-                  className={activeFilter === 'application' ? 'bg-muted' : ''}
-                >
-                  {getFilterLabel('application')}
-                </DropdownMenuItem>
-                <DropdownMenuItem 
-                  onClick={() => setActiveFilter('payment')}
-                  className={activeFilter === 'payment' ? 'bg-muted' : ''}
-                >
-                  {getFilterLabel('payment')}
-                </DropdownMenuItem>
-                <DropdownMenuItem 
-                  onClick={() => setActiveFilter('review')}
-                  className={activeFilter === 'review' ? 'bg-muted' : ''}
-                >
-                  {getFilterLabel('review')}
-                </DropdownMenuItem>
-                <DropdownMenuItem 
-                  onClick={() => setActiveFilter('system')}
-                  className={activeFilter === 'system' ? 'bg-muted' : ''}
-                >
-                  {getFilterLabel('system')}
-                </DropdownMenuItem>
-              </DropdownMenuGroup>
-            </DropdownMenuContent>
-          </DropdownMenu>
-        </div>
-        
-        <div className="bg-card rounded-lg border shadow-sm">
-          {/* Custom list to handle the filtered notifications */}
-          <div className="divide-y">
-            {filteredNotifications.length === 0 ? (
-              <div className="text-center py-12 px-4">
-                <h3 className="text-lg font-medium mb-2">No notifications</h3>
-                <p className="text-sm text-muted-foreground mb-4">
-                  {activeFilter !== 'all' 
-                    ? `You don't have any ${activeFilter} notifications.`
-                    : "You don't have any notifications yet."}
-                </p>
-                <Button 
-                  variant="outline"
-                  onClick={() => setActiveFilter('all')}
-                  className={activeFilter === 'all' ? 'hidden' : ''}
-                >
-                  View all notifications
+      <main className="page-shell panel-stack max-w-5xl">
+        <Card className="surface-strong">
+          <CardHeader className="page-header">
+            <div>
+              <Badge variant="outline" className="w-fit bg-background/70">
+                Notification center
+              </Badge>
+              <CardTitle className="mt-3 text-3xl">Everything that needs your attention.</CardTitle>
+              <CardDescription className="mt-2">
+                Filter by type and move through updates without losing context.
+              </CardDescription>
+            </div>
+
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="outline" size="sm" className="flex items-center">
+                  <Filter className="mr-2 h-4 w-4" />
+                  <span>{getFilterLabel(activeFilter)}</span>
                 </Button>
-              </div>
-            ) : (
-              filteredNotifications.map(notification => (
-                <div key={notification.id} className="notification-item">
-                  <NotificationItem 
-                    notification={notification} 
-                  />
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-56">
+                <DropdownMenuLabel>Filter Notifications</DropdownMenuLabel>
+                <DropdownMenuSeparator />
+                <DropdownMenuGroup>
+                  <DropdownMenuItem onClick={() => setActiveFilter('all')}>{getFilterLabel('all')}</DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => setActiveFilter('unread')}>{getFilterLabel('unread')}</DropdownMenuItem>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem onClick={() => setActiveFilter('job')}>{getFilterLabel('job')}</DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => setActiveFilter('application')}>
+                    {getFilterLabel('application')}
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => setActiveFilter('payment')}>
+                    {getFilterLabel('payment')}
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => setActiveFilter('review')}>
+                    {getFilterLabel('review')}
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => setActiveFilter('system')}>
+                    {getFilterLabel('system')}
+                  </DropdownMenuItem>
+                </DropdownMenuGroup>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </CardHeader>
+        </Card>
+
+        <Card className="surface-panel overflow-hidden">
+          <CardContent className="p-0">
+            <div className="divide-y divide-border/70">
+              {filteredNotifications.length === 0 ? (
+                <div className="px-6 py-16 text-center">
+                  <h3 className="font-['Sora'] text-xl font-semibold tracking-tight text-foreground">No notifications yet</h3>
+                  <p className="mx-auto mt-2 max-w-md text-sm leading-6 text-muted-foreground">
+                    {activeFilter !== 'all'
+                      ? `You do not have any ${activeFilter} notifications right now.`
+                      : 'You are all caught up. New activity will appear here as jobs, payments, or messages change.'}
+                  </p>
+                  {activeFilter !== 'all' ? (
+                    <Button variant="outline" className="mt-5" onClick={() => setActiveFilter('all')}>
+                      View all notifications
+                    </Button>
+                  ) : null}
                 </div>
-              ))
-            )}
-          </div>
-        </div>
+              ) : (
+                filteredNotifications.map((notification) => (
+                  <div key={notification.id} className="notification-item">
+                    <NotificationItem notification={notification} />
+                  </div>
+                ))
+              )}
+            </div>
+          </CardContent>
+        </Card>
       </main>
     </div>
   );

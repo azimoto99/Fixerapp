@@ -329,8 +329,8 @@ const MapSection: React.FC<MapSectionProps> = ({ jobs, selectedJob, onSelectJob,
   // If no user location yet, show loading
   if (!position) {
     return (
-      <div className="md:col-span-2 bg-background/50 border border-border shadow-md rounded-lg flex items-center justify-center h-80">
-        <div className="text-center p-6 bg-card/80 rounded-xl border border-border shadow-sm max-w-sm">
+      <div className="flex h-[28rem] items-center justify-center rounded-[30px] border border-white/70 bg-white/75 shadow-[0_18px_40px_rgba(15,23,42,0.08)] backdrop-blur-xl dark:border-white/10 dark:bg-slate-950/72">
+        <div className="max-w-sm rounded-[28px] border border-white/70 bg-card/85 p-6 text-center shadow-[0_18px_40px_rgba(15,23,42,0.10)] dark:border-white/10">
           <div className="relative mx-auto mb-5 w-16 h-16">
             <div className="absolute inset-0 bg-primary/20 rounded-full animate-ping"></div>
             <div className="relative flex items-center justify-center w-16 h-16 bg-primary/10 rounded-full">
@@ -364,7 +364,7 @@ const MapSection: React.FC<MapSectionProps> = ({ jobs, selectedJob, onSelectJob,
           onSkip={() => setShowStripeConnectRequired(false)}
         />
       )}
-      <div className="relative h-screen max-h-[calc(100vh-64px)] overflow-hidden">
+      <div className="relative h-[min(72vh,820px)] min-h-[28rem] overflow-hidden rounded-[30px] bg-slate-950/90 md:h-[calc(100vh-12rem)] md:max-h-[820px]">
         <style>{`
           /* Animation for markers */
           @keyframes bounce-in {
@@ -424,10 +424,10 @@ const MapSection: React.FC<MapSectionProps> = ({ jobs, selectedJob, onSelectJob,
 
 
         {/* Map controls overlay - Job count display (positioned below UserDrawerV2) */}
-        <div className="absolute top-0 right-0 z-30 p-2">
-          <div className="bg-background/90 border border-border/30 rounded-full shadow-md px-4 py-2">
+        <div className="absolute right-3 top-3 z-30 p-1">
+          <div className="rounded-full border border-white/25 bg-slate-950/68 px-4 py-2 text-white shadow-[0_16px_30px_rgba(15,23,42,0.24)] backdrop-blur-xl">
             <div className="flex items-center space-x-2">
-              <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
+              <div className="h-2 w-2 rounded-full bg-emerald-400 animate-pulse"></div>
               <span className="text-sm font-medium">
                 {allJobsWithCoordinates.filter(job => job.status === 'open').length} Open Jobs
               </span>
